@@ -1,0 +1,14 @@
+{
+  "name": "lume-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Lume — um espaço de estudos no seu ritmo. Protótipo local, sem dependências.",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
