@@ -33,7 +33,7 @@ retoma o que já está na conta.
 | Quantas aulas faltam e em quais cursos | Implementado (`/api/companion/study`) |
 | Roteiro por prioridade | Implementado no servidor; exibido no comando `plan` e na janela |
 | Bandeja do sistema e janela imersiva (Electron 45) | Implementado no código; abrir com `npm run companion:app` |
-| Instalador assinado | Pendente |
+| Instalador assinado | Pendente; a atualização pela janela já baixa e abre o instalador |
 
 O roteiro completo também aparece no site (Missões e Biblioteca), com o mesmo
 critério. O Companion não inventa uma prioridade diferente.
@@ -114,11 +114,21 @@ O app Electron fica na bandeja e abre uma janela de 400×640 com:
 | Agora | Aplicativo detectado, categoria, relógio da sessão e aviso de que não gera XP |
 | Roteiro | Aulas restantes, cursos ativos e as três próximas aulas com o motivo da prioridade |
 | Ações | Pausar/retomar presença, atualizar roteiro, abrir o Lume, desconectar |
+| Versão | Versão instalada, verificar atualização, baixar e abrir o instalador novo |
 | Pareamento | Código, nome do computador e endereço da API (avançado) |
 
 A bandeja tem ícones próprios para ativo, pausado e desconectado, menu com o
 estado atual, a próxima aula e o atalho para sair. Fechar a janela não encerra o
 programa: ele continua na bandeja até "Sair".
+
+**Atualização.** A janela mostra a versão instalada e um botão que consulta a
+última release `companion-v*` na API pública do GitHub (`companion/update.mjs`).
+Se houver versão nova, o mesmo botão baixa o `Lume-Companion-setup.exe` para uma
+pasta temporária, com progresso, e abre o instalador. A configuração em
+`%APPDATA%\Lume\companion.json` é preservada, então o computador continua
+pareado depois de atualizar; não é preciso reinstalar nem gerar outro código.
+Nada é baixado sem clique, só endereços `https` do GitHub são aceitos e o
+programa avisa que o instalador ainda não é assinado.
 
 O que ainda falta nessa camada:
 
@@ -165,7 +175,7 @@ opt-in; pausa não é punida; nada de vigilância.
 | 2 | Roteiro e contagem de aulas no agente | Feito |
 | 3 | App Electron: bandeja, janela e estado visual | Feito no código |
 | 4 | Instalador Windows via GitHub Actions | Feito; assinatura é opcional |
-| 5 | Início com o Windows e auto-update | Planejado |
+| 5 | Início com o Windows e auto-update | Auto-update pelo botão da janela; início com o Windows pendente |
 | 6 | Sessão declarada dentro do programa + retomada | Planejado |
 | 7 | Presença social entre amigos (opt-in) | Depende de amigos e grupos |
 

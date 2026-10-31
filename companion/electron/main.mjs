@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import {
   createCompanion, pairDevice, readConfig, setPaused, unpairDevice,
 } from '../core.mjs';
+import { checkForUpdate, downloadInstaller, RELEASES_PAGE } from '../update.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const assets = app.isPackaged ? join(process.resourcesPath, 'assets') : join(here, '..', 'assets');
@@ -22,6 +23,9 @@ let quitting = false;
 let state = {
   running: false, paused: false, paired: false, deviceName: '', apiUrl: '',
   detected: null, since: null, plan: null, error: null,
+};
+let updateInfo = {
+  status: 'idle', currentVersion: '', latest: null, progress: 0, error: null, file: null, page: RELEASES_PAGE,
 };
 
 app.setAppUserModelId('com.lume.companion');
@@ -136,12 +140,71 @@ function truncate(value, max) {
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }
 
+function snapshot() {
+  return { ...state, update: { ...updateInfo, currentVersion: app.getVersion() } };
+}
+
 function broadcast() {
   if (tray) {
     tray.setImage(trayImage(state));
     buildMenu();
   }
-  if (window && !window.isDestroyed()) window.webContents.send('state', state);
+  if (window && !window.isDestroyed()) window.webContents.send('state', snapshot());
+}
+
+// ---------- Atualização ----------
+
+async function checkUpdate() {
+  updateInfo = { ...updateInfo, status: 'checking', error: null, progress: 0 };
+  broadcast();
+  try {
+    const result = await checkForUpdate({ current: app.getVersion() });
+    updateInfo = {
+      ...updateInfo,
+      status: result.available ? 'available' : 'current',
+      latest: result.latest,
+      installerUrl: result.installerUrl || null,
+      size: result.size || 0,
+      notes: result.notes || '',
+      page: result.page || RELEASES_PAGE,
+      file: null,
+      progress: 0,
+    };
+  } catch (error) {
+    updateInfo = { ...updateInfo, status: 'error', error: error.message || String(error) };
+  }
+  broadcast();
+  return snapshot();
+}
+
+async function downloadUpdate() {
+  if (!updateInfo.installerUrl) throw new Error('Verifique a atualização antes de baixar.');
+  updateInfo = { ...updateInfo, status: 'downloading', progress: 0, error: null };
+  broadcast();
+  try {
+    const file = await downloadInstaller({
+      url: updateInfo.installerUrl,
+      version: updateInfo.latest,
+      onProgress: (percent) => {
+        updateInfo = { ...updateInfo, progress: percent ?? updateInfo.progress };
+        broadcast();
+      },
+    });
+    updateInfo = { ...updateInfo, status: 'ready', file, progress: 100 };
+  } catch (error) {
+    updateInfo = { ...updateInfo, status: 'error', error: error.message || String(error), progress: 0 };
+  }
+  broadcast();
+  return snapshot();
+}
+
+async function installUpdate() {
+  if (!updateInfo.file) throw new Error('Nenhum instalador baixado ainda.');
+  const failure = await shell.openPath(updateInfo.file);
+  if (failure) throw new Error(failure);
+  updateInfo = { ...updateInfo, status: 'installing' };
+  broadcast();
+  return snapshot();
 }
 
 function createWindow() {
@@ -167,7 +230,7 @@ function createWindow() {
     event.preventDefault();
     window.hide();
   });
-  window.webContents.on('did-finish-load', () => window.webContents.send('state', state));
+  window.webContents.on('did-finish-load', () => window.webContents.send('state', snapshot()));
 }
 
 function showWindow() {
@@ -227,6 +290,12 @@ ipcMain.handle('action', async (_event, name, payload = {}) => {
     case 'open-settings':
       await shell.openExternal(`${(state.apiUrl || readConfig().apiUrl).replace(/\/+$/, '')}/#aplicativo`);
       return state;
+    case 'update-check':
+      return checkUpdate();
+    case 'update-download':
+      return downloadUpdate();
+    case 'update-install':
+      return installUpdate();
     case 'hide':
       window?.hide();
       return state;

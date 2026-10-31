@@ -90,6 +90,46 @@ function renderError(message) {
   node.classList.toggle('hidden', !message);
 }
 
+function renderUpdate() {
+  const info = state.update || {};
+  const status = info.status || 'idle';
+  const current = info.currentVersion || '';
+  const line = $('update-line');
+  const action = $('update-action');
+  const note = $('update-note');
+
+  if (status === 'checking') line.textContent = 'Procurando atualização…';
+  else if (status === 'current') line.textContent = `Versão ${current} é a mais recente.`;
+  else if (status === 'available') line.textContent = `Versão ${info.latest} disponível. Você está na ${current}.`;
+  else if (status === 'downloading') line.textContent = `Baixando a versão ${info.latest}…${info.progress ? ` ${info.progress}%` : ''}`;
+  else if (status === 'ready') line.textContent = `Instalador da versão ${info.latest} pronto para abrir.`;
+  else if (status === 'installing') line.textContent = 'Instalador aberto.';
+  else if (status === 'error') line.textContent = 'Não foi possível verificar agora.';
+  else line.textContent = current ? `Versão ${current}` : 'Versão desconhecida';
+
+  const labels = {
+    idle: 'Verificar atualização',
+    checking: 'Procurando…',
+    current: 'Verificar de novo',
+    available: 'Baixar e instalar',
+    downloading: 'Baixando…',
+    ready: 'Abrir instalador',
+    installing: 'Abrir novamente',
+    error: 'Tentar de novo',
+  };
+  action.textContent = labels[status] || labels.idle;
+  action.disabled = busy || status === 'checking' || status === 'downloading';
+
+  const notes = {
+    ready: 'O instalador vai abrir. Feche o Lume Companion e conclua. A conta conectada continua valendo.',
+    installing: 'Feche o Lume Companion para a instalação concluir e abra de novo depois.',
+    error: info.error || '',
+    available: 'O arquivo ainda não tem assinatura digital: o Windows pode pedir confirmação.',
+  };
+  note.textContent = notes[status] || '';
+  note.classList.toggle('hidden', !note.textContent);
+}
+
 function render() {
   if (!state) return;
   $('device').textContent = state.paired
@@ -103,6 +143,7 @@ function render() {
   renderPlan();
   renderError(state.error);
   document.querySelectorAll('button').forEach((button) => { button.disabled = busy; });
+  renderUpdate();
 }
 
 async function run(action, payload) {
@@ -144,6 +185,18 @@ $('unpair').addEventListener('click', () => {
   if (confirm('Desconectar este computador? A presença deixa de ser enviada até um novo pareamento.')) run('unpair');
 });
 $('open').addEventListener('click', () => run('open-lume'));
+$('update-action').addEventListener('click', () => {
+  const status = state?.update?.status || 'idle';
+  if (status === 'available') {
+    run('update-download').then(() => {
+      if (state?.update?.status === 'ready') return run('update-install');
+      return null;
+    });
+    return;
+  }
+  if (status === 'ready' || status === 'installing') { run('update-install'); return; }
+  run('update-check');
+});
 
 window.companion.onState((value) => {
   state = value;
