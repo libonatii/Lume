@@ -1,0 +1,43 @@
+/* A navegação continua imediata quando as animações não estão disponíveis. */
+@keyframes page-arrive {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes page-leave {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-6px); }
+}
+@keyframes dialog-arrive {
+  from { opacity: 0; transform: translateY(8px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-motion=full] #main { view-transition-name: page-content; }
+  [data-motion=full]::view-transition-old(page-content) {
+    animation: page-leave 150ms ease-out both;
+  }
+  [data-motion=full]::view-transition-new(page-content) {
+    animation: page-arrive 260ms cubic-bezier(.2, .7, .3, 1) both;
+  }
+  [data-motion=full]::view-transition-group(page-content) { animation-duration: 260ms; }
+  [data-motion=full]::view-transition-old(root),
+  [data-motion=full]::view-transition-new(root) { animation: none; }
+  [data-motion=full] .screen-enter { animation: page-arrive 260ms ease-out both; }
+  [data-motion=full] dialog[open] { animation: dialog-arrive 180ms ease-out both; }
+  [data-motion=full] .rhythm-card,
+  [data-motion=full] .support-option,
+  [data-motion=full] .nav-link,
+  [data-motion=full] .button,
+  [data-motion=full] .filter-button {
+    transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
+  }
+  [data-motion=full] .rhythm-card:hover { transform: translateY(-3px); }
+  [data-motion=full] .button:active:not(:disabled) { transform: translateY(1px); }
+  [data-motion=full] .rhythm-check { transition: background-color 180ms ease, border-color 180ms ease; }
+}
+[data-motion=reduced]::view-transition-group(*),
+[data-motion=reduced]::view-transition-old(*),
+[data-motion=reduced]::view-transition-new(*) { animation: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+}

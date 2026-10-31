@@ -1,12 +1,51 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createInitialState, restoreState, completeMission, totalXP, courseProgress, courseStatus, nextMission, achievements, addCourse, safeCourseURL, weekCount } from './domain.js';
+import { applyStudyRhythm, studyRhythm } from './domain.js';
 
 test('começa sem XP, com uma próxima ação concreta', () => {
   const state = createInitialState();
   assert.equal(totalXP(state), 0);
   assert.equal(nextMission(state).step.id, 'design-1');
   assert.equal(achievements(state).filter((item) => item.unlocked).length, 0);
+});
+
+test('ritmo inicial e apoios mudam sugestões e plano, preservando cursos e XP', () => {
+  const previous = completeMission(createInitialState(), 'design', 'design-1').state;
+  const state = applyStudyRhythm(previous, { habit: 'starting', supports: ['calm', 'initiation'] });
+  assert.equal(state.preferences.weeklyGoal, 2);
+  assert.equal(state.preferences.essential, true);
+  assert.equal(studyRhythm(state).prepareFirst, true);
+  assert.equal(state.onboarded, true);
+  assert.equal(totalXP(state), 10);
+  assert.equal(courseProgress(state, state.courses[0]).done, 1);
+  assert.equal(totalXP(previous), 10);
+  assert.equal(previous.onboarded, false);
+});
+
+test('revisar o mesmo ritmo preserva plano e conforto ajustados manualmente', () => {
+  const state = applyStudyRhythm(createInitialState(), { habit: 'sometimes', supports: ['calm'] });
+  state.preferences.weeklyGoal = 6;
+  state.preferences.essential = false;
+  const reviewed = applyStudyRhythm(state, { habit: 'sometimes', supports: ['calm'] });
+  assert.equal(reviewed.preferences.weeklyGoal, 6);
+  assert.equal(reviewed.preferences.essential, false);
+  const changed = applyStudyRhythm(reviewed, { habit: 'often', supports: ['chunking'] });
+  assert.equal(changed.preferences.weeklyGoal, 5);
+  assert.equal(studyRhythm(changed).prepareFirst, true);
+});
+
+test('apoios e ritmo sobrevivem à restauração sem duplicatas nem valores desconhecidos', () => {
+  const state = applyStudyRhythm(createInitialState(), { habit: 'often', supports: ['return', 'return', 'unknown'] });
+  assert.deepEqual(state.supports, ['return']);
+  const restored = restoreState(JSON.stringify(state));
+  assert.deepEqual(restored.supports, ['return']);
+  assert.equal(restored.habit, 'often');
+  assert.match(studyRhythm(restored).message, /retomar/);
+  assert.throws(() => applyStudyRhythm(state, { habit: 'unknown' }));
+  const oldState = createInitialState();
+  delete oldState.supports;
+  assert.deepEqual(restoreState(JSON.stringify(oldState)).supports, []);
 });
 
 test('conclusão dá XP uma única vez e avança a próxima etapa', () => {

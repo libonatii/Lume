@@ -1,6 +1,6 @@
 {
   "projectId": "10906855451665474274",
-  "projectTitle": "NeuroFocus Learning Hub",
+  "projectTitle": "Projeto Lume",
   "files": [
     {
       "screenId": "4e99f03786c745ab916a0c5f9699e698",
@@ -36,6 +36,42 @@
       "dimensions": [
         2560,
         2508
+      ]
+    },
+    {
+      "screenId": "473289d278cb486da7db8a9890b977f1",
+      "title": "Lume — Onboarding: Ritmo de Estudo",
+      "file": "onboarding/index.html",
+      "bytes": 19362,
+      "sha256": "006399bb8a897e9984248158ce714f948e6399dd65d0bb51877d503b754b0fbf"
+    },
+    {
+      "screenId": "473289d278cb486da7db8a9890b977f1",
+      "title": "Lume — Onboarding: Ritmo de Estudo",
+      "file": "onboarding/screenshot.jpg",
+      "bytes": 27712,
+      "sha256": "ad7411045f8d63f3bcdff9fa6ba5f1f8a9d7912000dcb86203f5903d1d14791a",
+      "dimensions": [
+        1280,
+        1321
+      ]
+    },
+    {
+      "screenId": "5a50f9dbaa5c4aecbe5d5140072e3ef4",
+      "title": "Lume — Início & Login",
+      "file": "inicio-login/index.html",
+      "bytes": 19116,
+      "sha256": "b8c2be0eb36c3ad3bfd1135cabbd8d2739993c7d463bbc58bbf70bc1984cd8ab"
+    },
+    {
+      "screenId": "5a50f9dbaa5c4aecbe5d5140072e3ef4",
+      "title": "Lume — Início & Login",
+      "file": "inicio-login/screenshot.jpg",
+      "bytes": 67158,
+      "sha256": "76122767bd9e7e311e3f8781750d9edb9093ad8fe4f7189ae0fef549484b2cc2",
+      "dimensions": [
+        1280,
+        1106
       ]
     }
   ]

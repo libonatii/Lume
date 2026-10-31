@@ -1,7 +1,8 @@
 import {
-  STORAGE_KEY, HABITS, CHALLENGES, createInitialState, restoreState,
+  STORAGE_KEY, HABITS, createInitialState, restoreState,
   courseProgress, courseStatus, nextMission, hasPreparation, completeMission,
   levelInfo, localDay, weekCount, achievements, addCourse,
+  STUDY_RHYTHMS, STUDY_SUPPORTS, studyRhythm, applyStudyRhythm,
 } from './domain.js';
 
 const app = document.querySelector('#app');
@@ -14,11 +15,17 @@ try {
   state = createInitialState();
   storageAvailable = false;
 }
-let onboardingStep = 1;
+// Prévia local: esta sessão de navegação não é autenticação de uma conta.
+const PREVIEW_SESSION_KEY = 'lume.preview-session.v1';
+let previewEntered = false;
+try { previewEntered = sessionStorage.getItem(PREVIEW_SESSION_KEY) === 'open'; } catch { /* Sessão permanece só em memória. */ }
+let onboardingDraft = { habit: state.habit, supports: [...state.supports] };
 let libraryFilter = 'all';
 let searchTerm = '';
 let session = null;
 let toastTimer;
+let lastRenderedRoute = null;
+let activePageTransition = null;
 const icons = {
   home: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/>',
   book: '<path d="M12 5v16M3 4h5a4 4 0 0 1 4 2 4 4 0 0 1 4-2h5v15h-5a4 4 0 0 0-4 2 4 4 0 0 0-4-2H3Z"/>',
@@ -54,8 +61,6 @@ const icons = {
 };
 const icon = (name, className = '') => `<svg class="icon ${className}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${icons[name] || icons.spark}</svg>`;
 const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
-const brandMark = '<svg viewBox="0 0 40 40" fill="currentColor" aria-hidden="true"><path d="m20 1 3.9 11.6 10.9-5.4-5.4 10.9L41 22l-11.6 3.9 5.4 10.9-10.9-5.4L20 43l-3.9-11.6-10.9 5.4 5.4-10.9L-1 22l11.6-3.9L5.2 7.2l10.9 5.4Z" transform="translate(2 0) scale(.85)"/></svg>';
-
 function save() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -73,34 +78,18 @@ function notify(message) {
   toastTimer = setTimeout(() => toast.classList.remove('visible'), 6500);
 }
 
-function landscape(extraClass = '') {
-  return `<svg class="landscape ${extraClass}" viewBox="0 0 480 430" fill="none" aria-hidden="true" focusable="false">
-    <defs><linearGradient id="sky-${extraClass || 'main'}" x2="0" y2="1"><stop stop-color="#263e31"/><stop offset="1" stop-color="#1b2d24"/></linearGradient></defs>
-    <path d="M82 430V184a158 158 0 0 1 316 0v246" fill="url(#sky-${extraClass || 'main'})"/>
-    <path d="M95 430V187a145 145 0 0 1 290 0v243" stroke="#638268" stroke-opacity=".35"/>
-    <circle cx="263" cy="145" r="51" fill="#edcc8c"/>
-    <circle cx="263" cy="145" r="68" stroke="#e4ca91" stroke-opacity=".17"/>
-    <path d="M82 310 190 183l131 151 77-76v172H82Z" fill="#456c52"/>
-    <path d="m190 183 15 88 116 63Z" fill="#35543e"/>
-    <path d="M82 358c79-73 164-57 235-13l81-35v120H82Z" fill="#74926a"/>
-    <path d="M82 402c91-71 229-45 316-16v44H82Z" fill="#a6b98b"/>
-    <path d="M259 429c-68-58-75-47-24-78 40-24-7-32-13-40" stroke="#e3d9ad" stroke-width="18"/>
-    <path d="m101 98 4-12 4 12 12 4-12 4-4 12-4-12-12-4Zm273 92 3-8 3 8 8 3-8 3-3 8-3-8-8-3Z" fill="#d0e1ab"/>
-    <circle cx="345" cy="82" r="3" fill="#d0e1ab"/><circle cx="149" cy="152" r="2" fill="#d0e1ab"/>
-    <path d="m48 324 9-14 9 14m-9-5v30m359-77 8-14 8 14m-8-5v28" stroke="#8caa7d" stroke-width="2" stroke-linecap="round"/>
-  </svg>`;
-}
-
 function cover(course) {
   const art = ['design', 'code', 'language', 'nature'].includes(course.art) ? course.art : 'nature';
   return `<div class="course-cover art-${art}" aria-hidden="true"><img src="./assets/stitch/${art}.png" alt="" loading="lazy" /></div>`;
 }
 
 function route() {
+  if (!previewEntered) return 'login';
   const requested = location.hash.slice(1);
+  if (requested === 'login') return 'login';
+  if (!state.onboarded) return 'inicio';
   const valid = ['hoje', 'biblioteca', 'missoes', 'conquistas', 'historico', 'configuracoes', 'inicio'];
-  if (valid.includes(requested)) return requested;
-  return state.onboarded ? 'hoje' : 'inicio';
+  return valid.includes(requested) ? requested : 'hoje';
 }
 
 function go(destination) {
@@ -122,23 +111,28 @@ function shell(content, currentRoute) {
     <a href="#hoje" class="brand" aria-label="Lume — página inicial"><img class="lume-logo" src="./assets/stitch/logo.png" alt="" /><span class="brand-copy">Lume<small>Ritmo Serena</small></span></a>
     <nav aria-label="Navegação">${links.map(([path, symbol, label]) => `<a href="#${path}" aria-label="${label}" class="nav-link ${(currentRoute === path || (path === 'hoje' && currentRoute === 'inicio')) ? 'active' : ''}" ${currentRoute === path ? 'aria-current="page"' : ''}>${icon(symbol)}<span>${label}</span></a>`).join('')}</nav>
     <div class="sidebar-bottom"><label class="essential-toggle" for="sidebar-essential"><span>Modo Essencial</span><input id="sidebar-essential" class="switch" type="checkbox" data-preference="essential" ${state.preferences.essential ? 'checked' : ''}/><small>Foco calmo e sem distrações visuais</small></label><p class="sidebar-mantra">Não é uma corrida.<br>É o seu caminho.</p></div>
-  </aside><div class="workspace"><header class="topbar"><span class="calm-badge"><span class="live-dot"></span> Foco Calmo · Sem Pressa</span><div class="topbar-right">${state.preferences.gamification ? `<div class="header-level">${icon('sprout')}<div><span>Nível ${level.level} <span class="muted">·</span> <strong>${level.current} / ${level.next} XP</strong></span><progress max="100" value="${level.current}" aria-label="Experiência até o próximo nível"></progress></div></div>` : '<span class="local-badge">Seu ritmo, sem pontuação</span>'}<button class="top-avatar icon-button" data-action="navigate" data-route="configuracoes" aria-label="Abrir minhas preferências">${icon('settings')}</button></div></header>
+  </aside><div class="workspace"><header class="topbar"><span class="calm-badge"><span class="live-dot"></span> Foco Calmo · Sem Pressa</span><div class="topbar-right">${state.preferences.gamification ? `<div class="header-level">${icon('sprout')}<div><span>Nível ${level.level} <span class="muted">·</span> <strong>${level.current} / ${level.next} XP</strong></span><progress max="100" value="${level.current}" aria-label="Experiência até o próximo nível"></progress></div></div>` : '<span class="local-badge">Seu ritmo, sem pontuação</span>'}<button class="top-avatar icon-button" data-action="navigate" data-route="configuracoes" aria-label="Abrir minhas preferências">${icon('settings')}</button><button class="exit-preview" data-action="exit-preview">Sair da prévia</button></div></header>
   <main id="main" tabindex="-1">${content}</main><footer class="page-footer"><span>Feito para o seu ritmo, não o contrário.</span><span>Protótipo · ${storageAvailable ? 'dados só neste navegador' : 'dados temporários nesta aba'}</span></footer></div>`;
 }
 
+
+function entryShell(content, currentRoute) {
+  return `<div class="entry-workspace"><header class="entry-header"><a class="entry-brand" href="#login" aria-label="Lume — início">Lume<span class="live-dot"></span></a><nav aria-label="Entrada no Lume"><button class="comfort-button" data-action="toggle-theme">${icon('sun')} Conforto visual</button>${currentRoute === 'login' ? '<button class="text-button" data-action="account-info">Criar conta</button>' : '<button class="text-button" data-action="exit-preview">Voltar à entrada</button>'}<button class="text-button" data-action="entry-help">Ajuda</button></nav></header><main id="main" tabindex="-1" class="entry-main">${content}</main><footer class="entry-footer"><span><span class="live-dot"></span> Aprender no seu ritmo, com espaço para recomeçar.</span><span>Prévia local · sem cadastro</span></footer></div>`;
+}
+
+function loginPage() {
+  return `<div class="login-layout"><section class="login-story" aria-labelledby="welcome-title"><span class="welcome-badge">${icon('sprout')} SEU ESPAÇO DE DESCOBERTAS</span><h1 id="welcome-title">Aprender pode ter <br>o seu <em>ritmo.</em></h1><p>Um pequeno passo, uma nova possibilidade. Organize seus estudos com missões que cabem no seu momento.</p><div class="login-story-note">${icon('leaf')}<div><strong>Não é uma corrida.</strong><p>Você pode começar pequeno e voltar quando quiser.</p></div></div><div class="login-garden"><img src="./assets/stitch/welcome.png" alt="Jardim tranquilo com pedras e vegetação"/><span>Um começo mais leve.</span></div><p class="story-ending">Seu caminho não precisa ser igual ao de ninguém.</p></section><section class="login-panel" aria-labelledby="login-title"><div class="login-eyebrow"><span class="green-pill">BEM-VINDO AO LUME</span><span>Prévia local</span></div><h2 id="login-title">Que bom ter você aqui.</h2><p class="login-subtitle">Entre para encontrar seu ritmo de estudo e experimentar seu espaço.</p><button class="button secondary full-width" disabled>Continuar com Google <span class="coming-soon">Em breve</span></button><div class="login-divider"><span>Contas em preparação</span></div><fieldset class="future-login" disabled aria-describedby="preview-explanation"><legend class="sr-only">Login de conta — indisponível nesta prévia</legend><label for="future-email">E-mail</label><input id="future-email" type="email" placeholder="Disponível quando as contas forem ativadas" autocomplete="off"/><label for="future-password">Senha</label><input id="future-password" type="password" placeholder="Nenhuma senha é necessária nesta prévia" autocomplete="off"/></fieldset><div class="preview-explanation" id="preview-explanation">${icon('shield')}<p>Explore sem e-mail ou senha. Seu progresso fica neste navegador. Esta entrada ainda não autentica uma conta.</p></div><button class="button primary full-width" data-action="enter-preview">Entrar na prévia ${icon('arrow')}</button><p class="login-footnote">Na próxima tela, vamos encontrar um começo que combine com você.</p></section></div><div class="entry-benefits"><div>${icon('steps')}<span><strong>Pequenos passos</strong>Uma próxima ação possível.</span></div><div>${icon('leaf')}<span><strong>Sem pressa</strong>Pausas preservam seu progresso.</span></div><div>${icon('shield')}<span><strong>Dados locais</strong>Sem envio de dados de estudo.</span></div></div>`;
+}
+
 function onboarding() {
-  const first = onboardingStep === 1;
-  return `<section class="onboarding-intro"><div class="eyebrow">QUE BOM TER VOCÊ AQUI</div><span class="small-pill">${icon('leaf')} Um começo mais leve</span></section>
-    <section class="onboarding-card" aria-labelledby="onboarding-title">
-      <div class="onboarding-story"><div class="story-top"><span class="tiny-star">✳</span><span>PEQUENOS PASSOS.<br>NOVAS POSSIBILIDADES.</span></div>
-      ${landscape('welcome')}<div class="story-copy"><h2>Todo caminho começa<br>com uma <em>faísca.</em></h2><p>Você não precisa fazer tudo hoje.<br>Só encontrar um começo possível.</p></div><div class="story-bottom"><span></span> NO SEU TEMPO, DO SEU JEITO</div></div>
-      <div class="onboarding-form"><div class="step-indicator"><span class="step-dot complete"></span><span class="step-line"></span><span class="step-dot ${first ? '' : 'complete'}"></span><span>PASSO ${onboardingStep} DE 2</span></div>
-      <h1 id="onboarding-title">${first ? 'Vamos encontrar<br><em>seu ritmo.</em>' : 'O que tornaria<br><em>o começo mais fácil?</em>'}</h1>
-      <p class="onboarding-subtitle">${first ? 'Como os estudos fazem parte da sua rotina hoje?' : 'Onde você gostaria de ter uma mãozinha?'}<br><span>${first ? 'Não existe resposta certa. Só o seu momento.' : 'Pode escolher mais de uma opção. Ou nenhuma.'}</span></p>
-      ${first ? `<fieldset class="habit-options"><legend class="sr-only">Sua rotina de estudos hoje</legend>${HABITS.map((habit) => `<label class="choice-card"><input type="radio" name="habit" value="${habit.id}" ${state.habit === habit.id ? 'checked' : ''}/><span class="choice-icon">${icon(habit.icon)}</span><span class="choice-copy"><strong>${habit.title}</strong><span>${habit.text}</span></span><span class="choice-radio" aria-hidden="true"></span></label>`).join('')}</fieldset>` : `<fieldset class="challenge-options"><legend class="sr-only">Onde você gostaria de ajuda</legend>${CHALLENGES.map((item) => `<label class="challenge-card"><input type="checkbox" name="challenge" value="${item.id}" ${state.challenges.includes(item.id) ? 'checked' : ''}/>${icon(item.icon)}<span>${item.title}</span><span class="choice-checkbox" aria-hidden="true">${icon('check')}</span></label>`).join('')}</fieldset>`}
-      <div class="onboarding-actions">${first ? '<button class="text-button" data-action="skip-onboarding">Pular por enquanto</button>' : `<button class="text-button" data-action="onboarding-back">${icon('back')} Voltar</button>`}<button id="onboarding-next" class="button primary" data-action="${first ? 'onboarding-next' : 'finish-onboarding'}" ${first && !state.habit ? 'disabled' : ''}>${first ? 'Continuar' : 'Encontrar meu começo'}${icon('arrow')}</button></div>
-      <p class="quiet-note">${icon('settings')} Você pode mudar tudo isso depois.</p></div>
-    </section><p class="onboarding-footnote">${icon('shield')} Nenhum diagnóstico é necessário. Este espaço se adapta às suas preferências.</p>`;
+  return `<section class="rhythm-page"><div class="rhythm-progress-label"><span>UM COMEÇO DO SEU JEITO</span><span>Etapa 1 de 1</span></div><progress class="rhythm-progress" max="1" value="1" aria-label="Personalização inicial, etapa 1 de 1"></progress><div class="rhythm-intro"><span class="green-pill">VAMOS ENCONTRAR SEU RITMO</span><h1>Como os estudos fazem parte <br>da sua vida hoje?</h1><p>Não existe resposta certa, nem ritmo melhor. Escolha o que combina com seu momento. Você pode mudar depois.</p></div><fieldset class="rhythm-options"><legend class="sr-only">Seu ritmo de estudo</legend>${STUDY_RHYTHMS.map(item => `<label class="rhythm-card"><input id="rhythm-${item.id}" type="radio" name="habit" value="${item.id}" ${onboardingDraft.habit === item.id ? 'checked' : ''}/><span class="rhythm-card-top"><span class="rhythm-icon">${icon(item.icon)}</span><span class="rhythm-check" aria-hidden="true">${icon('check')}</span></span><span class="rhythm-label">${item.label}</span><strong class="rhythm-title">${item.title}</strong><span class="rhythm-subtitle">${item.subtitle}</span><span class="rhythm-description">${item.text}</span><span class="rhythm-detail">${icon('calendar')}${item.detail}</span></label>`).join('')}</fieldset><section class="study-supports"><div class="support-heading"><h2>${icon('focus')} O que ajudaria você a estudar?</h2><span>Escolha opcional · pode marcar mais de um</span></div><fieldset class="support-options"><legend class="sr-only">Apoios para o estudo</legend>${STUDY_SUPPORTS.map(item => `<label class="support-option"><input id="support-${item.id}" type="checkbox" name="support" value="${item.id}" ${onboardingDraft.supports.includes(item.id) ? 'checked' : ''}/><span><strong>${item.title}</strong><small>${item.text}</small></span>${icon(item.icon)}</label>`).join('')}</fieldset></section><div class="rhythm-result"><span>${icon('settings')} O que muda no seu espaço</span><p id="rhythm-summary" aria-live="polite">${esc(rhythmSummary())}</p></div><div class="rhythm-actions"><button class="text-button" data-action="skip-onboarding">${state.onboarded ? 'Usar minhas preferências salvas' : 'Explorar sem personalizar agora'}</button><button id="onboarding-next" class="button primary" data-action="finish-onboarding" ${!onboardingDraft.habit ? 'disabled' : ''}>Continuar no meu ritmo ${icon('arrow')}</button></div><p class="rhythm-footer">Sem diagnóstico, sem comparações. O plano é uma sugestão, não uma obrigação.</p></section>`;
+}
+
+function rhythmSummary() {
+  if (!onboardingDraft.habit) return 'Escolha um ritmo para ver as sugestões. Seus dados e conquistas continuam guardados.';
+  const suggested = applyStudyRhythm(state, onboardingDraft);
+  const plan = studyRhythm(suggested);
+  return `${suggested.preferences.weeklyGoal} passos sugeridos por semana.${plan.prepareFirst ? ' Preparar o material pode ser sua primeira missão.' : ' Uma etapa por vez, no seu tempo.'}${suggested.preferences.essential ? ' Modo essencial para mostrar menos informação.' : ''} Tudo pode ser ajustado nas configurações.`;
 }
 
 function pageHeading(eyebrow, title, subtitle, action = '') {
@@ -167,12 +161,14 @@ function home() {
   const mission = nextMission(state);
   const essential = state.preferences.essential;
   const count = weekCount(state);
+  const plan = studyRhythm(state);
+  const prepareFirst = mission && plan.prepareFirst && !hasPreparation(state, mission.step.id);
   const goal = state.preferences.weeklyGoal;
   const progress = mission ? courseProgress(state, mission.course) : null;
-  return `<section class="welcome-heading"><span class="welcome-badge">${icon('sprout')} ESPAÇO SEU · SEM URGÊNCIA</span><h1>Olá. <span>Que bom ter você aqui.</span></h1><p>Seu ritmo é a medida que importa hoje. Seu progresso fica guardado, sem prazos punitivos por aqui.</p></section>
+  return `<section class="welcome-heading"><span class="welcome-badge">${icon('sprout')} ESPAÇO SEU · SEM URGÊNCIA</span><h1>Olá. <span>Que bom ter você aqui.</span></h1><p>${esc(plan.message)}</p><button class="rhythm-profile" data-action="personalize">${icon('settings')} Seu ritmo: ${esc(plan.title)} · ajustar</button></section>
   ${!state.onboarded ? `<div class="notice">${icon('sprout')}<span>Um começo mais seu: responda duas perguntas rápidas.</span><button class="text-button" data-action="personalize">Personalizar ${icon('arrow')}</button></div>` : ''}
   <section class="focus-card ${essential ? 'focus-essential' : ''}" aria-labelledby="next-title"><div class="focus-main"><div class="focus-meta"><span class="focus-pill">Ação Focal Única</span><span>·</span><span>${mission ? esc(mission.course.title) : 'Seu caminho de descobertas'}</span></div><h2 id="next-title">${mission ? 'O começo pode ser pequeno.' : 'Cada passo já faz parte do seu caminho.'}</h2><p class="focus-description">${mission ? 'Você não precisa fazer tudo agora. Escolha um movimento pequeno, no seu tempo e sem compromisso de perfeição.' : 'Você pode adicionar um curso ou retomar uma trilha quando fizer sentido.'}</p>
-  ${mission ? `<div class="focal-task">${icon('focus')}<div><strong>${esc(mission.step.title)}</strong><small>Sem tempo mínimo · Sem pressão de entrega${mission.course.example ? ' · Curso de exemplo' : ''}</small></div><span class="free-rhythm">${icon('history')} Ritmo livre</span></div><div class="focus-actions"><button class="button primary" data-action="start-mission" data-id="${esc(mission.course.id)}">${icon('play')} Começar este passo</button><button class="button secondary" data-action="smaller-mission" data-id="${esc(mission.course.id)}">${icon('sprout')} Tornar ainda menor</button></div>` : `<button class="button primary" data-action="navigate" data-route="biblioteca">Explorar biblioteca ${icon('arrow')}</button>`}</div>
+  ${mission ? `<div class="focal-task">${icon('focus')}<div><strong>${prepareFirst ? `Preparar o material: ${esc(mission.course.title)}` : esc(mission.step.title)}</strong><small>Sem tempo mínimo · Sem pressão de entrega${mission.course.example ? ' · Curso de exemplo' : ''}</small></div><span class="free-rhythm">${icon('history')} Ritmo livre</span></div><div class="focus-actions"><button class="button primary" data-action="${prepareFirst ? 'smaller-mission' : 'start-mission'}" data-id="${esc(mission.course.id)}">${icon('play')} ${prepareFirst ? 'Preparar meu material' : 'Começar este passo'}</button><button class="button secondary" data-action="${prepareFirst ? 'start-mission' : 'smaller-mission'}" data-id="${esc(mission.course.id)}">${icon('sprout')} ${prepareFirst ? 'Fazer a etapa completa' : 'Tornar ainda menor'}</button></div>` : `<button class="button primary" data-action="navigate" data-route="biblioteca">Explorar biblioteca ${icon('arrow')}</button>`}</div>
   ${!essential ? `<aside class="rest-card"><span class="overline">CUIDADO COM SEU RITMO</span><h3>Pausa consciente</h3><p>Se hoje não der, você pode descansar. Seu progresso continua aqui para quando quiser voltar.</p><div class="rest-image"><img src="./assets/stitch/calm.png" alt=""/><div>${icon('leaf')}<span>Um respiro por vez</span><button class="button secondary" data-action="take-break">Fazer uma pausa</button></div></div><span class="rest-caption">Pausar sem culpa ${icon('pause')}</span></aside>` : ''}</section>
   ${!essential ? `<div class="home-insights"><section class="insight-card"><div class="insight-label"><span>RITMO DA SEMANA</span><span class="green-pill">No seu tempo</span></div><h2>${count} de ${goal} passos dados</h2><p>Sem cobrança: descanse se precisar, seu progresso não expira.</p><div class="week-dots">${Array.from({length: goal}, (_,i) => `<span class="${i<count ? 'done' : ''}">${i<count ? icon('check') : ''}</span>`).join('')}</div><progress max="${Math.max(goal,count)}" value="${count}" aria-label="${count} de ${goal} missões nesta semana"></progress></section>
   <section class="insight-card"><div class="insight-label"><span>TRILHA ATUAL</span><span>${progress ? progress.percent : 100}%</span></div><h2>${mission ? esc(mission.course.title) : 'Um caminho percorrido'}</h2><p>${mission ? 'Um pequeno passo de cada vez. Continue de onde parou.' : 'Explore um assunto novo quando quiser.'}</p><div class="insight-bottom"><span>Progresso contínuo ${progress ? `· ${progress.done} de ${progress.total} etapas` : ''}</span><progress max="100" value="${progress ? progress.percent : 100}" aria-label="Progresso da trilha atual"></progress><button class="text-button" data-action="${mission ? 'open-course' : 'navigate'}" ${mission ? `data-id="${esc(mission.course.id)}"` : 'data-route="biblioteca"'}>Ver detalhes da trilha ${icon('arrow')}</button></div></section>
@@ -238,13 +234,32 @@ function settings() {
     <section class="privacy-note"><span class="privacy-icon">${icon('shield')}</span><h2>Seu espaço, por enquanto local.</h2><p>Esta é uma prévia sem cadastro ou servidor de contas. Os dados ficam neste navegador e não sincronizam entre dispositivos. Limpar os dados do site pode apagar seu progresso.</p><p>Não inclua senhas nem informações sensíveis nas suas etapas de estudo.</p><button class="text-button" data-action="export">Baixar cópia dos meus dados ${icon('arrow')}</button></section></div></div>`;
 }
 
+function motionEnabled() {
+  return !state.preferences.reducedMotion && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
 function render(focusMain = false) {
+  const changingPage = lastRenderedRoute !== null && lastRenderedRoute !== route();
+  activePageTransition?.skipTransition();
+  if (changingPage && motionEnabled() && typeof document.startViewTransition === 'function') {
+    activePageTransition = document.startViewTransition(() => renderContent(focusMain));
+    activePageTransition.ready.catch(() => {});
+  } else {
+    activePageTransition = null;
+    renderContent(focusMain);
+    if (changingPage && motionEnabled()) document.querySelector('#main').classList.add('screen-enter');
+  }
+}
+
+function renderContent(focusMain = false) {
   const focusedId = document.activeElement?.id;
   const current = route();
-  const pages = { inicio: onboarding, hoje: home, biblioteca: library, missoes: missions, conquistas: achievementPage, historico: historyPage, configuracoes: settings };
+  lastRenderedRoute = current;
+  const pages = { login: loginPage, inicio: onboarding, hoje: home, biblioteca: library, missoes: missions, conquistas: achievementPage, historico: historyPage, configuracoes: settings };
   applyPreferences();
-  app.innerHTML = shell(pages[current](), current);
-  document.title = `${({ inicio: 'Seu começo', hoje: 'Hoje', biblioteca: 'Biblioteca', missoes: 'Missões', conquistas: 'Conquistas', historico: 'Meu caminho', configuracoes: 'Do seu jeito' })[current]} · Lume`;
+  document.documentElement.dataset.page = current;
+  app.innerHTML = ['login', 'inicio'].includes(current) ? entryShell(pages[current](), current) : shell(pages[current](), current);
+  document.title = `${({ login: 'Bem-vindo', inicio: 'Seu ritmo', hoje: 'Hoje', biblioteca: 'Biblioteca', missoes: 'Missões', conquistas: 'Conquistas', historico: 'Meu caminho', configuracoes: 'Do seu jeito' })[current]} · Lume`;
   if (focusMain) {
     document.querySelector('#main').focus({ preventScroll: true });
     window.scrollTo({ top: 0, behavior: 'instant' });
@@ -299,11 +314,11 @@ function newCourseDialog() {
 }
 
 function finishOnboarding(skip = false) {
-  if (skip && !state.onboarded) { state.habit = null; state.challenges = []; }
-  state.onboarded = true;
+  if (!skip) state = applyStudyRhythm(state, onboardingDraft);
+  else state = { ...state, onboarded: true };
   save();
   go('hoje');
-  notify(skip ? 'Seu espaço está pronto. Você pode personalizar quando quiser.' : 'Um começo do seu jeito. Escolha um passo que caiba no seu dia.');
+  notify(skip ? 'Seu espaço está pronto. Você pode personalizar quando quiser.' : 'Seu ritmo foi salvo. Seu plano e suas sugestões estão prontos.');
 }
 
 document.addEventListener('click', (event) => {
@@ -312,12 +327,23 @@ document.addEventListener('click', (event) => {
   const { action, id } = button.dataset;
   switch (action) {
     case 'take-break': openDialog(`<div class="session-content"><div class="session-emblem">${icon('leaf')}</div><h2 id="dialog-title">Pode pausar.</h2><p class="session-instruction">Descanse pelo tempo que precisar. Nenhuma etapa foi concluída e seu progresso continua guardado.</p><button class="button primary full-width" data-action="close-dialog">Voltar quando quiser</button></div>`); break;
+    case 'enter-preview':
+      previewEntered = true;
+      try { sessionStorage.setItem(PREVIEW_SESSION_KEY, 'open'); } catch { /* Navegação disponível em memória. */ }
+      onboardingDraft = { habit: state.habit, supports: [...state.supports] };
+      go('inicio'); break;
+    case 'exit-preview':
+      previewEntered = false;
+      try { sessionStorage.removeItem(PREVIEW_SESSION_KEY); } catch { /* Progresso local preservado. */ }
+      go('login'); break;
+    case 'toggle-theme':
+      openDialog(`<div class="dialog-content"><h2 id="dialog-title">Conforto visual</h2>${toggleSetting('reducedMotion', 'Reduzir movimentos', 'Desativar animações e transições. A preferência do sistema também é respeitada.')}<label class="setting-row" for="entry-theme"><span><strong>Tema</strong><span>Escolha um ambiente confortável.</span></span><select id="entry-theme" data-preference="theme"><option value="dark" ${state.preferences.theme === 'dark' ? 'selected' : ''}>Escuro</option><option value="light" ${state.preferences.theme === 'light' ? 'selected' : ''}>Claro</option></select></label><button class="button primary full-width" data-action="close-dialog">Pronto</button></div>`); break;
+    case 'account-info': openDialog(`<div class="dialog-content"><h2 id="dialog-title">Contas em preparação</h2><p class="session-instruction">Cadastro, Google e recuperação de senha ainda não estão disponíveis. Você pode explorar o Lume sem fornecer e-mail ou senha; os dados ficam neste navegador.</p><button class="button primary full-width" data-action="close-dialog">Entendi</button></div>`); break;
+    case 'entry-help': openDialog(`<div class="dialog-content"><h2 id="dialog-title">Um começo simples</h2><p class="session-instruction">Entre na prévia, escolha seu ritmo e selecione os apoios que ajudam. Depois, comece uma missão ou adicione seu próprio curso. Você pode revisar tudo nas configurações.</p><button class="button primary full-width" data-action="close-dialog">Entendi</button></div>`); break;
     case 'navigate': go(button.dataset.route); break;
-    case 'onboarding-next': if (state.habit) { onboardingStep = 2; render(true); } break;
-    case 'onboarding-back': onboardingStep = 1; render(true); break;
     case 'skip-onboarding': finishOnboarding(true); break;
-    case 'finish-onboarding': finishOnboarding(); break;
-    case 'personalize': onboardingStep = 1; go('inicio'); break;
+    case 'finish-onboarding': if (onboardingDraft.habit) finishOnboarding(); break;
+    case 'personalize': onboardingDraft = { habit: state.habit, supports: [...state.supports] }; go('inicio'); break;
     case 'add-course': newCourseDialog(); break;
     case 'open-course': showCourse(id); break;
     case 'start-mission': startMission(id); break;
@@ -347,15 +373,13 @@ document.addEventListener('click', (event) => {
 document.addEventListener('change', (event) => {
   const input = event.target;
   if (input.name === 'habit') {
-    state.habit = input.value;
-    save();
+    onboardingDraft.habit = input.value;
     document.querySelector('#onboarding-next').disabled = false;
+    document.querySelector('#rhythm-summary').textContent = rhythmSummary();
   }
-  if (input.name === 'challenge') {
-    const selected = [...document.querySelectorAll('[name="challenge"]:checked')].map((item) => item.value);
-    state.challenges = input.value === 'unsure' && input.checked ? ['unsure'] : selected.filter((id) => id !== 'unsure');
-    document.querySelectorAll('[name="challenge"]').forEach((item) => { item.checked = state.challenges.includes(item.value); });
-    save();
+  if (input.name === 'support') {
+    onboardingDraft.supports = [...document.querySelectorAll('[name="support"]:checked')].map(item => item.value);
+    document.querySelector('#rhythm-summary').textContent = rhythmSummary();
   }
   if (input.dataset.preference) {
     state.preferences[input.dataset.preference] = input.type === 'checkbox' ? input.checked : input.dataset.preference === 'weeklyGoal' ? Number(input.value) : input.value;

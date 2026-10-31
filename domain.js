@@ -13,13 +13,53 @@ export const CHALLENGES = [
   { id: 'unsure', title: 'Ainda não sei', icon: 'help' },
 ];
 
+export const STUDY_RHYTHMS = [
+  { id: 'starting', icon: 'sprout', label: 'Um começo possível', title: 'Quero começar', subtitle: 'Encontrar prazer nos primeiros passos', text: 'Ainda não tenho uma rotina. Quero descobrir um jeito de começar com ações pequenas e claras.', detail: 'Sugestão inicial: 2 passos por semana', weeklyGoal: 2 },
+  { id: 'sometimes', icon: 'leaf', label: 'Uma chama que continua', title: 'Estudo de vez em quando', subtitle: 'Construir uma rotina que caiba na vida', text: 'Já começo a estudar, mas nem sempre consigo manter. Quero ter um próximo passo esperando meu retorno.', detail: 'Sugestão inicial: 3 passos por semana', weeklyGoal: 3 },
+  { id: 'often', icon: 'tree', label: 'Novas possibilidades', title: 'Estudo com frequência', subtitle: 'Organizar e aprofundar meus interesses', text: 'O estudo já faz parte da minha rotina. Quero acompanhar minhas trilhas e avançar com espaço para descansar.', detail: 'Sugestão inicial: 5 passos por semana', weeklyGoal: 5 },
+];
+
+export const STUDY_SUPPORTS = [
+  { id: 'initiation', icon: 'play', title: 'Ajuda para começar', text: 'Sugerir a preparação do material como primeiro passo.' },
+  { id: 'calm', icon: 'focus', title: 'Menos informação na tela', text: 'Ativar o modo essencial na página Hoje.' },
+  { id: 'return', icon: 'return', title: 'Retomar sem culpa', text: 'Destacar que posso continuar de onde parei.' },
+  { id: 'chunking', icon: 'steps', title: 'Passos ainda menores', text: 'Oferecer uma preparação antes da etapa completa.' },
+];
+
+export function studyRhythm(state) {
+  const rhythm = STUDY_RHYTHMS.find(item => item.id === state.habit);
+  return {
+    title: rhythm?.title || 'Explorar no meu ritmo',
+    weeklyGoal: rhythm?.weeklyGoal || 3,
+    prepareFirst: state.habit === 'starting' || state.supports?.some(id => ['initiation', 'chunking'].includes(id)),
+    message: state.supports?.includes('return')
+      ? 'Seu próximo passo continua aqui. Você pode retomar sem compensar os dias de pausa.'
+      : state.habit === 'starting' ? 'Preparar o material já pode ser um começo. Você escolhe quando continuar.'
+      : state.habit === 'often' ? 'Suas trilhas estão organizadas. Aprofunde um interesse de cada vez, com espaço para descansar.'
+      : 'Um passo de cada vez ajuda a encontrar continuidade. Seu plano pode mudar junto com você.',
+  };
+}
+
+export function applyStudyRhythm(state, { habit, supports = [] }) {
+  if (!STUDY_RHYTHMS.some(item => item.id === habit)) throw new Error('Escolha o ritmo que combina com seu momento.');
+  const cleanSupports = [...new Set(supports.filter(id => STUDY_SUPPORTS.some(item => item.id === id)))];
+  const changedRhythm = !state.onboarded || state.habit !== habit;
+  const changedCalm = !state.onboarded || (state.supports || []).includes('calm') !== cleanSupports.includes('calm');
+  const next = { ...state, onboarded: true, habit, supports: cleanSupports };
+  return { ...next, preferences: { ...state.preferences,
+    weeklyGoal: changedRhythm ? studyRhythm(next).weeklyGoal : state.preferences.weeklyGoal,
+    essential: changedCalm ? cleanSupports.includes('calm') : state.preferences.essential,
+  } };
+}
+
 export function createInitialState() {
   return {
     version: 1,
     onboarded: false,
     habit: null,
     challenges: [],
-    preferences: { essential: false, gamification: true, reducedMotion: true, theme: 'dark', textSize: 'normal', weeklyGoal: 3 },
+    supports: [],
+    preferences: { essential: false, gamification: true, reducedMotion: false, theme: 'dark', textSize: 'normal', weeklyGoal: 3 },
     courses: [
       { id: 'design', title: 'Design de interfaces', category: 'Design & criatividade', art: 'design', url: '', example: true, paused: false, steps: [
         { id: 'design-1', title: 'Abrir o material e conhecer o curso' },
@@ -189,10 +229,11 @@ export function restoreState(raw) {
       onboarded: value.onboarded === true,
       habit: HABITS.some((habit) => habit.id === value.habit) ? value.habit : null,
       challenges: Array.isArray(value.challenges) ? value.challenges.filter((id) => CHALLENGES.some((item) => item.id === id)) : [],
+      supports: Array.isArray(value.supports) ? [...new Set(value.supports.filter(id => STUDY_SUPPORTS.some(item => item.id === id)))] : [],
       preferences: {
         essential: preferences.essential === true,
         gamification: preferences.gamification !== false,
-        reducedMotion: preferences.reducedMotion !== false,
+        reducedMotion: preferences.reducedMotion === true,
         theme: preferences.theme === 'light' ? 'light' : 'dark',
         textSize: preferences.textSize === 'large' ? 'large' : 'normal',
         weeklyGoal: Number.isInteger(preferences.weeklyGoal) && preferences.weeklyGoal >= 1 && preferences.weeklyGoal <= 7 ? preferences.weeklyGoal : 3,
