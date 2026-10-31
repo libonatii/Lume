@@ -10,7 +10,9 @@ import { formatPairCode, presenceState } from '../../public/companion-domain.js'
 // instalação e do pareamento do dispositivo.
 
 const RELEASES_URL = 'https://github.com/libonatii/Lume/releases/latest';
-const DOWNLOAD_URL = `${RELEASES_URL}/download/Lume-setup.exe`;
+// Enquanto não houver uma release com o nome novo, o botão leva à lista de
+// releases em vez de apontar para um arquivo que ainda não existe.
+const DOWNLOAD_URL = RELEASES_URL;
 
 function InstallApp() {
   return <div className="companion-install">
@@ -21,7 +23,7 @@ function InstallApp() {
     <a className="button primary full-width" href={DOWNLOAD_URL} target="_blank" rel="noopener noreferrer">
       <Icon name="cloud"/>Instalar aplicativo
     </a>
-    <p className="quiet-note">Windows 10/11 · o instalador ainda não tem assinatura digital, então o Windows pode pedir confirmação. Versões e notas em <a className="text-link" href={RELEASES_URL} target="_blank" rel="noopener noreferrer">Releases<Icon name="external"/></a>.</p>
+    <p className="quiet-note">Windows 10/11 · baixe o <code>Lume-setup.exe</code> da última release. O instalador ainda não tem assinatura digital, então o Windows pode pedir confirmação. Versões e notas em <a className="text-link" href={RELEASES_URL} target="_blank" rel="noopener noreferrer">Releases<Icon name="external"/></a>.</p>
   </div>;
 }
 
