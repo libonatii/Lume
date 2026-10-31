@@ -124,7 +124,7 @@ function buildRecentActivity(state, courses, { sharing, now }) {
   };
 }
 
-export function buildProfile(state, { now = Date.now() } = {}) {
+export function buildProfile(state, { now = Date.now(), validated = null } = {}) {
   const sharing = normalizeSharing(state?.preferences?.sharing);
   const customization = normalizeProfileCard(state?.profile);
   // Projeto privado não aparece em lugar nenhum do perfil: nem na biblioteca,
@@ -152,8 +152,26 @@ export function buildProfile(state, { now = Date.now() } = {}) {
     return accumulator;
   }, { lessons: 0, done: 0, completedCourses: 0 });
 
-  const level = sharing.xp ? levelInfo(state) : null;
-  const allAchievements = sharing.xp ? achievements(visibleState) : null;
+  const level = sharing.xp
+    ? (validated
+      ? { level: validated.level, total: validated.totalXP, current: validated.levelCurrent, next: validated.levelNext }
+      : levelInfo(state))
+    : null;
+  // Conquistas validadas vêm do livro de eventos do servidor. Sem elas (prévia
+  // ou perfil antigo), os selos genéricos permanecem visíveis como legado.
+  const allAchievements = sharing.xp
+    ? (validated
+      ? (validated.achievements || []).map((item) => ({
+        id: item.id,
+        title: item.title,
+        text: item.criterion,
+        icon: item.kind === 'project' ? 'flag' : item.kind === 'slide' ? 'book' : 'trophy',
+        unlocked: true,
+        current: 1,
+        target: 1,
+      }))
+      : achievements(visibleState))
+    : null;
   const unlockedBadges = allAchievements ? allAchievements.filter((item) => item.unlocked) : [];
   const featuredBadge = unlockedBadges[unlockedBadges.length - 1] || (allAchievements ? allAchievements[0] : null);
   const recent = buildRecentActivity(state, courses, { sharing, now });
@@ -195,6 +213,7 @@ export function buildProfile(state, { now = Date.now() } = {}) {
       level: level ? level.level : null,
       levelCurrent: level ? level.current : null,
       levelNext: level ? level.next : null,
+      xpValidated: Boolean(validated),
       unlockedAchievements: allAchievements ? unlockedBadges.length : null,
       totalAchievements: allAchievements ? allAchievements.length : null,
       recentStepsTwoWeeks: recent.recentStepsTwoWeeks,

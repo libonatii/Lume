@@ -35,7 +35,7 @@ continua disponível para diagnóstico.
 - Não conta tempo como estudo, não conclui aulas e **não gera XP**.
 - Não tem banco local nem uma segunda conta: o app usa a API do site.
 - Não funciona fora do Windows nesta versão.
-- Presença social entre amigos, grupos e ranking continuam pendentes no produto.
+- Presença social entre amigos, mensagens diretas e feed continuam pendentes no produto; ranking de amigos já existe. Comunidades, servidores, canais e grupos estão fora do escopo desta etapa.
 
 ## Desenvolvimento
 

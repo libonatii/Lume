@@ -95,7 +95,7 @@ function formatBioLines(bio, fallbackRhythm) {
   ];
 }
 
-export default function Profile({ id, state, update, account, notify, go }) {
+export default function Profile({ id, state, update, account, notify, go, xp }) {
   const [profile, setProfile] = useState(null);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(false);
@@ -126,8 +126,9 @@ export default function Profile({ id, state, update, account, notify, go }) {
   }, [id, isSelf]);
 
   const selfName = account?.name || 'Estudante na Prévia';
+  const validated = xp?.summary ? { ...xp.summary, achievements: xp.achievements } : null;
   const view = isSelf
-    ? { user: { id: account?.id || 'local', name: selfName }, updatedAt: null, ...buildProfile(state) }
+    ? { user: { id: account?.id || 'local', name: selfName }, updatedAt: null, ...buildProfile(state, { validated }) }
     : profile;
 
   async function handleImageUpload(kind, event) {
@@ -274,7 +275,7 @@ export default function Profile({ id, state, update, account, notify, go }) {
             </span>
             <div className="steam-featured-copy">
               <strong>{featuredBadge ? featuredBadge.title : 'Caminho em construção'}</strong>
-              <small>{stats.xp !== null ? `${stats.xp} XP declarados` : 'XP oculto no perfil'}</small>
+              <small>{stats.xp !== null ? `${stats.xp} XP ${stats.xpValidated ? 'confirmados pelo servidor' : 'da prévia local'}` : 'XP oculto no perfil'}</small>
             </div>
           </div>
 
@@ -561,6 +562,6 @@ export default function Profile({ id, state, update, account, notify, go }) {
       </aside>
     </div>
 
-    <p className="quiet-note">XP, níveis e progresso são informados pela cópia sincronizada de cada pessoa, não validados pelo servidor. Por isso ainda não alimentam ranking — os placares continuam planejados.</p>
+    <p className="quiet-note">XP, níveis e conquistas de contas são confirmados pelo servidor e refletem apenas eventos elegíveis; o saldo legado do protótipo fica fora do ranking. Perfis de amigos mostram somente o que cada pessoa escolheu compartilhar.</p>
   </div>;
 }

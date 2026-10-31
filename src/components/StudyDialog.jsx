@@ -1,15 +1,18 @@
 import { useState } from 'react';
-import { achievements, completeMission, courseProgress, hasPreparation, nextMission } from '../../public/domain.js';
+import { achievements, completeMission, courseProgress, hasPreparation, materialType, nextMission } from '../../public/domain.js';
 import {
   completeLesson, courseSummary, editalCoverage, formatDuration, isImportedCourse,
   lessonOrigin, looksLikeExamCourse, revertLessonCompletion, sourceLabel,
 } from '../../public/import-domain.js';
+import { slidesSummary } from '../../public/slides-domain.js';
 import Icon from './Icon.jsx';
 import { Button, Cover, Glow, Progress } from './ui.jsx';
 import { Steps } from './Study.jsx';
 import ImportCourse from './ImportCourse.jsx';
+import CourseEditor, { ManualCourseForm } from './CourseEditor.jsx';
+import { SlidesEditor, SlidesViewer } from './Slides.jsx';
 
-const ORIGIN_LABEL = { manual: 'registro manual', integration: 'integração' };
+const ORIGIN_LABEL = { manual: 'registro manual', integration: 'integração', import: 'progresso importado da fonte' };
 const EXTRACTION_LABEL = {
   'structured-data': 'dados publicados pela fonte',
   'page-outline': 'estrutura visível da página',
@@ -23,11 +26,18 @@ function dateLabel(value) {
   return new Date(value).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-export default function StudyDialog({ modal, state, update, open, close, notify, go }) {
+function materialLabel(course) {
+  return materialType(course?.type).title;
+}
+
+export default function StudyDialog({ modal, state, update, open, close, notify, go, account }) {
   const course = state.courses.find(course => course.id === modal.id);
 
   if (modal.type === 'new' || modal.type === 'import') {
     return <ImportCourse state={state} update={update} close={close} notify={notify} go={go} open={open} modal={{ courseId: modal.type === 'import' ? modal.id : null }}/>;
+  }
+  if (modal.type === 'manual') {
+    return <ManualCourseForm state={state} update={update} close={close} notify={notify} open={open}/>;
   }
 
   if (modal.type === 'success') return <div className="success-content">
@@ -36,8 +46,8 @@ export default function StudyDialog({ modal, state, update, open, close, notify,
       <div className={`dialog-emblem ${modal.preparation ? 'tone-mint' : ''}`}><Icon name={modal.preparation ? 'sprout' : 'spark'}/></div>
       <h2 id="dialog-title" className="headline">{modal.preparation ? 'O caminho está preparado.' : 'Olha só: você avançou.'}</h2>
       <p className="muted-text">{modal.preparation ? 'A etapa original continua disponível, sem pressa.' : 'O que você fez já faz parte do seu caminho.'}</p>
-      <p className="quiet-note">Registro do protótipo, conforme o modelo legado. A nova política de recompensas ainda está planejada.</p>
-      {state.preferences.gamification && <span className="success-xp"><Icon name="spark"/>+{modal.xp} XP de legado</span>}
+      <p className="quiet-note">Progresso registrado. Em uma conta, o XP elegível é confirmado pelo servidor e aparece em Meu caminho; na prévia, ele não vale para ranking. Preparação não concede XP.</p>
+      {state.preferences.gamification && modal.xp > 0 && <span className="success-xp"><Icon name="spark"/>+{modal.xp} XP de legado</span>}
       {modal.award && state.preferences.gamification && <div className="new-achievement"><Icon name={modal.award.icon}/><strong>{modal.award.title}</strong></div>}
       <Button className="full-width" onClick={() => { close(); go('hoje'); }}>Voltar ao meu espaço<Icon name="arrow"/></Button>
       {modal.preparation && <button className="text-button centered" onClick={() => open({ type: 'session', id: modal.id })}>Quero continuar a etapa</button>}
@@ -46,28 +56,42 @@ export default function StudyDialog({ modal, state, update, open, close, notify,
 
   if (!course) return <div className="dialog-content"><h2 id="dialog-title" className="title">Este curso não está disponível.</h2><Button onClick={close}>Voltar</Button></div>;
 
+  if (modal.type === 'edit') return <CourseEditor course={course} state={state} update={update} close={close} notify={notify}/>;
+  if (modal.type === 'slides') return <SlidesViewer course={course} state={state} update={update} close={close} notify={notify} account={account}/>;
+
   if (isImportedCourse(course)) {
-    if (modal.type === 'session') return <ImportedSession course={course} state={state} update={update} open={open} close={close} notify={notify} stepId={modal.stepId}/>;
+    if (modal.type === 'session') return <ImportedSession course={course} state={state} update={update} open={open} close={close} notify={notify} stepId={modal.stepId} account={account}/>;
     return <ImportedCourse course={course} state={state} update={update} open={open} close={close} notify={notify}/>;
   }
 
   const mission = nextMission({ ...state, courses: [course] }, course.id);
   if (modal.type === 'course') {
     const progress = courseProgress(state, course);
+    const deck = slidesSummary(course);
     return <>
       <div className="dialog-course-cover"><Cover art={course.art}/></div>
       <div className="dialog-content">
-        <div className="eyebrow">{course.example ? 'Curso de exemplo' : 'Sua trilha'}</div>
+        <div className="eyebrow">{course.example ? 'Curso de exemplo' : materialLabel(course)}</div>
         <h2 id="dialog-title" className="headline">{course.title}</h2>
         <p className="muted-text">{progress.done} de {progress.total} etapas concluídas. Seu progresso fica com você.</p>
+        {course.resumeAt && <p className="resume-pill"><Icon name="return"/>Parou em: {course.resumeAt}</p>}
         <Progress value={progress.percent} tone="lume" label={`Progresso de ${course.title}`}/>
         {course.url ? <a className="text-link" target="_blank" rel="noopener noreferrer" href={course.url}>Abrir conteúdo do curso<Icon name="external"/></a> : <p className="inline-note"><Icon name="book"/><span>Este curso não tem conteúdo vinculado.</span></p>}
         <Steps course={course} state={state}/>
         <div className="dialog-actions">
+          <Button secondary onClick={() => open({ type: 'edit', id: course.id })}><Icon name="edit"/>Editar material</Button>
+          {deck.total > 0
+            ? <Button secondary onClick={() => open({ type: 'slides', id: course.id })}><Icon name="book"/>Abrir apresentação ({deck.total})</Button>
+            : <Button secondary onClick={() => open({ type: 'edit', id: course.id })}><Icon name="plus"/>Adicionar slides</Button>}
           {progress.done < progress.total && <Button secondary onClick={() => update(previous => ({ ...previous, courses: previous.courses.map(item => item.id === course.id ? { ...item, paused: !item.paused } : item) }))}><Icon name={course.paused ? 'play' : 'pause'}/>{course.paused ? 'Retomar curso' : 'Pausar curso'}</Button>}
           {mission && <Button onClick={() => { update(previous => ({ ...previous, selectedCourseId: course.id })); open({ type: 'session', id: course.id }); }}>Continuar<Icon name="arrow"/></Button>}
           {progress.done === progress.total && <span className="completed-message"><Icon name="check"/>Um caminho concluído.</span>}
         </div>
+        <details className="slides-details">
+          <summary>Apresentação e slides</summary>
+          <SlidesEditor course={course} update={update} notify={notify}/>
+        </details>
+        <p className="quiet-note">Editar o material não apaga o XP já confirmado. Excluir remove o progresso registrado neste material, com confirmação.</p>
       </div>
     </>;
   }
@@ -111,7 +135,7 @@ function CapabilityPanel({ capabilities }) {
   </details>;
 }
 
-function ImportedSession({ course, state, update, open, close, notify, stepId }) {
+function ImportedSession({ course, state, update, open, close, notify, stepId, account }) {
   const summary = courseSummary(state, course);
   const step = course.steps.find((item) => item.id === stepId) || summary.next || summary.resume;
   if (!step) return <div className="dialog-content"><h2 id="dialog-title" className="title">Todas as aulas selecionadas foram concluídas.</h2><p className="muted-text">Isso vale para as áreas que você escolheu, não necessariamente para o curso inteiro.</p><Button onClick={close}>Voltar</Button></div>;
@@ -123,7 +147,9 @@ function ImportedSession({ course, state, update, open, close, notify, stepId })
     const result = completeLesson(state, course.id, step.id, { origin: 'manual' });
     if (!result.added) { notify('Essa aula já estava registrada.'); return; }
     update(result.state);
-    notify('Aula concluída registrada por você. Nenhum XP foi concedido por este registro.');
+    notify(account
+      ? 'Aula concluída registrada por você. O XP elegível é confirmado pelo servidor.'
+      : 'Aula concluída registrada nesta prévia. Entre na conta para o XP valer no ranking.');
     open({ type: 'course', id: course.id });
   }
   return <div className="session-content">
@@ -166,11 +192,18 @@ function ImportedCourse({ course, state, update, open, close, notify }) {
     const result = completeLesson(state, course.id, stepId, { origin: 'manual' });
     if (!result.added) { notify('Essa aula já estava registrada.'); return; }
     update(result.state);
-    notify('Conclusão registrada por você. Sem XP: a pontuação da nova política ainda não é atribuída no navegador.');
+    notify('Conclusão registrada por você. Em uma conta, o XP elegível é confirmado pelo servidor.');
   }
   function undoLesson(stepId) {
     const result = revertLessonCompletion(state, course.id, stepId);
-    if (!result.reverted) { notify(result.reason === 'integration' ? 'Este registro veio de uma integração e não pode ser desfeito aqui.' : 'Nada para desfazer.'); return; }
+    if (!result.reverted) {
+      notify(result.reason === 'integration'
+        ? 'Este registro veio de uma integração e não pode ser desfeito aqui.'
+        : result.reason === 'import'
+          ? 'Este progresso veio da página importada e não pode ser desfeito por aqui.'
+          : 'Nada para desfazer.');
+      return;
+    }
     update(result.state);
     notify('Conclusão manual desfeita. O histórico guarda que ela existiu.');
   }
@@ -181,10 +214,17 @@ function ImportedCourse({ course, state, update, open, close, notify }) {
   }
 
   const nextLesson = summary.next ? (course.structure || []).flatMap((discipline) => discipline.modules.flatMap((module) => module.lessons.map((lesson) => ({ ...lesson, discipline: discipline.title, module: module.title })))).find((lesson) => lesson.id === summary.next.id) : null;
+  const deck = slidesSummary(course);
 
   return <div className="dialog-content imported-course">
     <span className="eyebrow">{sourceLabel(course.source)}{course.source?.demo ? ' · demonstração' : ''}</span>
     <h2 id="dialog-title" className="headline">{course.title}</h2>
+    <div className="dialog-actions inline-actions">
+      <Button secondary onClick={() => open({ type: 'edit', id: course.id })}><Icon name="edit"/>Editar material</Button>
+      {deck.total > 0
+        ? <Button secondary onClick={() => open({ type: 'slides', id: course.id })}><Icon name="book"/>Abrir apresentação ({deck.total})</Button>
+        : <Button secondary onClick={() => open({ type: 'edit', id: course.id })}><Icon name="plus"/>Adicionar slides</Button>}
+    </div>
     <div className="import-badges">
       <span className={`import-badge ${summary.partial ? 'tone-warn' : 'tone-mint'}`}><Icon name={summary.partial ? 'help' : 'check'}/>{summary.partial ? 'Grade parcial' : 'Grade publicada pela fonte'}</span>
       <span className="import-badge neutral"><Icon name="book"/>{summary.disciplines.length} {summary.disciplines.length === 1 ? 'área' : 'áreas'} · {summary.total} aulas</span>
@@ -195,6 +235,7 @@ function ImportedCourse({ course, state, update, open, close, notify }) {
       <Progress value={summary.percent} tone="lume" label={`Progresso nas áreas escolhidas de ${course.title}`}/>
       <p className="quiet-note">{summary.partial ? 'Progresso calculado só sobre as áreas e aulas conhecidas. Isso não representa a conclusão do curso inteiro.' : 'Progresso calculado sobre as aulas selecionadas. Conclusão do curso inteiro exige todas as unidades obrigatórias da fonte.'}</p>
       {summary.removedFromSource && <p className="inline-note"><Icon name="help"/><span>Algumas aulas não aparecem mais na fonte. Elas continuam aqui para preservar seu histórico.</span></p>}
+      {summary.importedDone > 0 && <p className="inline-note"><Icon name="check"/><span>{summary.importedDone} {summary.importedDone === 1 ? 'aula veio marcada como concluída' : 'aulas vieram marcadas como concluídas'} na página importada. Esse histórico não concede XP; as próximas conclusões manuais são elegíveis.</span></p>}
     </section>
 
     {summary.disciplines.length > 1 && <section className="import-discipline-progress" aria-label="Progresso por área">
@@ -252,6 +293,11 @@ function ImportedCourse({ course, state, update, open, close, notify }) {
     </div>
 
     <CapabilityPanel capabilities={capabilities}/>
+
+    <details className="slides-details">
+      <summary>Apresentação e slides</summary>
+      <SlidesEditor course={course} update={update} notify={notify}/>
+    </details>
 
     <div className="import-source">
       {course.url ? <a className="text-link" href={course.url} target="_blank" rel="noopener noreferrer">Abrir conteúdo na plataforma<Icon name="external"/></a> : <p className="inline-note"><Icon name="book"/><span>A fonte não tem link público do curso.</span></p>}

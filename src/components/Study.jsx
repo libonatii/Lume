@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import Atropos from 'atropos/react';
-import { studyRhythm, nextMission, hasPreparation, courseProgress, courseStatus, weekCount, journeyPlan, addMaterial } from '../../public/domain.js';
+import { studyRhythm, nextMission, hasPreparation, courseProgress, courseStatus, weekCount, journeyPlan, addMaterial, materialType } from '../../public/domain.js';
 import { courseSummary, isImportedCourse, sourceLabel } from '../../public/import-domain.js';
+import { slidePositionLabel, slidesSummary } from '../../public/slides-domain.js';
 import {
   endSession, formatSessionDuration, pauseSession, resumeSession, sessionElapsed,
   startSession, touchSession,
@@ -10,7 +11,7 @@ import {
 import Icon from './Icon.jsx';
 import { AnimatedNumber, Button, Cover, Empty, Glow, Heading, Progress, Ring, ease, enter } from './ui.jsx';
 
-export function Home({ state, open, go, update, notify }) {
+export function Home({ state, open, go, update, notify, account }) {
   const mission = nextMission(state);
   const plan = studyRhythm(state);
   const journey = journeyPlan(state);
@@ -72,7 +73,7 @@ export function Home({ state, open, go, update, notify }) {
       </aside>
     </section>
 
-    <StudySession state={state} update={update} mission={mission} notify={notify}/>
+    <StudySession state={state} update={update} mission={mission} notify={notify} account={account}/>
 
     <div className="metrics-bento">
       <section className="card-surface metric-card">
@@ -131,7 +132,7 @@ export function Home({ state, open, go, update, notify }) {
 
 // Sessão declarada: a pessoa inicia e encerra. O relógio é informativo e não
 // concede XP; o batimento de 60 s evita contar dias de aba esquecida.
-function StudySession({ state, update, mission, notify }) {
+function StudySession({ state, update, mission, notify, account }) {
   const active = state.activeSession;
   const [now, setNow] = useState(() => Date.now());
 
@@ -152,7 +153,9 @@ function StudySession({ state, update, mission, notify }) {
   const finish = () => {
     const result = endSession(state);
     update(result.state);
-    if (result.session) notify(`Sessão registrada: ${formatSessionDuration(result.session.durationMs)}. Tempo declarado, sem XP.`);
+    if (result.session) notify(account
+      ? `Sessão registrada: ${formatSessionDuration(result.session.durationMs)}. O servidor confirma os blocos de 30 minutos.`
+      : `Sessão registrada: ${formatSessionDuration(result.session.durationMs)}. Nesta prévia o tempo fica local; entre na conta para o XP de tempo.`);
   };
 
   return <section className={`card-surface session-bar ${active ? 'is-active' : ''}`} aria-labelledby="session-title">
@@ -162,7 +165,7 @@ function StudySession({ state, update, mission, notify }) {
       <h2 id="session-title" className="title">{active ? active.label : 'Estou estudando agora'}</h2>
       <p className="muted-text">{active
         ? <>Tempo declarado: <strong className="session-clock" role="timer" aria-label="Tempo da sessão">{formatSessionDuration(elapsed)}</strong> · {active.courseId ? 'vinculado ao seu material' : 'sem material vinculado'}</>
-        : 'Um tempo que você inicia, pausa e encerra. Não é observação de atividade e não gera XP.'}</p>
+        : 'Um tempo que você inicia, pausa e encerra. Em uma conta, o servidor confirma blocos de 30 minutos; pausas não contam e a sessão não comprova estudo.'}</p>
     </div>
     <div className="session-controls">
       {!active && <Button onClick={begin}><Icon name="play"/>Começar sessão</Button>}
@@ -181,16 +184,18 @@ export function CourseCard({ course, state, open }) {
   const imported = isImportedCourse(course);
   const summary = imported ? courseSummary(state, course) : null;
   const scope = imported ? `${summary.done} de ${summary.total} aulas` : `${progress.done} de ${progress.total} etapas`;
+  const deck = slidesSummary(course);
   return <motion.button {...enter} whileHover={{ y: -4 }} whileTap={{ scale: .99 }} className={`course-card ${state.selectedCourseId === course.id ? 'selected-course' : ''}`} onClick={() => open({ type: 'course', id: course.id })} aria-label={`${course.title}, ${statuses[status]}, ${scope}`}>
     <div className="course-image">
       <Cover art={art}/>
       <span className={`course-status status-${status}`}>{statuses[status]}</span>
       {imported && <span className="course-source-chip">{sourceLabel(course.source)}</span>}
+      {deck.total > 0 && <span className="course-slide-chip"><Icon name="book"/>{deck.total} slides</span>}
       {course.resumeAt && <span className="course-resume-chip"><Icon name="return"/>{course.resumeAt}</span>}
     </div>
     <div className="course-card-body">
       <h3 className="title">{course.title}</h3>
-      <p className="course-description">{imported ? sourceLabel(course.source) : course.category}{course.example ? ' · Exemplo' : ''}{imported && summary.partial ? ' · grade parcial' : ''}</p>
+      <p className="course-description">{materialType(course.type).title}{imported ? ` · ${sourceLabel(course.source)}` : ''}{course.example ? ' · Exemplo' : ''}{imported && summary.partial ? ' · grade parcial' : ''}</p>
       <div className="course-progress-label"><span>{scope}</span><strong>{progress.percent}%</strong></div>
       <Progress value={progress.percent} tone={status === 'completed' ? 'mint' : 'lume'} label={`Progresso de ${course.title}`}/>
     </div>
@@ -204,9 +209,10 @@ export function Library({ state, open, update }) {
   const selected = state.courses.find(course => course.id === state.selectedCourseId) || state.courses[0];
   const next = selected && nextMission({ ...state, courses: [selected] }, selected.id);
   const selectedArt = selected && (['design', 'code', 'language', 'nature'].includes(selected.art) ? selected.art : 'nature');
+  const selectedDeck = selected ? slidesSummary(selected) : null;
 
   return <div className="library-root">
-    <Heading eyebrow="Estante viva & continuidade" title="Biblioteca" actions={<Button onClick={() => open({ type: 'new' })}><Icon name="plus"/>Adicionar curso</Button>}>
+    <Heading eyebrow="Estante viva & continuidade" title="Biblioteca" actions={<><Button secondary onClick={() => open({ type: 'manual' })}><Icon name="edit"/>Criar manualmente</Button><Button onClick={() => open({ type: 'new' })}><Icon name="plus"/>Adicionar curso</Button></>}>
       Guarde seus cursos e tópicos de estudo. Continue de onde parou, no seu ritmo.
     </Heading>
 
@@ -251,6 +257,7 @@ export function Library({ state, open, update }) {
           </div>
         </Atropos>
         <Button className="full-width" onClick={() => open({ type: next ? 'session' : 'course', id: selected.id })}><Icon name={next ? 'play' : 'book'}/>{next ? 'Continuar meu próximo passo' : 'Ver detalhes da trilha'}</Button>
+        {selectedDeck?.total > 0 && <Button secondary className="full-width" onClick={() => open({ type: 'slides', id: selected.id })}><Icon name="book"/>Abrir apresentação · <small>{slidePositionLabel(selectedDeck)}</small></Button>}
         {isImportedCourse(selected)
           ? <ImportedInspector course={selected} state={state}/>
           : <Steps course={selected} state={state}/>}
@@ -274,6 +281,7 @@ function FirstStudyArea({ update, open }) {
         title,
         type: 'course',
         firstActivity: firstStep.trim() || `Encontrar meu primeiro material de ${title}`,
+        planning: !firstStep.trim(),
       }, 'manual'));
       setError('');
     } catch (exception) {

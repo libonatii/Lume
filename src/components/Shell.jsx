@@ -3,20 +3,25 @@ import { motion } from 'motion/react';
 import Icon from './Icon.jsx';
 import { AnimatedNumber, Logo, Progress, Ring } from './ui.jsx';
 import { levelInfo } from '../../public/domain.js';
+import { levelProgress } from '../../public/xp-policy.js';
 import { isDesktopApp } from '../lib/desktop.js';
 import DesktopUpdate from './DesktopUpdate.jsx';
 
 const desktop = isDesktopApp();
 
-const links = [['hoje', 'home', 'Hoje', 'Hoje'], ['tarefas', 'list', 'Tarefas', 'Tarefas'], ['biblioteca', 'book', 'Biblioteca', 'Biblioteca'], ['missoes', 'flag', 'Missões', 'Missões'], ['conquistas', 'trophy', 'Conquistas', 'Conquistas'], ['historico', 'history', 'Meu Caminho', 'Caminho'], ['amigos', 'users', 'Amigos', 'Amigos'], ['configuracoes', 'settings', 'Configurações', 'Ajustes']];
-const planned = [['podium', 'Ranking']];
+const links = [['hoje', 'home', 'Hoje', 'Hoje'], ['tarefas', 'list', 'Tarefas', 'Tarefas'], ['biblioteca', 'book', 'Biblioteca', 'Biblioteca'], ['missoes', 'flag', 'Missões', 'Missões'], ['conquistas', 'trophy', 'Conquistas', 'Conquistas'], ['historico', 'history', 'Meu Caminho', 'Caminho'], ['amigos', 'users', 'Amigos', 'Amigos'], ['ranking', 'podium', 'Ranking', 'Ranking'], ['configuracoes', 'settings', 'Configurações', 'Ajustes']];
+const planned = [['mail', 'Mensagens']];
 const syncLabels = { saving: 'Salvando na conta…', saved: 'Progresso salvo na conta', error: 'Sem sincronização · cópia local preservada' };
 
 export default function Shell({ route, model, children, onComfort, onHelp, onRegister, onExit }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const entry = ['login', 'inicio', 'recuperar', 'redefinir'].includes(route);
-  const level = levelInfo(model.state);
+  const summary = model.xp?.summary;
+  const level = model.account
+    ? (summary ? levelProgress(summary.totalXP) : { level: 1, current: 0, next: 500, total: 0 })
+    : levelInfo(model.state);
+  const xpLabel = model.account ? 'XP elegível' : 'prévia local';
   const gamified = model.state.preferences.gamification;
   const name = model.account?.name || 'Prévia';
   const today = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -58,14 +63,14 @@ export default function Shell({ route, model, children, onComfort, onHelp, onReg
         {model.state.profile?.avatar
           ? <img className="avatar player-avatar-img" src={model.state.profile.avatar} alt=""/>
           : gamified ? <Ring value={level.current} max={level.next} size={52} stroke={5} label={`Nível ${level.level}`}><strong>{level.level}</strong></Ring> : <span className="avatar">{name.slice(0, 1).toUpperCase()}</span>}
-        <div className="player-copy"><strong title={model.account?.email}>{name}</strong>{gamified ? <span>Nível {level.level} · <AnimatedNumber value={level.current}/> / {level.next} XP</span> : <span>Indicadores ocultos</span>}</div>
+        <div className="player-copy"><strong title={model.account?.email}>{name}</strong>{gamified ? (model.account && !summary ? <span>Sincronizando XP…</span> : <span>Nível {level.level} · <AnimatedNumber value={level.current}/> / {level.next} XP {xpLabel}</span>) : <span>Indicadores ocultos</span>}</div>
       </a>
     </aside>
     <div className="workspace">
       <header className="topbar">
         <div className="topbar-left"><span className="today">{today}</span></div>
         <div className="topbar-right">
-          {gamified && <div className="level-chip"><Icon name="spark"/><span>Nível {level.level} · <strong>{level.current} / {level.next} XP</strong></span><Progress value={level.current} max={level.next} tone="lume" label="Experiência até o próximo nível"/></div>}
+          {gamified && <div className="level-chip" title={model.account ? 'XP confirmado pelo servidor; o saldo legado fica fora do nível.' : 'Prévia local: este XP não vale para ranking.'}><Icon name="spark"/><span>Nível {level.level} · <strong>{level.current} / {level.next} XP</strong> {model.account ? 'elegível' : 'na prévia'}</span><Progress value={level.current} max={level.next} tone="lume" label="Experiência até o próximo nível"/></div>}
           <span className={`sync-chip sync-${model.account ? model.syncStatus : 'local'}`}><Icon name="cloud"/>{model.account ? syncLabels[model.syncStatus] || 'Conta conectada' : 'Prévia · progresso neste navegador'}</span>
           {desktop && <DesktopUpdate/>}
           <a className="icon-button" href="#configuracoes" aria-label="Abrir minhas preferências"><Icon name="settings"/></a>

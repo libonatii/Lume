@@ -6,7 +6,7 @@ import {
   providerCapabilities, revertLessonCompletion,
 } from './public/import-domain.js';
 import {
-  ImportError, analyzeUrl, assertPublicHttpUrl, extractFromHtml, parseSyllabusText,
+  ImportError, analyzeSnapshot, analyzeUrl, assertPublicHttpUrl, extractFromHtml, parseSyllabusText,
 } from './import-server.js';
 import { createInitialState, restoreState, totalXP, courseStatus, weekCount } from './public/domain.js';
 
@@ -27,6 +27,28 @@ const ALURA_PAGE = `<!doctype html><html><head><title>Formação Front-end | Alu
 <ul><li>Aula 1 — Estrutura de uma página</li><li>Aula 2 — Estilos e layout</li><li>Aula 3 — Responsividade</li></ul>
 <h3>Módulo 2 — JavaScript</h3>
 <ul><li>Aula 1 — Variáveis e funções</li><li>Aula 2 — DOM</li><li>Aula 3 — Fetch e APIs</li></ul>
+</body></html>`;
+
+// Painel de curso como aparece para quem está logado: sem seção de ementa,
+// aulas em links com identificador e disciplinas nos títulos.
+const LOGGED_COURSE_PAGE = `<!doctype html><html><head><title>OAB — 1ª fase | Gran Cursos Online</title></head>
+<body>
+<header><nav><a href="/">Início</a><a href="/meus-cursos">Meus cursos</a><a href="/planos">Planos</a></nav></header>
+<div class="app"><aside class="sidebar">
+<h1>OAB — 1ª fase</h1>
+<h3>Direito Constitucional</h3>
+<ul>
+<li><a href="/curso/123/aula/456">Aula 1 — Conceito e fontes</a></li>
+<li><a href="/curso/123/aula/457">Aula 2 — Direitos fundamentais</a></li>
+<li><a href="/curso/123/aula/458">Aula 3 — Remédios constitucionais</a></li>
+</ul>
+<h3>Direito Tributário</h3>
+<ul>
+<li><a href="/curso/123/aula/459">Aula 1 — Fato gerador</a></li>
+<li><a href="/curso/123/aula/460">Aula 2 — Obrigação tributária</a></li>
+<li><a href="/curso/123/aula/461">Aula 3 — Crédito tributário</a></li>
+</ul>
+</aside><main><p>Bem-vindo ao curso. Conclua as aulas no seu ritmo.</p></main></div>
 </body></html>`;
 
 function fakeResponse(body, { status = 200, headers = {} } = {}) {
@@ -135,6 +157,56 @@ test('infere a estrutura visível sem levar o menu de navegação', () => {
 test('página sem grade não vira curso vazio', () => {
   const extracted = extractFromHtml('<html><body><h1>Bem-vindo</h1><p>Faça login para ver o curso.</p></body></html>', 'https://www.grancursosonline.com.br/curso/x');
   assert.equal(extracted.lessonCount, 0);
+});
+
+test('página copiada de um curso logado é lida sem receber a sessão', () => {
+  const url = 'https://www.grancursosonline.com.br/curso/oab';
+  assert.equal(extractFromHtml(LOGGED_COURSE_PAGE, url).lessonCount, 0, 'a leitura da página pública não acha aulas aqui');
+  const analysis = analyzeSnapshot(LOGGED_COURSE_PAGE, url);
+  assert.equal(analysis.extraction.kind, 'page-snapshot');
+  assert.equal(analysis.completeness, 'partial');
+  assert.equal(analysis.provider.id, 'grancursos');
+  assert.match(analysis.warnings.join(' '), /não recebeu senha, cookie nem sessão/i);
+  const titles = analysis.disciplines.flatMap((discipline) => discipline.modules.flatMap((module) => module.lessons.map((lesson) => lesson.title)));
+  assert.equal(titles.length, 6);
+  assert.ok(titles.includes('Aula 1 — Conceito e fontes'));
+  assert.ok(!titles.includes('Meus cursos'), 'menu não vira aula');
+  assert.ok(!titles.includes('Planos'), 'menu não vira aula');
+  assert.deepEqual(analysis.disciplines[0].modules.map((module) => module.title), ['Direito Constitucional', 'Direito Tributário']);
+
+  const payload = normalizePayload(analysis, { sourceUrl: analysis.sourceUrl });
+  assert.equal(allLessonIds(payload).length, 6);
+  assert.equal(payload.extraction.kind, 'page-snapshot');
+  assert.equal(payload.sourceUrl, 'https://grancursosonline.com.br/curso/oab');
+  assert.equal(payload.capabilities.find((item) => item.id === 'syllabus').value, 'Parcial, a partir da página que você copiou já logada');
+  assert.match(payload.capabilities.find((item) => item.id === 'account').value, /copiar a página aberta/i);
+
+  assert.throws(() => analyzeSnapshot('<html><body><h1>Entre na sua conta</h1><p>Faça login para ver o curso.</p></body></html>', url), (error) => error.code === 'no_syllabus');
+  assert.throws(() => analyzeSnapshot('<html></html>', url), (error) => error.code === 'empty_text');
+});
+
+test('progresso já marcado na página copiada entra como histórico sem XP', () => {
+  const url = 'https://www.grancursosonline.com.br/curso/oab';
+  const completedPage = LOGGED_COURSE_PAGE.replace(
+    '<li><a href="/curso/123/aula/456">',
+    '<li class="completed"><a href="/curso/123/aula/456">',
+  );
+  const completedTitle = LOGGED_COURSE_PAGE.match(/<li><a href="\/curso\/123\/aula\/456">([^<]+)<\/a>/)?.[1] || '';
+  const analysis = analyzeSnapshot(completedPage, url);
+  assert.deepEqual(analysis.completedTitles, [completedTitle]);
+  const payload = normalizePayload(analysis, { sourceUrl: analysis.sourceUrl });
+  assert.equal(payload.completedCount, 1);
+  const state = applyCourseImport(createInitialState(), payload, { now: '2026-10-31T12:00:00Z' });
+  const course = state.courses[0];
+  const first = course.steps.find((step) => step.title === completedTitle);
+  assert.ok(state.completed.includes(first.id));
+  const entry = state.studyLog.find((item) => item.stepId === first.id);
+  assert.equal(entry.origin, 'import');
+  assert.equal(entry.historical, true);
+  assert.equal(totalXP(state), 0);
+  assert.equal(courseSummary(state, course).importedDone, 1);
+  assert.equal(lessonOrigin(state, first.id), 'import');
+  assert.equal(revertLessonCompletion(state, course.id, first.id).reverted, false, 'progresso importado não vira conclusão manual');
 });
 
 test('bloqueia endereços internos, credenciais e portas incomuns', () => {

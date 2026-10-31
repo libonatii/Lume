@@ -1,10 +1,10 @@
 # Lume — especificação de gamificação e conquistas
 
-Versão da política: **proposta inicial v1**. O propósito e as proibições abaixo expressam a direção do produto. Os valores numéricos são um primeiro balanceamento de design, desenvolvido para orientar a implementação e ser ajustado com testes de uso. **Esta documentação não significa que essas regras já estejam implementadas.**
+Versão da política: **v1 em execução para contas**. O propósito e as proibições abaixo expressam a direção do produto. Os valores numéricos continuam sujeitos a balanceamento e a ajustes versionados; o histórico já concedido não muda silenciosamente.
 
 Referência de contexto: [Produto](PRODUTO.md). Divergências e migração: [Continuidade](CONTINUIDADE.md).
 
-A migração da interface para React + Astro não implementou esta política. Contas e sincronização básica de uma cópia do progresso já existem, mas o XP continua calculado no navegador pelo domínio legado, com 5 XP por preparação, 10 XP por etapa, 10 XP por tarefa de prova concluída e nível a cada 100 XP. A cópia armazenada no servidor não torna esses registros elegíveis nem os valida para um placar compartilhado. Os valores e critérios das seções seguintes continuam sendo a proposta da nova política.
+A política v1 foi implementada no servidor: `xp.js` mantém o livro `xp_events` com chave de idempotência, origem, versão, material e data; `xp_settings` guarda o marco `eligible_since`, fuso e opt-in do ranking; `xp_time_sessions` registra o tempo declarado; `user_achievements` guarda as conquistas personalizadas. O navegador apenas envia candidatos e o servidor revalida o estado. O saldo legado do protótipo continua separado e fora do nível novo e do ranking.
 
 ## 1. O que XP representa
 
@@ -65,10 +65,10 @@ A lista de tarefas de prova foi pedida explicitamente e hoje usa uma regra trans
 - Criar, editar, organizar ou remover uma tarefa não gera XP.
 - Concluir uma tarefa com título concreto (por exemplo, "Resolver 20 questões de constitucional") concede **10 XP uma vez**.
 - Reabrir a tarefa retira o XP até ela ser concluída de novo; reabrir e concluir não acumula uma segunda recompensa.
-- O XP da tarefa é calculado no navegador, a partir de `state.tasks` (`public/tasks-domain.js`), e não entra em ranking.
-- A tarefa não conclui curso nem cria conquista por material; essas regras continuam dependendo da nova política.
+- O XP da tarefa é calculado no navegador, a partir de `state.tasks` (`public/tasks-domain.js`), e não entra no ranking. A conclusão de tarefa ainda não virou evento do livro do servidor; é a exceção transitória preservada.
+- A tarefa não conclui curso nem cria conquista por material; essas regras dependem dos eventos de conclusão do servidor.
 
-Essa exceção não deve ser copiada para tarefas genéricas de organização. Quando o livro de eventos do servidor existir, a conclusão de tarefa precisa virar um evento identificável, com chave de idempotência e revisão da política.
+Essa exceção não deve ser copiada para tarefas genéricas de organização. Quando a conclusão de tarefa for migrada para o livro de eventos, ela precisará de chave de idempotência, origem, versão da política e revisão do valor.
 
 ### Exemplos de cálculo
 
@@ -86,7 +86,7 @@ Tempo e conclusão são recompensas complementares. A pessoa não deve perder os
 
 ## 4. Níveis
 
-Proposta inicial: **500 XP por nível**, com início no nível 1.
+Proposta inicial **em execução**: **500 XP por nível**, com início no nível 1.
 
 ```text
 nível = 1 + piso(XP acumulado elegível / 500)
@@ -121,7 +121,7 @@ Posição salva e tempo elegível são campos diferentes. A posição deve poder
 
 Oferecer sessões de estudo com início e pausa e registros manuais para atividades externas ou offline. Marcar a origem desses registros. Um cronômetro sozinho não demonstra estudo: o produto precisa explicar seu uso e distinguir declaração de atividade observada.
 
-A sessão declarada existe como marcador de continuidade: ela conta o tempo que a pessoa escolheu, sobrevive ao recarregamento e aparece em Meu caminho. Esse tempo **não é** automaticamente um bloco elegível de XP. A presença do Lume Companion também não é: ela informa um aplicativo aberto, não estudo observado. Blocos de 30 minutos continuam exigindo evento identificável, validação no servidor e proteção contra repetição.
+A sessão declarada existe como marcador de continuidade: ela conta o tempo que a pessoa escolheu, sobrevive ao recarregamento e aparece em Meu caminho. Ao encerrar, ela é enviada ao servidor como **registro manual identificado**: o servidor desconta sobreposição com outras sessões, acumula sobras, fecha blocos de 30 minutos e aplica o teto diário. O tempo não é observação de atividade e não vira XP sem esse evento validado. A presença do Lume Companion continua fora: ela informa um aplicativo aberto, não estudo observado.
 
 Não exigir movimento de mouse contínuo para reconhecer leitura e não usar vigilância por câmera ou captura de tela como requisito. Pessoas usando leitor de tela ou estudando fora da aba também precisam de um caminho de registro adequado.
 
@@ -163,8 +163,8 @@ Conquistas são memórias concretas de conclusões. Cada registro deve guardar:
 | Material e título no momento da conclusão | Referência e preservação da memória |
 | Critério e versão da política | Explicar como foi obtida |
 | Data de obtenção | Histórico |
-| Origem do progresso | Manual, player compatível, integração ou revisão do grupo |
-| Visibilidade | Privada, amigos ou grupo autorizado |
+| Origem do progresso | Manual, player compatível, integração ou revisão de entrega colaborativa |
+| Visibilidade | Privada ou amigos |
 
 Modelos de título:
 
@@ -179,36 +179,40 @@ Renomear um material não cria uma conquista adicional. Reabrir o material não 
 
 Selos gerais, como concluir vários cursos, podem existir depois, mas a vitrine deve priorizar o que foi estudado de fato. Não conceder conquistas de aprendizado por cadastrar um curso vazio.
 
-## 8. Placares de amigos e grupos
+**Implementação atual:** curso, projeto, leitura, lista de exercícios e apresentação geram conquista em `user_achievements`, com título do material, critério, origem, data e visibilidade `friends`. A vitrine pessoal separa essas conquistas dos seis selos genéricos do protótipo, que ficam em uma seção de legado. A escolha individual de quais conquistas aparecem no perfil ainda não existe.
 
-O ranking é parte obrigatória do escopo do produto. Deve ter três classificações explícitas, começando pelos recortes de amigos e grupos:
+## 8. Placares de amigos
+
+O ranking é parte obrigatória do escopo do produto e está implementado no recorte **de amigos**. Não há recorte de grupos, comunidades ou ranking público nesta etapa.
 
 | Aba | Ordenação | Período |
 | --- | --- | --- |
 | Nível — classificação geral padrão | Maior nível; em seguida, maior XP acumulado elegível | Acumulado |
 | Cursos concluídos | Maior quantidade de cursos distintos e elegíveis concluídos | Acumulado; filtro por período como evolução |
-| Empenho | Maior XP elegível obtido no período selecionado | Semana como padrão; mês como evolução |
+| Empenho | Maior XP elegível obtido no período selecionado | Semana como padrão; mês disponível |
 
 Empenho significa atividade de estudo registrada, não um julgamento sobre dedicação pessoal. Exibir, como contexto da posição, minutos efetivos e quantidades de aulas, leituras e entregas concluídas no período. Não confundir tempo com a aba aberta com tempo de estudo. Não criar um índice opaco misturando nível, cursos, mensagens e presença.
 
-Um mesmo curso conta uma vez na classificação de cursos, independentemente de quantas vezes a pessoa o revisitou. Repetições, cópias do cadastro e microtarefas reclassificadas como cursos não aumentam esse total. Cursos autodeclarados seguem a política de origem e revisão visível do grupo.
+Um mesmo curso conta uma vez na classificação de cursos, independentemente de quantas vezes a pessoa o revisitou. Repetições, cópias do cadastro e microtarefas reclassificadas como cursos não aumentam esse total. Cursos autodeclarados seguem a política de origem e revisão visível do placar.
 
 Regras comuns:
 
-- Participação voluntária em placares de amigos ou grupos privados.
-- Na aba Empenho, o período semanal vai de segunda-feira às 00h até a segunda seguinte, no fuso fixado pelo grupo. O fuso e o período aparecem na tela.
+- Participação voluntária em placares de amigos.
+- Na aba Empenho, o período semanal vai de segunda-feira às 00h até a segunda seguinte, no fuso exibido na tela (o fuso do perfil de quem consulta). O período e o fuso aparecem na tela.
 - A pontuação de empenho soma os eventos de XP elegíveis do período. A aba Nível usa o acumulado elegível, e a aba Cursos usa as conclusões elegíveis. Eventos de demonstração e legado ficam fora de todas as classificações.
 - Após os critérios explícitos de cada aba, empates compartilham posição. Não usar quantidade de cliques, mensagens ou check-ins como desempate.
 - A virada semanal abre outro período de empenho e preserva o histórico; não reinicia a classificação acumulada por nível ou cursos.
-- Cada grupo informa a política de registros manuais. A proposta inicial permite autodeclaração identificada; o grupo pode escolher uma modalidade com revisão de conclusões. Não misturar modos sob o rótulo “verificado”.
+- O placar informa a política de registros manuais. A proposta inicial permite autodeclaração identificada; uma modalidade com revisão de conclusões pode existir como evolução. Não misturar modos sob o rótulo “verificado”.
 - A pessoa pode estudar sem aparecer no placar e escolher o que compartilhar. Ocultar-se não apaga seu histórico privado.
 - Regras e correções precisam ser transparentes para participantes; detalhes privados do material não precisam ser expostos para mostrar a pontuação autorizada.
 
 Um evento observado por um player ou integração ainda não comprova compreensão. “Verificado” só pode significar o critério técnico efetivamente observado e documentado.
 
+**Implementação atual:** a rota `GET /api/ranking` calcula as três abas a partir de `xp_events`, com opt-in em `xp_settings.ranking_opt_in`, empates compartilhados e período/fuso visíveis. A tela `#ranking` permite entrar e sair; quem não participa continua estudando e mantém o histórico privado. O legado e as tarefas de prova ficam fora. Faltam ranking público e qualquer recorte de grupo, ambos fora do escopo desta etapa.
+
 ## 9. Integridade, repetição e segurança
 
-Na implementação da nova política para contas, o servidor deverá ser a autoridade de concessão de XP e pontuação compartilhada. A autenticação existente e o armazenamento de uma cópia do estado por `/api/state` ainda não implementam essa validação nem um livro de eventos elegíveis.
+Na implementação da nova política para contas, o servidor é a autoridade de concessão de XP e pontuação compartilhada. `xp_events` guarda a chave única, o tipo, o valor, o material, a origem, a versão da política e o dia local. A cópia de `/api/state` continua servindo à biblioteca e à retomada, mas não é fonte de XP elegível.
 
 O perfil entre amigos exibe XP, nível e progresso a partir dessa cópia sincronizada. São valores declarados, não validados: aparecem no perfil porque a pessoa os compartilhou, mas não tornam o registro elegível nem podem alimentar placar.
 
@@ -225,7 +229,7 @@ Normalizar identidade de materiais e manter vínculos entre duplicatas. Somente 
 
 Manter um livro de eventos com: origem, material, sessão, valor, momento, versão da política, chave de idempotência e eventuais ajustes vinculados. Conclusão do curso, bônus e conquista devem ser processados uma única vez, inclusive em novas tentativas após falhas.
 
-Autodeclaração é uma escolha de produto, não prova antifraude. Ranking público exigirá validação e moderação adicionais; a primeira experiência social deve começar em grupos com regras visíveis.
+Autodeclaração é uma escolha de produto, não prova antifraude. Ranking público exigirá validação e moderação adicionais; a primeira experiência social deve começar entre amigos, com regras visíveis.
 
 ## 10. Migração do protótipo
 
@@ -241,7 +245,7 @@ Ao implementar a nova política:
 6. Não incluir recompensas antigas em placares da nova política.
 7. Não apagar conquistas históricas silenciosamente. Distinguir marcos de demonstração/legado da nova vitrine de conclusões reais.
 
-A migração e a interface do saldo legado precisam ser implementadas e verificadas antes de alterar a versão dos dados. A migração de stack preservou a versão 1 dos dados e não executou essa conversão. Os rótulos de legado na interface não substituem a separação dos saldos nem o processo de revisão descrito acima.
+A separação do saldo legado foi implementada: `xp_settings.eligible_since` marca o início da política, eventos antigos não são copiados para `xp_events`, o histórico local continua visível como legado e a interface mostra o XP elegível separado. Não houve conversão automática de preparação, etapa genérica ou progresso importado. A revisão assistida de etapas genéricas antigas e a correção de eventos com explicação continuam pendentes; nada foi apagado.
 
 ## 11. Casos obrigatórios de verificação
 
@@ -254,7 +258,9 @@ A migração e a interface do saldo legado precisam ser implementadas e verifica
 - Repetir o envio por falha de rede não duplica XP nem conquista.
 - Curso concluído gera título personalizado e pelo menos um nível pelo bônus proposto.
 - Material manual é identificado como tal; integração indisponível não é apresentada como automática.
-- Sessão declarada, presença do Companion, convite e amizade não criam XP nem histórico de recompensa.
+- Sessão declarada não cria XP de conclusão; ao encerrar, pode criar bloco de tempo validado pelo servidor. Presença do Companion, convite e amizade não criam XP nem histórico de recompensa.
 - Criar ou organizar tarefa de prova: 0 XP; concluir a mesma tarefa duas vezes: um único evento de 10 XP.
 - Descansar ou sair do placar não retira XP acumulado.
 - Mudança de política ou migração preserva o histórico e evita pontuação de legado no novo placar.
+
+Verificação atual: `xp.test.js` cobre idempotência, bônus, apresentação, teto diário, sobreposição e ranking; `library.test.js` cobre edição, exclusão e conclusão de slides; `tests/e2e/xp-ranking.spec.js` cobre o fluxo da API, extrato e opt-in. A medição de concorrência em produção e a correção assistida de eventos ainda não foram executadas.

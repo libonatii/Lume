@@ -60,7 +60,8 @@ Pacote npm separado em `companion/` (Electron + electron-builder, lockfile próp
 
 ## Contexto obrigatório do produto
 
-- Lume é uma plataforma social de estudos: biblioteca, continuidade de materiais, amigos, grupos, compartilhamento de aprendizados, colaboração, conquistas e placares de estudo.
+- Lume é uma plataforma social de estudos: biblioteca, continuidade de materiais, amigos, mensagens diretas, compartilhamento de aprendizados, colaboração, conquistas e placares de estudo.
+- Comunidades, servidores, canais e grupos estão fora do escopo desta etapa. O social se limita a amigos, mensagens diretas entre amizades aceitas e colaboração em projetos; não reintroduza grupos por causa de documentação antiga.
 - Cadastro e login com e-mail e senha são requisitos do Lume, assim como recuperação de acesso e saída da conta. A prévia local é temporária; não descreva como decisão de que o produto não terá login ou senha.
 - A gamificação deve reconhecer avanço real: estudo efetivo, aula concluída, leitura concluída, curso concluído e entrega de projeto. Não premiar cliques ou movimentação na interface.
 - Abrir uma janela, entrar no site, cadastrar um material, preparar a mesa, abrir uma aula, conectar uma conta, pausar ou enviar mensagens não gera XP.
@@ -68,7 +69,7 @@ Pacote npm separado em `companion/` (Electron + electron-builder, lockfile próp
 - Exceção aprovada para a lista de tarefas de prova: criar, editar ou organizar tarefa não gera XP; concluir uma tarefa de estudo definida concede XP uma vez. O valor em execução é 10 XP e ainda é cálculo legado do navegador, não a política validada no servidor.
 - A inclusão de pessoas neurodivergentes é central. Personalização, conforto visual e pausas sem punição devem conviver com uma gamificação substancial e uma experiência social opcional.
 - Não reduza o produto a um organizador individual de microtarefas, nem retire amigos ou placares por presumir que competição nunca pode ser inclusiva.
-- O ranking é um recurso central obrigatório, com classificações por nível acumulado, cursos distintos concluídos e empenho no período. Não o substitua apenas por um placar semanal de XP. Participação configurável não torna o desenvolvimento do ranking dispensável.
+- O ranking é um recurso central obrigatório, com classificações por nível acumulado, cursos distintos concluídos e empenho no período. O recorte inicial é de amigos; não há ranking de grupos nesta etapa. Não o substitua apenas por um placar semanal de XP. Participação configurável não torna o desenvolvimento do ranking dispensável.
 - Nenhum registro de atividade deve ser descrito como prova de compreensão, inteligência ou benefício clínico.
 
 ## Regras para implementar

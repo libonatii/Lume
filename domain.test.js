@@ -30,9 +30,11 @@ test('ritmo inicial e apoios mudam sugestões e plano, preservando cursos e XP',
   assert.equal(state.preferences.essential, true);
   assert.equal(studyRhythm(state).prepareFirst, true);
   assert.equal(state.onboarded, true);
-  assert.equal(totalXP(state), 10);
+  assert.equal(totalXP(state), 0);
   assert.equal(courseProgress(state, state.courses[0]).done, 1);
-  assert.equal(totalXP(previous), 10);
+  assert.equal(totalXP(previous), 0);
+  assert.equal(state.history[0].xp, 0);
+  assert.equal(state.history[0].policy, 'v1');
   assert.equal(previous.onboarded, false);
 });
 
@@ -61,23 +63,25 @@ test('apoios e ritmo sobrevivem à restauração sem duplicatas nem valores desc
   assert.deepEqual(restoreState(JSON.stringify(oldState)).supports, []);
 });
 
-test('conclusão dá XP uma única vez e avança a próxima etapa', () => {
+test('conclusão é registrada uma única vez e avança a próxima etapa sem saldo legado novo', () => {
   const { state } = completeMission(seededState(), 'design', 'design-1');
-  assert.equal(totalXP(state), 10);
+  assert.equal(totalXP(state), 0);
+  assert.equal(state.history[0].xp, 0);
   assert.equal(nextMission(state).step.id, 'design-2');
   assert.equal(courseProgress(state, state.courses[0]).done, 1);
   assert.equal(completeMission(state, 'design', 'design-1').added, false);
   assert.equal(achievements(state)[0].unlocked, true);
 });
 
-test('tornar menor não conclui a aula nem permite XP duplicado', () => {
+test('tornar menor não conclui a aula nem concede XP de preparação', () => {
   const result = completeMission(seededState(), 'design', 'design-1', { preparation: true });
-  assert.equal(result.xp, 5);
+  assert.equal(result.xp, 0);
+  assert.equal(result.state.history[0].xp, 0);
   assert.equal(result.state.completed.length, 0);
   assert.equal(nextMission(result.state).step.id, 'design-1');
   assert.equal(courseStatus(result.state, result.state.courses[0]), 'active');
   assert.equal(completeMission(result.state, 'design', 'design-1', { preparation: true }).added, false);
-  assert.equal(totalXP(completeMission(result.state, 'design', 'design-1').state), 15);
+  assert.equal(totalXP(completeMission(result.state, 'design', 'design-1').state), 0);
 });
 
 test('curso concluído não volta às sugestões', () => {
@@ -117,10 +121,14 @@ test('histórico semanal usa a semana local e exclui datas futuras de outra sema
   assert.equal(weekCount(state, new Date(2026, 9, 30, 12)), 1);
 });
 
-test('pausas não reduzem XP nem apagam conquistas', () => {
-  let state = completeMission(seededState(), 'design', 'design-1', { now: '2026-01-01T12:00:00Z' }).state;
+test('pausas não reduzem o saldo legado nem apagam conquistas', () => {
+  let state = seededState();
+  // Histórico antigo do protótipo: continua aceito e preservado.
+  state.history = [{ id: 'step:design-1', courseId: 'design', stepId: 'design-1', title: 'Etapa 1', courseTitle: 'Design de interfaces', preparation: false, xp: 10, at: '2026-01-01T12:00:00Z' }];
+  state.completed = ['design-1'];
   state = completeMission(state, 'design', 'design-2', { now: '2026-10-30T12:00:00Z' }).state;
-  assert.equal(totalXP(state), 20);
+  assert.equal(totalXP(state), 10);
+  assert.equal(state.history.at(-1).xp, 0);
   assert.equal(achievements(state)[0].unlocked, true);
 });
 
@@ -130,8 +138,11 @@ test('armazenamento inválido não quebra o início e preferências são normali
   const state = completeMission(seededState(), 'design', 'design-1').state;
   state.preferences.weeklyGoal = 999;
   const restored = restoreState(JSON.stringify(state));
-  assert.equal(totalXP(restored), 10);
+  assert.equal(totalXP(restored), 0);
+  assert.equal(restored.history[0].xp, 0);
   assert.equal(restored.preferences.weeklyGoal, 3);
+  const legacy = { ...restored, history: [{ ...restored.history[0], xp: 10 }] };
+  assert.equal(totalXP(restoreState(JSON.stringify(legacy))), 10);
   state.history.push(state.history[0]);
   assert.equal(restoreState(JSON.stringify(state)).history.length, 0);
 });

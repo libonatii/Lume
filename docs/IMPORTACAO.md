@@ -1,14 +1,20 @@
 # Lume — importação de cursos por link
 
-Status: **implementado e publicado** no site de referência — o endpoint `/api/import/analyze` responde em
-produção. Verificado com build, testes de domínio e testes de navegador. Consulte [Produto](PRODUTO.md),
-[Gamificação](GAMIFICACAO.md) e [Continuidade](CONTINUIDADE.md) para o contexto geral.
+Status: **implementado** — o endpoint `/api/import/analyze` existe no servidor local e no Worker, e a versão
+por link está publicada no site de referência. A leitura de **página copiada** da conta foi implementada depois
+do último deploy e depende de uma nova publicação; consulte a seção 12. Verificado com build, testes de domínio
+e testes de navegador. Consulte [Produto](PRODUTO.md), [Gamificação](GAMIFICACAO.md) e
+[Continuidade](CONTINUIDADE.md) para o contexto geral.
 
 ## 1. O que a pessoa faz
 
 1. Abre **Biblioteca → Adicionar curso**.
 2. Cola o link do que quer estudar, ou escolhe **Colar a grade** e envia um arquivo `.txt`/`.md`.
-3. O servidor identifica a plataforma, busca a página pública e extrai o que realmente está publicado.
+   Se o curso só aparece depois do login, abre o curso na plataforma com a conta, seleciona a página
+   (Ctrl+A), copia (Ctrl+C) e cola no campo de grade: o Lume lê o HTML copiado e nunca recebe senha, cookie
+   ou sessão.
+3. O servidor identifica a plataforma e extrai o que está na página pública — ou na página copiada, quando é
+   o caso — sem executar nada do conteúdo.
 4. A revisão mostra as áreas encontradas com caixas de seleção, módulos expansíveis, contagem de aulas e a
    marcação de **grade completa** ou **parcial**. Dá para marcar/desmarcar áreas, módulos e aulas, ver a
    quantidade selecionada e corrigir antes de adicionar.
@@ -37,16 +43,16 @@ Cada adaptador declara o que consegue fazer. Aceitar o link não significa que t
 | Capacidade | Situação atual |
 | --- | --- |
 | Identificar curso e importar a grade | Depende da fonte: dados estruturados, estrutura visível da página, ou texto/arquivo |
-| Acessar conteúdo da conta | Não implementado — o Lume não pede senha nem cookie |
-| Consultar progresso automaticamente | Não implementado para nenhuma plataforma |
+| Acessar conteúdo da conta | Não implementado como integração — o Lume não pede senha nem cookie. Quando a pessoa copia a página já logada, a grade vem do conteúdo copiado |
+| Consultar progresso automaticamente | Não implementado por API. A página copiada da conta pode trazer aulas marcadas como concluídas, importadas como histórico sem XP |
 | Retomar a aula na posição exata | Não implementado — há link direto quando a fonte publica um |
 
 Fontes com adaptador e estrutura esperada (o que a página costuma oferecer):
 
 | Plataforma | Estrutura esperada | Leitura automática |
 | --- | --- | --- |
-| Gran Cursos Online | disciplinas e assuntos | parcial, só a página pública; a grade de aulas costuma exigir login |
-| Estratégia Concursos | disciplinas e assuntos | parcial, só a página pública |
+| Gran Cursos Online | disciplinas e assuntos | parcial; a página pública mostra disciplinas, a grade de aulas exige login (use a página copiada) |
+| Estratégia Concursos | disciplinas e assuntos | parcial; a grade completa exige login (use a página copiada) |
 | Alura | cursos, módulos e aulas | parcial, por estrutura visível |
 | Rocketseat | trilhas, módulos e projetos | parcial; páginas que só publicam contagem de aulas não são importadas |
 | Udemy | seções e aulas | parcial, por dados estruturados; costuma bloquear robôs |
@@ -57,6 +63,20 @@ Fontes com adaptador e estrutura esperada (o que a página costuma oferecer):
 
 Cada fonte também declara sua nota (`public/import-domain.js`), exibida na revisão e no painel "O que esta
 fonte permite".
+
+### Página copiada (curso logado)
+
+Pedir senha ou cookie não é opção: isso entregaria a sessão da pessoa ao servidor e contornaria controles de
+acesso das plataformas. O caminho implementado é o inverso: a pessoa abre o curso com a própria conta, copia a
+página e cola no Lume. O navegador remove scripts, estilos e atributos, mantém títulos, listas e links, e envia
+esse HTML ao próprio servidor do Lume, que o trata como dado.
+
+- Funciona com qualquer plataforma, inclusive as que montam a grade por JavaScript.
+- Vale o que estava visível ou expandido na tela; módulos fechados não aparecem.
+- A leitura é heurística: exige cara de aula (rota com identificador, palavra de aula ou duração) e pelo menos
+  três itens. A revisão continua obrigatória.
+- O resultado é marcado como **página copiada da sua conta**, sempre **parcial**.
+- Sem o link informado, a reimportação usa o título como identidade; informar o link evita duplicata.
 
 ## 4. O que foi realmente verificado nesta rodada
 
@@ -83,6 +103,8 @@ acesso automatizado, a segunda não publica a lista de aulas. Nesses casos a ext
   No Worker não existe resolvedor DNS: a validação é feita na URL e em cada salto de redirecionamento.
 - Redirecionamentos manuais, no máximo 3, revalidando cada destino.
 - Limite de 2 MB de documento, tempo de 9 s, `content-type` de HTML/JSON/texto.
+- Página copiada: até 1,5 milhão de caracteres, corpo da API até 3 MB. Não há busca externa nesse caminho;
+  nenhuma credencial é enviada e o HTML não é executado.
 - O HTML é tratado como dado; nenhum trecho da página é enviado como instrução para IA.
 - Limites de estrutura: 40 disciplinas, 60 módulos por disciplina, 600 aulas, títulos de 200 caracteres.
 - A estrutura devolvida é validada em `normalizePayload` antes de entrar no estado; URL de aula inválida é descartada.
@@ -132,12 +154,15 @@ Reimportação:
 
 - Importar curso, escolher disciplinas, atualizar grade e conectar fonte **não geram XP**. A interface diz isso
   explicitamente na conclusão.
-- Concluir uma aula importada registra progresso **manual**, com origem visível. Não usa a recompensa legada de
-  10 XP por etapa, nem a de 5 XP por preparação.
-- Nenhum XP da nova política é atribuído no navegador: a política exige validação no servidor com chave de
-  idempotência, e esse livro de eventos ainda não existe para contas. A sincronização de `/api/state` continua
-  sendo uma cópia do estado, não validação de pontuação.
-- Não há observação de vídeo assistido. "Concluí esta aula" é autodeclaração identificada; sem integração
+- Concluir uma aula importada registra progresso **manual**, com origem visível. A conclusão manual é elegível
+  para 100 XP de aula, concedidos pelo servidor no livro de eventos; não usa a recompensa legada de 10 XP por etapa.
+- A página copiada da conta pode marcar aulas como concluídas. Elas entram como `studyLog` com origem `import` e
+  `historical: true`, somam no progresso exibido, mas **não geram XP** e não podem ser desfeitas como conclusão
+  manual. O Lume não converte progresso antigo em recompensa nova.
+- Importar, escolher disciplinas, atualizar a grade e conectar uma fonte continuam sem XP. A política de XP vive
+  em `xp.js`/`xp_events`, com chave de idempotência; `/api/state` continua sendo a cópia do estado, não a
+  autoridade de pontuação.
+- Não há observação de vídeo assistido por API. "Concluí esta aula" é autodeclaração identificada; sem integração
   compatível, não existe retomada automática.
 
 ## 9. Edital e OAB
@@ -170,14 +195,17 @@ npm run test:e2e  # desktop e celular
 Os testes de navegador cobrem: link inválido, fonte protegida, falha de rede com link preservado, seleção
 parcial, reimportação sem duplicata com progresso preservado, conclusão manual sem XP e isolamento entre contas.
 A análise por link nesses testes é simulada por interceptação de rota; a extração real é verificada por testes
-unitários com HTML de exemplo e pelos acessos reais listados na seção 4.
+unitários com HTML de exemplo e pelos acessos reais listados na seção 4. O teste **página copiada de um curso
+logado é lida sem receber a sessão** cobre um painel autenticado simulado, com menu, disciplinas e links de aula.
 
 ## 12. Pendências conhecidas
 
 - Validar o caso Gran/OAB com a URL real, incluindo o que a página pública mostra de disciplinas.
 - Cadastrar edital oficial com fonte e data antes de qualquer comparação de cobertura.
 - Extração para páginas que só publicam módulos e contagens (Rocketseat): hoje não importamos para não inventar aulas.
-- Conteúdo autenticado exige integração autorizada por plataforma; não implementado.
+- Conteúdo autenticado como integração autorizada por plataforma continua não implementado. O caminho atual é a
+  página copiada pela própria pessoa: depende do que estava visível na tela e não recupera módulos fechados.
 - Progresso automático, retomada de posição e observação de vídeo: não implementados.
 - A estrutura importada é guardada na cópia do estado da conta; ela não é validada no servidor como conteúdo oficial.
-- A publicação do Worker com as novas rotas depende de um `npx wrangler deploy` (não executado nesta tarefa).
+- A leitura de página copiada (`analyzeSnapshot`) depende de publicar o Worker com `npx wrangler deploy`, não
+  executado nesta tarefa. O limite de corpo da rota passou de 96 KB para 3 MB nos dois backends.

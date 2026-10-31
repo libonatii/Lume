@@ -1,9 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { STORAGE_KEY, createInitialState, restoreState } from '../../public/domain.js';
 import { reconcileSession } from '../../public/session-domain.js';
+import { collectCompletionCandidates } from '../../public/xp-policy.js';
 import { api, apiError } from '../lib/api.js';
 
 export const PREVIEW_KEY = 'lume.preview-session.v1';
+const SENT_KEY = 'lume.xp.sent.v1';
+function readSent() {
+  try {
+    const value = JSON.parse(localStorage.getItem(SENT_KEY) || '{}');
+    return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  } catch {
+    return {};
+  }
+}
 function readLegacyBase64Profile(raw) {
   try {
     const parsed = JSON.parse(raw || '{}');
@@ -33,12 +43,16 @@ export function useLume(notify) {
   const [account, setAccount] = useState(null);
   const [accountStatus, setAccountStatus] = useState('checking');
   const [syncStatus, setSyncStatus] = useState('local');
+  const [xp, setXp] = useState(null);
+  const [xpStatus, setXpStatus] = useState('idle');
   const [preview, setPreview] = useState(() => { try { return sessionStorage.getItem(PREVIEW_KEY) === 'open'; } catch { return false; } });
   const stateRef = useRef(state);
   const ready = useRef(false);
   const timer = useRef(null);
   const syncGeneration = useRef(0);
   const pendingSave = useRef(Promise.resolve());
+  const xpBusy = useRef(false);
+  const xpSent = useRef(readSent());
   stateRef.current = state;
 
   const saveRemote = useCallback((snapshot) => {
@@ -51,12 +65,13 @@ export function useLume(notify) {
       if (!result.ok) throw new Error(apiError(result));
     });
     pendingSave.current = save;
-    return save.then(() => { if (generation === syncGeneration.current) setSyncStatus('saved'); })
+    return save.then(() => { if (generation === syncGeneration.current) setSyncStatus('saved'); return true; })
       .catch(() => {
         if (generation === syncGeneration.current) {
           setSyncStatus('error');
           notify('Não foi possível sincronizar. Sua cópia local está preservada.');
         }
+        return false;
       });
   }, [notify]);
 
@@ -89,6 +104,90 @@ export function useLume(notify) {
     ready.current = true;
     setSyncStatus('saved');
   }, [notify]);
+
+  const persistSent = useCallback(() => {
+    try { localStorage.setItem(SENT_KEY, JSON.stringify(xpSent.current)); } catch { /* A marcação é só uma otimização. */ }
+  }, []);
+
+  const refreshXP = useCallback(async () => {
+    if (!account?.id) { setXp(null); setXpStatus('idle'); return; }
+    setXpStatus((current) => current === 'ready' ? current : 'loading');
+    const timeZone = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return ''; } })();
+    const result = await api(`/api/xp?timeZone=${encodeURIComponent(timeZone || '')}`);
+    if (!result.ok) {
+      setXpStatus(result.status === 401 ? 'signed-out' : 'error');
+      return;
+    }
+    setXp(result.data);
+    setXpStatus('ready');
+    for (const event of result.data.events || []) {
+      if (event.eventKey) xpSent.current[`${account.id}|${event.eventKey}`] = true;
+    }
+    persistSent();
+  }, [account?.id, persistSent]);
+
+  useEffect(() => {
+    if (!account?.id) { setXp(null); setXpStatus('idle'); return; }
+    refreshXP();
+  }, [account?.id, refreshXP]);
+
+  // O navegador só pede a concessão; o servidor revalida o estado, o tipo e a
+  // data. A marcação local evita repetir pedidos já confirmados, mas a chave
+  // única do banco é a proteção real contra recompensa duplicada.
+  useEffect(() => {
+    if (!account?.id || !ready.current || !xp?.settings?.eligibleSince) return undefined;
+    const eligibleSince = xp.settings.eligibleSince;
+    const candidates = collectCompletionCandidates(state, eligibleSince);
+    const isSent = (key) => Boolean(xpSent.current[`${account.id}|${key}`]);
+    const steps = candidates.steps.filter((item) => !isSent(item.key));
+    const bonuses = candidates.bonuses.filter((item) => !isSent(item.key));
+    const slides = candidates.slides.filter((item) => !isSent(item.key));
+    const sessions = (state.studySessions || []).filter((session) => {
+      if (!Number.isFinite(Date.parse(session.endedAt)) || Date.parse(session.endedAt) < Date.parse(eligibleSince)) return false;
+      return !isSent(`session|${session.id}`);
+    });
+    if (!steps.length && !bonuses.length && !slides.length && !sessions.length) return undefined;
+
+    const timerId = setTimeout(async () => {
+      if (xpBusy.current) return;
+      xpBusy.current = true;
+      const sent = (key) => { xpSent.current[`${account.id}|${key}`] = true; };
+      const unsent = (key) => { delete xpSent.current[`${account.id}|${key}`]; };
+      try {
+        if (ready.current && !(await saveRemote(state))) return;
+        for (const item of [...steps, ...bonuses, ...slides]) {
+          sent(item.key);
+          try {
+            const path = item.key.startsWith('slide|') ? '/api/xp/slides' : item.key.startsWith('bonus|') ? '/api/xp/bonus' : '/api/xp/complete';
+            const result = await api(path, { method: 'POST', body: item.body });
+            if (!result.ok && result.status >= 500) unsent(item.key);
+          } catch { unsent(item.key); }
+        }
+        for (const session of sessions) {
+          const key = `session|${session.id}`;
+          sent(key);
+          try {
+            const result = await api('/api/xp/time', {
+              method: 'POST',
+              body: {
+                sessionId: session.id,
+                startedAt: session.startedAt,
+                endedAt: session.endedAt,
+                durationSeconds: Math.round(Number(session.durationMs || 0) / 1000),
+                courseId: session.courseId,
+              },
+            });
+            if (!result.ok && result.status >= 500) unsent(key);
+          } catch { unsent(key); }
+        }
+        persistSent();
+        await refreshXP();
+      } finally {
+        xpBusy.current = false;
+      }
+    }, 1500);
+    return () => clearTimeout(timerId);
+  }, [state, account?.id, xp?.settings?.eligibleSince, saveRemote, refreshXP, persistSent]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -166,5 +265,5 @@ export function useLume(notify) {
     setPreview(false);
     try { sessionStorage.removeItem(PREVIEW_KEY); } catch { /* Sessão em memória. */ }
   };
-  return { state, setState, account, accountStatus, setAccountStatus, syncStatus, preview, enterPreview, exit, loadAccountProgress };
+  return { state, setState, account, accountStatus, setAccountStatus, syncStatus, preview, enterPreview, exit, loadAccountProgress, xp, xpStatus, refreshXP };
 }

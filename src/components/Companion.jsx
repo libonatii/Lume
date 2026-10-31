@@ -179,7 +179,7 @@ export default function Companion({ account, notify, go }) {
       <Button onClick={connect} disabled={busy || (data && data.devices.length >= data.maxDevices)}><Icon name="plus"/>Conectar um programa</Button>
       {pairing && <Button secondary onClick={() => load()}>Atualizar status</Button>}
     </div>
-    <p className="quiet-note">Cada computador recebe um acesso próprio, que você pode remover a qualquer momento. Amigos e grupos ainda não existem: por enquanto, a presença aparece só para você.</p>
+    <p className="quiet-note">Cada computador recebe um acesso próprio, que você pode remover a qualquer momento. Amigos já podem ser convidados; mensagens diretas e presença social ainda não existem, então por enquanto a presença aparece só para você.</p>
     {error && <p className="form-error" role="alert">{error}</p>}
   </section>);
 }

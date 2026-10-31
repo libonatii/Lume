@@ -10,21 +10,26 @@
 >
 > Um item só sai desta lista quando o fluxo completo existe, tem teste correspondente e não depende de
 > simulação. Aparência de botão ou tela não conta como conclusão.
+>
+> O brief vigente desta rodada está na seção 13. O anexo ao fim é histórico.
 
 ## 1. Resumo por área
 
 | Área | Estado | O que mais trava o restante |
 | --- | --- | --- |
-| Gamificação | Legado | Nova política de XP, livro de eventos e validação no servidor não existem |
-| Ranking e social | Não implementado | Depende da gamificação validada e de grupos |
-| Biblioteca | Parcial | Importa e cria a primeira trilha por área, mas não edita/exclui nem modela tipos de material |
-| Importação | Parcial | Lê grade pública, mas não lê progresso nem contorna login |
-| Slides | Não implementado | Não há criação, visualização interna nem progresso por slide |
-| Contas | Parcial | Sem envio de e-mail, reconciliação ou restauração de backup |
+| Gamificação | Fundação implementada | XP validado no servidor, níveis de 500, blocos de tempo e teto diário; falta migração assistida de casos ambíguos e correções com explicação |
+| Ranking | Implementado entre amigos | Três abas, opt-in, empates e período; grupos e ranking público estão fora desta etapa |
+| Mensagens diretas e colaboração | Não implementado | Sem DMs, bloqueio, não lidas, convites de entrega ou GitHub |
+| Biblioteca | Implementado o essencial | Criação manual, edição, exclusão com confirmação, etapas editáveis, tipos de material e slides; falta posição estruturada por tipo |
+| Organização | Não implementado | Sem anotações, listas com prioridade, quadro de projeto ou modelos |
+| GitHub | Não implementado | Sem conexão, leitura autorizada, sugestões revisáveis ou colaboração |
+| Importação | Parcial | Lê grade pública e progresso marcado na página copiada; não contorna login nem consulta progresso por API |
+| Slides | Implementado | Criação, edição, ordem, visualização interna, progresso e XP único; falta armazenamento binário de imagens |
+| Contas | Parcial | Sem envio de e-mail nem reconciliação entre dispositivos; restauração de cópia implementada |
 | Companion | Parcial | App pronto para uso local; presença social, notificações e assinatura pendentes |
-| Consistência | Parcial | Textos desatualizados e código legado ainda referenciado por testes |
+| Consistência | Parcial | Documentação e textos ainda mencionam grupos; grupos estão fora do escopo |
 
-## 1.1 Entregue nesta rodada (31/10/2026)
+## 1.1 Entregue antes deste brief (31/10/2026)
 
 - **Detecção por link com adição direta:** colar um link inicia a análise; sem `https://` também funciona; o botão
   "Detectar e adicionar" usa todas as aulas encontradas sem abrir a revisão. A revisão continua disponível.
@@ -34,71 +39,100 @@
 - **Tarefas de prova:** lista com prazo e vínculo opcional a curso; concluir vale 10 XP de legado uma vez,
   criar/organizar não gera XP. Ver a regra transitória em [Gamificação](GAMIFICACAO.md#tarefas-de-prova--regra-em-execução-no-protótipo).
 
+## 1.2 Entregue nesta rodada (31/10/2026)
+
+- **XP validado no servidor:** livro de eventos com chave de idempotência, política v1 (100 por aula/leitura/exercício,
+  150 por entrega, 500 por curso/projeto e 100 por apresentação), nível a cada 500 XP e extrato em Meu caminho.
+- **Tempo elegível:** sessão declarada encerrada vira bloco de 30 minutos no servidor, com sobra acumulada,
+  desconto de sobreposição e teto diário de 200 XP de tempo.
+- **Saldo legado separado:** registros antigos continuam preservados e visíveis como legado; novas conclusões
+  registram `xp: 0` no histórico do navegador. Preparação nunca concede XP.
+- **Ranking de amigos:** três abas (nível, cursos concluídos e empenho), semana/mês, fuso visível, empates
+  compartilhados, opt-in reversível e exclusão explícita do legado. Grupos e ranking público ficam fora.
+- **Conquistas personalizadas:** curso, projeto, leitura, lista de exercícios e apresentação geram conquista
+  com o nome do material, critério, origem e data; selos do protótipo ficam em seção de legado.
+- **Biblioteca editável:** criação manual, edição de título/tipo/retomada, adicionar/renomear/reordenar/remover
+  etapas, exclusão com confirmação e tipos videoaula, artigo, livro, exercício, projeto e curso.
+- **Slides internos:** criação, edição, ordem, visualizador com teclado, progresso por slide e conclusão única
+  quando 80% do deck foi visto, o último slide foi aberto e a pessoa confirma.
+- **Importação com progresso observado:** a página copiada da conta pode marcar aulas concluídas; elas entram
+  como histórico `import`, não geram XP e não podem ser convertidas em conclusão manual.
+- **Restauração de cópia:** prévia do que será mesclado, preservação do estado anterior e mesclagem que não
+  substitui preferências, privacidade ou onboarding atuais.
+- **Consistência:** textos de Amigos, Companion e Entrada deixam de tratar grupos como pendência; mensagens
+  diretas são o próximo passo social.
+
 
 ## 2. Gamificação e conquistas
 
-**G1 — Política de XP da versão com contas.** **Não implementado.**
-- Hoje o XP é calculado no navegador pelo modelo legado: 5 XP por preparação, 10 XP por etapa, 10 XP por
-  tarefa de prova e nível a cada 100 XP (`completeMission`, `levelInfo` e `public/tasks-domain.js`).
-- A política de `docs/GAMIFICACAO.md` (blocos de 30 min, 100 por aula/leitura, 150 por entrega, 500 de
-  bônus, teto diário, nível a cada 500 XP) não tem implementação nem tela.
-- Falta o livro de eventos com chave de idempotência, origem, versão da política e correções; sem ele,
-  recarregar ou repetir uma requisição pode duplicar recompensa.
-- O servidor recebe apenas a cópia do estado por `/api/state`; não valida nem atribui XP.
-- Pronto quando: o servidor concede eventos únicos por material/conclusão, o extrato explica cada valor e
-  repetir o envio não duplica nada.
+**G1 — Política de XP da versão com contas.** **Implementada no servidor.**
+- `xp.js` mantém o livro de eventos (`xp_events`) com chave de idempotência, origem, tipo, material, versão da
+  política, data e dia local. O navegador apenas pede a concessão; o servidor revalida o estado sincronizado.
+- Valores em execução: 100 XP por aula/leitura/lista de exercícios, 150 por entrega de projeto, 100 por
+  apresentação, 500 de bônus por curso/projeto e 25 por bloco de 30 minutos, com teto diário de 200 XP de tempo.
+- `completeMission` grava novas conclusões com `xp: 0` no histórico do navegador; o XP elegível aparece apenas
+  no extrato do servidor. Preparação não concede XP.
+- Ainda falta: correção/ajuste de evento com explicação na interface, migração assistida de conclusões genéricas
+  antigas e teste de concorrência entre dispositivos no Worker publicado.
 
-**G2 — Migração e separação do saldo legado.** **Não implementado.**
-- `restoreState` preserva o histórico, mas não identifica nem separa o saldo antigo do novo XP elegível.
-- Não há classificação de etapas genéricas como material, nem conversão de preparação em conclusão — e não
-  deve haver conversão automática.
-- A interface rotula "+XP de legado", o que não substitui a migração descrita em `GAMIFICACAO.md`.
+**G2 — Migração e separação do saldo legado.** **Implementada como separação; sem conversão automática.**
+- O saldo antigo continua no histórico local e é exibido em uma seção “Saldo legado”, fora do nível novo e do
+  ranking. Nenhum registro antigo é apagado ou convertido em aula/leitura concluída.
+- O servidor só considera eventos posteriores a `xp_settings.eligible_since`; progresso importado marcado como
+  `historical`/`import` também fica fora.
+- A migração assistida de etapas genéricas ambíguas continua pendente; a regra atual é conservadora.
 
 **G3 — Conquistas personalizadas por material.** **Parcial.**
-- `achievements()` em `public/domain.js` devolve seis selos genéricos por contagem (primeira missão, três
-  missões, um curso, cinco dias etc.). Não existe conquista com o nome do curso, da leitura ou do projeto.
-- O perfil entre amigos já exibe os selos e a última desbloqueada, mas não permite escolher quais
-  conquistas aparecem.
-- Falta registrar critério, origem, data e visibilidade por conquista.
+- Curso, projeto, leitura, lista de exercícios e apresentação geram conquista com título do material, critério,
+  origem, data e visibilidade `friends` no livro `user_achievements`.
+- A vitrine separa conquistas validadas dos seis selos genéricos do protótipo, que ficam em seção de legado.
+- Falta permitir escolher individualmente quais conquistas aparecem no perfil e revisar a visibilidade por grupo
+  (grupos estão fora desta etapa).
 
-**G4 — Ranking.** **Não implementado.**
-- Existe apenas o item "Ranking" marcado como planejado no menu (`Shell.jsx`) e textos que dizem que os
-  placares não estão disponíveis.
-- Falta API, tela e as três classificações obrigatórias: nível acumulado, cursos distintos concluídos e
-  empenho no período, com período visível, empates, opt-out e exclusão explícita do legado.
-- Depende de G1/G2: um placar compartilhado não pode usar XP calculado pelo navegador.
+**G4 — Ranking.** **Implementado entre amigos.**
+- `GET /api/ranking?tab=level|courses|effort&period=week|month` calcula nível, cursos distintos e empenho a partir
+  de `xp_events`, com período e fuso visíveis, empates compartilhados e opt-in reversível.
+- A tela `#ranking` oferece as três abas, semana/mês, regras e botão para entrar/sair. O legado e tarefas de prova
+  ficam fora.
+- Grupos e ranking público continuam fora do escopo; a participação é opcional.
 
-**G5 — Tempo elegível e blocos de estudo.** **Não implementado.**
-- A sessão declarada conta tempo e aparece em Meu caminho, mas não gera XP nem bloco elegível.
-- Falta acumulador de 30 minutos, teto diário de 200 XP, tratamento de abas simultâneas e fuso.
+**G5 — Tempo elegível e blocos de estudo.** **Implementado.**
+- A sessão declarada encerrada é enviada ao servidor com início, fim e duração; o servidor desconta sobreposição
+  entre sessões, acumula sobras, fecha blocos de 30 minutos e aplica o teto diário de 200 XP.
+- O fuso do perfil define o dia; eventos já concedidos não são reprocessados por mudança de fuso.
+- Limitação: o tempo é declarado, não observado; a interface diz isso e não usa presença do Companion como estudo.
 
-**G6 — Nível pela nova fórmula.** **Não implementado.**
-- `levelInfo` usa 100 XP por nível; a proposta é 500 XP, com nível 1 inicial e saldo legado separado.
+**G6 — Nível pela nova fórmula.** **Implementado.**
+- `levelProgress` usa 500 XP por nível, nível 1 inicial e saldo legado separado. O Shell mostra o XP elegível
+  quando há conta; a prévia local mostra o saldo local e não vale para ranking.
 
 ## 3. Biblioteca, materiais e continuidade
 
-**B1 — Criação manual e edição de cursos (botões de adicionar cursos).** **Parcial.**
+**B1 — Criação manual e edição de cursos (botões de adicionar cursos).** **Implementado o essencial.**
 - O estado vazio da Biblioteca pergunta **qual área de atuação a pessoa quer estudar** e cria a primeira
-  trilha com o primeiro passo informado (`addMaterial(..., 'manual')`). Isso é coberto pelo e2e.
-- **Adicionar curso** e **Adicionar um novo interesse** abrem a importação por link; o botão
-  **Detectar e adicionar** importa todas as aulas encontradas sem abrir a revisão.
-- Ainda não existe formulário para criar um curso vazio, adicionar uma etapa depois, renomear, excluir,
-  reordenar ou marcar um curso como exemplo. Não há confirmação de exclusão nem desfazer para curso.
-- Pronto quando: editar título, adicionar/remover etapas e excluir com confirmação, com teste de navegador
-  para cada ação.
+  trilha com o primeiro passo informado (`addMaterial(..., 'manual')`). O botão **Criar manualmente** abre um
+  formulário com título, tipo, link e etapas, mesmo quando a biblioteca já tem materiais.
+- **Adicionar curso** continua abrindo a importação por link. No detalhe do material, **Editar material** permite
+  mudar título, tipo, link e ponto de retomada, adicionar, renomear, reordenar e remover etapas. **Excluir**
+  pede confirmação e remove o progresso dependente; o XP já confirmado permanece no extrato.
+- Cursos importados têm as etapas vindas da fonte e usam **Atualizar grade**; título, tipo e retomada continuam
+  editáveis.
+- Coberto por `library-slides.spec.js` em desktop e celular.
 
 **B2 — Materiais tipados e progresso por tipo.** **Parcial.**
-- `STUDY_TYPES` existe e o onboarding grava `type` (`lesson`, `article`, `exercise`, `project`, `course`),
-  mas todas as telas tratam o material como uma lista plana de etapas.
-- Não existe posição de vídeo, página/seção de PDF, capítulo de livro, lista de exercícios com tentativas
-  nem entregas de projeto. "Projeto" é apenas um rótulo com a flag `shared`.
-- Não há retomada automática: o ponto salvo é texto livre (`resumeAt`) ou a próxima etapa.
+- `STUDY_TYPES` inclui aula, videoaula, artigo/leitura, livro, lista de exercícios, projeto e curso. O onboarding
+  e a criação manual gravam o tipo; a Biblioteca mostra o rótulo e a retomada usa um texto específico por tipo
+  (instante do vídeo, página/seção/capítulo, exercício/tentativa, próxima entrega).
+- Ainda não há posição estruturada de vídeo, página de PDF, capítulo de livro, contagem de tentativas ou
+  entregas de projeto com critérios. O ponto salvo continua sendo texto declarado (`resumeAt`) ou a próxima etapa.
+- Player e retomada automática dependem de uma fonte compatível e continuam fora desta etapa.
 
-**B3 — Progresso automático e integrações de estudo.** **Não implementado.**
-- Nenhuma fonte importada informa aulas assistidas; a conclusão é manual e identificada.
-- GitHub não tem conexão: existem apenas `GITHUB_CAPABILITIES` e `deliveryCandidates` (sugestões a partir
-  de issues), sem OAuth, leitura de repositórios, entregas ou validação.
-- Player com posição/cobertura/tempo elegível não existe.
+**B3 — Progresso automático e integrações de estudo.** **Parcial.**
+- A página copiada da conta pode trazer aulas marcadas como concluídas; elas entram como histórico `import`,
+  não geram XP e não são convertidas em conclusão manual. Isso não é uma integração: é leitura do conteúdo
+  que a pessoa copiou.
+- GitHub não tem conexão: existem apenas `GITHUB_CAPABILITIES` e `deliveryCandidates`, sem OAuth, leitura de
+  repositórios, entregas ou validação. Player com posição/cobertura/tempo elegível não existe.
 
 **B4 — Desfazer e corrigir progresso.** **Parcial.**
 - Aula importada tem "desfazer" para registro manual (`revertLessonCompletion`); etapas de cursos legados
@@ -114,20 +148,31 @@
 - Exemplos antigos sem nenhum progresso são removidos ao restaurar; exemplos com histórico ou aula
   concluída permanecem para não apagar dados. `selectedCourseId` cai para a primeira trilha real ou `null`.
 
-**B7 — Slides de estudo (adicionar slide, visualizar e XP perto do fim).** **Não implementado.**
-- Não existe modelo de slide, editor, visualizador interno nem progresso por slide. A Biblioteca só conhece
-  cursos com etapas e aulas importadas.
-- O pedido é permitir **adicionar slides** a um material/curso, abrir e navegar pelo slide **dentro do
-  programa** (sem depender de site externo) e conceder XP quando a pessoa estiver **perto de terminar** o
-  slide/deck.
-- Decisões pendentes antes de implementar: o que é "perto do fim" (percentual de slides vistos, último
-  slide, confirmação explícita?), se o XP é parcial ou só na conclusão, como impedir farm ao reabrir, e
-  onde os slides ficam armazenados (estado da conta ou objeto binário).
-- Restrições já conhecidas: XP de slide precisa de evento idempotente validado no servidor; visualização
-  com teclado e leitor de tela; nada de conceder XP por abrir, rolar ou clicar sem registrar avanço real;
-  o modo essencial/movimento reduzido continua fora do escopo por decisão da responsável.
-- Pronto quando: criar/editar/reordenar slides, abrir no programa, salvar posição, registrar conclusão
-  uma única vez e cobrir o fluxo com testes de domínio e de navegador.
+**B7 — Slides de estudo (adicionar slide, visualizar e XP perto do fim).** **Implementado.**
+- Cada material pode ter até 60 slides com título e texto. O editor permite adicionar, editar, reordenar e
+  excluir; o visualizador abre dentro do Lume, salva o slide atual e navega por teclado (setas, Home, End).
+- Decisão de “perto do fim”: a conclusão fica disponível quando a pessoa viu pelo menos **80% dos slides**, abriu
+  o **último slide** e clicou em **Concluir apresentação**. O XP é único, de 100, e só o servidor o concede.
+- O progresso fica em `course.slideProgress` (slides vistos, último slide e data de conclusão); reabrir não
+  repete o evento. O evento usa a chave `slide|courseId`, tem origem manual e versão da política.
+- Limitação: slides são texto no documento da conta; imagens binárias e apresentações importadas de arquivos
+  ainda não são suportadas.
+- Coberto por `library-slides.spec.js` e `xp.test.js`.
+
+**B8 — Favoritos e destaque de retomada.** **Parcial.**
+- A Biblioteca já tem capas, busca, filtros, estados e próxima aula; Hoje já destaca o material em andamento.
+- Não existe favoritar/desfavoritar, filtrar por favoritos nem uma escolha explícita de destaque no estilo
+  "continuar" da biblioteca.
+- Pronto quando: favoritar e desfavoritar cursos, filtrar por favoritos e refletir a escolha no destaque,
+  sem gerar XP.
+
+**B9 — Anotações, listas e quadro de andamento.** **Não implementado.**
+- Não há anotações, resumos ou dúvidas vinculados ao material; nem listas de aulas e entregas com prioridade,
+  quadro simples de projeto ou modelos básicos de curso, prova e projeto.
+- Requisito: reutilizar os mesmos dados da biblioteca, das tarefas e das entregas; não criar um editor
+  genérico de páginas nem exigir organização prévia para começar a estudar.
+- Pronto quando: anotar a partir do material, listar pendências com prioridade, alternar lista/quadro e
+  aplicar modelos, com persistência e testes de domínio e navegador.
 
 ## 4. Importação, IA, edital e GitHub
 
@@ -139,9 +184,12 @@
   verificação real de 31/10/2026 está em [Importação](IMPORTACAO.md#4-o-que-foi-realmente-verificado-nesta-rodada).
 - Falta ampliar adaptadores e manter fixtures por provedor para evitar regressão.
 
-**I2 — Progresso já existente na plataforma.** **Não implementado.**
-- A importação lê a grade, não as aulas já concluídas. Reimportar preserva o progresso local, mas não
-  importa o progresso da conta na fonte.
+**I2 — Progresso já existente na plataforma.** **Parcial — progresso observado na página copiada.**
+- A importação por link continua lendo a grade, não o progresso da conta. Quando a pessoa copia a página já
+  aberta na própria conta, aulas com marcadores de conclusão (classe, `aria-checked`, `data-completed` ou texto
+  “Concluído”) são identificadas e entram como histórico `import`/`historical`.
+- Esse progresso não concede XP e não pode ser desfeito como conclusão manual; reimportar preserva o que já existe.
+- Não há consulta autenticada por API nem contorno de login. O Lume não recebe senha, cookie ou sessão.
 
 **I3 — Edital e cobertura OAB.** **Parcial.**
 - `EDITAL_SOURCES` está vazio de propósito (`public/import-domain.js`), então a comparação de cobertura
@@ -156,6 +204,15 @@
 
 **I5 — Conexão com GitHub.** **Não implementado.**
 - Ver B3. As capacidades declaradas em `GITHUB_CAPABILITIES` não estão ligadas a nenhuma tela ou API.
+- Escopo desta etapa: conexão opcional, seleção explícita de repositórios, leitura autorizada de README,
+  issues e milestones, e sugestões de objetivo, entregas, pendências e próxima ação.
+- Toda sugestão deve distinguir dado encontrado no repositório de sugestão da IA, mostrar a origem e permitir
+  revisão. Inatividade, issues abertas ou ausência de documentação não bastam para afirmar que o projeto está
+  incompleto.
+- Colaboração: convidar um amigo para uma entrega específica, com projeto, ajuda desejada, aceite ou recusa e
+  acompanhamento. Aceitar no Lume não concede acesso ao repositório no GitHub.
+- Não executar issues, comentários, código ou permissões automaticamente. Credenciais só no servidor e
+  permissões mínimas. Repositórios privados não aparecem em perfil, mensagem ou convite sem escolha explícita.
 
 ## 5. Contas, privacidade e dados
 
@@ -176,10 +233,12 @@
 - `/api/state` grava a cópia inteira; a última escrita vence. Não há versão, merge, detecção de conflito
   nem resolução visível. Duas abas/dispositivos podem sobrescrever progresso um do outro.
 
-**C5 — Restaurar backup.** **Parcial.**
-- Exportar JSON existe em Configurações. Importar a cópia não existe: a própria interface avisa
-  "A importação ainda não foi implementada".
-- Falta validar o arquivo, mostrar o que será mesclado e preservar o estado atual antes de aplicar.
+**C5 — Restaurar backup.** **Implementado.**
+- Configurações exporta JSON e permite escolher uma cópia para restaurar. O arquivo é validado (formato, versão,
+  tamanho de 2 MB), a prévia mostra materiais novos, conclusões e tarefas, e o estado atual é guardado em
+  `lume.prototype.v1.before-import` antes de aplicar.
+- A mesclagem preserva preferências, privacidade e onboarding atuais e não duplica cursos, etapas, histórico ou
+  tarefas. O XP validado não viaja no arquivo: ele permanece no livro de eventos do servidor.
 
 **C6 — Migração dos dados locais para a conta.** **Parcial.**
 - Ao entrar, a cópia local é preservada como `before-account`, mas o estado remoto substitui o local; não
@@ -193,29 +252,45 @@
 - Ainda não há commit nem publicação. Antes do deploy é preciso garantir o bucket R2 `lume-media` na conta
   Cloudflare, conferir o binding no Worker e repetir o e2e de upload.
 
-**C8 — XP e progresso validados no perfil.** **Parcial.**
-- O perfil entre amigos exibe o que a pessoa compartilhou, mas XP, nível e progresso vêm da cópia
-  sincronizada e são declarados, não validados. Isso é correto enquanto G1 não existir; não usar esses
-  números em ranking.
+**C8 — XP e progresso validados no perfil.** **Parcial — XP validado, progresso declarado.**
+- O perfil entre amigos consulta o livro de eventos do servidor e mostra XP, nível e conquistas validados quando
+  a pessoa escolhe compartilhar XP. O saldo legado não entra.
+- Percentuais de progresso e conclusões de materiais continuam vindo da cópia sincronizada e são declarados; a
+  interface não os apresenta como validados. Grupos não existem nesta etapa.
 
-## 6. Amigos, grupos e presença social
+## 6. Amigos, mensagens diretas e presença social
 
-**S1 — Grupos e metas coletivas.** **Não implementado.**
-- Não há criação de grupo, convite de grupo, papéis, privacidade nem painel. O onboarding mostra o cartão
-  "Entrar em um grupo" com botão desabilitado.
-- Também não há metas coletivas opcionais com contribuição individual identificável.
+**S1 — Grupos, comunidades, servidores e canais.** **Intencional — fora do escopo; interface corrigida.**
+- Decisão explícita de 31/10/2026: não há comunidades, servidores, canais ou grupos nesta etapa. O social se
+  concentra em amigos, mensagens diretas entre amizades aceitas e colaboração em projetos.
+- O cartão "Entrar em um grupo" foi removido do onboarding e os textos que prometiam grupos foram corrigidos;
+  mensagens diretas aparecem como o próximo passo social. Ver U4.
+- Metas coletivas por grupo também saem do escopo. Uma entrega colaborativa pode ter contribuição individual
+  identificável sem criar um grupo.
 
 **S2 — Compartilhamento de aprendizados e feed.** **Não implementado.**
 - Não há publicações, notas, resumos, links, curtidas, comentários nem vitrine social de descobertas.
 - Compartilhar uma conquista ou um aprendizado com amigos também não existe; o perfil só mostra o que a
   pessoa marcou nas seções de privacidade.
+- O fluxo desta etapa compartilha referências por mensagem direta e mostra no perfil o que a pessoa escolheu;
+  um feed social não é pré-requisito das DMs nem do ranking.
 
-**S3 — Mensagens e comunicação.** **Não implementado.**
-- Não há chat, sala de estudo, notificações sociais ou moderação de conversa.
+**S3 — Mensagens diretas.** **Não implementado.**
+- Não há conversas individuais, envio e recebimento, histórico persistente, indicação de não lidas,
+  compartilhamento de referências, controle de notificações nem bloqueio.
+- Escopo: DMs apenas entre amizades aceitas; sem mensagens de desconhecidos, conversas em grupo, canais,
+  chamadas de voz ou vídeo.
+- Regras: somente participantes autorizados acessam a conversa; bloquear ou remover amizade interrompe novas
+  mensagens e preserva o histórico; compartilhar uma referência não concede acesso a conteúdo privado ou
+  restrito; mensagens e notificações não geram XP.
+- Pronto quando: API no Node e no Worker com o mesmo contrato, tela de conversas, não lidas e bloqueio,
+  com testes de acesso indevido, persistência e repetição.
 
-**S4 — Segurança social.** **Não implementado.**
+**S4 — Segurança social.** **Parcial.**
 - Amigos podem ser removidos, mas não há bloqueio, denúncia, silenciamento, prevenção de spam ou regras de
   moderação.
+- O bloqueio de contato faz parte de S3: impede novas mensagens sem apagar o histórico. Denúncia e moderação
+  continuam pendentes.
 
 **S5 — Presença social / rich presence.** **Não implementado.**
 - A presença local existe e mostra aplicativo, categoria, desde quando e computador — mas **só para a
@@ -267,20 +342,21 @@
 
 ## 8. Interface e textos desatualizados
 
-**U1 — `Companion.jsx` afirma que amigos e grupos não existem.** **Corrigir.**
-- Amigos já existem. A frase deve dizer que grupos e presença social ainda não existem, sem negar o que já
-  foi entregue.
+**U1 — `Companion.jsx` afirma que amigos e grupos não existem.** **Corrigido.**
+- A frase agora diz que amigos já podem ser convidados e que mensagens diretas e presença social ainda não existem;
+  grupos não são citados como pendência.
 
-**U2 — `Auth.jsx` lista "Amigos, grupos e ranking" como planejados.** **Corrigir.**
-- Amigos estão implementados; separar "amigos" de "grupos" e "ranking" na lista de recursos.
+**U2 — `Auth.jsx` lista "Amigos, grupos e ranking" como planejados.** **Corrigido.**
+- A lista agora separa amigos e ranking de amigos (implementados) de mensagens diretas (próximo passo), sem
+  mencionar grupos.
 
-**U3 — Preferências sem notificações.** **Parcial.**
-- A tabela de telas do produto prevê notificações; Configurações não tem nenhum controle de lembrete,
-  frequência ou silêncio.
+**U3 — Preferências sem notificações.** **Parcial, explícita.**
+- Configurações agora tem uma seção “Notificações e lembretes” que informa que o recurso ainda não existe. Não há
+  botão ou switch que finja um envio que não acontece.
 
-**U4 — Textos de "planejado" dependem do estado real.** **Manter.**
-- Ranking no menu e grupo no onboarding estão marcados como planejados e sem ação; isso é correto e deve
-  continuar até os recursos existirem.
+**U4 — Textos de "planejado" dependem do estado real.** **Corrigido.**
+- Ranking agora tem link real em `#ranking`; “Mensagens” aparece como planejado. O cartão de grupo foi substituído
+  por mensagens diretas, porque grupos estão fora do escopo desta etapa.
 
 **U5 — Campo `essential` e apoios legados.** **Intencional, com ressalva.**
 - Modo essencial e movimento reduzido foram retirados por decisão da responsável; `preferences.essential`
@@ -318,30 +394,39 @@
 
 **D5 — Documentação duplicada por rodada.** **Corrigido nesta atualização.**
 - O brief antigo de onboarding foi preservado no anexo deste arquivo; não use os números de teste dele
-  (28/10) como estado atual. A referência vigente é a seção de verificação abaixo.
+  (28/10) como estado atual. O brief vigente está na seção 13; a referência de verificação é a seção 11.
 
 ## 10. Ordem sugerida
 
-1. **Consistência primeiro:** corrigir U1/U2, decidir D1–D3, commitar e publicar C7 com o bucket R2.
-2. **Fundação de XP:** G1, G2, G5 e C4. Sem isso, ranking e perfil validado não podem existir.
-3. **Ranking:** G4, com opt-out, três abas e regras de empate.
-4. **Social:** S1, S2, S3, S4 e S5 (presença social/rich presence).
-5. **Biblioteca e integrações:** B1–B5, B7, I1–I5.
-6. **Companion:** P2–P11, depois da fundação de XP e da decisão de release.
+1. **Consistência e publicação:** commitar a rodada, conferir o bucket R2 `lume-media`, publicar e medir o Worker.
+2. **Correção assistida de XP:** ajuste de evento com explicação no extrato e revisão de conclusões genéricas
+   antigas; a base de XP, nível, tempo e ranking de amigos já está implementada.
+3. **Biblioteca e progressão:** posição estruturada por tipo (vídeo, PDF, livro, exercícios), favoritos e
+   trilhas/projetos. A criação, edição, exclusão, tipos básicos e slides já funcionam.
+4. **Organização estilo Notion:** B9, reutilizando os dados de biblioteca, tarefas e entregas.
+5. **Mensagens diretas e colaboração:** S3, S4, B5 e I5. Grupos, comunidades, canais e servidores estão fora
+   do escopo; S1 permanece como decisão registrada, não como entrega.
+6. **Presença social:** S5, depois das DMs e do perfil.
+7. **Companion:** P2–P11, depois da fundação de XP e da decisão de release.
 
-Dependências explícitas: G4 depende de G1/G2; S5 depende de S1/S2; C8 depende de G1; P5 depende de B3/B4;
-B3 depende de adaptadores com capacidades declaradas.
+Dependências explícitas: G4 usa G1/G2; S5 depende de S3/perfil; C8 usa G1 para XP e mantém progresso declarado;
+P5 depende de B3/B4; B3 depende de adaptadores com capacidades declaradas; colaboração em entrega depende de
+B5 e I5. S2 (feed) não é pré-requisito do fluxo desta etapa; se for retomado, vem depois de DMs, colaboração
+e ranking.
 
 ## 11. Verificação antes de dizer "pronto"
 
 ```sh
-npm test          # 105 testes Node de domínio/autenticação/importação/Companion/sessão/amigos/perfil/tarefas
+npm test          # 125 testes Node de domínio/autenticação/importação/Companion/sessão/amigos/perfil/tarefas/XP/biblioteca/backup
 npm run build     # Astro + CSP
-npm run test:e2e  # 32 cenários, desktop e celular
+npm run test:e2e  # 50 cenários, desktop e celular
 ```
 
-- O e2e de importação **simula** a análise por interceptação de rota; ele não prova extração real.
+- O e2e de importação por link **simula** a análise por interceptação de rota; o teste de progresso copiado usa
+  HTML real no domínio e não prova extração de uma plataforma específica.
 - O e2e usa `data/e2e-*` e `LUME_ATTEMPT_LIMIT=200`; não rode cenários em paralelo.
+- Os cenários novos cobrem editar/excluir material, criar manualmente, slides com teclado, restauração de cópia,
+  XP idempotente, bônus, tempo, extrato e opt-in do ranking.
 - Teste de upload de imagem e atividade recente faz parte do working tree; repetir depois do commit.
 - O e2e de tarefas cobre criar, concluir, reabrir e recarregar; o de detecção cobre link sem `https` e adição
   sem revisão.
@@ -355,14 +440,131 @@ npm run test:e2e  # 32 cenários, desktop e celular
 - O Lume não hospeda cursos nem observa qualquer site externo.
 - A prévia sem conta é temporária; login com e-mail e senha é requisito do produto.
 - Presença, importação, onboarding, convite e mensagens não geram XP.
+- Comunidades, servidores, canais e grupos estão fora do escopo desta etapa; o social se limita a amigos,
+  mensagens diretas e colaboração em projetos.
+- Conectar GitHub, enviar mensagens, aceitar convites ou fazer commits isolados não gera XP.
+- Aceitar uma colaboração no Lume não concede acesso ao repositório no GitHub.
+
+## 13. Brief vigente — plataforma social de estudos sem grupos (31/10/2026)
+
+> Pedido vigente registrado nesta rodada. A base social sem grupos, a biblioteca editável, os slides, o XP
+> validado e o ranking de amigos já foram implementados; mensagens diretas, colaboração e GitHub continuam
+> pendentes. A mudança de escopo social já foi refletida nos documentos de produto. Onde este brief contrariar
+> seções anteriores, prevalece o brief. O anexo ao fim é histórico.
+
+Quero evoluir o Lume como uma plataforma social de estudos gamificada, inspirada na biblioteca e progressão da Steam, na comunicação direta do Discord e na organização do Notion.
+
+O projeto é pequeno. **Não quero comunidades, servidores, canais ou grupos nesta etapa.** A experiência social deve se concentrar em amigos, mensagens diretas e colaboração em projetos vinculados ao GitHub.
+
+Esta é uma mudança explícita de escopo: atualize a documentação que atualmente exige grupos ou comunidades para refletir essa decisão, preservando amigos, perfis e ranking.
+
+Antes de implementar, leia `AGENTS.md`, `docs/PRODUTO.md`, `docs/GAMIFICACAO.md` e `docs/CONTINUIDADE.md`. Consulte `docs/IMPORTACAO.md` para importação e `docs/COMPANHEIRO.md` se alterar o aplicativo de desktop. Inspecione o código e aproveite os recursos existentes.
+
+**1. Biblioteca e progressão inspiradas na Steam**
+
+A biblioteca deve ser o centro da experiência, reunindo cursos, leituras e projetos.
+
+- Destaque o material em andamento, o ponto de retomada e a próxima atividade.
+- Organize conteúdos com capas, filtros, favoritos e estados de progresso.
+- Apresente disciplinas, módulos e aulas dentro de cada curso.
+- Evolua o perfil com áreas de interesse, projetos compartilhados e conquistas escolhidas pela pessoa.
+- Vincule conquistas a realizações concretas, identificando o curso, leitura ou projeto concluído.
+
+Preserve a importação por link de diferentes plataformas e suas limitações reais. Não exija cadastrar cada aula manualmente.
+
+**2. Mensagens diretas inspiradas no Discord**
+
+Implemente uma comunicação simples entre amigos, integrada aos perfis existentes.
+
+Na primeira versão, quero:
+- Lista de conversas individuais.
+- Envio e recebimento de mensagens de texto.
+- Histórico persistente e indicação de mensagens não lidas.
+- Compartilhamento de referências a cursos, aulas e projetos.
+- Controle de notificações e bloqueio de contato.
+
+Comece com DMs apenas entre amizades aceitas, sem mensagens de desconhecidos. Não inclua conversas em grupo, canais, chamadas de voz ou vídeo nesta etapa.
+
+Garanta que somente os participantes autorizados acessem a conversa. Defina o comportamento de bloqueio e remoção de amizade, incluindo a preservação do histórico e a interrupção de novas mensagens.
+
+Compartilhar uma referência não deve conceder acesso automático a conteúdo privado ou restrito. Mensagens e notificações não concedem XP.
+
+**3. Organização inspirada no Notion**
+
+Quero ferramentas úteis sem exigir configuração extensa.
+
+- Anotações, resumos e dúvidas vinculados ao material estudado.
+- Listas de aulas e entregas com prioridades claras.
+- Um quadro simples de andamento para projetos, quando útil.
+- Modelos básicos para acompanhar um curso, preparar uma prova ou desenvolver um projeto.
+
+As visualizações devem reutilizar os mesmos dados. Evite criar um editor genérico complexo ou uma estrutura de páginas que obrigue a pessoa a organizar tudo antes de estudar.
+
+**4. Colaboração pelo GitHub**
+
+A conexão com GitHub deve ser opcional e permitir selecionar explicitamente os repositórios acompanhados.
+
+Use dados autorizados, como README, issues e milestones, para sugerir:
+- O objetivo do projeto.
+- Entregas previstas e pendências identificadas.
+- Uma próxima ação possível.
+- Oportunidades de colaboração.
+
+Diferencie informações encontradas no repositório de sugestões da IA. Toda sugestão de entrega deve apresentar sua origem e permitir revisão. Inatividade, issues abertas ou ausência de documentação não bastam para afirmar que um projeto está incompleto.
+
+A pessoa pode escolher continuar sozinha ou convidar um amigo pelo Lume para colaborar em uma entrega específica. O convite deve identificar o projeto e a ajuda desejada, com aceite ou recusa e acompanhamento da entrega.
+
+Aceitar uma colaboração no Lume não concede acesso ao repositório no GitHub. Explique quando esse acesso precisa ser providenciado pelo proprietário.
+
+Na primeira versão, priorize leitura de dados e coordenação da colaboração. Alterações no GitHub, como abrir issues, comentar, enviar código ou conceder permissões, exigem ações explícitas e uma integração própria; não execute essas ações automaticamente.
+
+Mantenha credenciais no servidor e solicite permissões mínimas. Repositórios privados e seus conteúdos não devem aparecer em perfis, mensagens ou convites sem escolha explícita de compartilhamento e autorização adequada.
+
+**5. Uma experiência integrada**
+
+O fluxo principal deve ser:
+
+**Adicionar material → estudar → registrar avanço → organizar aprendizados → conversar com um amigo ou colaborar em uma entrega → acompanhar conquistas.**
+
+Exemplo: estou estudando programação, acompanho um repositório e reviso uma entrega sugerida. Posso executá-la sozinho ou convidar um amigo. Conversamos por DM e registramos a contribuição de cada participante.
+
+Não crie uma área de comunidade para viabilizar esse fluxo. Use biblioteca, projetos, amigos e conversas individuais.
+
+**6. Gamificação e ranking**
+
+Siga as regras documentadas, distinguindo pontuação legada da política validada no servidor.
+
+Preserve o ranking como recurso central, começando pelo recorte de amigos, com:
+- Nível acumulado.
+- Cursos distintos concluídos.
+- Empenho no período.
+
+Implemente a validação necessária no servidor antes de usar eventos em placares compartilhados. Não use a cópia do estado do navegador como autoridade.
+
+Conectar GitHub, enviar mensagens, aceitar convites ou fazer commits isolados não gera XP. Entregas colaborativas exigem critérios de conclusão e contribuição individual identificável; não conceda automaticamente a mesma recompensa a todos.
+
+Pausas preservam conquistas. Exposição no perfil e participação no ranking continuam configuráveis.
+
+**7. Visual, implementação e entrega**
+
+Preserve `public/lume.css`, os temas, a tipografia e os componentes existentes. A inspiração nos três aplicativos deve orientar a experiência, mantendo a identidade do Lume.
+
+Implemente de forma incremental, com soluções proporcionais ao tamanho do projeto. Comece por um diagnóstico curto do que já existe e prossiga com fluxos funcionais, persistência, permissões e estados de erro.
+
+Mantenha os contratos das APIs consistentes entre Node e Cloudflare. Preserve dados existentes e atualize os documentos afetados, especialmente o escopo social e a matriz de continuidade.
+
+Verifique os fluxos de estudo, DMs e colaboração, incluindo acesso indevido a conversas, bloqueio de contato, privacidade de repositórios e repetição de convites ou eventos. Execute os testes previstos no projeto.
+
+Entregue o que funciona, o que foi verificado e as dependências ainda pendentes. Não apresente simulações como integrações concluídas. Não faça publicação, migração remota ou release sem pedido explícito.
 
 ---
 
 # Anexo — brief histórico: onboarding (rodada anterior)
 
 > Preservado como registro. Este texto descreve uma tarefa já executada e não é a lista vigente de
-> pendências; consulte as seções acima. A tabela "Situação da implementação" no fim do anexo é daquela
-> rodada (28 testes de domínio e 10 cenários de navegador) e não representa o estado atual.
+> pendências; consulte as seções acima. O brief vigente está na seção 13. Onde este anexo mencionar grupos,
+> vale o escopo atual sem grupos. A tabela "Situação da implementação" no fim do anexo é daquela rodada
+> (28 testes de domínio e 10 cenários de navegador) e não representa o estado atual.
 
 Implemente no Lume três jornadas de onboarding e primeiros passos, de acordo com a opção escolhida pelo usuário:
 
@@ -588,11 +790,11 @@ Implementado nas jornadas de onboarding, com estado versionado em `state.onboard
 | 6 | Login posterior não repete onboarding | Implementado: estado vem da conta e `onboarded` decide a rota |
 | 7 | Mudar de ritmo não apaga nem sobrescreve meta | Implementado: `weeklyGoalSource` distingue meta manual de sugerida |
 | 8 | Nenhuma ação de onboarding gera XP | Implementado e verificado: histórico permanece vazio |
-| 9 | Progresso anterior não fabrica pontuação | Implementado: não há ranking nem evento de XP no onboarding |
+| 9 | Progresso anterior não fabrica pontuação | Implementado: onboarding não cria evento; o ranking usa só XP confirmado pelo servidor |
 | 10 | Três jornadas em celular e teclado | Verificado por testes e2e em desktop e mobile |
-| 11 | Recursos sociais acessíveis a todas as jornadas | Parcial: a etapa social aparece em todas e informa o que não existe. Amigos, grupos e ranking não estão implementados |
+| 11 | Recursos sociais acessíveis a todas as jornadas | Amigos e ranking de amigos implementados; mensagens diretas planejadas. Grupos estão fora do escopo desta etapa |
 | 12 | Integrações indisponíveis não parecem funcionais | Implementado: a tela declara acompanhamento manual e ausência de integração automática |
 
-Pendências externas e de produto: convites de amigos, grupos por convite, ranking por nível/cursos/empenho, integrações por área (GitHub e outras) e envio de e-mail da recuperação de senha. Nenhuma delas bloqueia as jornadas; todas aparecem na interface como indisponíveis.
+Pendências externas e de produto: mensagens diretas entre amizades, colaboração em projetos, integrações por área (GitHub e outras) e envio de e-mail da recuperação de senha. Grupos, comunidades, canais e servidores estão fora do escopo. Nenhuma dessas pendências bloqueia as jornadas; o que não existe aparece como indisponível.
 
-Verificação executada: `npm run build`, `npm test` (28 testes de domínio) e `npm run test:e2e` (10 cenários, desktop e mobile).
+Verificação executada nesta rodada: `npm run build`, `npm test` (125 testes Node) e `npm run test:e2e` (50 cenários, desktop e mobile).

@@ -2,13 +2,13 @@
 
 Versão documental: 1.0. Esta é a referência de produto para planejamento, design, implementação e contexto de futuras IAs. Consulte também [Gamificação](GAMIFICACAO.md) e [Continuidade](CONTINUIDADE.md).
 
-Este documento descreve o destino do produto. Biblioteca com materiais tipados e retomada, nova política de XP, conquistas personalizadas, amigos, grupos e ranking são requisitos a implementar; os exemplos abaixo não significam que esses fluxos já estejam disponíveis. O protótipo atual usa React + Astro, tem contas e sincronização básica de uma cópia do progresso e ainda mantém o modelo legado de etapas e pontuação. O estado detalhado está em [Continuidade](CONTINUIDADE.md).
+Este documento descreve o destino do produto e diferencia o que está implementado do que continua planejado. Biblioteca com materiais tipados e retomada, política de XP validada no servidor, conquistas personalizadas, amigos e ranking de amigos já existem; mensagens diretas e integrações continuam pendentes. **Comunidades, servidores, canais e grupos estão fora do escopo desta etapa.** O estado detalhado está em [Continuidade](CONTINUIDADE.md).
 
 ## 1. O que o Lume se propõe a ser
 
 **Lume é uma plataforma social de estudos que conecta continuidade de aprendizado, colaboração entre amigos e progressão de jogo baseada em estudo efetivo.**
 
-A pessoa organiza o que quer aprender, sabe onde parou em cada material, retoma seus estudos, registra avanços significativos e acompanha suas conquistas. Com amigos ou grupos, compartilha aprendizados, conversa sobre dificuldades, trabalha em projetos e participa de placares de estudo.
+A pessoa organiza o que quer aprender, sabe onde parou em cada material, retoma seus estudos, registra avanços significativos e acompanha suas conquistas. Com amigos, compartilha aprendizados, conversa por mensagem direta, trabalha em projetos e participa de placares de estudo.
 
 A inspiração em plataformas como Steam está na biblioteca pessoal, no perfil, na progressão e na vitrine de conquistas. O Lume deve ter identidade própria e uma experiência adulta, clara e inclusiva.
 
@@ -48,7 +48,7 @@ O Lume não promete liberação de dopamina, eficácia clínica, aprendizado gar
 5. Estuda; o sistema registra progresso conforme a capacidade da fonte ou por registro manual explícito.
 6. Recebe XP por tempo efetivo e por conclusões elegíveis, conforme regras documentadas.
 7. Conquista marcos personalizados e evolui de nível.
-8. Compartilha um aprendizado ou conquista, conversa com amigos e, se desejar, participa de um grupo e de seu placar.
+8. Compartilha um aprendizado ou conquista, conversa com amigos por mensagem direta e, se desejar, participa do placar de amigos.
 
 Preparar o ambiente e tornar uma atividade menor são apoios possíveis nesse ciclo. Essas ações não concedem XP por si só.
 
@@ -64,11 +64,11 @@ O onboarding deve identificar:
 | Áreas de estudo | Programação, Direito, idiomas, outras ou múltiplas | Tipos de materiais, linguagem e integrações pertinentes |
 | Objetivos | Concluir um curso, estudar para uma prova, entregar um projeto | Organização de trilhas e marcos |
 | Apoios desejados | Ajuda para começar, dividir uma atividade, retomar após pausas | Apresentação e sugestões, sem aumentar artificialmente XP |
-| Preferências sociais | Amigos, grupos, placares e privacidade | Participação opcional e compartilhamento controlado |
+| Preferências sociais | Amigos, mensagens diretas, placares e privacidade | Participação opcional e compartilhamento controlado |
 
 As perguntas podem ser puladas e revisitadas. A pessoa não recebe uma classificação de capacidade. Estudar com frequência não dá multiplicador de XP; precisar de mais apoio não diminui a pontuação pela mesma atividade.
 
-Na interface atual, a personalização oferece três jornadas com sequências próprias: **Quero começar** (assunto, resultado, material, tempo de sessão), **Estudo de vez em quando** (materiais em andamento, prioridade, ponto de retomada, dificuldades) e **Estudo com frequência** (áreas, rotina, em andamento, o que acompanhar). Cada jornada cria um primeiro material concreto, guarda as respostas na conta e pode ser retomada se for interrompida. Os três apoios disponíveis são ajuda para começar, retomar sem culpa e passos ainda menores. Preferências sociais e ranking da tabela ainda são requisitos futuros: a etapa social existe, é opcional e informa que convites e grupos não estão disponíveis. O apoio antigo `calm` e a preferência `essential` permanecem apenas no formato legado dos dados, sem ativar um modo visual.
+Na interface atual, a personalização oferece três jornadas com sequências próprias: **Quero começar** (assunto, resultado, material, tempo de sessão), **Estudo de vez em quando** (materiais em andamento, prioridade, ponto de retomada, dificuldades) e **Estudo com frequência** (áreas, rotina, em andamento, o que acompanhar). Cada jornada cria um primeiro material concreto, guarda as respostas na conta e pode ser retomada se for interrompida. Os três apoios disponíveis são ajuda para começar, retomar sem culpa e passos ainda menores. Mensagens diretas e ranking da tabela ainda são requisitos futuros: a etapa social existe, é opcional e informa que esses recursos não estão disponíveis. O apoio antigo `calm` e a preferência `essential` permanecem apenas no formato legado dos dados, sem ativar um modo visual.
 
 ## 5. Biblioteca e continuidade
 
@@ -100,6 +100,7 @@ Uma entrega como **“Implementar e validar a autenticação do projeto”** pod
 A pessoa cola o link do curso, o Lume identifica a plataforma e apresenta as áreas encontradas para seleção. O fluxo é descrito em [Importação](IMPORTACAO.md). Regras de produto que valem desde já:
 
 - O conteúdo importado é o que a fonte realmente publica; grade parcial aparece marcada e nunca é apresentada como o curso inteiro.
+- Curso que só aparece depois do login pode ser importado a partir da página que a própria pessoa copia e cola. O Lume não pede senha nem cookie, não contorna a autenticação e trata o conteúdo copiado como dado.
 - Aulas mantêm referência da fonte e a identidade do curso evita duplicação ao reimportar.
 - Importar, selecionar disciplinas, atualizar a grade e conectar integrações não geram XP.
 - Conclusão de aula importada é registro manual identificado enquanto não houver integração compatível; ela não reutiliza as recompensas legadas.
@@ -146,23 +147,29 @@ Para cada fonte, registrar as capacidades disponíveis: ler posição, salvar po
 ### GitHub
 
 - Conexão opcional, com escopo mínimo e seleção explícita do que acompanhar.
-- Definir entregas e critérios de conclusão; não inferir que todo repositório foi abandonado ou que precisa ser terminado.
+- Na primeira versão, priorizar leitura de README, issues e milestones e a coordenação da colaboração. Abrir issues, comentar, enviar código ou conceder permissões exige ação explícita e integração própria.
+- Definir entregas e critérios de conclusão; não inferir que todo repositório foi abandonado ou que precisa ser terminado. Inatividade, issues abertas ou ausência de documentação não bastam para afirmar que o projeto está incompleto.
+- Diferencie o que foi encontrado no repositório do que é sugestão da IA; toda sugestão de entrega mostra a origem e pode ser revisada.
 - Vincular tarefas e evidências quando a integração permitir; revisão e conclusão precisam de critérios visíveis.
-- Repositórios privados, descrições de issues e código não devem aparecer em grupos sem escolha explícita de compartilhamento.
-- Integração não é autorização para comentar, abrir issues, alterar código ou enviar mensagens em nome da pessoa.
+- Convidar um amigo para uma entrega não concede acesso ao repositório no GitHub; esse acesso, quando necessário, é providenciado pelo proprietário.
+- Repositórios privados, descrições de issues e código não devem aparecer em perfis, mensagens ou convites sem escolha explícita de compartilhamento e autorização adequada.
+- Integração não é autorização para comentar, abrir issues, alterar código ou enviar mensagens em nome da pessoa. Credenciais ficam no servidor e as permissões são mínimas.
 
-## 7. Amigos, grupos e colaboração
+## 7. Amigos, mensagens diretas e colaboração
+
+**Nesta etapa não há comunidades, servidores, canais ou grupos.** O social se concentra em amigos, mensagens diretas e colaboração em projetos.
 
 Recursos esperados do produto:
 
 - Convidar e aceitar amigos; remover contatos, bloquear e denunciar abuso.
-- Criar grupos privados ou por convite para uma turma, curso, assunto ou projeto.
-- Conversar em espaços de estudo e compartilhar notas, links, dúvidas, resumos e conquistas.
-- Comentar aprendizados e organizar entregas colaborativas.
+- Conversar por mensagem direta apenas entre amizades aceitas, com histórico persistente e indicação de não lidas.
+- Compartilhar referências a cursos, aulas e projetos, sem conceder acesso automático a conteúdo privado ou restrito.
+- Controlar notificações e bloquear contatos; o bloqueio interrompe novas mensagens e preserva o histórico.
+- Organizar entregas colaborativas e convidar um amigo para uma entrega específica, com aceite ou recusa.
 - Ver, mediante permissão, em que os amigos estão trabalhando e o que concluíram.
-- Formar metas coletivas opcionais, com contribuição individual identificável.
+- Não há conversas em grupo, canais, chamadas de voz ou vídeo nesta etapa.
 
-Conversar, publicar mensagens, reagir e convidar amigos não gera XP automaticamente. Uma colaboração só é elegível quando representa uma entrega de estudo definida; receber curtidas não comprova valor educacional.
+Mensagens, notificações, convites e reações não geram XP. Uma colaboração só é elegível quando representa uma entrega de estudo definida e tem contribuição individual identificável; não conceder automaticamente a mesma recompensa a todos. Aceitar uma colaboração no Lume não concede acesso ao repositório no GitHub.
 
 Permissões, prevenção de spam e moderação fazem parte do recurso social. Exibir atividade de terceiros requer respeitar suas escolhas de privacidade.
 
@@ -184,12 +191,12 @@ Cada conquista possui uma página ou detalhe que explica o que foi concluído. A
 - O perfil reúne o que a pessoa está estudando, o roteiro que aparece em Hoje, os projetos que ela marcou como públicos, os materiais concluídos e os números de progresso e XP.
 - Abrir o perfil exige amizade. Não existe perfil público por link, busca por e-mail nem página anônima.
 - Cada seção pode ser desligada em Configurações › O que amigos veem, e cada projeto nasce privado até ser marcado. Projeto privado não aparece em lugar nenhum, nem nas contagens.
-- XP, nível e progresso exibidos vêm da cópia que o navegador sincronizou: são declarados pela própria pessoa, não validados pelo servidor, e não valem para placar. A página informa isso.
-- Conquistas escolhidas para o perfil, grupos e compartilhamento de aprendizados continuam pendentes.
+- XP, nível e conquistas de contas vêm do livro de eventos do servidor e são validados; percentuais de progresso continuam declarados pela cópia sincronizada. O saldo legado não entra no perfil como XP validado.
+- A escolha individual de conquistas para o perfil, mensagens diretas e compartilhamento de aprendizados continuam pendentes.
 
 ### Placares
 
-**O ranking é um recurso central previsto para o Lume.** Deve permitir comparar quem tem mais nível, quem concluiu mais cursos e quem está mais ativo e empenhado nos estudos. A existência desse recurso faz parte do escopo; a participação e a exposição de cada pessoa continuam configuráveis.
+**O ranking é um recurso central do Lume e está implementado no recorte de amigos.** Permite comparar quem tem mais nível, quem concluiu mais cursos e quem está mais ativo e empenhado nos estudos. Participação e exposição continuam configuráveis; grupos e ranking público estão fora desta etapa.
 
 | Classificação | Critério principal | O que comunica |
 | --- | --- | --- |
@@ -199,7 +206,7 @@ Cada conquista possui uma página ou detalhe que explica o que foi concluído. A
 
 O ranking geral abre por nível; a pessoa pode alternar para cursos concluídos ou empenho. Empenho começa com uma classificação semanal e pode oferecer outros períodos, como mês. Nível e total de cursos também devem ter visão acumulada, para que o produto não seja apenas uma disputa semanal de XP.
 
-Começar pelos recortes de amigos e grupos. A virada de um período não apaga XP acumulado, cursos concluídos ou conquistas permanentes. Não esconder critérios em uma pontuação composta sem explicação.
+Começar pelo recorte de amigos. A virada de um período não apaga XP acumulado, cursos concluídos ou conquistas permanentes. Não esconder critérios em uma pontuação composta sem explicação.
 
 O placar não mede inteligência ou mérito pessoal. Deve mostrar período e regras, permitir ocultar a própria participação e lidar com registros manuais de modo transparente. Ranking público global é uma evolução posterior, dependente de regras de integridade e moderação.
 
@@ -213,9 +220,10 @@ As regras detalhadas estão em [Gamificação](GAMIFICACAO.md).
 | Meu ritmo e interesses | Preferências e sugestões iniciais |
 | Hoje | Materiais em andamento, ponto de retomada e atividade de estudo |
 | Tarefas | Lista de estudo para uma prova, com prazo, vínculo opcional e conclusão com XP único |
-| Biblioteca | Cursos, aulas, leituras, exercícios e projetos |
+| Biblioteca | Cursos, aulas, leituras, exercícios e projetos, com capas, filtros, favoritos e retomada |
 | Trilhas e projetos | Objetivos e entregas substanciais |
-| Amigos e grupos | Comunicação, compartilhamento e colaboração. Convites e lista de amigos já existem; grupos, feed e mensagens não |
+| Organização | Anotações, listas de aulas e entregas, quadro de projetos e modelos básicos |
+| Amigos e mensagens | Comunicação, compartilhamento e colaboração. Convites e lista de amigos já existem; mensagens diretas, bloqueio e ranking não |
 | Perfil entre amigos | Projeção da biblioteca, da fila, do progresso e do XP que cada pessoa escolheu compartilhar; exige amizade |
 | Instalar aplicativo | Página do programa de desktop: baixa o instalador da última release e gera o código de conexão |
 | Placares | Comparação opcional dentro de períodos e regras definidos |
@@ -232,6 +240,7 @@ As regras detalhadas estão em [Gamificação](GAMIFICACAO.md).
 - Não precisa hospedar cursos ou substituir todas as plataformas de conteúdo.
 - Não oferece observação universal do que acontece em sites externos.
 - Não depende de programação: Direito e outras áreas têm igual importância no modelo.
+- Não é uma rede de comunidades, servidores ou canais: nesta etapa, o social se limita a amigos, mensagens diretas e colaboração em projetos.
 - Não deve eliminar o componente social ou os placares para parecer inclusivo; deve torná-los configuráveis e claros.
 
 ## 11. Critérios de aceite do produto

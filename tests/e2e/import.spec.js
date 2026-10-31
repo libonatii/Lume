@@ -23,7 +23,7 @@ test('erro de link, fonte protegida e falha de rede preservam a escolha', async 
   await page.getByLabel('Link do curso').fill('nao-e-um-link');
   await page.getByRole('button', { name: 'Analisar link' }).click();
   await expect(page.getByRole('heading', { name: 'Confira o link' })).toBeVisible();
-  await page.getByRole('button', { name: /Colar a grade ou enviar arquivo/ }).click();
+  await page.getByRole('button', { name: /Colar a página aberta na conta/ }).click();
   await page.getByRole('tab', { name: 'Link do curso' }).click();
   await expect(page.getByLabel('Link do curso')).toHaveValue('nao-e-um-link');
 
@@ -43,7 +43,7 @@ test('erro de link, fonte protegida e falha de rede preservam a escolha', async 
   await page.route('**/api/import/analyze', route => route.abort('failed'));
   await page.getByRole('button', { name: 'Tentar de novo' }).click();
   await expect(page.getByRole('heading', { name: 'Não consegui falar com a fonte' })).toBeVisible();
-  await page.getByRole('button', { name: /Colar a grade ou enviar arquivo/ }).click();
+  await page.getByRole('button', { name: /Colar a página aberta na conta/ }).click();
   await page.getByRole('tab', { name: 'Link do curso' }).click();
   await expect(page.getByLabel('Link do curso')).toHaveValue('https://www.grancursosonline.com.br/curso/oab');
   await page.unroute('**/api/import/analyze');
@@ -169,6 +169,57 @@ test('biblioteca vazia pergunta a área e cria a primeira trilha sem XP', async 
   expect(state.courses[0].origin).toBe('manual');
   expect(state.courses[0].steps[0].title).toBe('Ler a introdução de processo penal');
   expect(state.history).toEqual([]);
+});
+
+test('página copiada da conta vira revisão sem enviar sessão', async ({ page }) => {
+  await openLibrary(page);
+  await page.getByRole('button', { name: 'Adicionar curso', exact: true }).click();
+  await page.getByRole('tab', { name: 'Colar a grade' }).click();
+
+  let sent = null;
+  await page.route('**/api/import/analyze', route => {
+    sent = route.request().postDataJSON();
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        payload: {
+          title: 'OAB — 1ª fase',
+          provider: { id: 'grancursos' },
+          sourceUrl: 'https://www.grancursosonline.com.br/curso/oab',
+          completeness: 'partial',
+          extraction: { kind: 'page-snapshot', confidence: 'low', notes: [] },
+          disciplines: [{
+            title: 'Conteúdo do curso',
+            modules: [{ title: 'Direito Constitucional', lessons: [{ title: 'Aula 1 — Conceito e fontes' }] }],
+          }],
+        },
+        ai: { used: false },
+      }),
+    });
+  });
+
+  await page.getByLabel('Link do curso (opcional)').fill('https://www.grancursosonline.com.br/curso/oab');
+  const filler = '<p>Conteúdo do painel do curso com a conta da pessoa.</p>'.repeat(40);
+  const snapshot = `<html><body><div class="sidebar"><h1>OAB — 1ª fase</h1><h3>Direito Constitucional</h3><ul>
+    <li><a href="/curso/123/aula/456">Aula 1 — Conceito e fontes</a></li>
+    <li><a href="/curso/123/aula/457">Aula 2 — Direitos fundamentais</a></li>
+    <li><a href="/curso/123/aula/458">Aula 3 — Remédios constitucionais</a></li>
+    </ul>${filler}</div></body></html>`;
+  await page.evaluate((html) => {
+    const data = new DataTransfer();
+    data.setData('text/html', html);
+    data.setData('text/plain', 'OAB — 1ª fase\nAula 1 — Conceito e fontes');
+    document.querySelector('textarea[name="import-text"]')
+      .dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+  }, snapshot);
+
+  await expect(page.getByRole('heading', { name: 'OAB — 1ª fase' })).toBeVisible();
+  expect(sent?.url).toBe('https://www.grancursosonline.com.br/curso/oab');
+  expect(sent?.html).toContain('/aula/456');
+  expect(sent?.html).not.toMatch(/cookie|session/i);
+  await expect(page.getByText('Página copiada da sua conta')).toBeVisible();
+  await page.unroute('**/api/import/analyze');
 });
 
 test('link sem https é detectado e adicionado sem abrir a revisão', async ({ page }) => {

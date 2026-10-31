@@ -7,7 +7,7 @@ import { api, apiError } from '../lib/api.js';
 const promises = [
   ['book', 'Uma biblioteca que lembra onde você parou', 'Cursos, leituras, exercícios e projetos com ponto de retomada.'],
   ['trophy', 'Conquistas por estudo real', 'Reconhecimento por concluir, não por clicar.'],
-  ['users', 'Amigos, grupos e ranking', 'Planejados, opcionais e sob o seu controle.'],
+  ['users', 'Amigos, ranking e mensagens', 'Amigos e ranking de amigos já funcionam; mensagens diretas são o próximo passo.'],
 ];
 
 export function Login({ model, mode, setMode, go, notify }) {

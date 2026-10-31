@@ -4,9 +4,9 @@
 // encerra, ligado a um material. Serve para continuidade e para a presença
 // ("estou estudando agora").
 //
-// O que isto não é: observação de atividade, prova de estudo ou fonte de XP.
-// A política de gamificação exige blocos elegíveis validados no servidor; nada
-// aqui concede pontuação.
+// O que isto não é: observação de atividade ou prova de estudo. A sessão é um
+// registro declarado. O XP de tempo só é concedido pelo servidor, em blocos de
+// 30 minutos, depois que a sessão é encerrada e o intervalo é validado.
 
 export const MAX_SESSION_MS = 12 * 60 * 60 * 1000;
 export const STALE_SESSION_MS = 5 * 60 * 1000;

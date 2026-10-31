@@ -1,5 +1,7 @@
 import { normalizeActiveSession, normalizeStudySessions } from './session-domain.js';
 import { normalizeTasks, taskWeekCount, taskXP } from './tasks-domain.js';
+import { levelProgress } from './xp-policy.js';
+import { normalizeSlideProgress, normalizeSlides } from './slides-domain.js';
 
 export const STORAGE_KEY = 'lume.prototype.v1';
 export const HABITS = [
@@ -33,11 +35,37 @@ export const STUDY_SUPPORTS = [
 // capacidade nem nível: são apenas o formato do conteúdo.
 export const STUDY_TYPES = [
   { id: 'lesson', title: 'Aula' },
+  { id: 'video', title: 'Videoaula' },
   { id: 'article', title: 'Artigo ou leitura' },
+  { id: 'book', title: 'Livro' },
   { id: 'exercise', title: 'Lista de exercícios' },
   { id: 'project', title: 'Projeto' },
   { id: 'course', title: 'Curso completo' },
 ];
+
+export function materialType(type) {
+  return STUDY_TYPES.find((item) => item.id === type) || STUDY_TYPES[0];
+}
+
+// Rótulos de retomada por tipo de material. O campo continua sendo um texto
+// livre porque nem toda fonte expõe uma posição estruturada; a interface deixa
+// claro que o marcador é declarado pela pessoa.
+export function resumeLabel(type) {
+  if (type === 'video') return 'Instante do vídeo';
+  if (type === 'article' || type === 'book') return 'Página, seção ou capítulo';
+  if (type === 'exercise') return 'Exercício ou tentativa atual';
+  if (type === 'project') return 'Próxima entrega';
+  return 'Próxima aula ou ponto de retomada';
+}
+
+export function resumePlaceholder(type) {
+  if (type === 'video') return 'Ex.: 12:30';
+  if (type === 'article') return 'Ex.: seção 3, página 12';
+  if (type === 'book') return 'Ex.: capítulo 4';
+  if (type === 'exercise') return 'Ex.: questão 8, 2ª tentativa';
+  if (type === 'project') return 'Ex.: implementar a autenticação';
+  return 'Ex.: aula 3';
+}
 
 export const SESSION_MINUTES = [10, 20, 30, 45];
 
@@ -135,14 +163,14 @@ export function journeyPlan(state) {
   return base;
 }
 
-export function addMaterial(state, { title, url = '', type = 'lesson', resumeAt = '', firstActivity = '', steps = [] }, origin = 'onboarding') {
+export function addMaterial(state, { title, url = '', type = 'lesson', resumeAt = '', firstActivity = '', steps = [], planning = false }, origin = 'onboarding') {
   const activities = steps.length ? steps : [firstActivity || 'Concluir a primeira atividade'];
   const next = addCourse(state, { title, url, steps: activities, art: 'nature' });
   const cleanOrigin = origin === 'manual' ? 'manual' : 'onboarding';
   return {
     ...next,
     courses: next.courses.map((course) => course.id === next.selectedCourseId
-      ? { ...course, type, resumeAt, origin: cleanOrigin }
+      ? { ...course, type, resumeAt, origin: cleanOrigin, planning: planning === true }
       : course),
   };
 }
@@ -253,20 +281,34 @@ function sanitizeStructure(value) {
         title: lesson.title,
         url: typeof lesson.url === 'string' ? lesson.url : '',
         duration: Number.isFinite(lesson.duration) ? lesson.duration : null,
+        completedInSource: lesson.completedInSource === true,
         removedFromSource: lesson.removedFromSource === true,
       })),
     })),
   }));
 }
 
-// Campos de importação são extensões opcionais. Quando não são válidos, o
-// curso e suas etapas continuam intactos: nenhum progresso é descartado.
-function sanitizeImportedCourse(course) {
-  if (!course || !course.source || typeof course.source !== 'object' || !Array.isArray(course.structure)) return course;
+// Campos de importação e de slides são extensões opcionais. Quando não são
+// válidos, o curso e suas etapas continuam intactos: nenhum progresso é
+// descartado. Esta função também garante que o estado antigo receba a estrutura
+// de slides vazia, sem inventar conteúdo.
+function sanitizeCourse(course) {
+  if (!course || typeof course !== 'object') return course;
+  const slides = normalizeSlides(course.slides);
+  const base = {
+    ...course,
+    type: STUDY_TYPES.some((item) => item.id === course.type) ? course.type : 'lesson',
+    planning: course.planning === true,
+    resumeAt: typeof course.resumeAt === 'string' ? course.resumeAt.slice(0, 120) : '',
+    slides,
+    slideProgress: normalizeSlideProgress(course.slideProgress, slides),
+    slidesUpdatedAt: Number.isFinite(Date.parse(course.slidesUpdatedAt)) ? course.slidesUpdatedAt : null,
+  };
+  if (!course.source || typeof course.source !== 'object' || !Array.isArray(course.structure)) return base;
   const source = course.source;
   const extraction = source.extraction && typeof source.extraction === 'object' ? source.extraction : {};
   return {
-    ...course,
+    ...base,
     structure: sanitizeStructure(course.structure),
     source: {
       provider: typeof source.provider === 'string' ? source.provider : 'unknown',
@@ -295,7 +337,7 @@ function sanitizeImportedCourse(course) {
 function sanitizeStudyLog(value) {
   if (!Array.isArray(value)) return [];
   return value.filter((entry) => entry && typeof entry.id === 'string' && typeof entry.courseId === 'string' && typeof entry.stepId === 'string'
-    && ['manual', 'integration'].includes(entry.origin) && Number.isFinite(Date.parse(entry.at)))
+    && ['manual', 'integration', 'import'].includes(entry.origin) && Number.isFinite(Date.parse(entry.at)))
     .slice(-500)
     .map((entry) => ({
       id: entry.id,
@@ -304,6 +346,7 @@ function sanitizeStudyLog(value) {
       courseTitle: typeof entry.courseTitle === 'string' ? entry.courseTitle : '',
       lessonTitle: typeof entry.lessonTitle === 'string' ? entry.lessonTitle : '',
       origin: entry.origin,
+      historical: entry.historical === true || entry.origin === 'import',
       at: entry.at,
       ...(Number.isFinite(Date.parse(entry.revertedAt)) ? { revertedAt: entry.revertedAt } : {}),
     }));
@@ -352,15 +395,18 @@ export function hasPreparation(state, stepId) {
   return state.history.some((entry) => entry.id === `prepare:${stepId}`);
 }
 
-// A preparação é uma missão própria: nunca conclui a etapa original.
+// A preparação organiza o caminho, mas não é estudo. A partir da política v1,
+// novas conclusões registram progresso com xp 0: o XP elegível é concedido pelo
+// servidor e aparece no extrato, nunca no saldo legado. Registros antigos com
+// 5 ou 10 XP continuam preservados como histórico do protótipo.
 export function completeMission(state, courseId, stepId, { preparation = false, now = new Date().toISOString() } = {}) {
   const course = state.courses.find((item) => item.id === courseId);
   const step = course?.steps.find((item) => item.id === stepId);
   if (!step || course.paused || state.completed.includes(stepId)) return { state, added: false, xp: 0 };
   const id = preparation ? `prepare:${stepId}` : `step:${stepId}`;
   if (state.history.some((entry) => entry.id === id)) return { state, added: false, xp: 0 };
-  const xp = preparation ? 5 : 10;
-  const entry = { id, courseId, stepId, title: preparation ? `Preparar o material: ${course.title}` : step.title, courseTitle: course.title, preparation, xp, at: now };
+  const xp = 0;
+  const entry = { id, courseId, stepId, title: preparation ? `Preparar o material: ${course.title}` : step.title, courseTitle: course.title, preparation, xp, policy: 'v1', at: now };
   return {
     state: {
       ...state,
@@ -377,9 +423,10 @@ export function totalXP(state) {
   return state.history.reduce((total, entry) => total + entry.xp, 0) + taskXP(state);
 }
 
+// Nível do saldo legado, usado apenas na prévia sem conta. Em uma conta, o
+// nível vem do servidor (xp-policy.js), que ignora este saldo.
 export function levelInfo(state) {
-  const xp = totalXP(state);
-  return { level: Math.floor(xp / 100) + 1, current: xp % 100, total: xp, next: 100 };
+  return levelProgress(totalXP(state));
 }
 
 export function localDay(date) {
@@ -433,10 +480,89 @@ export function addCourse(state, { title, url = '', steps, art = 'design' }, id 
   const course = {
     id, title: cleanTitle, url: cleanURL, category: 'Minha trilha de estudos',
     art: ['design', 'code', 'language', 'nature'].includes(art) ? art : 'nature',
-    example: false, paused: false,
+    example: false, paused: false, type: 'course', planning: false, resumeAt: '',
+    slides: [], slideProgress: { seen: [], lastId: '', completedAt: null },
     steps: cleanSteps.map((step, index) => ({ id: `${id}-${index}`, title: step })),
   };
   return { ...state, courses: [...state.courses, course], selectedCourseId: id };
+}
+
+// Edição de dados básicos. Etapas de curso importado vêm da fonte e não são
+// substituídas por aqui; slides e ponto de retomada valem para os dois formatos.
+export function updateCourse(state, courseId, patch = {}) {
+  const course = (state.courses || []).find((item) => item.id === courseId);
+  if (!course) throw new Error('Material não encontrado.');
+  const cleanTitle = typeof patch.title === 'string' ? patch.title.trim().slice(0, 100) : course.title;
+  if (!cleanTitle) throw new Error('Dê um nome ao material.');
+  const cleanURL = patch.url === undefined ? course.url : safeCourseURL(String(patch.url || ''));
+  if (cleanURL === null) throw new Error('Confira o link do material.');
+  const type = patch.type === undefined ? course.type : (STUDY_TYPES.some((item) => item.id === patch.type) ? patch.type : course.type);
+  const resumeAt = patch.resumeAt === undefined ? course.resumeAt : String(patch.resumeAt || '').slice(0, 120);
+  const next = {
+    ...course,
+    title: cleanTitle,
+    url: cleanURL || '',
+    type,
+    resumeAt,
+    category: typeof patch.category === 'string' ? patch.category.trim().slice(0, 100) || course.category : course.category,
+    art: patch.art === undefined ? course.art : (['design', 'code', 'language', 'nature'].includes(patch.art) ? patch.art : course.art),
+  };
+  return { ...state, courses: state.courses.map((item) => item.id === courseId ? next : item) };
+}
+
+export function replaceCourseSteps(state, courseId, steps = []) {
+  const course = (state.courses || []).find((item) => item.id === courseId);
+  if (!course) throw new Error('Material não encontrado.');
+  if (course.source) throw new Error('As etapas de um curso importado vêm da fonte. Atualize a grade pela importação.');
+  const cleanSteps = steps.map((step) => String(step?.title ?? step ?? '').trim()).filter(Boolean);
+  if (!cleanSteps.length) throw new Error('Mantenha pelo menos uma etapa.');
+  if (cleanSteps.length > 40) throw new Error('São permitidas até 40 etapas.');
+  if (cleanSteps.some((step) => step.length > 180)) throw new Error('Cada etapa pode ter até 180 caracteres.');
+  const previous = new Map(course.steps.map((step) => [step.id, step]));
+  const used = new Set();
+  const nextSteps = cleanSteps.map((title, index) => {
+    const exact = course.steps.find((step) => step.title === title && !used.has(step.id));
+    if (exact) { used.add(exact.id); return exact; }
+    const sameIndex = course.steps[index];
+    if (sameIndex && !used.has(sameIndex.id)) {
+      used.add(sameIndex.id);
+      return { ...sameIndex, title };
+    }
+    let id = `${course.id}-${index}`;
+    while (previous.has(id) || used.has(id)) id = `${id}_${index}`;
+    used.add(id);
+    return { id, title };
+  });
+  const validIds = new Set(nextSteps.map((step) => step.id));
+  return {
+    ...state,
+    courses: state.courses.map((item) => item.id === courseId ? { ...item, steps: nextSteps } : item),
+    completed: state.completed.filter((id) => !course.steps.some((step) => step.id === id) || validIds.has(id)),
+    history: state.history.filter((entry) => entry.courseId !== courseId || validIds.has(entry.stepId)),
+    studyLog: (state.studyLog || []).filter((entry) => entry.courseId !== courseId || validIds.has(entry.stepId)),
+  };
+}
+
+// Exclusão pedida pela pessoa, com confirmação na interface. O XP já concedido
+// permanece no livro do servidor; aqui removemos o material e o progresso que
+// dependem dele para o documento continuar válido.
+export function deleteCourse(state, courseId) {
+  const course = (state.courses || []).find((item) => item.id === courseId);
+  if (!course) return state;
+  const stepIds = new Set(course.steps.map((step) => step.id));
+  const courses = state.courses.filter((item) => item.id !== courseId);
+  return {
+    ...state,
+    courses,
+    completed: state.completed.filter((id) => !stepIds.has(id)),
+    history: state.history.filter((entry) => entry.courseId !== courseId),
+    studyLog: (state.studyLog || []).filter((entry) => entry.courseId !== courseId),
+    imports: (state.imports || []).filter((entry) => entry.courseId !== courseId),
+    studySessions: (state.studySessions || []).filter((session) => session.courseId !== courseId),
+    activeSession: state.activeSession?.courseId === courseId ? null : state.activeSession,
+    tasks: (state.tasks || []).map((task) => task.courseId === courseId ? { ...task, courseId: '' } : task),
+    selectedCourseId: state.selectedCourseId === courseId ? (courses[0]?.id ?? null) : state.selectedCourseId,
+  };
 }
 
 // Cursos de exemplo não são mais criados. Um exemplo antigo só permanece se a
@@ -470,7 +596,7 @@ export function restoreState(raw) {
     });
     const eventIds = new Set();
     const validHistory = value.history.every((entry) => {
-      if (!entry || typeof entry.id !== 'string' || eventIds.has(entry.id) || !ids.has(entry.courseId) || !stepIds.has(entry.stepId) || typeof entry.title !== 'string' || typeof entry.courseTitle !== 'string' || ![5, 10].includes(entry.xp) || !Number.isFinite(Date.parse(entry.at))) return false;
+      if (!entry || typeof entry.id !== 'string' || eventIds.has(entry.id) || !ids.has(entry.courseId) || !stepIds.has(entry.stepId) || typeof entry.title !== 'string' || typeof entry.courseTitle !== 'string' || ![0, 5, 10].includes(entry.xp) || !Number.isFinite(Date.parse(entry.at))) return false;
       eventIds.add(entry.id);
       return true;
     });
@@ -482,7 +608,7 @@ export function restoreState(raw) {
     const preferences = value.preferences || {};
     return {
       ...fallback, ...value,
-      courses: keptCourses.map((course) => sanitizeImportedCourse(course)),
+      courses: keptCourses.map((course) => sanitizeCourse(course)),
       completed: value.completed.filter((id) => keptStepIds.has(id)),
       selectedCourseId,
       studyLog: sanitizeStudyLog(value.studyLog),

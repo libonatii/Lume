@@ -200,7 +200,7 @@ opt-in; pausa não é punida; nada de vigilância.
 | 4 | Instalador Windows via GitHub Actions | Feito; assinatura é opcional |
 | 5 | Início com o Windows e auto-update | Atualização pelo botão da janela (manual); início com o Windows pendente |
 | 6 | Sessão declarada dentro do programa + retomada | Substituído pela janela com o site: a sessão já funciona no app |
-| 7 | Presença social entre amigos (opt-in) | Depende de grupos; amigos já existem |
+| 7 | Presença social entre amigos (opt-in) | Amigos já existem; presença social e mensagens diretas não |
 
 A publicação é feita por tag (`companion-v<versão>`), que precisa bater com
 `companion/package.json`; a última release publicada é a `companion-v0.5.0`, e o
@@ -257,4 +257,4 @@ Ou, sem janela: `npm run companion` (agente de terminal).
   manual e identificada.
 - Sem integração com Discord: o Lume não lê a atividade de outros programas.
 - Presença não vira tempo elegível de XP; a política exige validação no servidor.
-- Amigos existem, mas grupos, feed e ranking continuam pendentes.
+- Amigos e ranking de amigos existem; presença social, feed e mensagens diretas continuam pendentes; grupos, comunidades e canais estão fora do escopo desta etapa.

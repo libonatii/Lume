@@ -25,13 +25,13 @@ export const PROVIDERS = [
     id: 'grancursos', label: 'Gran Cursos Online', hosts: ['grancursosonline.com.br'],
     structure: 'disciplinas e assuntos', art: 'nature',
     syllabus: 'page',
-    note: 'A página pública costuma mostrar as disciplinas do pacote. Módulos e aulas detalhados normalmente ficam na área autenticada: o Lume não pede senha nem cookie.',
+    note: 'A página pública costuma mostrar as disciplinas do pacote. Módulos e aulas detalhados normalmente ficam na área autenticada: abra o curso logado, copie a página e cole no Lume, ou envie o texto.',
   },
   {
     id: 'estrategia', label: 'Estratégia Concursos', hosts: ['estrategiaconcursos.com.br'],
     structure: 'disciplinas e assuntos', art: 'nature',
     syllabus: 'page',
-    note: 'O Lume lê apenas a página pública do curso. A grade completa costuma exigir acesso à conta.',
+    note: 'O Lume lê apenas a página pública do curso. A grade completa costuma exigir acesso à conta: abra o curso logado, copie a página e cole no Lume.',
   },
   {
     id: 'alura', label: 'Alura', hosts: ['alura.com.br'],
@@ -95,14 +95,16 @@ export function detectProvider(value) {
 // Capacidades em formato pronto para a interface. Nunca prometemos progresso
 // automático: nenhuma fonte integrada expõe hoje leitura de aulas assistidas.
 export function providerCapabilities(provider, extraction) {
-  const syllabusLabel = extraction === 'structured-data' || provider.syllabus === 'structured'
-    ? 'Sim, a partir dos dados publicados na página'
-    : extraction === 'page-outline'
-      ? 'Parcial, a partir da estrutura visível da página'
-      : 'Somente por texto colado ou arquivo';
+  const syllabusLabel = extraction === 'page-snapshot'
+    ? 'Parcial, a partir da página que você copiou já logada'
+    : extraction === 'structured-data' || provider.syllabus === 'structured'
+      ? 'Sim, a partir dos dados publicados na página'
+      : extraction === 'page-outline'
+        ? 'Parcial, a partir da estrutura visível da página'
+        : 'Somente por texto colado ou arquivo';
   return [
     { id: 'syllabus', label: 'Importar a grade', value: syllabusLabel, available: true },
-    { id: 'account', label: 'Acessar conteúdo da sua conta', value: 'Não — exige login na plataforma', available: false },
+    { id: 'account', label: 'Acessar conteúdo da sua conta', value: 'Não — sem integração; você pode copiar a página aberta e o Lume organiza', available: false },
     { id: 'progress', label: 'Consultar progresso automaticamente', value: 'Não — conclusão é registrada por você', available: false },
     { id: 'resume', label: 'Retomar a aula na posição exata', value: 'Não — link direto quando a fonte permite', available: false },
   ];
@@ -196,8 +198,17 @@ export function normalizePayload(input, { sourceUrl = '' } = {}) {
   const identityBase = url || `texto:${stableHash(cleanTitle(input.title) || 'sem-titulo')}`;
   const identity = `${provider.id}|${identityBase}`;
   const warnings = Array.isArray(input.warnings) ? input.warnings.map((item) => cleanTitle(item, 240)).filter(Boolean) : [];
+  // Algumas páginas de curso logado marcam as aulas já concluídas. Esse é um
+  // dado observado na página copiada, não uma conclusão nova: será importado
+  // como histórico e nunca gera XP.
+  const completedTitles = new Set(
+    (Array.isArray(input.completedTitles) ? input.completedTitles : [])
+      .map((title) => cleanTitle(title))
+      .filter(Boolean),
+  );
   let lessonCount = 0;
   let disciplineCount = 0;
+  let completedCount = 0;
 
   const disciplines = [];
   for (const rawDiscipline of input.disciplines) {
@@ -221,11 +232,15 @@ export function normalizePayload(input, { sourceUrl = '' } = {}) {
         if (seen.has(id)) continue;
         seen.add(id);
         const duration = normalizeDuration(rawLesson?.duration);
+        const completedInSource = completedTitles.has(title)
+          || (title.length >= 12 && [...completedTitles].some((candidate) => candidate.includes(title) || title.includes(candidate)));
+        if (completedInSource) completedCount += 1;
         lessons.push({
           id,
           title,
           url: safeAssetUrl(rawLesson?.url),
           duration,
+          completedInSource,
           removedFromSource: false,
         });
         lessonCount += 1;
@@ -250,7 +265,7 @@ export function normalizePayload(input, { sourceUrl = '' } = {}) {
 
   if (!lessonCount) throw new Error('Nenhuma aula identificada. Cole a grade inteira ou envie um arquivo com disciplinas, módulos e aulas.');
 
-  const extraction = ['structured-data', 'page-outline', 'pasted-text', 'file-import', 'ai-assisted'].includes(input.extraction?.kind)
+  const extraction = ['structured-data', 'page-outline', 'page-snapshot', 'pasted-text', 'file-import', 'ai-assisted'].includes(input.extraction?.kind)
     ? input.extraction.kind : 'pasted-text';
   const completeness = ['complete', 'partial', 'unknown'].includes(input.completeness) ? input.completeness : 'unknown';
   const capabilities = providerCapabilities(provider, extraction);
@@ -271,6 +286,8 @@ export function normalizePayload(input, { sourceUrl = '' } = {}) {
     warnings: warnings.slice(0, 10),
     disciplines,
     lessonCount,
+    completedCount,
+    completedTitles: [...completedTitles],
     demo: input.demo === true,
     analyzedAt: typeof input.analyzedAt === 'string' && Number.isFinite(Date.parse(input.analyzedAt)) ? input.analyzedAt : null,
   };
@@ -377,6 +394,8 @@ export function applyCourseImport(state, payload, { selectedLessonIds = [], now 
     url: payload.sourceUrl,
     example: false,
     paused: existing?.paused === true,
+    type: existing?.type === 'project' ? 'project' : 'course',
+    planning: false,
     steps,
     structure,
     source: {
@@ -398,6 +417,31 @@ export function applyCourseImport(state, payload, { selectedLessonIds = [], now 
     edital: edital || existing?.edital || null,
   };
 
+  // Progresso já existente na fonte (por exemplo, uma página logada copiada com
+  // aulas marcadas) entra como histórico identificado. Ele não concede XP: o
+  // servidor ignora registros com origin 'import'/historical no cálculo de
+  // elegibilidade. Conclusões manuais posteriores continuam elegíveis.
+  const importedDoneIds = structure
+    .flatMap((discipline) => discipline.modules.flatMap((module) => module.lessons))
+    .filter((lesson) => lesson.completedInSource === true && steps.some((step) => step.id === lesson.id))
+    .map((lesson) => lesson.id);
+  const existingLog = new Set((state.studyLog || []).map((entry) => entry.stepId));
+  const importedLogs = importedDoneIds
+    .filter((stepId) => !existingLog.has(stepId) && !(state.completed || []).includes(stepId))
+    .map((stepId) => {
+      const step = steps.find((item) => item.id === stepId);
+      return {
+        id: `import:${stepId}`,
+        courseId: id,
+        stepId,
+        courseTitle: course.title,
+        lessonTitle: step?.title || '',
+        origin: 'import',
+        historical: true,
+        at: now,
+      };
+    });
+
   const record = {
     id: `imp_${stableHash(`${payload.identity}|${now}`)}`,
     courseId: id,
@@ -407,6 +451,7 @@ export function applyCourseImport(state, payload, { selectedLessonIds = [], now 
     lessonCount: steps.length,
     added,
     removed,
+    sourceCompleted: importedDoneIds.length,
     mode: existing ? 'update' : 'create',
   };
 
@@ -415,6 +460,8 @@ export function applyCourseImport(state, payload, { selectedLessonIds = [], now 
     courses: existing
       ? state.courses.map((item) => (item.id === id ? course : item))
       : [...state.courses, course],
+    completed: [...new Set([...(state.completed || []), ...importedDoneIds])],
+    studyLog: [...(state.studyLog || []), ...importedLogs].slice(-500),
     selectedCourseId: id,
     imports: [...(state.imports || []), record].slice(-50),
   };
@@ -432,6 +479,7 @@ export function isImportedCourse(course) {
 // Rótulo curto da origem, sem prometer plataforma quando a entrada foi texto.
 export function sourceLabel(source) {
   const kind = source?.extraction?.kind;
+  if (kind === 'page-snapshot') return 'Página copiada da sua conta';
   if (!source?.provider || source.provider === 'unknown') {
     if (kind === 'pasted-text') return 'Texto colado';
     if (kind === 'ai-assisted') return 'Organizado por IA';
@@ -456,6 +504,14 @@ export function courseSummary(state, course) {
   const log = (state.studyLog || []).filter((entry) => entry.courseId === course.id);
   const lastStudied = [...log].reverse().find((entry) => !entry.revertedAt) || null;
   const resume = lastStudied ? lessons.find((lesson) => lesson.id === lastStudied.stepId) || null : null;
+  const activeLog = log.filter((entry) => !entry.revertedAt);
+  const origin = activeLog.some((entry) => entry.origin === 'manual')
+    ? 'manual'
+    : activeLog.some((entry) => entry.origin === 'integration')
+      ? 'integration'
+      : activeLog.some((entry) => entry.origin === 'import')
+        ? 'import'
+        : null;
   return {
     total: lessons.length,
     done,
@@ -464,7 +520,9 @@ export function courseSummary(state, course) {
     next,
     resume,
     lastStudiedAt: lastStudied?.at || null,
-    origin: log.length ? (log.some((entry) => entry.origin === 'integration') ? 'integration' : 'manual') : null,
+    origin,
+    importedDone: activeLog.filter((entry) => entry.origin === 'import').length,
+    sourceCompleted: lessons.filter((lesson) => lesson.completedInSource === true).length,
     partial: course.source?.completeness !== 'complete',
     removedFromSource: lessons.some((lesson) => lesson.removedFromSource),
   };
@@ -473,7 +531,9 @@ export function courseSummary(state, course) {
 export function lessonOrigin(state, lessonId) {
   const entries = (state.studyLog || []).filter((entry) => entry.stepId === lessonId && !entry.revertedAt);
   if (!entries.length) return null;
-  return entries.some((entry) => entry.origin === 'integration') ? 'integration' : 'manual';
+  if (entries.some((entry) => entry.origin === 'manual')) return 'manual';
+  if (entries.some((entry) => entry.origin === 'integration')) return 'integration';
+  return 'import';
 }
 
 // Concluir uma aula importada registra progresso com origem explícita.
@@ -504,6 +564,7 @@ export function revertLessonCompletion(state, courseId, lessonId, { now = new Da
   if (!course || !(state.completed || []).includes(lessonId)) return { state, reverted: false };
   const origin = lessonOrigin(state, lessonId);
   if (origin === 'integration') return { state, reverted: false, reason: 'integration' };
+  if (origin === 'import') return { state, reverted: false, reason: 'import' };
   return {
     state: {
       ...state,

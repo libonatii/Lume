@@ -4,7 +4,7 @@ import {
   hashPassword, verifyPassword, createSessionToken, hashSessionToken,
   sessionCookie, clearedSessionCookie, parseCookies,
 } from './auth.js';
-import { ImportError, analyzeUrl, analyzeText } from './import-server.js';
+import { ImportError, analyzeSnapshot, analyzeUrl, analyzeText } from './import-server.js';
 import { normalizePayload, detectProvider } from './public/import-domain.js';
 import { buildProfile } from './public/profile-domain.js';
 import { createInitialState, restoreState } from './public/domain.js';
@@ -19,10 +19,14 @@ import {
   MediaError, MAX_MEDIA_BYTES, deleteProfileObject, parseMediaKeyFromPath,
   r2BucketAdapter, uploadProfileObject,
 } from './media.js';
+import {
+  XpError, getRanking, getXpSnapshot, grantBonus, grantSlide, grantStep,
+  recordTimeSession, updateXpSettings,
+} from './xp.js';
 
 const MAX_BODY_BYTES = 16 * 1024;
 const MAX_STATE_BYTES = 256 * 1024;
-const MAX_IMPORT_BYTES = 96 * 1024;
+const MAX_IMPORT_BYTES = 3 * 1024 * 1024;
 const ATTEMPT_LIMIT = 10;
 const ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
 const CLEANUP_AFTER_MS = 24 * 60 * 60 * 1000;
@@ -287,8 +291,11 @@ async function readImportBody(request) {
 async function handleImportAnalyze(request, env) {
   const body = await readImportBody(request);
   const url = typeof body.url === 'string' ? body.url.trim() : '';
-  if (!url) return json({ error: 'Cole o link do curso para analisar.', code: 'missing_url' }, 400);
-  const analysis = await analyzeUrl(url);
+  // `html` é a página que a pessoa copiou já logada. Nesse caso não há busca
+  // externa: o conteúdo dela é lido como dado e nada da sessão é enviado.
+  const html = typeof body.html === 'string' ? body.html : '';
+  if (!url && !html) return json({ error: 'Cole o link do curso para analisar.', code: 'missing_url' }, 400);
+  const analysis = html ? analyzeSnapshot(html, url) : await analyzeUrl(url);
   const payload = normalizePayload(analysis, { sourceUrl: analysis.sourceUrl || url });
   log('course_analyzed', { provider: payload.provider.id, lessons: payload.lessonCount });
   return json({ status: 'ok', payload, ai: { used: false, reason: 'not_requested' } });
@@ -415,9 +422,22 @@ async function handleProfile(request, env, url) {
     profile: {
       user: { id: target.id, name: target.name },
       updatedAt: row?.updated_at ?? null,
-      ...buildProfile(state),
+      ...buildProfile(state, { validated: await validatedProfile(dbAdapterFor(env), friendId) }),
     },
   });
+}
+
+function dbAdapterFor(env) {
+  return companionDb(env);
+}
+
+async function validatedProfile(db, userId) {
+  try {
+    const snapshot = await getXpSnapshot(db, userId, { create: false });
+    return { ...snapshot.summary, achievements: snapshot.achievements };
+  } catch {
+    return null;
+  }
 }
 
 async function handleFriends(request, env, url) {
@@ -495,6 +515,41 @@ async function handleMediaGet(request, env, url) {
   return new Response(request.method === 'HEAD' ? null : object.body, { status: 200, headers });
 }
 
+async function handleXp(request, env, url) {
+  const method = request.method;
+  const user = await currentUser(request, env);
+  if (!user) return json({ error: 'Entre na sua conta para ver seu XP e o ranking.' }, 401);
+  if (!sameOrigin(request, url)) return json({ error: 'Origem não autorizada.' }, 403);
+  const db = companionDb(env);
+
+  if (url.pathname === '/api/xp' && method === 'GET') {
+    return json(await getXpSnapshot(db, user.id, { timeZone: url.searchParams.get('timeZone') || '' }));
+  }
+  if (url.pathname === '/api/xp/complete' && method === 'POST') {
+    return json(await grantStep(db, user.id, await readJson(request)));
+  }
+  if (url.pathname === '/api/xp/bonus' && method === 'POST') {
+    return json(await grantBonus(db, user.id, await readJson(request)));
+  }
+  if (url.pathname === '/api/xp/slides' && method === 'POST') {
+    return json(await grantSlide(db, user.id, await readJson(request)));
+  }
+  if (url.pathname === '/api/xp/time' && method === 'POST') {
+    return json(await recordTimeSession(db, user.id, await readJson(request)));
+  }
+  if (url.pathname === '/api/xp/settings' && ['PATCH', 'POST'].includes(method)) {
+    return json({ settings: await updateXpSettings(db, user.id, await readJson(request)) });
+  }
+  if (url.pathname === '/api/ranking' && method === 'GET') {
+    return json(await getRanking(db, user.id, {
+      tab: url.searchParams.get('tab') || 'level',
+      period: url.searchParams.get('period') || 'week',
+      timeZone: url.searchParams.get('timeZone') || '',
+    }));
+  }
+  return json({ error: 'Rota não encontrada.' }, 404);
+}
+
 async function handleApi(request, env, url) {
   const { pathname } = url;
 
@@ -523,6 +578,10 @@ async function handleApi(request, env, url) {
     const user = await currentUser(request, env);
     // 200 com user nulo evita ruído de erro no console de quem não está logado.
     return json({ authenticated: Boolean(user), user: user ? publicUser(user) : null });
+  }
+
+  if (pathname.startsWith('/api/xp') || pathname === '/api/ranking') {
+    return handleXp(request, env, url);
   }
 
   if (pathname === '/api/logout') {
@@ -587,6 +646,9 @@ export default {
         return json({ error: error.message, code: error.code }, error.status);
       }
       if (error instanceof MediaError) {
+        return json({ error: error.message, code: error.code }, error.status);
+      }
+      if (error instanceof XpError) {
         return json({ error: error.message, code: error.code }, error.status);
       }
       if (error?.status) {

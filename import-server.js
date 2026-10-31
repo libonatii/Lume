@@ -11,6 +11,7 @@
 import { canonicalUrl, cleanTitle, detectProvider, providerById } from './public/import-domain.js';
 
 export const MAX_DOCUMENT_BYTES = 2 * 1024 * 1024;
+export const MAX_SNAPSHOT_CHARS = 1.5 * 1024 * 1024;
 export const FETCH_TIMEOUT_MS = 9000;
 export const MAX_REDIRECTS = 3;
 const MAX_AI_TIMEOUT_MS = 25000;
@@ -20,6 +21,55 @@ const CURRICULUM_HEADING = /\b(cursos?|aulas?|conte[úu]do|m[óo]dulos?|unidades
 const NAV_NOISE = /^(entrar|login|cadastr\w*|planos?|pre[çc]os?|contato|blog|sobre|ajuda|termos|privacidade|carreiras?|empresas?|cursos?|home|in[íi]cio|menu|buscar|pesquisar)$/i;
 const ITEM_NOISE = /^(o que (voc[êe] vai|vamos|est[áa] inclu[íi]do)|o que est[áa] inclu[íi]do|n? ?v[íi]deos?\b|^\d+\s*v[íi]deos?\b|total de \d|\d+\s*(estrelas?|%)|ver (mais|todas?|tudo)|mostrar mais|carregar mais|inscreva|comece agora|compartilhar|denunciar|lista de cursos|estudantes|parceiros|imprensa|investidores|saiba mais|conhe[çc]a)/i;
 const NOISE_DISCIPLINE = /^(avalia[çc][õo]es|habilidades|certifica[çc][õo]es|recursos de carreira|cursos e especializa[çc][õo]es|coursera|comunidade|mais|instrutores|perguntas frequentes|depoimentos|por que estudar|planos?|pre[çc]os?)\b/i;
+// Link de aula costuma ter um identificador no caminho: /curso/123/aula/456.
+const LESSON_ROUTE = /\/(aula|aulas|lesson|lessons|video|videos|episodio|episodios|conteudo|conteudos)\/[^/?#]+/i;
+const COMPLETION_WORD = /\b(conclu[ií]do|conclu[ií]da|completed|complete|done|finished|100%)\b/gi;
+const COMPLETION_WORD_TEST = /\b(conclu[ií]do|conclu[ií]da|completed|complete|done|finished|100%)\b/i;
+
+// A página logada pode marcar aulas concluídas por classe, atributo ARIA ou
+// texto. Só devolvemos títulos que existem na grade extraída; qualquer outro
+// marcador é ruído e fica de fora.
+export function completedTitlesFromHtml(html, disciplines = []) {
+  const titles = disciplines
+    .flatMap((discipline) => (discipline.modules || []).flatMap((module) => module.lessons || []))
+    .map((lesson) => cleanTitle(lesson?.title))
+    .filter((title) => title && title.length >= 4);
+  if (!titles.length || !html) return [];
+  const found = new Set();
+  const patterns = [
+    /<li\b([^>]*)>([\s\S]*?)<\/li>/gi,
+    /<a\b([^>]*)>([\s\S]*?)<\/a>/gi,
+    /<button\b([^>]*)>([\s\S]*?)<\/button>/gi,
+    /<span\b([^>]*)>([\s\S]*?)<\/span>/gi,
+    /<tr\b([^>]*)>([\s\S]*?)<\/tr>/gi,
+  ];
+  for (const pattern of patterns) {
+    let match;
+    while ((match = pattern.exec(html))) {
+      const attrs = match[1] || '';
+      const inner = match[2] || '';
+      // Contêiner com vários itens: os filhos é que carregam o marcador. Um
+      // <li class="completed"> com um único link continua válido.
+      const nestedItems = (inner.match(/<a\b/gi) || []).length + (inner.match(/<li\b/gi) || []).length + (inner.match(/<tr\b/gi) || []).length;
+      if (nestedItems > 1) continue;
+      const text = textOf(inner);
+      if (!text || text.length > 180) continue;
+      const marked = /data-(?:completed|done|status|state)=["'](?:true|completed|done|conclu[ií]do)["']/i.test(attrs)
+        || /aria-(?:checked|current)=["'](?:true|page)["']/i.test(attrs)
+        || /class=["'][^"']*(?:completed|complete|done|finished|is-complete|conclu[ií]do)[^"']*["']/i.test(attrs)
+        || COMPLETION_WORD_TEST.test(text);
+      if (!marked) continue;
+      const normalized = cleanTitle(text.replace(COMPLETION_WORD, ' ').replace(/\s+/g, ' '));
+      for (const title of titles) {
+        if (normalized === title || normalized.includes(title) || title.includes(normalized)) {
+          found.add(title);
+          break;
+        }
+      }
+    }
+  }
+  return [...found];
+}
 
 export class ImportError extends Error {
   constructor(message, code = 'import_failed', status = 422) {
@@ -563,10 +613,7 @@ export async function fetchDocument(value, { fetchImpl = fetch, lookup = null } 
   }
 }
 
-export async function analyzeUrl(value, options = {}) {
-  const url = assertPublicHttpUrl(value);
-  const { html, finalUrl } = await fetchDocument(url.href, options);
-  const extracted = extractFromHtml(html, finalUrl);
+function buildAnalysis(extracted, finalUrl, { snapshot = false, html = '' } = {}) {
   const provider = detectProvider(finalUrl);
   const lessonCount = extracted.lessonCount;
   // Sem dados estruturados, exigimos pelo menos três aulas: uma lista curta de
@@ -574,25 +621,133 @@ export async function analyzeUrl(value, options = {}) {
   const minimum = extracted.extraction.kind === 'structured-data' ? 1 : 3;
   if (!lessonCount || lessonCount < minimum) {
     throw new ImportError(
-      `Não encontrei a grade nesta página da ${provider.label}. Ela pode ser montada por JavaScript ou exigir login. Cole a ementa ou envie um arquivo para organizar automaticamente.`,
+      snapshot
+        ? 'Não encontrei aulas na página copiada. Selecione só a área do curso (módulos e aulas) e copie de novo, ou cole a ementa como texto.'
+        : `Não encontrei a grade nesta página da ${provider.label}. Ela pode ser montada por JavaScript ou exigir login. Cole a ementa ou envie um arquivo para organizar automaticamente.`,
       'no_syllabus',
       422,
     );
   }
-  const completeness = extracted.extraction.kind === 'structured-data' && extracted.extraction.confidence === 'high' ? 'complete' : 'partial';
+  const completeness = !snapshot && extracted.extraction.kind === 'structured-data' && extracted.extraction.confidence === 'high' ? 'complete' : 'partial';
   return {
     title: extracted.title || `${provider.label} · curso sem título na página`,
     provider: { id: provider.id },
     sourceUrl: canonicalUrl(finalUrl),
     externalId: extracted.externalId,
     disciplines: extracted.disciplines,
-    extraction: extracted.extraction,
+    completedTitles: completedTitlesFromHtml(html, extracted.disciplines),
+    extraction: snapshot ? { ...extracted.extraction, kind: 'page-snapshot' } : extracted.extraction,
     completeness,
     warnings: [
       ...extracted.notes,
-      completeness === 'partial' ? 'A grade encontrada é a que a página pública permite ver. Confira a prévia; ela pode não ser o curso inteiro.' : 'A grade veio dos dados publicados pela própria página. Ainda assim, confira antes de importar.',
+      snapshot
+        ? 'Conteúdo lido da página que você copiou com a sua conta. O Lume não recebeu senha, cookie nem sessão.'
+        : completeness === 'partial'
+          ? 'A grade encontrada é a que a página pública permite ver. Confira a prévia; ela pode não ser o curso inteiro.'
+          : 'A grade veio dos dados publicados pela própria página. Ainda assim, confira antes de importar.',
+      ...(snapshot ? ['A página copiada pode mostrar só o que estava visível ou expandido na sua tela. Confira a grade e complete pelo texto se faltar aula.'] : []),
     ],
   };
+}
+
+// Painéis de curso logado raramente publicam uma seção de ementa: as aulas
+// aparecem como links e itens de lista dentro de um menu lateral. Esta leitura
+// é mais permissiva, mas continua exigindo cara de aula (rota, palavra ou
+// duração) e pelo menos três itens, para não transformar o menu em currículo.
+export function snapshotOutline(html) {
+  const seen = new Set();
+  const groups = [];
+  let current = null;
+  const add = (value) => {
+    const text = cleanTitle(value);
+    if (!text || text.length < 6 || text.length > 150) return;
+    if (NAV_NOISE.test(text) || ITEM_NOISE.test(text) || NOISE_DISCIPLINE.test(text)) return;
+    if (/^[\d\s.,%+R$-]+$/.test(text)) return;
+    const key = text.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    if (!current) {
+      current = { title: 'Aulas encontradas na página', lessons: [] };
+      groups.push(current);
+    }
+    current.lessons.push({ title: text });
+  };
+
+  // Títulos de nível 2 a 4 agrupam as aulas (disciplina, módulo ou assunto).
+  const token = /<h([2-4])[^>]*>([\s\S]*?)<\/h\1>|<a\b([^>]*)>([\s\S]*?)<\/a>/gi;
+  let match;
+  while ((match = token.exec(html))) {
+    if (match[1]) {
+      const text = textOf(match[2]);
+      if (!text) continue;
+      if (looksLikeLesson(text)) add(text);
+      else {
+        current = { title: cleanTitle(text) || 'Aulas encontradas na página', lessons: [] };
+        groups.push(current);
+      }
+      continue;
+    }
+    const href = /href\s*=\s*["']([^"']*)["']/i.exec(match[3])?.[1] || '';
+    const text = textOf(match[4]);
+    if (!text || text.length > 150) continue;
+    // Link para aula com identificador no caminho, ou texto que já parece aula.
+    if (LESSON_ROUTE.test(href) || looksLikeLesson(text)) add(text);
+  }
+
+  // Itens de lista sem link, como aulas escritas em texto no painel.
+  for (const item of listItems(html)) {
+    if (looksLikeLesson(item)) add(item);
+  }
+
+  const modules = groups.filter((group) => group.lessons.length).map((group) => ({ title: group.title, lessons: group.lessons }));
+  const lessonCount = modules.reduce((total, module) => total + module.lessons.length, 0);
+  if (lessonCount < 3) return { disciplines: [], lessonCount: 0 };
+  return { disciplines: [{ title: 'Conteúdo do curso', modules }], lessonCount };
+}
+
+// Análise de uma página copiada pelo próprio navegador da pessoa, já com a
+// sessão dela. O HTML chega como dado, nunca é executado, e nenhuma credencial
+// é enviada: o Lume não pede senha, cookie ou token.
+export function analyzeSnapshot(html, sourceUrl = '') {
+  const value = String(html || '');
+  if (value.trim().length < 40) {
+    throw new ImportError('A página copiada está vazia. Selecione o conteúdo do curso e copie de novo.', 'empty_text', 400);
+  }
+  if (value.length > MAX_SNAPSHOT_CHARS) {
+    throw new ImportError('A página copiada é grande demais. Selecione só a área de aulas e copie de novo.', 'too_large', 413);
+  }
+  let url = '';
+  try { if (sourceUrl) url = assertPublicHttpUrl(sourceUrl).href; } catch { url = ''; }
+
+  const extracted = extractFromHtml(value, url);
+  let result = extracted;
+  if (extracted.lessonCount < 3) {
+    const fallback = snapshotOutline(value);
+    if (fallback.lessonCount >= 3) {
+      result = {
+        ...extracted,
+        disciplines: fallback.disciplines,
+        lessonCount: fallback.lessonCount,
+        extraction: {
+          ...extracted.extraction,
+          confidence: 'low',
+          notes: ['Estrutura inferida dos links e listas da página copiada, sem uma seção de ementa explícita. Confira se todos os itens são aulas.'],
+        },
+      };
+    }
+  }
+
+  const analysis = buildAnalysis(result, url, { snapshot: true, html: value });
+  if (!url) {
+    analysis.warnings.push('Sem o link do curso, a reimportação usa o título como identidade. Informe o link para reconhecer o mesmo curso depois.');
+  }
+  return analysis;
+}
+
+export async function analyzeUrl(value, options = {}) {
+  const url = assertPublicHttpUrl(value);
+  const { html, finalUrl } = await fetchDocument(url.href, options);
+  return buildAnalysis(extractFromHtml(html, finalUrl), finalUrl, { html });
 }
 
 // ---------------- IA opcional ----------------

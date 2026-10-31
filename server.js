@@ -11,7 +11,7 @@ import {
   hashPassword, verifyPassword, createSessionToken, hashSessionToken,
   sessionCookie, clearedSessionCookie, parseCookies,
 } from './auth.js';
-import { ImportError, analyzeUrl, analyzeText } from './import-server.js';
+import { ImportError, analyzeSnapshot, analyzeUrl, analyzeText } from './import-server.js';
 import { normalizePayload, detectProvider } from './public/import-domain.js';
 import {
   CompanionError, authenticateDevice, clearPresence, companionSelf, createPairCode,
@@ -26,6 +26,10 @@ import {
 } from './media.js';
 import { buildProfile } from './public/profile-domain.js';
 import { createInitialState, restoreState } from './public/domain.js';
+import {
+  XpError, getRanking, getXpSnapshot, grantBonus, grantSlide, grantStep,
+  recordTimeSession, updateXpSettings,
+} from './xp.js';
 
 // Servidor local (Node) com o mesmo contrato de API do Worker em worker.js.
 // Serve o build estático do Astro e guarda contas em data/lume.db.
@@ -33,7 +37,7 @@ import { createInitialState, restoreState } from './public/domain.js';
 const port = Number(process.env.PORT || 4173);
 const MAX_BODY_BYTES = 16 * 1024;
 const MAX_STATE_BYTES = 256 * 1024;
-const MAX_IMPORT_BYTES = 96 * 1024;
+const MAX_IMPORT_BYTES = 3 * 1024 * 1024;
 const ATTEMPT_LIMIT = Math.max(1, Math.min(Number(process.env.LUME_ATTEMPT_LIMIT) || 10, 1000));
 const ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
 const BCRYPT_ROUNDS = bcryptRounds(process.env.BCRYPT_ROUNDS);
@@ -341,9 +345,12 @@ function importFailure(response, error) {
 async function handleImportAnalyze(request, response) {
   const body = await readJsonBody(request, MAX_IMPORT_BYTES);
   const url = typeof body.url === 'string' ? body.url.trim() : '';
-  if (!url) return send(response, 400, { error: 'Cole o link do curso para analisar.', code: 'missing_url' });
+  // `html` é a página que a pessoa copiou já logada. Nesse caso não há busca
+  // externa: o conteúdo dela é lido como dado e nada da sessão é enviado.
+  const html = typeof body.html === 'string' ? body.html : '';
+  if (!url && !html) return send(response, 400, { error: 'Cole o link do curso para analisar.', code: 'missing_url' });
   try {
-    const analysis = await analyzeUrl(url, { lookup: lookupPublicHost });
+    const analysis = html ? analyzeSnapshot(html, url) : await analyzeUrl(url, { lookup: lookupPublicHost });
     const payload = normalizePayload(analysis, { sourceUrl: analysis.sourceUrl || url });
     return send(response, 200, { status: 'ok', payload, ai: { used: false, reason: 'not_requested' } });
   } catch (error) {
@@ -509,9 +516,61 @@ async function handleProfileRoute(request, response, pathname) {
     profile: {
       user: { id: target.id, name: target.name },
       updatedAt: row?.updated_at ?? null,
-      ...buildProfile(state),
+      ...buildProfile(state, { validated: await validatedProfile(db, friendId) }),
     },
   });
+}
+
+async function validatedProfile(db, userId) {
+  try {
+    const snapshot = await getXpSnapshot(db, userId, { create: false });
+    return { ...snapshot.summary, achievements: snapshot.achievements };
+  } catch {
+    return null;
+  }
+}
+
+// ---------- XP, apresentações e ranking ----------
+
+async function handleXpRoute(request, response, url, db) {
+  const method = request.method;
+  const user = await currentUser(request);
+  if (!user) return send(response, 401, { error: 'Entre na sua conta para ver seu XP e o ranking.' });
+  if (!sameOrigin(request)) return send(response, 403, { error: 'Origem não autorizada.' });
+
+  if (url.pathname === '/api/xp' && method === 'GET') {
+    return send(response, 200, await getXpSnapshot(db, user.id, {
+      timeZone: url.searchParams.get('timeZone') || '',
+    }));
+  }
+  if (url.pathname === '/api/xp/complete' && method === 'POST') {
+    const body = await readJsonBody(request, 8 * 1024);
+    return send(response, 200, await grantStep(db, user.id, body));
+  }
+  if (url.pathname === '/api/xp/bonus' && method === 'POST') {
+    const body = await readJsonBody(request, 8 * 1024);
+    return send(response, 200, await grantBonus(db, user.id, body));
+  }
+  if (url.pathname === '/api/xp/slides' && method === 'POST') {
+    const body = await readJsonBody(request, 8 * 1024);
+    return send(response, 200, await grantSlide(db, user.id, body));
+  }
+  if (url.pathname === '/api/xp/time' && method === 'POST') {
+    const body = await readJsonBody(request, 8 * 1024);
+    return send(response, 200, await recordTimeSession(db, user.id, body));
+  }
+  if (url.pathname === '/api/xp/settings' && ['PATCH', 'POST'].includes(method)) {
+    const body = await readJsonBody(request, 4 * 1024);
+    return send(response, 200, { settings: await updateXpSettings(db, user.id, body) });
+  }
+  if (url.pathname === '/api/ranking' && method === 'GET') {
+    return send(response, 200, await getRanking(db, user.id, {
+      tab: url.searchParams.get('tab') || 'level',
+      period: url.searchParams.get('period') || 'week',
+      timeZone: url.searchParams.get('timeZone') || '',
+    }));
+  }
+  return send(response, 404, { error: 'Rota não encontrada.' });
 }
 
 const mediaRoot = join(dataDirectory, 'media');
@@ -581,7 +640,8 @@ async function handleMediaGetRoute(request, response, pathname) {
 }
 
 const server = http.createServer(async (request, response) => {
-  const { pathname } = new URL(request.url, 'http://localhost');
+  const url = new URL(request.url, 'http://localhost');
+  const { pathname } = url;
 
   try {
     if (pathname === '/api/me' && request.method === 'GET') {
@@ -610,6 +670,9 @@ const server = http.createServer(async (request, response) => {
 
     if (pathname.startsWith('/api/profile/')) {
       return await handleProfileRoute(request, response, pathname);
+    }
+    if (pathname.startsWith('/api/xp') || pathname === '/api/ranking') {
+      return await handleXpRoute(request, response, url, companionDb());
     }
     if (pathname.startsWith('/api/companion')) {
       return await handleCompanionRoute(request, response, pathname);
@@ -660,6 +723,7 @@ const server = http.createServer(async (request, response) => {
     if (error instanceof CompanionError) return send(response, error.status, { error: error.message, code: error.code });
     if (error instanceof FriendsError) return send(response, error.status, { error: error.message, code: error.code });
     if (error instanceof MediaError) return send(response, error.status, { error: error.message, code: error.code });
+    if (error instanceof XpError) return send(response, error.status, { error: error.message, code: error.code });
     if (error?.status) return send(response, error.status, { error: error.message });
     console.error(error);
     if (!response.headersSent) send(response, 500, { error: 'Não foi possível concluir a operação.' });

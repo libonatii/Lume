@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
 import { createInitialState, STORAGE_KEY } from '../../public/domain.js';
 
-// Sessão declarada: relógio de continuidade iniciado pela pessoa. Não é
-// observação, não conclui aula e não gera XP.
+// Sessão declarada: relógio de continuidade iniciado pela pessoa. O servidor
+// confirma blocos de 30 minutos; a sessão não comprova estudo.
 
-test('sessão declarada persiste ao recarregar, pausa, retoma e encerra sem XP', async ({ page }) => {
+test('sessão declarada persiste ao recarregar, pausa, retoma e encerra sem conceder XP local', async ({ page }) => {
   const seeded = createInitialState();
   seeded.onboarded = true;
   seeded.courses = [{ id: 'design', title: 'Design de interfaces', category: 'Design', art: 'design', url: '', example: false, paused: false, steps: [{ id: 'design-1', title: 'Abrir o material e conhecer o curso' }] }];
@@ -16,7 +16,7 @@ test('sessão declarada persiste ao recarregar, pausa, retoma e encerra sem XP',
   await page.goto('/#hoje');
   await expect(page.getByRole('heading', { name: /Que bom ter você aqui/ })).toBeVisible();
 
-  await expect(page.getByText('Não é observação de atividade e não gera XP.')).toBeVisible();
+  await expect(page.getByText(/servidor confirma blocos de 30 minutos/i)).toBeVisible();
   await page.getByRole('button', { name: 'Começar sessão' }).click();
   await expect(page.getByRole('heading', { name: 'Abrir o material e conhecer o curso' })).toBeVisible();
   await expect(page.getByRole('timer')).toBeVisible();
