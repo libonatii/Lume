@@ -2,7 +2,7 @@
 
 Versão documental: 1.0. Esta é a referência de produto para planejamento, design, implementação e contexto de futuras IAs. Consulte também [Gamificação](GAMIFICACAO.md) e [Continuidade](CONTINUIDADE.md).
 
-Este documento descreve o destino do produto e diferencia o que está implementado do que continua planejado. Biblioteca com materiais tipados e retomada, política de XP validada no servidor, conquistas personalizadas, amigos e ranking de amigos já existem; mensagens diretas e integrações continuam pendentes. **Comunidades, servidores, canais e grupos estão fora do escopo desta etapa.** O estado detalhado está em [Continuidade](CONTINUIDADE.md).
+Este documento descreve o destino do produto e diferencia o que está implementado do que continua planejado. Biblioteca com materiais tipados e retomada, política de XP validada no servidor, conquistas personalizadas, amigos, mensagens diretas, colaboração em entregas e ranking de amigos já existem; integrações de progresso e observação de reprodução continuam pendentes. O diagnóstico e o plano de evolução estão em [Evolução](EVOLUCAO.md). **Comunidades, servidores, canais e grupos estão fora do escopo desta etapa.** O estado detalhado está em [Continuidade](CONTINUIDADE.md).
 
 ## 1. O que o Lume se propõe a ser
 
@@ -41,7 +41,7 @@ O Lume não promete liberação de dopamina, eficácia clínica, aprendizado gar
 
 ## 3. Ciclo principal de uso
 
-1. A pessoa cria uma conta e entra no produto completo. O protótipo oferece cadastro e login com e-mail e senha e sincronização básica de uma cópia do progresso; reconciliação de alterações simultâneas entre dispositivos ainda está pendente.
+1. A pessoa cria uma conta e entra no produto completo. O protótipo oferece cadastro e login com e-mail e senha e sincronização de uma cópia do progresso com revisão otimista: alterações de outro dispositivo são mescladas antes de salvar.
 2. Informa seu ritmo, áreas de interesse e apoios desejados.
 3. Adiciona cursos, aulas, artigos, livros, exercícios ou projetos à biblioteca.
 4. Retoma um material do ponto salvo ou inicia uma atividade de estudo.
@@ -54,7 +54,7 @@ Preparar o ambiente e tornar uma atividade menor são apoios possíveis nesse ci
 
 ## 4. Entrada e personalização
 
-**O cadastro e o login com e-mail e senha já funcionam.** Esse acesso faz parte do produto, com recuperação de senha, saída da conta e cópia do progresso associada à pessoa autenticada. A sincronização básica não implementa reconciliação de conflitos nem validação de XP no servidor. O acesso demonstrativo da prévia continua existindo e não substitui a conta. Login com Google pode complementar o acesso; não substitui o requisito de e-mail e senha.
+**O cadastro e o login com e-mail e senha já funcionam.** Esse acesso faz parte do produto, com recuperação de senha, saída da conta e cópia do progresso associada à pessoa autenticada. A sincronização usa revisão otimista e mescla alterações de outro dispositivo; o XP elegível é validado no servidor, em um livro de eventos separado da cópia do estado. O acesso demonstrativo da prévia continua existindo e não substitui a conta. Login com Google pode complementar o acesso; não substitui o requisito de e-mail e senha.
 
 O onboarding deve identificar:
 
@@ -68,7 +68,7 @@ O onboarding deve identificar:
 
 As perguntas podem ser puladas e revisitadas. A pessoa não recebe uma classificação de capacidade. Estudar com frequência não dá multiplicador de XP; precisar de mais apoio não diminui a pontuação pela mesma atividade.
 
-Na interface atual, a personalização oferece três jornadas com sequências próprias: **Quero começar** (assunto, resultado, material, tempo de sessão), **Estudo de vez em quando** (materiais em andamento, prioridade, ponto de retomada, dificuldades) e **Estudo com frequência** (áreas, rotina, em andamento, o que acompanhar). Cada jornada cria um primeiro material concreto, guarda as respostas na conta e pode ser retomada se for interrompida. Os três apoios disponíveis são ajuda para começar, retomar sem culpa e passos ainda menores. Mensagens diretas e ranking da tabela ainda são requisitos futuros: a etapa social existe, é opcional e informa que esses recursos não estão disponíveis. O apoio antigo `calm` e a preferência `essential` permanecem apenas no formato legado dos dados, sem ativar um modo visual.
+Na interface atual, a personalização oferece três jornadas com sequências próprias: **Quero começar** (assunto, resultado, material, tempo de sessão), **Estudo de vez em quando** (materiais em andamento, prioridade, ponto de retomada, dificuldades) e **Estudo com frequência** (áreas, rotina, em andamento, o que acompanhar). Cada jornada cria um primeiro material concreto, guarda as respostas na conta e pode ser retomada se for interrompida. Os três apoios disponíveis são ajuda para começar, retomar sem culpa e passos ainda menores. A etapa social é opcional e apresenta o ranking de amigos; mensagens diretas existem fora do onboarding. O apoio antigo `calm` e a preferência `essential` permanecem apenas no formato legado dos dados, sem ativar um modo visual.
 
 ## 5. Biblioteca e continuidade
 
@@ -109,10 +109,11 @@ A pessoa cola o link do curso, o Lume identifica a plataforma e apresenta as ár
 
 ### Tarefas de prova (implementadas)
 
-- A pessoa mantém uma lista de tarefas necessárias para estudar para uma prova, com vínculo opcional a um curso e prazo opcional.
+- A pessoa mantém uma lista de tarefas necessárias para estudar para uma prova, com vínculo opcional a um curso, prazo opcional e prioridade explícita. Tarefas atrasadas aparecem primeiro, também na página Hoje.
+- Definir ou mudar a prioridade é organização e não gera XP.
 - Criar, editar, organizar ou remover tarefas é preparação e não gera XP.
 - Concluir uma tarefa de estudo definida concede XP uma vez; reabrir retira o XP até concluir de novo, sem acumular. A regra em execução é transitória e está detalhada em [Gamificação](GAMIFICACAO.md#tarefas-de-prova--regra-em-execução-no-protótipo).
-- O XP da tarefa é declarado no navegador no protótipo e não vale para ranking até existir validação no servidor.
+- O XP da tarefa é declarado no navegador no protótipo e não vale para ranking até existir validação no servidor. A migração proposta (tarefa vinculada a aula conclui a aula; tarefa sem vínculo é organizacional) está em [Evolução §4.6](EVOLUCAO.md#46-transição-sem-apagar-histórico) e depende de aprovação.
 - Tarefas não concluem curso, não criam conquista por material e não substituem a sessão de estudo declarada.
 
 ### Sessão declarada e Lume Companion (implementados)
@@ -192,7 +193,7 @@ Cada conquista possui uma página ou detalhe que explica o que foi concluído. A
 - Abrir o perfil exige amizade. Não existe perfil público por link, busca por e-mail nem página anônima.
 - Cada seção pode ser desligada em Configurações › O que amigos veem, e cada projeto nasce privado até ser marcado. Projeto privado não aparece em lugar nenhum, nem nas contagens.
 - XP, nível e conquistas de contas vêm do livro de eventos do servidor e são validados; percentuais de progresso continuam declarados pela cópia sincronizada. O saldo legado não entra no perfil como XP validado.
-- A escolha individual de conquistas para o perfil, mensagens diretas e compartilhamento de aprendizados continuam pendentes.
+- A escolha individual de conquistas para o perfil e o compartilhamento de aprendizados continuam pendentes. Mensagens diretas entre amizades estão implementadas.
 
 ### Placares
 
@@ -218,12 +219,12 @@ As regras detalhadas estão em [Gamificação](GAMIFICACAO.md).
 | --- | --- |
 | Entrada e conta | Cadastro, autenticação, recuperação por link e saída já disponíveis na API local; envio de e-mail ainda pendente |
 | Meu ritmo e interesses | Preferências e sugestões iniciais |
-| Hoje | Materiais em andamento, ponto de retomada e atividade de estudo |
-| Tarefas | Lista de estudo para uma prova, com prazo, vínculo opcional e conclusão com XP único |
+| Hoje | Próxima ação única (mesmo critério do roteiro do Companion), com motivo, tempo a reservar — duração conhecida ou estimada —, link do material e o que falta; sessão; tarefas relevantes com atraso; evolução com a última recompensa |
+| Tarefas | Lista de estudo para uma prova, com prioridade (alta, média, baixa ou sem prioridade), prazo, atraso, vínculo opcional e conclusão com XP único |
 | Biblioteca | Cursos, aulas, leituras, exercícios e projetos, com capas, filtros, favoritos e retomada |
 | Trilhas e projetos | Objetivos e entregas substanciais |
 | Organização | Anotações, listas de aulas e entregas, quadro de projetos e modelos básicos |
-| Amigos e mensagens | Comunicação, compartilhamento e colaboração. Convites e lista de amigos já existem; mensagens diretas, bloqueio e ranking não |
+| Amigos e mensagens | Comunicação, compartilhamento e colaboração. Convites, lista de amigos, mensagens diretas, bloqueio, colaboração em entregas e ranking de amigos já existem |
 | Perfil entre amigos | Projeção da biblioteca, da fila, do progresso e do XP que cada pessoa escolheu compartilhar; exige amizade |
 | Instalar aplicativo | Página do programa de desktop: baixa o instalador da última release e gera o código de conexão |
 | Placares | Comparação opcional dentro de períodos e regras definidos |

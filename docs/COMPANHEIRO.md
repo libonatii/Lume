@@ -37,8 +37,9 @@ retoma o que já está na conta.
 | Bandeja do sistema, janela principal com o site e painel de presença (Electron 45) | Implementado; abrir com `npm run companion:app` |
 | Instalador assinado | Pendente; a atualização pela janela já baixa e abre o instalador |
 
-O roteiro completo também aparece no site (Missões e Biblioteca), com o mesmo
-critério. O Companion não inventa uma prioridade diferente.
+A página Hoje do site usa o mesmo critério (`nextAction`, derivado de
+`studyPlan`), então o programa e o site indicam a mesma próxima aula. Missões
+ainda lista a próxima etapa por curso, na ordem da biblioteca.
 
 ## 3. Presença rica (rich presence)
 
@@ -200,7 +201,7 @@ opt-in; pausa não é punida; nada de vigilância.
 | 4 | Instalador Windows via GitHub Actions | Feito; assinatura é opcional |
 | 5 | Início com o Windows e auto-update | Atualização pelo botão da janela (manual); início com o Windows pendente |
 | 6 | Sessão declarada dentro do programa + retomada | Substituído pela janela com o site: a sessão já funciona no app |
-| 7 | Presença social entre amigos (opt-in) | Amigos já existem; presença social e mensagens diretas não |
+| 7 | Presença social entre amigos (opt-in) | Amigos e mensagens diretas já existem no site; presença social não |
 
 A publicação é feita por tag (`companion-v<versão>`), que precisa bater com
 `companion/package.json`; a última release publicada é a `companion-v0.5.0`, e o
@@ -257,4 +258,4 @@ Ou, sem janela: `npm run companion` (agente de terminal).
   manual e identificada.
 - Sem integração com Discord: o Lume não lê a atividade de outros programas.
 - Presença não vira tempo elegível de XP; a política exige validação no servidor.
-- Amigos e ranking de amigos existem; presença social, feed e mensagens diretas continuam pendentes; grupos, comunidades e canais estão fora do escopo desta etapa.
+- Amigos, mensagens diretas e ranking de amigos existem no site; presença social e feed continuam pendentes; grupos, comunidades e canais estão fora do escopo desta etapa.

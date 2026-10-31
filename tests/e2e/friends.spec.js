@@ -12,7 +12,7 @@ async function register(page, testInfo, prefix, name = 'Pessoa de teste') {
   await page.getByLabel('Senha', { exact: true }).fill('senha-local-teste-123');
   await page.getByRole('button', { name: 'Criar minha conta' }).click();
   await page.getByRole('button', { name: 'Explorar sem personalizar agora' }).click();
-  await expect(page.getByRole('heading', { name: /Que bom ter você aqui/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Hoje', exact: true })).toBeVisible();
   return email;
 }
 

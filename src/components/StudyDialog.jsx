@@ -5,6 +5,7 @@ import {
   lessonOrigin, looksLikeExamCourse, revertLessonCompletion, sourceLabel,
 } from '../../public/import-domain.js';
 import { slidesSummary } from '../../public/slides-domain.js';
+import { nextAction } from '../../public/study-plan.js';
 import Icon from './Icon.jsx';
 import { Button, Cover, Glow, Progress } from './ui.jsx';
 import { Steps } from './Study.jsx';
@@ -31,6 +32,12 @@ function materialLabel(course) {
   return materialType(course?.type).title;
 }
 
+// Depois de uma conclusão, a resposta é o próximo passo concreto, não um elogio genérico.
+function nextLine(state) {
+  const following = nextAction(state);
+  return following ? `Próxima: ${following.title} · ${following.courseTitle}.` : 'Não há outra etapa pendente nos seus materiais ativos.';
+}
+
 export default function StudyDialog({ modal, state, update, open, close, notify, go, account }) {
   const course = state.courses.find(course => course.id === modal.id);
 
@@ -45,12 +52,12 @@ export default function StudyDialog({ modal, state, update, open, close, notify,
     <Glow palette={modal.preparation ? 'mint' : 'lume'}/>
     <div className="success-body">
       <div className={`dialog-emblem ${modal.preparation ? 'tone-mint' : ''}`}><Icon name={modal.preparation ? 'sprout' : 'spark'}/></div>
-      <h2 id="dialog-title" className="headline">{modal.preparation ? 'O caminho está preparado.' : 'Olha só: você avançou.'}</h2>
-      <p className="muted-text">{modal.preparation ? 'A etapa original continua disponível, sem pressa.' : 'O que você fez já faz parte do seu caminho.'}</p>
+      <h2 id="dialog-title" className="headline">{modal.preparation ? 'Material preparado.' : modal.stepTitle ? `Você concluiu ${modal.stepTitle}.` : 'Etapa concluída.'}</h2>
+      <p className="muted-text">{modal.preparation ? 'A etapa continua pendente: o avanço é registrado quando você a conclui.' : nextLine(state)}</p>
       <p className="quiet-note">Progresso registrado. Em uma conta, o XP elegível é confirmado pelo servidor e aparece em Meu caminho; na prévia, ele não vale para ranking. Preparação não concede XP.</p>
       {state.preferences.gamification && modal.xp > 0 && <span className="success-xp"><Icon name="spark"/>+{modal.xp} XP de legado</span>}
       {modal.award && state.preferences.gamification && <div className="new-achievement"><Icon name={modal.award.icon}/><strong>{modal.award.title}</strong></div>}
-      <Button className="full-width" onClick={() => { close(); go('hoje'); }}>Voltar ao meu espaço<Icon name="arrow"/></Button>
+      <Button className="full-width" onClick={() => { close(); go('hoje'); }}>Voltar para Hoje<Icon name="arrow"/></Button>
       {modal.preparation && <button className="text-button centered" onClick={() => open({ type: 'session', id: modal.id })}>Quero continuar a etapa</button>}
     </div>
   </div>;
@@ -104,20 +111,20 @@ export default function StudyDialog({ modal, state, update, open, close, notify,
     if (!result.added) { notify('Esse passo já foi registrado.'); close(); return; }
     const previous = achievements(state);
     const award = achievements(result.state).find(item => item.unlocked && !previous.find(old => old.id === item.id)?.unlocked);
-    update(result.state); open({ type: 'success', id: course.id, preparation: modal.preparation, xp: result.xp, award });
+    update(result.state); open({ type: 'success', id: course.id, preparation: modal.preparation, xp: result.xp, award, stepTitle: mission.step.title });
   }
   return <div className="session-content">
     <div className={`dialog-emblem ${modal.preparation ? 'tone-mint' : ''}`}><Icon name={modal.preparation ? 'sprout' : 'focus'}/></div>
-    <span className="eyebrow">Uma coisa de cada vez</span>
-    <h2 id="dialog-title" className="headline">{modal.preparation ? 'Só preparar o caminho.' : mission.step.title}</h2>
+    <span className="eyebrow">{modal.preparation ? 'Preparação · sem XP' : 'Etapa · registro manual'}</span>
+    <h2 id="dialog-title" className="headline">{modal.preparation ? `Preparar: ${mission.step.title}` : mission.step.title}</h2>
     <p className="session-course">{course.title}</p>
-    <p className="dialog-text">{modal.preparation ? 'Abra o material, separe o que precisa ou encontre o link da aula.' : 'Faça essa etapa no seu tempo. Quando terminar, volte aqui para registrar seu passo.'}</p>
+    <p className="dialog-text">{modal.preparation ? 'Abra o material, separe o que precisa ou encontre o link da aula.' : 'Conclua a etapa no material e registre aqui. O registro é manual e identificado como seu.'}</p>
     {course.url ? <a href={course.url} className="button secondary full-width" target="_blank" rel="noopener noreferrer">Abrir material<Icon name="external"/></a> : <p className="inline-note"><Icon name="book"/><span>{course.example ? 'Curso de exemplo, sem aula vinculada. A conclusão é uma simulação.' : 'Use o material de estudo que você escolheu. Não há link cadastrado.'}</span></p>}
     {modal.preparation && <p className="quiet-note">Isso não marcará a aula como concluída.</p>}
     <div className="session-actions">
       <Button className="full-width" onClick={finish}><Icon name="check"/>{modal.preparation ? 'Preparei meu material' : 'Concluí esse passo'}</Button>
-      {!modal.preparation && !hasPreparation(state, mission.step.id) && <button className="text-button centered" onClick={() => open({ type: 'session', id: course.id, preparation: true })}>Tornar essa missão menor<Icon name="sprout"/></button>}
-      <button className="text-button centered" onClick={close}>Voltar depois, sem perder nada</button>
+      {!modal.preparation && !hasPreparation(state, mission.step.id) && <button className="text-button centered" onClick={() => open({ type: 'session', id: course.id, preparation: true })}>Dividir em um passo menor<Icon name="sprout"/></button>}
+      <button className="text-button centered" onClick={close}>Fechar · o progresso continua salvo</button>
     </div>
   </div>;
 }
@@ -149,9 +156,8 @@ function ImportedSession({ course, state, update, open, close, notify, stepId, a
     const result = completeLesson(state, course.id, step.id, { origin: 'manual' });
     if (!result.added) { notify('Essa aula já estava registrada.'); return; }
     update(result.state);
-    notify(account
-      ? 'Aula concluída registrada por você. O XP elegível é confirmado pelo servidor.'
-      : 'Aula concluída registrada nesta prévia. Entre na conta para o XP valer no ranking.');
+    const following = nextAction(result.state);
+    notify(`Você concluiu ${step.title}.${following ? ` Próxima: ${following.title}.` : ''} ${account ? 'O XP é confirmado pelo servidor.' : 'Na prévia, o XP não é validado.'}`);
     open({ type: 'course', id: course.id });
   }
   return <div className="session-content">
@@ -168,7 +174,7 @@ function ImportedSession({ course, state, update, open, close, notify, stepId, a
         ? <p className="completed-message"><Icon name="check"/>Já registrada como concluída.</p>
         : <Button className="full-width" onClick={finish}><Icon name="check"/>Concluí esta aula</Button>}
       <button className="text-button centered" onClick={() => open({ type: 'course', id: course.id })}>Ver todas as aulas</button>
-      <button className="text-button centered" onClick={close}>Voltar depois, sem perder nada</button>
+      <button className="text-button centered" onClick={close}>Fechar · o progresso continua salvo</button>
     </div>
   </div>;
 }

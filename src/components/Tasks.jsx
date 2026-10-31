@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
 import {
-  MAX_TASKS, TASK_XP, addTask, completeTask, removeTask, reopenTask, sortTasks,
+  MAX_TASKS, TASK_PRIORITIES, TASK_XP, addTask, completeTask, isOverdue, localDate, priorityLabel,
+  removeTask, reopenTask, setTaskPriority, sortTasks,
 } from '../../public/tasks-domain.js';
 import Icon from './Icon.jsx';
 import { Button, Empty, Heading, stagger } from './ui.jsx';
@@ -9,6 +10,12 @@ import { Button, Empty, Heading, stagger } from './ui.jsx';
 // Lista de tarefas de estudo para uma prova. Criar e organizar não gera XP;
 // concluir uma tarefa vale TASK_XP uma vez. O modelo ainda é o legado do
 // protótipo e não substitui a validação no servidor.
+export function overdueMessage(count) {
+  return count === 1
+    ? 'Uma tarefa passou do prazo. Reorganize a semana para manter seu objetivo.'
+    : `${count} tarefas passaram do prazo. Reorganize a semana para manter seu objetivo.`;
+}
+
 function dateLabel(value) {
   if (!value) return '';
   const date = new Date(`${value}T12:00:00`);
@@ -20,9 +27,12 @@ export default function Tasks({ state, update, notify }) {
   const [title, setTitle] = useState('');
   const [courseId, setCourseId] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [priority, setPriority] = useState('0');
   const [error, setError] = useState('');
-  const tasks = sortTasks(state.tasks || []);
+  const today = localDate();
+  const tasks = sortTasks(state.tasks || [], today);
   const pending = tasks.filter((task) => !task.done);
+  const overdue = pending.filter((task) => isOverdue(task, today)).length;
   const done = tasks.filter((task) => task.done);
   const gamified = state.preferences.gamification;
   const courses = new Map(state.courses.map((course) => [course.id, course.title]));
@@ -34,9 +44,10 @@ export default function Tasks({ state, update, notify }) {
       return;
     }
     try {
-      update((previous) => addTask(previous, { title, courseId, dueDate }));
+      update((previous) => addTask(previous, { title, courseId, dueDate, priority }));
       setTitle('');
       setDueDate('');
+      setPriority('0');
       setError('');
       notify('Tarefa adicionada. Criar não gera XP; concluir gera uma vez.');
     } catch (exception) {
@@ -53,7 +64,11 @@ export default function Tasks({ state, update, notify }) {
     const result = completeTask(state, task.id);
     if (!result.added) return;
     update(result.state);
-    notify(gamified ? `Tarefa concluída. +${TASK_XP} XP de legado.` : 'Tarefa concluída.');
+    notify(gamified ? `Tarefa concluída: ${task.title}. +${TASK_XP} XP de legado.` : `Tarefa concluída: ${task.title}.`);
+  }
+
+  function prioritize(task, value) {
+    update((previous) => setTaskPriority(previous, task.id, value));
   }
 
   function remove(task) {
@@ -63,7 +78,8 @@ export default function Tasks({ state, update, notify }) {
 
   function taskRow(task, index) {
     const course = task.courseId ? courses.get(task.courseId) : '';
-    return <motion.li className={`todo-item ${task.done ? 'is-done' : ''}`} key={task.id} {...stagger(index)}>
+    const late = isOverdue(task, today);
+    return <motion.li className={`todo-item ${task.done ? 'is-done' : ''} ${late ? 'is-late' : ''} priority-${task.priority || 0}`} key={task.id} {...stagger(index)}>
       <button
         type="button"
         role="checkbox"
@@ -77,18 +93,23 @@ export default function Tasks({ state, update, notify }) {
       <span className="todo-copy">
         <strong>{task.title}</strong>
         <small className="todo-meta">
+          {!task.done && task.priority > 0 && <span className="todo-priority">Prioridade {priorityLabel(task.priority).toLowerCase()} · </span>}
+          {late && <span className="todo-late">Atrasada · </span>}
           {course || 'Sem curso vinculado'}
-          {task.dueDate ? ` · vence em ${dateLabel(task.dueDate)}` : ''}
+          {task.dueDate ? ` · ${late ? 'venceu' : 'vence'} em ${dateLabel(task.dueDate)}` : ''}
           {task.done && gamified ? ` · +${TASK_XP} XP de legado` : ''}
         </small>
       </span>
+      {!task.done && <select className="todo-priority-select" aria-label={`Prioridade de ${task.title}`} value={String(task.priority || 0)} onChange={(event) => prioritize(task, event.target.value)}>
+        {TASK_PRIORITIES.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+      </select>}
       <button type="button" className="text-button" aria-label={`Remover tarefa ${task.title}`} onClick={() => remove(task)}>Remover</button>
     </motion.li>;
   }
 
   return <div className="personal-root">
     <Heading eyebrow="Preparação para a prova" title="Tarefas">
-      Liste o que precisa fazer para estudar. Criar tarefas é preparação e não gera XP; concluir uma tarefa de estudo vale XP uma vez.
+      Liste as ações concretas da sua preparação e defina o que vem primeiro. Criar e priorizar tarefas não gera XP; concluir uma tarefa de estudo vale XP uma vez.
     </Heading>
 
     <section className="card-surface settings-panel">
@@ -107,6 +128,11 @@ export default function Tasks({ state, update, notify }) {
           <label className="field">Prazo (opcional)
             <input name="task-due" type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)}/>
           </label>
+          <label className="field">Prioridade
+            <select name="task-priority" value={priority} onChange={(event) => setPriority(event.target.value)}>
+              {TASK_PRIORITIES.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+            </select>
+          </label>
         </div>
         {error && <p className="form-error" role="alert">{error}</p>}
         <Button type="submit" disabled={(state.tasks || []).length >= MAX_TASKS}><Icon name="plus"/>Adicionar tarefa</Button>
@@ -120,9 +146,10 @@ export default function Tasks({ state, update, notify }) {
       <div className="shelf-header">
         <h2 id="todo-pending-title" className="headline">Para fazer <span className="shelf-count">{pending.length}</span></h2>
       </div>
+      {overdue > 0 && <p className="inline-note todo-overdue-note" role="status"><Icon name="flag"/><span>{overdueMessage(overdue)}</span></p>}
       {pending.length
         ? <ul className="todo-list">{pending.map(taskRow)}</ul>
-        : <Empty title="Nada pendente por aqui.">Adicione uma tarefa acima ou aproveite para revisar o que já concluiu.</Empty>}
+        : <Empty title="Sem tarefas pendentes.">Defina a próxima ação concreta da sua preparação no formulário acima.</Empty>}
     </section>
 
     {done.length > 0 && <section className="todo-section" aria-labelledby="todo-done-title">

@@ -9,10 +9,13 @@
 // Cursos pausados e concluídos ficam fora do roteiro. Cursos de exemplo não
 // entram: eles não representam o estudo real da pessoa. Nada aqui concede XP.
 
-import { isImportedCourse, sourceLabel } from './import-domain.js';
+import { courseLessons, isImportedCourse, sourceLabel } from './import-domain.js';
 
 export const PLAN_LIMIT = 8;
 export const RECENT_DAYS = 7;
+// Sem duração publicada pela fonte nem tempo de sessão escolhido no onboarding,
+// a estimativa usa 25 minutos e é sempre rotulada como estimativa.
+export const DEFAULT_SESSION_MINUTES = 25;
 
 const REASONS = {
   continuity: { id: 'continuity', label: 'Continuidade', detail: 'Você registrou estudo aqui nos últimos 7 dias.' },
@@ -134,5 +137,45 @@ export function studyPlan(state, { limit = PLAN_LIMIT, now = Date.now() } = {}) 
     note: active.length
       ? null
       : 'Nenhum curso em andamento. Adicione um curso na biblioteca para o roteiro aparecer aqui.',
+  };
+}
+
+function sessionMinutes(state) {
+  const value = Number(state.onboarding?.answers?.sessionMinutes);
+  return Number.isFinite(value) && value > 0 && value <= 240 ? Math.round(value) : DEFAULT_SESSION_MINUTES;
+}
+
+// Próxima ação da página Hoje. Usa o mesmo critério do roteiro (Companion e
+// perfil), para que nenhuma tela indique outra aula como "a próxima".
+// Duração conhecida vem da fonte importada; sem ela, o tempo é estimado.
+export function nextAction(state, { now = Date.now() } = {}) {
+  const plan = studyPlan(state, { limit: 1, now });
+  const step = plan.steps[0];
+  if (!step) return null;
+  const course = state.courses.find((item) => item.id === step.courseId);
+  const planned = plan.courses.find((item) => item.id === step.courseId);
+  const lessons = new Map(courseLessons(course).map((lesson) => [lesson.id, lesson]));
+  const lesson = lessons.get(step.lessonId);
+  const known = Number.isFinite(lesson?.duration) && lesson.duration > 0;
+  const completed = new Set(state.completed || []);
+  const remainingSteps = course.steps.filter((item) => !completed.has(item.id));
+  const durations = remainingSteps.map((item) => lessons.get(item.id)?.duration).filter((value) => Number.isFinite(value) && value > 0);
+  return {
+    courseId: course.id,
+    courseTitle: course.title,
+    lessonId: step.lessonId,
+    title: step.title,
+    discipline: step.discipline,
+    module: step.module,
+    reason: step.reason,
+    minutes: known ? Math.max(1, Math.ceil(lesson.duration / 60)) : sessionMinutes(state),
+    durationKnown: known,
+    url: lesson?.url || course.url || '',
+    imported: isImportedCourse(course),
+    partial: planned?.partial === true,
+    remaining: step.remaining,
+    total: planned?.total || course.steps.length,
+    remainingKnownMinutes: Math.round(durations.reduce((sum, value) => sum + value, 0) / 60),
+    remainingWithoutDuration: remainingSteps.length - durations.length,
   };
 }

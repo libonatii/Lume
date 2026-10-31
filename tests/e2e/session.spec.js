@@ -14,10 +14,11 @@ test('sessão declarada persiste ao recarregar, pausa, retoma e encerra sem conc
     sessionStorage.setItem('lume.preview-session.v1', 'open');
   }, { key: STORAGE_KEY, state: seeded });
   await page.goto('/#hoje');
-  await expect(page.getByRole('heading', { name: /Que bom ter você aqui/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Hoje', exact: true })).toBeVisible();
 
   await expect(page.getByText(/servidor confirma blocos de 30 minutos/i)).toBeVisible();
   await page.getByRole('button', { name: 'Começar sessão' }).click();
+  await expect(page.getByRole('heading', { name: 'Sessão em andamento' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Abrir o material e conhecer o curso' })).toBeVisible();
   await expect(page.getByRole('timer')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Pausar' })).toBeVisible();

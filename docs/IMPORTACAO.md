@@ -179,8 +179,8 @@ Reimportação:
 
 - `deliveryCandidates(repository)` transforma issues abertas em **sugestões** que exigem validação, com a nota de
   que issue aberta não significa projeto incompleto.
-- `GITHUB_CAPABILITIES` declara que conexão, leitura de repositórios, validação de entregas e compartilhamento
-  ainda não existem. Nada de colaboração simulada.
+- A leitura pública de repositórios existe em `github.js` (README, issues e milestones, sem token e sem
+  repositórios privados). Conexão por OAuth, validação automática de entregas e escrita no GitHub não existem.
 - Quando a integração for implementada, ela deve ser opcional, com escopo mínimo, escolha explícita de
   repositórios e nada de repositórios privados expostos por padrão.
 
@@ -197,6 +197,9 @@ parcial, reimportação sem duplicata com progresso preservado, conclusão manua
 A análise por link nesses testes é simulada por interceptação de rota; a extração real é verificada por testes
 unitários com HTML de exemplo e pelos acessos reais listados na seção 4. O teste **página copiada de um curso
 logado é lida sem receber a sessão** cobre um painel autenticado simulado, com menu, disciplinas e links de aula.
+
+A matriz de viabilidade por plataforma (Alura, Coursera, Gran, Estratégia), as alternativas técnicas e a primeira
+prova de observação de reprodução estão em [Evolução §5](EVOLUCAO.md#5-integrações-com-cursos-externos).
 
 ## 12. Pendências conhecidas
 

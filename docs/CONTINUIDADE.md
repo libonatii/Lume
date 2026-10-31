@@ -17,7 +17,8 @@ A aplicação usa Astro, React e Motion. O Astro gera arquivos estáticos em `di
 | Biblioteca | Cursos/assuntos com etapas, busca, filtros, pausa, links, criação manual, edição de título/tipo/retomada, etapas editáveis, exclusão com confirmação e slides internos; cursos importados por link têm disciplinas, módulos, aulas, progresso por área, próxima aula e origem do registro |
 | Progresso | Registro local de conclusão de etapas e preparação; o documento de estudo é sincronizado por conta no D1. Aulas importadas usam registro manual em `studyLog`; progresso marcado na página copiada entra como histórico `import`, sem XP |
 | Gamificação | Política v1 no servidor: 100 XP por aula/leitura/exercício, 150 por entrega, 100 por apresentação, 500 de bônus por curso/projeto, 25 por bloco de 30 min e nível a cada 500 XP. Livro `xp_events` com idempotência e correção por ajuste negativo. O saldo legado (5/10 XP) permanece separado e fora do ranking |
-| Tarefas de prova | Lista com prazo e vínculo opcional a curso; concluir vale 10 XP de legado uma vez, criar ou organizar não gera XP. Ver [Gamificação](GAMIFICACAO.md#tarefas-de-prova--regra-em-execução-no-protótipo) |
+| Hoje | Próxima ação única calculada por `nextAction` (`public/study-plan.js`), com o mesmo critério do roteiro do Companion e do perfil: motivo, tempo a reservar (duração conhecida da fonte ou estimativa pelo tempo de sessão do onboarding, padrão 25 min), link do material e o que falta. Abaixo: sessão declarada, até três tarefas na ordem de ação com aviso de atraso e evolução (nível e última recompensa confirmada) |
+| Tarefas de prova | Lista com prioridade (alta, média, baixa, sem prioridade), prazo, atraso e vínculo opcional a curso; concluir vale 10 XP de legado uma vez, criar, priorizar ou organizar não gera XP. Ver [Gamificação](GAMIFICACAO.md#tarefas-de-prova--regra-em-execução-no-protótipo) |
 | Conquistas | Conquistas personalizadas por curso, projeto, leitura, exercício e apresentação em `user_achievements`, com revogação em correções; os seis selos genéricos do protótipo continuam em seção de legado |
 | Histórico | Dados no navegador, extrato de XP do servidor, exportação JSON, restauração com prévia e mesclagem, correção de evento com motivo e histórico de importações em `imports` |
 | Visual | Sistema visual unificado (`public/lume.css`) com paleta azul-safira e índigo (temas escuro e claro) em todas as rotas, tipografia Fraunces Variable + Plus Jakarta Sans e bibliotecas do catálogo FGLibs (`motion`, `@paper-design/shaders-react` e `atropos`). Por decisão explícita da responsável, não há modo essencial nem tratamento de movimento reduzido |
@@ -81,7 +82,7 @@ O CSS do Stitch não foi reescrito à mão: `public/stitch.css` é gerado a part
 
 As telas de Entrada, Ritmo de Estudo, Hoje e Biblioteca usam essa marcação dentro do escopo `[data-stitch]`, para que os utilitários não colidam com o CSS anterior das telas ainda não convertidas. Modo essencial e tratamento de movimento reduzido foram removidos por solicitação explícita da responsável.
 
-O design foi redesenhado e unificado em `public/lume.css`, eliminando a divisão anterior entre telas com utilitários do Stitch e telas no CSS legado. Todas as 9 rotas (`login`, `inicio`, `hoje`, `biblioteca`, `missoes`, `conquistas`, `historico`, `configuracoes` e `recuperar`/`redefinir`) compartilham a mesma hierarquia tipográfica (**Fraunces Variable** + **Plus Jakarta Sans**), paleta em tons de azul-safira e índigo de alto conforto visual (tema escuro `#080d17` com acentos em azul luminoso `#5ea8ff` e menta `#4de0b8`, e tema claro gelo azulado `#f1f6fd` com acento `#2563eb`), cartões Bento táteis, anéis de progresso e navegação responsiva (barra lateral no desktop e barra inferior no celular). As bibliotecas compatíveis com React e Astro selecionadas no catálogo da [FGLibs](https://fglibs.com/) são **Motion** (`motion`, incluindo contadores `AnimatedNumber` no padrão da **Motion-Primitives**), **Paper Shaders** (`@paper-design/shaders-react`, com `MeshGradient` WebGL2 estático e fallback CSS compatível com CSP) e **Atropos** (`atropos`, para profundidade tátil na Biblioteca e nas Conquistas), além das curvas finitas inspiradas na [Arc Library](https://uiarc.dev/docs/motion).
+O design foi redesenhado e unificado em `public/lume.css`, eliminando a divisão anterior entre telas com utilitários do Stitch e telas no CSS legado. Todas as rotas compartilham a mesma hierarquia tipográfica (**Fraunces Variable** + **Plus Jakarta Sans**), paleta em tons de azul-safira e índigo de alto conforto visual (tema escuro `#080d17` com acentos em azul luminoso `#5ea8ff` e menta `#4de0b8`, e tema claro gelo azulado `#f1f6fd` com acento `#2563eb`), cartões Bento táteis, anéis de progresso e navegação responsiva (barra lateral no desktop e barra inferior no celular). As bibliotecas compatíveis com React e Astro selecionadas no catálogo da [FGLibs](https://fglibs.com/) são **Motion** (`motion`, incluindo contadores `AnimatedNumber` no padrão da **Motion-Primitives**), **Paper Shaders** (`@paper-design/shaders-react`, com `MeshGradient` WebGL2 estático e fallback CSS compatível com CSP) e **Atropos** (`atropos`, para profundidade tátil na Biblioteca e nas Conquistas), além das curvas finitas inspiradas na [Arc Library](https://uiarc.dev/docs/motion).
 
 ### Jornadas de onboarding
 
@@ -93,7 +94,7 @@ A escolha do ritmo não é só um título: cada jornada tem perguntas, configura
 
 O estado do onboarding é versionado em `onboarding` (status, jornada, etapa, respostas, datas) e salvo no documento da conta, então interromper não obriga a recomeçar. Concluir não concede XP, e o histórico continua vazio. A meta semanal só é sugerida quando nunca foi ajustada à mão (`preferences.weeklyGoalSource`). A etapa social é opcional e não altera XP, plano ou ranking.
 
-Ainda não implementados: mensagens diretas, bloqueio, notificações sociais e colaboração em entregas. O ranking de amigos, o XP validado e a biblioteca editável já existem. Grupos, comunidades e canais estão fora do escopo desta etapa. A tela informa o que não existe em vez de simular números. As integrações por área também não existem; o acompanhamento é por registro manual.
+Mensagens diretas, bloqueio, preferência de notificação, colaboração em entregas, ranking de amigos, XP validado e biblioteca editável já existem. Grupos, comunidades e canais estão fora do escopo desta etapa. A tela informa o que não existe em vez de simular números. As integrações por área também não existem; o acompanhamento é por registro manual.
 
 ### Importação de cursos por link
 
@@ -111,7 +112,7 @@ Verificação real desta rodada (31/10/2026): Coursera e Alura responderam com e
 
 **Sessão declarada.** A página Hoje tem um relógio que a pessoa inicia, pausa e encerra, vinculado à próxima aula quando existe. O estado fica em `activeSession` (status, início, último batimento, acumulado) e `studySessions` (histórico das sessões encerradas). Um batimento de 60 s mantém o tempo entre recarregamentos; ao carregar, uma sessão ativa sem batimento por 5 minutos é pausada, para que uma aba esquecida não vire horas de estudo. Sessão declarada não é observação, não conclui aula e não gera XP. O relógio aparece em Hoje e as sessões encerradas em Meu caminho.
 
-**Amigos.** Implementados por convite: `POST /api/friends/invite` gera um código de 12 caracteres, válido por 7 dias e reaproveitável — várias pessoas podem aceitar o mesmo código enquanto ele não expira; `POST /api/friends/accept` cria a amizade nos dois sentidos e registra o aceite em `friend_invite_uses`, então a lista mostra quantas pessoas entraram por cada convite; `GET /api/friends` lista amigos e o histórico; `DELETE /api/friends/:id` remove. Só o convite mais recente continua válido: gerar outro invalida o anterior. Não existe busca por e-mail (ninguém descobre quem tem conta) nem convite para si mesmo, o convite é guardado apenas como hash e a amizade, sozinha, não expõe nada: o que aparece vem das escolhas de perfil de cada pessoa. O link `#amigos?convite=...` preenche o código. Mensagens diretas, bloqueio, feed social e notificações continuam pendentes; grupos, comunidades e canais estão fora do escopo desta etapa. O ranking de amigos é uma página separada e usa XP validado, não a cópia declarada.
+**Amigos.** Implementados por convite: `POST /api/friends/invite` gera um código de 12 caracteres, válido por 7 dias e reaproveitável — várias pessoas podem aceitar o mesmo código enquanto ele não expira; `POST /api/friends/accept` cria a amizade nos dois sentidos e registra o aceite em `friend_invite_uses`, então a lista mostra quantas pessoas entraram por cada convite; `GET /api/friends` lista amigos e o histórico; `DELETE /api/friends/:id` remove. Só o convite mais recente continua válido: gerar outro invalida o anterior. Não existe busca por e-mail (ninguém descobre quem tem conta) nem convite para si mesmo, o convite é guardado apenas como hash e a amizade, sozinha, não expõe nada: o que aparece vem das escolhas de perfil de cada pessoa. O link `#amigos?convite=...` preenche o código. Mensagens diretas e bloqueio existem; feed social continua pendente; grupos, comunidades e canais estão fora do escopo desta etapa. O ranking de amigos é uma página separada e usa XP validado, não a cópia declarada.
 
 **Perfil entre amigos.** `GET /api/profile/:id` devolve uma projeção de `user_state` calculada por `public/profile-domain.js` e só para amizades existentes. Entram nome, biblioteca, fila de estudo, progresso, XP e os projetos marcados como públicos. E-mail nunca entra na resposta; projeto não marcado não aparece em nenhuma seção nem nas contagens; cursos de exemplo ficam fora, como no roteiro. As escolhas vivem em `preferences.sharing` (biblioteca, fila, progresso e XP, ligadas por padrão) e em `course.shared` por projeto (privado por padrão). XP, nível e conquistas de contas vêm do livro de eventos do servidor e são validados; percentuais de progresso continuam declarados a partir da cópia sincronizada. A rota é `#perfil?id=…`, aberta pela lista de amigos e por Configurações › O que amigos veem, que também mostra a prévia do próprio perfil. A escolha individual de conquistas para o perfil continua pendente; o ranking usa apenas XP e não inclui o legado.
 
@@ -129,7 +130,7 @@ A troca foi verificada por testes de autenticação/domínio, build e bundle com
 
 O link de recuperação vale 30 minutos e é de uso único. Com o link oculto na configuração pública, a resposta não revela se a conta existe. O modo de teste local pode devolver `resetUrl` para contas existentes e, portanto, não oferece a mesma garantia de resposta indistinguível. O transporte por e-mail não foi implementado.
 
-O progresso mantém uma cópia em `localStorage` e usa `/api/state` para carregar e salvar uma cópia vinculada à conta. Antes de carregar uma conta e ao sair, cópias locais são preservadas com sufixos de backup. A escrita remota é agrupada e serializada nesta sessão; não há reconciliação de conflitos entre dispositivos. O XP elegível é atribuído pelo livro de eventos do servidor (`xp_events`), separado do saldo legado do navegador.
+O progresso mantém uma cópia em `localStorage` e usa `/api/state` para carregar e salvar uma cópia vinculada à conta. Antes de carregar uma conta e ao sair, cópias locais são preservadas com sufixos de backup. A escrita remota é agrupada e serializada nesta sessão e usa revisão otimista: um conflito 409 devolve o estado atual, que é mesclado antes de salvar de novo. O XP elegível é atribuído pelo livro de eventos do servidor (`xp_events`), separado do saldo legado do navegador.
 
 O protótipo inicial enfatizou passos de preparação e pequenas recompensas. A direção atual exige progresso real de estudo e um componente social central.
 
@@ -138,6 +139,10 @@ Continuam válidos: conforto, ajuda para começar, tarefas divisíveis, pausas s
 Precisam evoluir: unidade de progresso, origem do registro, continuidade de materiais, cálculo de XP, níveis, conquistas, contas e funcionalidades sociais.
 
 O código e os testes antigos descrevem o comportamento do protótipo; não anulam a nova especificação. Ao substituir uma regra, substituir também suas expectativas de teste de forma consciente.
+
+### Hoje orientada à ação (31/10/2026)
+
+Primeira etapa do [plano de evolução](EVOLUCAO.md#7-plano-de-evolução). A Hoje usava `nextMission` (primeira etapa pendente do curso selecionado, incluindo exemplos) enquanto o Companion e o perfil usavam `studyPlan`; as duas telas podiam indicar aulas diferentes. Agora a Hoje usa `nextAction`, derivado de `studyPlan`, e mostra motivo, tempo (conhecido × estimado), link e o que falta. Os blocos de pausa, conforto, jornada e métricas semanais saíram da Hoje; a pausa continua no controle da sessão e os ajustes em Configurações. Tarefas ganharam prioridade explícita e aviso de atraso. Textos da Hoje, do diálogo de pausa, das mensagens de ritmo, da conclusão de etapa e do rodapé foram revistos para um tom direto (ver [Evolução §8](EVOLUCAO.md#8-tom-de-voz)). Nada foi migrado, a pontuação não mudou e nada foi publicado. Missões ainda usa `nextMission` por curso; a unificação com o Plano é a Etapa 2/3.
 
 ## 4. Modelo de dados conceitual para a evolução
 
@@ -179,7 +184,7 @@ Situação: materiais tipados básicos, separação de preparação, política d
 - Livro de eventos e atribuição de XP no servidor.
 - Migração voluntária e segura dos dados locais para a conta.
 
-Situação: autenticação, recuperação de acesso, sessão, persistência básica de cópia do progresso e livro de eventos de XP implementados. Reconciliação entre dispositivos e revisão da migração voluntária de etapas genéricas antigas continuam pendentes.
+Situação: autenticação, recuperação de acesso, sessão, persistência com revisão otimista e mesclagem entre dispositivos e livro de eventos de XP implementados. A revisão da migração voluntária de etapas genéricas antigas continua pendente.
 
 ### Etapa C — primeira experiência social
 
@@ -189,7 +194,7 @@ Situação: autenticação, recuperação de acesso, sessão, persistência bás
 - Colaboração em entregas com contribuição individual explícita.
 - Sem comunidades, servidores, canais, grupos, conversas em grupo ou chamadas nesta etapa.
 
-Situação: amigos por convite e ranking de amigos implementados, com opt-in e legado fora. Mensagens diretas, bloqueio, notificações, compartilhamento de referências e colaboração em entregas continuam pendentes.
+Situação: amigos por convite, ranking de amigos (opt-in, legado fora), mensagens diretas com referências, bloqueio, preferência de notificação e convites de colaboração em entregas implementados. Reconhecimento de conquistas, compartilhamento de aprendizados e desafios entre amigos estão propostos em [Evolução](EVOLUCAO.md).
 
 ### Etapa D — integrações e retomada automática
 

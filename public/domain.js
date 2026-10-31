@@ -243,10 +243,10 @@ export function studyRhythm(state) {
     weeklyGoal: rhythm?.weeklyGoal || 3,
     prepareFirst: state.habit === 'starting' || state.supports?.some(id => ['initiation', 'chunking'].includes(id)),
     message: state.supports?.includes('return')
-      ? 'Seu próximo passo continua aqui. Você pode retomar sem compensar os dias de pausa.'
-      : state.habit === 'starting' ? 'Preparar o material já pode ser um começo. Você escolhe quando continuar.'
-      : state.habit === 'often' ? 'Suas trilhas estão organizadas. Aprofunde um interesse de cada vez, com espaço para descansar.'
-      : 'Um passo de cada vez ajuda a encontrar continuidade. Seu plano pode mudar junto com você.',
+      ? 'Retome pela próxima aula da lista. Se o prazo mudou, ajuste o plano.'
+      : state.habit === 'starting' ? 'Comece pela primeira aula. Preparar o material ajuda, mas o avanço vem ao concluir.'
+      : state.habit === 'often' ? 'Mantenha a sequência das trilhas ativas e conclua uma antes de abrir outra.'
+      : 'Defina a próxima aula e reserve o tempo para concluí-la.',
   };
 }
 

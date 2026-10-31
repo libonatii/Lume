@@ -27,8 +27,9 @@ test('prévia, dados legados, busca, filtros, teclado, curso e progresso', async
     sessionStorage.setItem('lume.preview-session.v1', 'open');
   }, { key: STORAGE_KEY, state: oldState });
   await page.goto('/#hoje');
-  await expect(page.getByRole('heading', { name: /Que bom ter você aqui/ })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Pausa consciente' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Hoje', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Etapa 2', exact: true })).toBeVisible();
+  await expect(page.getByText('Continuidade.', { exact: true })).toBeVisible();
   await expect(page.getByText('Modo Essencial', { exact: true })).toHaveCount(0);
   await page.getByRole('link', { name: 'Biblioteca', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Biblioteca', exact: true })).toBeVisible();
@@ -41,7 +42,7 @@ test('prévia, dados legados, busca, filtros, teclado, curso e progresso', async
   await page.getByRole('button', { name: 'Limpar busca' }).click();
   await expect(search).toBeFocused();
   await page.getByRole('button', { name: /^Concluídos \(/ }).click();
-  await expect(page.getByRole('heading', { name: 'Nenhum curso por aqui. Ainda.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Nenhum material neste filtro.' })).toBeVisible();
   await page.getByRole('button', { name: /^Todos \(/ }).click();
   await page.getByRole('button', { name: 'Adicionar curso', exact: true }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
@@ -111,7 +112,7 @@ test('cadastro, saída, login, sincronização e recuperação na API local', as
   await expect(page.getByLabel('Senha', { exact: true })).toHaveAttribute('type', 'text');
   await page.getByRole('button', { name: 'Criar minha conta' }).click();
   await page.getByRole('button', { name: 'Explorar sem personalizar agora' }).click();
-  await expect(page.getByRole('heading', { name: /Que bom ter você aqui/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Hoje', exact: true })).toBeVisible();
   await expect(page.locator('#main > div')).toHaveCSS('opacity', '1');
   await page.screenshot({ path: `data/lume-${testInfo.project.name}-home.png`, fullPage: true });
   await page.getByRole('link', { name: 'Biblioteca', exact: true }).click();
@@ -128,7 +129,7 @@ test('cadastro, saída, login, sincronização e recuperação na API local', as
   await page.getByLabel('E-mail', { exact: true }).fill(email);
   await page.getByLabel('Senha', { exact: true }).fill('senha-local-teste-123');
   await page.getByRole('button', { name: 'Entrar e ir além' }).click();
-  await expect(page.getByRole('heading', { name: /Que bom ter você aqui/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Hoje', exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'Biblioteca', exact: true }).click();
   await expect(page.getByRole('button', { name: /^Curso da minha conta,/ })).toBeVisible();
   await page.getByRole('button', { name: /^Menu da conta/ }).click();
@@ -171,7 +172,8 @@ test('jornada 3 preserva a rotina e não gera XP ao configurar', async ({ page }
   await page.getByRole('button', { name: /Criar material e continuar/ }).click();
   await page.getByRole('button', { name: /Concluir e ir para Hoje/ }).click();
 
-  await expect(page.getByRole('heading', { name: '0 de 5 passos' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Hoje', exact: true })).toBeVisible();
+  await expect(page.getByText('Próxima ação · curso de algoritmos')).toBeVisible();
 
   const state = await page.evaluate(key => JSON.parse(localStorage.getItem(key)), STORAGE_KEY);
   expect(state.onboarded).toBe(true);
@@ -220,7 +222,10 @@ test('jornada 1 leva a uma primeira atividade concreta sem XP', async ({ page })
   const material = state.courses.find(course => course.title === 'Curso de redes — módulo 1');
   expect(material.type).toBe('lesson');
   expect(material.steps[0].title).toBe('Assistir à aula 1 completa');
-  await expect(page.getByRole('heading', { name: '0 de 2 passos' })).toBeVisible();
+  // A Hoje aponta a atividade criada e usa o tempo de sessão escolhido como estimativa rotulada.
+  await expect(page.getByRole('heading', { name: 'Assistir à aula 1 completa', exact: true })).toBeVisible();
+  await expect(page.getByText('Reserve 20 minutos para avançar.', { exact: false })).toBeVisible();
+  await expect(page.getByText('estimativa', { exact: true })).toBeVisible();
 });
 
 test('jornada 2 registra o ponto de retomada', async ({ page }) => {

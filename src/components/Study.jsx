@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import Atropos from 'atropos/react';
-import { studyRhythm, nextMission, hasPreparation, courseProgress, courseStatus, weekCount, journeyPlan, addMaterial, materialType } from '../../public/domain.js';
+import { studyRhythm, nextMission, hasPreparation, courseProgress, courseStatus, addMaterial, materialType } from '../../public/domain.js';
+import { nextAction } from '../../public/study-plan.js';
+import { completeTask, isOverdue, priorityLabel, taskAgenda } from '../../public/tasks-domain.js';
+import { XP_KIND_LABELS, levelProgress } from '../../public/xp-policy.js';
+import { overdueMessage } from './Tasks.jsx';
 import { courseSummary, isImportedCourse, sourceLabel } from '../../public/import-domain.js';
 import { slidePositionLabel, slidesSummary } from '../../public/slides-domain.js';
 import {
@@ -9,125 +13,122 @@ import {
   startSession, touchSession,
 } from '../../public/session-domain.js';
 import Icon from './Icon.jsx';
-import { AnimatedNumber, Button, Cover, Empty, Glow, Heading, Progress, Ring, ease, enter } from './ui.jsx';
+import { Button, Cover, Empty, Heading, Progress, ease, enter } from './ui.jsx';
 
-export function Home({ state, open, go, update, notify, account }) {
-  const mission = nextMission(state);
+export function Home({ state, open, go, update, notify, account, xp }) {
+  const action = nextAction(state);
   const plan = studyRhythm(state);
-  const journey = journeyPlan(state);
-  const importedMission = mission ? isImportedCourse(mission.course) : false;
-  const prepare = mission && !importedMission && plan.prepareFirst && !hasPreparation(state, mission.step.id);
-  const progress = mission ? courseProgress(state, mission.course) : null;
-  const count = weekCount(state);
-  return <div className="study-root">
+  const agenda = taskAgenda(state);
+  const unit = action?.imported ? 'aula' : 'etapa';
+  const prepare = action && !action.imported && plan.prepareFirst && !hasPreparation(state, action.lessonId);
+  const course = action ? state.courses.find((item) => item.id === action.courseId) : null;
+  return <div className="study-root today-root">
     <Heading
-      eyebrow="Espaço seu · sem urgência"
-      title={<>Olá. <em>Que bom ter você aqui.</em></>}
-      actions={<button className="chip-button" onClick={() => go('inicio')}><Icon name="settings"/>Seu ritmo: {plan.title} · ajustar</button>}
-    >{plan.message}</Heading>
+      title="Hoje"
+      actions={<button className="chip-button" onClick={() => go('inicio')}><Icon name="settings"/>Ritmo: {plan.title}</button>}
+    >{action
+      ? <>Sua próxima {unit} é <strong>{action.title}</strong>. Reserve {action.minutes} minutos para avançar.</>
+      : 'Adicione um curso ou material à biblioteca para receber a próxima ação.'}</Heading>
 
-    <section className="hero-bento" aria-labelledby="next-title">
-      <div className="study-focus">
-        <Glow palette="lume"/>
-        <div className="study-focus-body">
-          <div className="study-focus-head">
-            <span className="eyebrow on-glow">Ação focal única · {mission?.course.title || 'Seu caminho de descobertas'}</span>
-            {mission?.course.resumeAt && <span className="resume-pill"><Icon name="return"/>Parou em: {mission.course.resumeAt}</span>}
-          </div>
-          <h2 id="next-title" className="headline">{mission ? 'O começo pode ser pequeno.' : 'Cada passo já faz parte do seu caminho.'}</h2>
-          <p className="muted-text">Você não precisa fazer tudo agora. Escolha um próximo movimento, no seu tempo.</p>
-          {mission ? <>
-            <div className="mission-spotlight">
-              <span className="spotlight-icon"><Icon name="focus"/></span>
-              <div className="spotlight-copy">
-                <strong>{prepare ? `Preparar o material: ${mission.course.title}` : mission.step.title}</strong>
-                <small>Sem tempo mínimo · {mission.course.example ? 'Curso de exemplo' : importedMission ? 'Registro manual da aula' : 'Registro manual'}</small>
-              </div>
-              {progress && <span className="spotlight-badge">{progress.done}/{progress.total}</span>}
-            </div>
-            <div className="action-row">
-              {importedMission
-                ? <Button onClick={() => open({ type: 'session', id: mission.course.id, stepId: mission.step.id })}><Icon name="play"/>Abrir próxima aula</Button>
-                : <>
-                  <Button onClick={() => open({ type: 'session', id: mission.course.id, preparation: !!prepare })}><Icon name="play"/>{prepare ? 'Preparar meu material' : 'Começar este passo'}</Button>
-                  <Button secondary onClick={() => open({ type: 'session', id: mission.course.id, preparation: !prepare })}><Icon name="sprout"/>{prepare ? 'Fazer a etapa completa' : 'Tornar ainda menor'}</Button>
-                </>}
-            </div>
-          </> : <Button onClick={() => go('biblioteca')}>Explorar biblioteca<Icon name="arrow"/></Button>}
+    <section className="card-surface next-action" aria-labelledby="next-title">
+      {action ? <>
+        <span className="eyebrow">Próxima ação · {action.courseTitle}</span>
+        <h2 id="next-title" className="headline">{action.title}</h2>
+        {(action.discipline || action.module) && <p className="muted-text">{[action.discipline, action.module].filter(Boolean).join(' · ')}</p>}
+        <dl className="next-facts">
+          <div><dt>Por que agora</dt><dd><strong>{action.reason.label}.</strong> {action.reason.detail}</dd></div>
+          <div><dt>Reserve</dt><dd><strong>{action.minutes} min</strong> <span className="fact-source">{action.durationKnown ? 'duração informada pela fonte' : 'estimativa'}</span></dd></div>
+          <div><dt>Material</dt><dd>{action.url
+            ? <a className="text-link" href={action.url} target="_blank" rel="noopener noreferrer">Abrir {unit} na fonte<Icon name="external"/></a>
+            : 'Sem link cadastrado. Use o material que você escolheu.'}{course?.resumeAt ? <span className="fact-source"> · parou em {course.resumeAt}</span> : null}</dd></div>
+          <div><dt>O que falta</dt><dd>{remainingText(action, unit)}</dd></div>
+        </dl>
+        <Progress value={action.total - action.remaining} max={action.total} tone="lume" label={`Progresso de ${action.courseTitle}`}/>
+        <div className="action-row">
+          {prepare
+            ? <Button onClick={() => open({ type: 'session', id: action.courseId, preparation: true })}><Icon name="play"/>Preparar o material</Button>
+            : <Button onClick={() => open({ type: 'session', id: action.courseId, stepId: action.lessonId })}><Icon name="check"/>Registrar conclusão</Button>}
+          {!action.imported && <Button secondary onClick={() => open({ type: 'session', id: action.courseId, preparation: !prepare })}><Icon name="sprout"/>{prepare ? 'Ir direto à etapa' : 'Dividir em um passo menor'}</Button>}
+          <Button ghost onClick={() => open({ type: 'course', id: action.courseId })}>Ver o curso<Icon name="arrow"/></Button>
         </div>
-      </div>
-
-      <aside className="rest-card">
-        <div className="rest-card-top">
-          <span className="eyebrow">Cuidado com seu ritmo</span>
-          <h3 className="title">Pausa consciente</h3>
-          <p className="muted-text">Se hoje não der, você pode descansar. Seu progresso continua aqui para quando quiser voltar.</p>
-        </div>
-        <div className="rest-visual">
-          <img src="/assets/stitch/calm.png" alt=""/>
-          <div className="rest-overlay">
-            <Button secondary onClick={() => open({ type: 'break' })}><Icon name="leaf"/>Fazer uma pausa</Button>
-            <small>Pausar sem culpa · não retira XP nem conquistas</small>
-          </div>
-        </div>
-      </aside>
+        {!action.imported && <p className="quiet-note">Preparar ou dividir organiza o caminho; o XP vem ao concluir a etapa.</p>}
+      </> : <>
+        <span className="eyebrow">Próxima ação</span>
+        <h2 id="next-title" className="headline">Nenhum material em andamento.</h2>
+        <p className="muted-text">Importe um curso por link ou crie um material. A próxima aula aparece aqui, com o tempo a reservar.</p>
+        <div className="action-row"><Button onClick={() => go('biblioteca')}><Icon name="plus"/>Ir para a biblioteca</Button></div>
+      </>}
     </section>
 
-    <StudySession state={state} update={update} mission={mission} notify={notify} account={account}/>
+    <StudySession state={state} update={update} mission={action ? { course: { id: action.courseId }, step: { id: action.lessonId, title: action.title } } : null} notify={notify} account={account}/>
 
-    <div className="metrics-bento">
-      <section className="card-surface metric-card">
-        <div className="metric-card-row">
-          <div>
-            <span className="eyebrow">Ritmo da semana</span>
-            <h2 className="title">{count} de {state.preferences.weeklyGoal} passos</h2>
-            <p className="muted-text">Sem cobrança. Seu progresso não expira.</p>
-          </div>
-          <Ring value={count} max={Math.max(count, state.preferences.weeklyGoal)} size={68} stroke={6} label="Passos na semana">
-            <strong><AnimatedNumber value={count}/></strong>
-          </Ring>
-        </div>
-        <Progress value={count} max={Math.max(count, state.preferences.weeklyGoal)} label="Passos registrados nesta semana"/>
+    <div className="today-grid">
+      <section className="card-surface today-tasks" aria-labelledby="today-tasks-title">
+        <div className="shelf-header"><h2 id="today-tasks-title" className="title">Tarefas</h2><a className="text-link" href="#tarefas">Abrir lista<Icon name="arrow"/></a></div>
+        {agenda.overdue > 0 && <p className="inline-note todo-overdue-note" role="status"><Icon name="flag"/><span>{overdueMessage(agenda.overdue)}</span></p>}
+        {agenda.next.length
+          ? <ul className="today-task-list">{agenda.next.map((task) => <li key={task.id} className="todo-item">
+            <button type="button" role="checkbox" aria-checked="false" aria-label={`Concluir tarefa ${task.title}`} className="todo-check" onClick={() => {
+              const result = completeTask(state, task.id);
+              if (!result.added) return;
+              update(result.state);
+              notify(`Tarefa concluída: ${task.title}.`);
+            }}><Icon name="plus"/></button>
+            <span className="todo-copy"><strong>{task.title}</strong><small className="todo-meta">{taskMeta(task)}</small></span>
+          </li>)}</ul>
+          : <p className="muted-text">Sem tarefas pendentes. Defina a próxima ação concreta da sua preparação em Tarefas.</p>}
+        {agenda.pending > agenda.next.length && <p className="quiet-note">Mais {agenda.pending - agenda.next.length} na lista.</p>}
       </section>
 
-      <section className="card-surface metric-card">
-        <span className="eyebrow">Trilha atual</span>
-        <h2 className="title">{mission?.course.title || 'Um caminho percorrido'}</h2>
-        <p className="muted-text">Continue de onde parou.</p>
-        <Progress value={progress?.percent ?? 100} tone="lume" label="Progresso da trilha atual"/>
-        <button className="text-button accent" onClick={() => mission ? open({ type: 'course', id: mission.course.id }) : go('biblioteca')}>Ver detalhes da trilha<Icon name="arrow"/></button>
-      </section>
-
-      <section className="card-surface metric-card">
-        <span className="eyebrow">Adaptação de foco</span>
-        <h2 className="title">Mudar de jornada</h2>
-        <p className="muted-text">Alterne para outro interesse sem perder seu progresso.</p>
-        <div className="metric-links">
-          <a className="text-link" href="#biblioteca">Explorar toda a biblioteca<Icon name="arrow"/></a>
-          <button className="text-button" onClick={() => open({ type: 'new' })}><Icon name="plus"/>Adicionar um novo interesse</button>
-        </div>
-      </section>
-    </div>
-
-    <div className="Split-bento">
-      <section className="card-surface journey-card" aria-labelledby="journey-title">
-        <span className="eyebrow">Seu momento · {journey.journey === 'starting' ? 'Quero começar' : journey.journey === 'sometimes' ? 'Estudo de vez em quando' : journey.journey === 'often' ? 'Estudo com frequência' : 'Ainda explorando'}</span>
-        <h2 id="journey-title" className="title">{journey.title}</h2>
-        <p className="muted-text">{journey.detail}</p>
-        {journey.firstActivity && <p className="next-activity-pill"><Icon name="spark"/><span>Próxima atividade: <strong>{journey.firstActivity}</strong></span></p>}
-        <button className="text-button accent" onClick={() => go('inicio')}>Rever meu ritmo sem apagar o progresso<Icon name="arrow"/></button>
-      </section>
-
-      <section className="card-surface comfort-banner">
-        <span className="pace-icon"><Icon name="sun"/></span>
-        <div>
-          <h2 className="title">Lembrete de conforto</h2>
-          <p className="muted-text">Você pode parar e voltar depois. Seu caminho não precisa seguir o ritmo de ninguém.</p>
-          <a className="text-link" href="#configuracoes">Ajustar meu espaço<Icon name="arrow"/></a>
-        </div>
-      </section>
+      <Evolution state={state} account={account} xp={xp}/>
     </div>
   </div>;
+}
+
+function remainingText(action, unit) {
+  const parts = [`${action.remaining} de ${action.total} ${unit}s restantes`];
+  if (action.remainingKnownMinutes > 0) {
+    const hours = Math.floor(action.remainingKnownMinutes / 60);
+    const minutes = action.remainingKnownMinutes % 60;
+    parts.push(`${[hours ? `${hours} h` : '', minutes ? `${minutes} min` : ''].filter(Boolean).join(' ')} de duração conhecida`);
+    if (action.remainingWithoutDuration > 0) parts.push(`${action.remainingWithoutDuration} sem duração informada`);
+  }
+  if (action.partial) parts.push('grade parcial');
+  return parts.join(' · ');
+}
+
+function taskMeta(task) {
+  const late = isOverdue(task);
+  return [
+    task.priority > 0 ? `Prioridade ${priorityLabel(task.priority).toLowerCase()}` : '',
+    late ? 'Atrasada' : '',
+    task.dueDate ? `${late ? 'venceu' : 'vence'} em ${new Date(`${task.dueDate}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}` : 'sem prazo',
+  ].filter(Boolean).join(' · ');
+}
+
+// Evolução: nível e a última recompensa confirmada, sempre com o material de origem.
+function Evolution({ state, account, xp }) {
+  if (!state.preferences.gamification) return <section className="card-surface today-evolution" aria-labelledby="evolution-title">
+    <h2 id="evolution-title" className="title">Evolução</h2>
+    <p className="muted-text">Os indicadores de XP estão ocultos nas preferências. Seu progresso continua registrado.</p>
+  </section>;
+  const summary = xp?.summary;
+  const level = account ? levelProgress(summary?.totalXP || 0) : null;
+  const last = account ? (xp?.events || []).find((event) => event.xp > 0 && event.kind !== 'adjustment') : null;
+  const achievement = account ? xp?.achievements?.[0] : null;
+  return <section className="card-surface today-evolution" aria-labelledby="evolution-title">
+    <div className="shelf-header"><h2 id="evolution-title" className="title">Evolução</h2><a className="text-link" href="#historico">Ver extrato<Icon name="arrow"/></a></div>
+    {account
+      ? (summary ? <>
+        <p className="evolution-level"><strong>Nível {level.level}</strong> · {level.current} / {level.next} XP · faltam {level.next - level.current} XP para o nível {level.level + 1}</p>
+        <Progress value={level.current} max={level.next} tone="lume" label="Experiência até o próximo nível"/>
+        {last
+          ? <p className="muted-text">Última recompensa: <strong>+{last.xp} XP</strong> · {XP_KIND_LABELS[last.kind] || 'Evento'}{last.stepTitle || last.materialTitle ? ` · ${last.stepTitle || last.materialTitle}` : ''}</p>
+          : <p className="muted-text">Conclua uma aula, leitura ou entrega para receber o primeiro XP validado.</p>}
+        {achievement && <p className="muted-text">Conquista mais recente: <strong>{achievement.title}</strong></p>}
+      </> : <p className="muted-text">Carregando XP confirmado pelo servidor…</p>)
+      : <p className="muted-text">Na prévia, o progresso fica neste navegador e não gera XP validado. Entre na conta para registrar XP, nível e conquistas.</p>}
+  </section>;
 }
 
 // Sessão declarada: a pessoa inicia e encerra. O relógio é informativo e não
@@ -161,11 +162,11 @@ function StudySession({ state, update, mission, notify, account }) {
   return <section className={`card-surface session-bar ${active ? 'is-active' : ''}`} aria-labelledby="session-title">
     <span className={`session-dot ${active?.status === 'paused' ? 'is-paused' : ''}`} aria-hidden="true"/>
     <div className="session-copy">
-      <span className="eyebrow">{active ? (active.status === 'active' ? 'Em sessão' : 'Sessão pausada') : 'Sessão de estudo'}</span>
-      <h2 id="session-title" className="title">{active ? active.label : 'Estou estudando agora'}</h2>
+      <span className="eyebrow">{active ? active.label : 'Tempo de estudo'}</span>
+      <h2 id="session-title" className="title">{active ? (active.status === 'active' ? 'Sessão em andamento' : 'Sessão pausada') : 'Sessão de estudo'}</h2>
       <p className="muted-text">{active
         ? <>Tempo declarado: <strong className="session-clock" role="timer" aria-label="Tempo da sessão">{formatSessionDuration(elapsed)}</strong> · {active.courseId ? 'vinculado ao seu material' : 'sem material vinculado'}</>
-        : 'Um tempo que você inicia, pausa e encerra. Em uma conta, o servidor confirma blocos de 30 minutos; pausas não contam e a sessão não comprova estudo.'}</p>
+        : 'Inicie ao começar a estudar e encerre ao terminar. Em uma conta, o servidor confirma blocos de 30 minutos (25 XP cada, até 200 XP por dia); pausas não contam.'}</p>
     </div>
     <div className="session-controls">
       {!active && <Button onClick={begin}><Icon name="play"/>Começar sessão</Button>}
@@ -213,7 +214,7 @@ export function Library({ state, open, update }) {
 
   return <div className="library-root">
     <Heading eyebrow="Estante viva & continuidade" title="Biblioteca" actions={<><a className="button secondary" href="#github"><Icon name="external"/>GitHub</a><Button secondary onClick={() => open({ type: 'manual' })}><Icon name="edit"/>Criar manualmente</Button><Button onClick={() => open({ type: 'new' })}><Icon name="plus"/>Adicionar curso</Button></>}>
-      Guarde seus cursos e tópicos de estudo. Continue de onde parou, no seu ritmo.
+      Seus cursos, leituras e projetos, com o ponto onde cada um parou e o que falta para concluir.
     </Heading>
 
     {state.courses.length > 0 && <div className="library-toolbar">
@@ -240,7 +241,7 @@ export function Library({ state, open, update }) {
         </div>
         <div className="course-grid" id="library-results">
           {courses.map(course => <CourseCard key={course.id} course={course} state={state} open={open}/>)}
-          {!courses.length && <Empty title="Nenhum curso por aqui. Ainda." onAdd={() => open({ type: 'new' })}>Tente outro filtro ou adicione algo que você quer aprender.</Empty>}
+          {!courses.length && <Empty title="Nenhum material neste filtro." onAdd={() => open({ type: 'new' })}>Troque o filtro ou importe um curso por link.</Empty>}
         </div>
         <p className="quiet-note">Capas ilustrativas. Cada trilha reúne os passos que você registrou.</p>
       </section>
@@ -262,7 +263,7 @@ export function Library({ state, open, update }) {
           ? <ImportedInspector course={selected} state={state}/>
           : <Steps course={selected} state={state}/>}
         <Progress value={courseProgress(state, selected).percent} tone="lume" label={`Progresso de ${selected.title}`}/>
-        <p className="quiet-note">Ritmo livre · sem pressa. Não há penalidades por pausas.</p>
+        <p className="quiet-note">Pausar um curso tira suas aulas do roteiro e preserva o progresso e o XP.</p>
       </aside>}
     </div>}
   </div>;

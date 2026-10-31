@@ -56,7 +56,7 @@ test('apoios e ritmo sobrevivem à restauração sem duplicatas nem valores desc
   const restored = restoreState(JSON.stringify(state));
   assert.deepEqual(restored.supports, ['return']);
   assert.equal(restored.habit, 'often');
-  assert.match(studyRhythm(restored).message, /retomar/);
+  assert.match(studyRhythm(restored).message, /Retome pela próxima aula/);
   assert.throws(() => applyStudyRhythm(state, { habit: 'unknown' }));
   const oldState = createInitialState();
   delete oldState.supports;

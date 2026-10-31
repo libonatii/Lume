@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { addCourse, completeMission, createInitialState } from './public/domain.js';
 import { applyCourseImport, completeLesson, normalizePayload } from './public/import-domain.js';
-import { studyPlan } from './public/study-plan.js';
+import { DEFAULT_SESSION_MINUTES, nextAction, studyPlan } from './public/study-plan.js';
 
 const NOW = Date.parse('2026-10-31T12:00:00Z');
 
@@ -89,4 +89,52 @@ test('curso importado entra no roteiro com as aulas selecionadas e a origem', ()
   assert.equal(plan.courses[0].reason.id, 'continuity');
   assert.equal(plan.steps[0].title, 'Aula 2');
   assert.equal(plan.steps[0].discipline, 'Direito Constitucional');
+});
+
+test('próxima ação da Hoje segue o mesmo roteiro e diferencia duração conhecida de estimada', () => {
+  const payload = normalizePayload({
+    title: 'OAB — Gran',
+    provider: { id: 'grancursos' },
+    sourceUrl: 'https://www.grancursosonline.com.br/curso/oab',
+    disciplines: [{ title: 'Direito Constitucional', modules: [{ title: 'Direitos fundamentais', lessons: [
+      { title: 'Aula 1', duration: '25:00', url: 'https://www.grancursosonline.com.br/aula/1' },
+      { title: 'Aula 2', duration: 1800 },
+      { title: 'Aula 3' },
+    ] }] }],
+  });
+  let state = applyCourseImport(createInitialState(), payload);
+  state = withCourse(state, 'Trilha manual', ['Etapa 1', 'Etapa 2', 'Etapa 3', 'Etapa 4', 'Etapa 5'], 'manual');
+  const course = state.courses.find((item) => item.source);
+
+  const first = nextAction(state, { now: NOW });
+  assert.equal(first.lessonId, studyPlan(state, { now: NOW }).steps[0].lessonId, 'Hoje e Companion indicam a mesma aula');
+  assert.equal(first.courseId, course.id);
+  assert.equal(first.title, 'Aula 1');
+  assert.equal(first.minutes, 25);
+  assert.equal(first.durationKnown, true);
+  assert.equal(first.url, 'https://www.grancursosonline.com.br/aula/1');
+  assert.equal(first.remaining, 3);
+  assert.equal(first.remainingKnownMinutes, 55);
+  assert.equal(first.remainingWithoutDuration, 1);
+
+  // Concluir a aula muda a próxima ação; o critério passa a ser continuidade.
+  state = completeLesson(state, course.id, course.steps[0].id, { now: new Date(NOW - 60 * 1000).toISOString() }).state;
+  state = completeLesson(state, course.id, course.steps[1].id, { now: new Date(NOW - 30 * 1000).toISOString() }).state;
+  const third = nextAction(state, { now: NOW });
+  assert.equal(third.title, 'Aula 3');
+  assert.equal(third.reason.id, 'continuity');
+  assert.equal(third.durationKnown, false, 'sem duração da fonte, o tempo é estimado');
+  assert.equal(third.minutes, DEFAULT_SESSION_MINUTES);
+  assert.equal(third.remaining, 1);
+});
+
+test('estimativa usa o tempo de sessão escolhido e exemplos não viram próxima ação', () => {
+  assert.equal(nextAction(createInitialState(), { now: NOW }), null);
+  let state = withCourse(createInitialState(), 'Leitura de processo penal', ['Seção 1', 'Seção 2'], 'penal');
+  state = { ...state, onboarding: { ...state.onboarding, answers: { sessionMinutes: 45 } } };
+  const action = nextAction(state, { now: NOW });
+  assert.equal(action.courseId, 'penal');
+  assert.equal(action.minutes, 45);
+  assert.equal(action.durationKnown, false);
+  assert.equal(action.imported, false);
 });

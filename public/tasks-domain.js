@@ -6,7 +6,34 @@
 
 export const TASK_XP = 10;
 export const MAX_TASKS = 200;
+// Prioridade explícita: 1 alta, 2 média, 3 baixa, 0 sem prioridade (padrão).
+// Definir ou mudar a prioridade é organização e nunca altera XP.
+export const TASK_PRIORITIES = Object.freeze([
+  { id: 1, label: 'Alta' },
+  { id: 2, label: 'Média' },
+  { id: 3, label: 'Baixa' },
+  { id: 0, label: 'Sem prioridade' },
+]);
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+function cleanPriority(value) {
+  const number = Number(value);
+  return [1, 2, 3].includes(number) ? number : 0;
+}
+
+export function priorityLabel(value) {
+  return TASK_PRIORITIES.find((item) => item.id === cleanPriority(value)).label;
+}
+
+// Data local AAAA-MM-DD: prazo é um dia do calendário da pessoa, não UTC.
+export function localDate(now = new Date()) {
+  const date = new Date(now);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+export function isOverdue(task, today = localDate()) {
+  return !task.done && Boolean(task.dueDate) && task.dueDate < today;
+}
 
 function cleanDate(value) {
   return typeof value === 'string' && DATE.test(value) ? value : '';
@@ -32,13 +59,14 @@ export function normalizeTasks(value) {
       title: task.title.trim().slice(0, 180),
       courseId: typeof task.courseId === 'string' ? task.courseId : '',
       dueDate: cleanDate(task.dueDate),
+      priority: cleanPriority(task.priority),
       done: task.done === true,
       createdAt: cleanTimestamp(task.createdAt),
       completedAt: task.done === true ? cleanTimestamp(task.completedAt) : null,
     }));
 }
 
-export function addTask(state, { title, courseId = '', dueDate = '' }, now = new Date().toISOString()) {
+export function addTask(state, { title, courseId = '', dueDate = '', priority = 0 }, now = new Date().toISOString()) {
   const cleanTitle = String(title || '').trim().slice(0, 180);
   if (!cleanTitle) throw new Error('Dê um nome para a tarefa.');
   const task = {
@@ -46,6 +74,7 @@ export function addTask(state, { title, courseId = '', dueDate = '' }, now = new
     title: cleanTitle,
     courseId: state.courses.some((course) => course.id === courseId) ? courseId : '',
     dueDate: cleanDate(dueDate),
+    priority: cleanPriority(priority),
     done: false,
     createdAt: new Date(now).toISOString(),
     completedAt: null,
@@ -77,6 +106,13 @@ export function reopenTask(state, id) {
   };
 }
 
+export function setTaskPriority(state, id, priority) {
+  return {
+    ...state,
+    tasks: (state.tasks || []).map((task) => task.id === id ? { ...task, priority: cleanPriority(priority) } : task),
+  };
+}
+
 export function removeTask(state, id) {
   return { ...state, tasks: (state.tasks || []).filter((task) => task.id !== id) };
 }
@@ -93,12 +129,30 @@ export function taskWeekCount(state, start, end) {
   }).length;
 }
 
-export function sortTasks(tasks = []) {
+// Ordem de ação: pendentes antes; entre elas, atrasadas, depois prioridade
+// (alta → baixa, sem prioridade por último), prazo mais próximo e mais recente.
+export function sortTasks(tasks = [], today = localDate()) {
+  const rank = (task) => cleanPriority(task.priority) || 4;
   return [...tasks].sort((left, right) => {
     if (left.done !== right.done) return left.done ? 1 : -1;
+    const lateLeft = isOverdue(left, today);
+    const lateRight = isOverdue(right, today);
+    if (lateLeft !== lateRight) return lateLeft ? -1 : 1;
+    if (rank(left) !== rank(right)) return rank(left) - rank(right);
     const leftDue = left.dueDate || '9999-12-31';
     const rightDue = right.dueDate || '9999-12-31';
     if (leftDue !== rightDue) return leftDue.localeCompare(rightDue);
     return String(right.createdAt || '').localeCompare(String(left.createdAt || ''));
   });
+}
+
+// Resumo para a página Hoje: atrasadas e as próximas tarefas na ordem de ação.
+export function taskAgenda(state, { today = localDate(), limit = 3 } = {}) {
+  const pending = sortTasks((state.tasks || []).filter((task) => !task.done), today);
+  return {
+    pending: pending.length,
+    overdue: pending.filter((task) => isOverdue(task, today)).length,
+    dueToday: pending.filter((task) => task.dueDate === today).length,
+    next: pending.slice(0, limit),
+  };
 }

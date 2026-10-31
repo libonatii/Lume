@@ -6,6 +6,8 @@ Referência de contexto: [Produto](PRODUTO.md). Divergências e migração: [Con
 
 A política v1 foi implementada no servidor: `xp.js` mantém o livro `xp_events` com chave de idempotência, origem, versão, material e data; `xp_settings` guarda o marco `eligible_since`, fuso e opt-in do ranking; `xp_time_sessions` registra o tempo declarado; `user_achievements` guarda as conquistas personalizadas. O navegador apenas envia candidatos e o servidor revalida o estado. O saldo legado do protótipo continua separado e fora do nível novo e do ranking.
 
+A proposta de cargos, desbloqueios e do bônus de disciplina (v2) está em [Evolução §4](EVOLUCAO.md#4-gamificação-concreta). Nada dela está implementado.
+
 ## 1. O que XP representa
 
 XP representa atividade de estudo elegível e conclusões significativas. Não mede inteligência, qualidade da pessoa, domínio garantido ou tempo de tela genérico.
@@ -67,8 +69,9 @@ A lista de tarefas de prova foi pedida explicitamente e hoje usa uma regra trans
 - Reabrir a tarefa retira o XP até ela ser concluída de novo; reabrir e concluir não acumula uma segunda recompensa.
 - O XP da tarefa é calculado no navegador, a partir de `state.tasks` (`public/tasks-domain.js`), e não entra no ranking. A conclusão de tarefa ainda não virou evento do livro do servidor; é a exceção transitória preservada.
 - A tarefa não conclui curso nem cria conquista por material; essas regras dependem dos eventos de conclusão do servidor.
+- Prioridade (alta, média, baixa ou sem prioridade) e atraso só ordenam a lista e a página Hoje. Definir, mudar ou ordenar não gera XP.
 
-Essa exceção não deve ser copiada para tarefas genéricas de organização. Quando a conclusão de tarefa for migrada para o livro de eventos, ela precisará de chave de idempotência, origem, versão da política e revisão do valor.
+A proposta de migração desta regra está em [Evolução §4.6](EVOLUCAO.md#46-transição-sem-apagar-histórico) e só deve ser aplicada com aprovação explícita. Essa exceção não deve ser copiada para tarefas genéricas de organização. Quando a conclusão de tarefa for migrada para o livro de eventos, ela precisará de chave de idempotência, origem, versão da política e revisão do valor.
 
 ### Exemplos de cálculo
 
@@ -146,7 +149,7 @@ Não exigir movimento de mouse contínuo para reconhecer leitura e não usar vig
 - Registrar unidades ou entregas obrigatórias, fonte e critério de conclusão.
 - O bônus final exige conclusão do conjunto obrigatório e gera uma conquista personalizada.
 - Cursos reais devem preservar a identidade e a estrutura da fonte. Um conjunto de microtarefas não vira vários cursos apenas para produzir bônus.
-- Concluir uma aula importada é, em princípio, elegível como aula concluída. Enquanto a atribuição no servidor não existir, o registro é manual, identificado e **não concede XP**: o navegador não é autoridade de pontuação. O mesmo vale para o bônus de curso.
+- Concluir uma aula importada é elegível como aula concluída: o registro é manual e identificado, e o servidor concede 100 XP uma vez pelo livro de eventos. O bônus de curso segue a mesma validação. Aulas marcadas como concluídas na página copiada da plataforma entram como histórico, sem XP.
 - Uma grade parcial (apenas algumas disciplinas escolhidas ou conteúdo não publicado pela fonte) não conclui o curso inteiro e não libera o bônus de curso. Progresso e bônus só consideram unidades obrigatórias efetivamente registradas.
 - Reimportar ou atualizar a grade não repete bônus nem apaga conclusões; conteúdo removido da fonte permanece no histórico.
 - Uma entrega de projeto precisa de resultado substancial descrito. “Abrir o editor” e “fazer um commit” não são entregas elegíveis por si só.
@@ -214,7 +217,7 @@ Um evento observado por um player ou integração ainda não comprova compreens�
 
 Na implementação da nova política para contas, o servidor é a autoridade de concessão de XP e pontuação compartilhada. `xp_events` guarda a chave única, o tipo, o valor, o material, a origem, a versão da política e o dia local. A cópia de `/api/state` continua servindo à biblioteca e à retomada, mas não é fonte de XP elegível.
 
-O perfil entre amigos exibe XP, nível e progresso a partir dessa cópia sincronizada. São valores declarados, não validados: aparecem no perfil porque a pessoa os compartilhou, mas não tornam o registro elegível nem podem alimentar placar.
+O perfil entre amigos exibe XP, nível e conquistas a partir do livro de eventos do servidor. Percentuais de progresso continuam vindo da cópia sincronizada; são declarados e não alimentam placar.
 
 Cada evento de XP deve ter uma chave única, por exemplo:
 

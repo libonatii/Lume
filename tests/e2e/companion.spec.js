@@ -14,7 +14,7 @@ async function register(page, testInfo, prefix) {
   await page.getByLabel('Senha', { exact: true }).fill('senha-local-teste-123');
   await page.getByRole('button', { name: 'Criar minha conta' }).click();
   await page.getByRole('button', { name: 'Explorar sem personalizar agora' }).click();
-  await expect(page.getByRole('heading', { name: /Que bom ter você aqui/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Hoje', exact: true })).toBeVisible();
 }
 
 test('conectar programa, ver presença local e revogar o acesso', async ({ page, request }, testInfo) => {

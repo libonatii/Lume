@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { addCourse, createInitialState, restoreState, totalXP, weekCount } from './public/domain.js';
 import {
-  MAX_TASKS, TASK_XP, addTask, completeTask, normalizeTasks, removeTask, reopenTask, sortTasks,
+  MAX_TASKS, TASK_XP, addTask, completeTask, isOverdue, normalizeTasks, priorityLabel, removeTask, reopenTask,
+  setTaskPriority, sortTasks, taskAgenda,
 } from './public/tasks-domain.js';
 
 function stateWithTask() {
@@ -78,4 +79,32 @@ test('ordenação coloca pendentes primeiro, com prazo mais próximo antes', () 
   state = addTask(state, { title: 'Amanhã', dueDate: '2026-11-01' }, '2026-10-31T11:00:00Z');
   state = addTask(state, { title: 'Hoje', dueDate: '2026-10-31' }, '2026-10-31T12:00:00Z');
   assert.deepEqual(sortTasks(state.tasks).map((task) => task.title), ['Hoje', 'Amanhã', 'Sem prazo']);
+});
+
+test('prioridade e atraso ordenam a ação sem alterar XP', () => {
+  const today = '2026-11-05';
+  let state = addTask(createInitialState(), { title: 'Baixa sem prazo', priority: 3 }, '2026-10-31T10:00:00Z');
+  state = addTask(state, { title: 'Sem prioridade', dueDate: '2026-11-06' }, '2026-10-31T10:01:00Z');
+  state = addTask(state, { title: 'Alta', priority: 1, dueDate: '2026-11-20' }, '2026-10-31T10:02:00Z');
+  state = addTask(state, { title: 'Atrasada', priority: 2, dueDate: '2026-11-01' }, '2026-10-31T10:03:00Z');
+  const before = totalXP(state);
+  const reordered = setTaskPriority(state, state.tasks[1].id, 1);
+  assert.equal(totalXP(reordered), before, 'priorizar é organização');
+  assert.deepEqual(sortTasks(state.tasks, today).map((task) => task.title), ['Atrasada', 'Alta', 'Baixa sem prazo', 'Sem prioridade']);
+  assert.equal(isOverdue(state.tasks[3], today), true);
+  assert.equal(isOverdue(state.tasks[3], '2026-11-01'), false, 'o dia do prazo ainda não é atraso');
+
+  const agenda = taskAgenda(state, { today, limit: 2 });
+  assert.equal(agenda.pending, 4);
+  assert.equal(agenda.overdue, 1);
+  assert.deepEqual(agenda.next.map((task) => task.title), ['Atrasada', 'Alta']);
+});
+
+test('prioridade sobrevive à restauração e valores inválidos viram "sem prioridade"', () => {
+  const state = addTask(createInitialState(), { title: 'Revisar súmulas', priority: 2 }, '2026-10-31T10:00:00Z');
+  const restored = restoreState(JSON.stringify(state));
+  assert.equal(restored.tasks[0].priority, 2);
+  assert.equal(priorityLabel(restored.tasks[0].priority), 'Média');
+  assert.equal(normalizeTasks([{ id: 'a', title: 'Antiga sem campo' }])[0].priority, 0);
+  assert.equal(normalizeTasks([{ id: 'b', title: 'Inválida', priority: 9 }])[0].priority, 0);
 });
