@@ -84,4 +84,6 @@ jobs:
           Write-Host "Sintaxe do Companion ok"
 
       - name: Ler o contrato de presença sem rede
-        run: node -e "import('./companion/domain.mjs').then(m => { const p = m.presenceState({ app: 'Anki', category: 'study', since: new Date().toISOString(), updatedAt: new Date().toISOString() }); if (!p.active || p.app !== 'Anki') process.exit(1); console.log('presença ok'); })"
+        shell: pwsh
+        run: |
+          node -e "import('./companion/domain.mjs').then(m => { const p = m.presenceState({ app: 'Anki', category: 'study', since: new Date().toISOString(), updatedAt: new Date().toISOString() }); if (!p.active || p.app !== 'Anki') process.exit(1); console.log('presenca ok'); })"
