@@ -1,5 +1,5 @@
 import {
-  ValidationError, SESSION_TTL_MS, RESET_TTL_MS, DEFAULT_ITERATIONS,
+  ValidationError, SESSION_TTL_MS, RESET_TTL_MS, bcryptRounds,
   validateName, validateEmail, validatePassword, normalizeEmail,
   hashPassword, verifyPassword, createSessionToken, hashSessionToken,
   sessionCookie, clearedSessionCookie, parseCookies,
@@ -50,11 +50,6 @@ function sameOrigin(request, url) {
 
 function publicUser(row) {
   return { id: row.id, name: row.name, email: row.email, createdAt: row.created_at };
-}
-
-function iterations(env) {
-  const configured = Number(env.PBKDF2_ITERATIONS);
-  return Number.isInteger(configured) && configured >= 1000 ? configured : DEFAULT_ITERATIONS;
 }
 
 // Em HTTPS, o cookie de sessão só pode ser enviado por conexão segura.
@@ -112,7 +107,7 @@ async function handleRegister(request, env, url) {
   }
 
   const id = crypto.randomUUID();
-  const passwordHash = await hashPassword(password, iterations(env));
+  const passwordHash = await hashPassword(password, bcryptRounds(env.BCRYPT_ROUNDS));
   const createdAt = new Date().toISOString();
 
   try {
@@ -204,7 +199,7 @@ async function handlePasswordReset(request, env) {
     return json({ error: 'Este link expirou. Peça uma nova recuperação.' }, 400);
   }
 
-  const passwordHash = await hashPassword(password, iterations(env));
+  const passwordHash = await hashPassword(password, bcryptRounds(env.BCRYPT_ROUNDS));
   await env.DB.prepare('UPDATE users SET password_hash = ?1 WHERE id = ?2').bind(passwordHash, reset.user_id).run();
   await env.DB.prepare('UPDATE password_resets SET used_at = ?1 WHERE token_hash = ?2').bind(new Date().toISOString(), tokenHash).run();
   await env.DB.prepare('DELETE FROM sessions WHERE user_id = ?1').bind(reset.user_id).run();

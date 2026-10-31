@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { STUDY_RHYTHMS, STUDY_SUPPORTS, studyRhythm, nextMission, hasPreparation, courseProgress, courseStatus, weekCount, journeyPlan } from '../../public/domain.js';
+import Atropos from 'atropos/react';
+import { studyRhythm, nextMission, hasPreparation, courseProgress, courseStatus, weekCount, journeyPlan } from '../../public/domain.js';
 import Icon from './Icon.jsx';
-import { Button, Progress, Empty, enter } from './ui.jsx';
+import { AnimatedNumber, Button, Cover, Empty, Glow, Heading, Progress, Ring, ease, enter } from './ui.jsx';
 
-const panel = 'p-6 rounded-xl bg-surface-container border border-outline-variant/30 flex flex-col gap-3';
 export function Home({ state, open, go }) {
   const mission = nextMission(state);
   const plan = studyRhythm(state);
@@ -12,33 +12,199 @@ export function Home({ state, open, go }) {
   const prepare = mission && plan.prepareFirst && !hasPreparation(state, mission.step.id);
   const progress = mission ? courseProgress(state, mission.course) : null;
   const count = weekCount(state);
-  return <div data-stitch="" className="max-w-[1440px] mx-auto flex flex-col gap-space-lg">
-    <header><span className="text-secondary font-label-sm text-label-sm uppercase tracking-wider">ESPAÇO SEU · SEM URGÊNCIA</span><h1 className="font-display-lg text-display-lg text-on-surface mt-6">Olá. <span className="text-secondary">Que bom ter você aqui.</span></h1><p className="font-body-lg text-body-lg text-on-surface-variant mt-6">{plan.message}</p><button className="text-button" onClick={() => go('inicio')}><Icon name="settings"/>Seu ritmo: {plan.title} · ajustar</button></header>
-    <section className="grid grid-cols-1 xl:grid-cols-2 gap-space-md" aria-labelledby="next-title"><div className="study-focus relative flex flex-col gap-4 p-6 md:p-8 rounded-xl bg-surface-container-low shadow-xl overflow-hidden"><span className="text-secondary font-label-sm text-label-sm">AÇÃO FOCAL ÚNICA · {mission?.course.title || 'Seu caminho de descobertas'}</span><h2 id="next-title" className="font-headline-lg text-headline-lg text-on-surface">{mission ? 'O começo pode ser pequeno.' : 'Cada passo já faz parte do seu caminho.'}</h2><p className="font-body-md text-body-md text-on-surface-variant">Você não precisa fazer tudo agora. Escolha um próximo movimento, no seu tempo.</p>{mission ? <><div className="flex items-center gap-3 p-4 rounded-lg bg-surface-container"><Icon name="focus"/><div><strong className="block">{prepare ? `Preparar o material: ${mission.course.title}` : mission.step.title}</strong><small className="font-body-sm text-body-sm text-on-surface-variant">Sem tempo mínimo · {mission.course.example ? 'Curso de exemplo' : 'Registro manual'}</small></div></div><div className="flex flex-wrap gap-3"><Button onClick={() => open({ type: 'session', id: mission.course.id, preparation: !!prepare })}><Icon name="play"/>{prepare ? 'Preparar meu material' : 'Começar este passo'}</Button><Button secondary onClick={() => open({ type: 'session', id: mission.course.id, preparation: !prepare })}><Icon name="sprout"/>{prepare ? 'Fazer a etapa completa' : 'Tornar ainda menor'}</Button></div></> : <Button onClick={() => go('biblioteca')}>Explorar biblioteca<Icon name="arrow"/></Button>}</div>
-    <aside className={panel}><span className="text-outline font-label-sm text-label-sm">CUIDADO COM SEU RITMO</span><h3 className="font-headline-sm text-headline-sm text-on-surface">Pausa consciente</h3><p className="font-body-sm text-body-sm text-on-surface-variant">Se hoje não der, você pode descansar. Seu progresso continua aqui para quando quiser voltar.</p><div className="rest-visual"><img src="/assets/stitch/calm.png" alt=""/><Button secondary onClick={() => open({ type: 'break' })}><Icon name="leaf"/>Fazer uma pausa</Button></div><small>Pausar sem culpa</small></aside></section>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-space-sm"><section className={panel}><span className="text-outline font-label-sm text-label-sm">RITMO DA SEMANA</span><h2 className="font-headline-md text-headline-md text-on-surface">{count} de {state.preferences.weeklyGoal} passos</h2><p className="font-body-sm text-body-sm text-on-surface-variant">Sem cobrança. Seu progresso não expira.</p><Progress value={count} max={Math.max(count, state.preferences.weeklyGoal)} label="Passos registrados nesta semana"/></section><section className={panel}><span className="text-outline font-label-sm text-label-sm">TRILHA ATUAL</span><h2 className="font-headline-md text-headline-md text-on-surface">{mission?.course.title || 'Um caminho percorrido'}</h2><p className="font-body-sm text-body-sm text-on-surface-variant">Continue de onde parou.</p><Progress value={progress?.percent ?? 100} label="Progresso da trilha atual"/><button className="text-button" onClick={() => mission ? open({ type: 'course', id: mission.course.id }) : go('biblioteca')}>Ver detalhes da trilha<Icon name="arrow"/></button></section><section className={panel}><span className="text-outline font-label-sm text-label-sm">ADAPTAÇÃO DE FOCO</span><h2 className="font-headline-md text-headline-md text-on-surface">Mudar de jornada</h2><p className="font-body-sm text-body-sm text-on-surface-variant">Alterne para outro interesse sem perder seu progresso.</p><a className="text-link" href="#biblioteca">Explorar toda a biblioteca</a><button className="text-button" onClick={() => open({ type: 'new' })}><Icon name="plus"/>Adicionar um novo interesse</button></section></div>
-    <section className={panel}><h2 className="font-headline-sm text-headline-sm text-on-surface">Lembrete de conforto</h2><p className="font-body-md text-body-md text-on-surface-variant">Você pode parar e voltar depois. Seu caminho não precisa seguir o ritmo de ninguém.</p><a className="text-link" href="#configuracoes">Ajustar meu espaço<Icon name="arrow"/></a></section>
-    <section className={panel} aria-labelledby="journey-title"><span className="text-outline font-label-sm text-label-sm uppercase tracking-wider">SEU MOMENTO · {journey.journey === 'starting' ? 'Quero começar' : journey.journey === 'sometimes' ? 'Estudo de vez em quando' : journey.journey === 'often' ? 'Estudo com frequência' : 'Ainda explorando'}</span><h2 id="journey-title" className="font-headline-sm text-headline-sm text-on-surface">{journey.title}</h2><p className="font-body-sm text-body-sm text-on-surface-variant">{journey.detail}</p>{journey.firstActivity && <p className="font-body-md text-body-md text-on-surface">Próxima atividade: <strong>{journey.firstActivity}</strong></p>}<button className="text-button" onClick={() => go('inicio')}>Rever meu ritmo sem apagar o progresso<Icon name="arrow"/></button></section>
+  return <div className="study-root">
+    <Heading
+      eyebrow="Espaço seu · sem urgência"
+      title={<>Olá. <em>Que bom ter você aqui.</em></>}
+      actions={<button className="chip-button" onClick={() => go('inicio')}><Icon name="settings"/>Seu ritmo: {plan.title} · ajustar</button>}
+    >{plan.message}</Heading>
+
+    <section className="hero-bento" aria-labelledby="next-title">
+      <div className="study-focus">
+        <Glow palette="lume" speed={.14}/>
+        <div className="study-focus-body">
+          <div className="study-focus-head">
+            <span className="eyebrow on-glow">Ação focal única · {mission?.course.title || 'Seu caminho de descobertas'}</span>
+            {mission?.course.resumeAt && <span className="resume-pill"><Icon name="return"/>Parou em: {mission.course.resumeAt}</span>}
+          </div>
+          <h2 id="next-title" className="headline">{mission ? 'O começo pode ser pequeno.' : 'Cada passo já faz parte do seu caminho.'}</h2>
+          <p className="muted-text">Você não precisa fazer tudo agora. Escolha um próximo movimento, no seu tempo.</p>
+          {mission ? <>
+            <div className="mission-spotlight">
+              <span className="spotlight-icon"><Icon name="focus"/></span>
+              <div className="spotlight-copy">
+                <strong>{prepare ? `Preparar o material: ${mission.course.title}` : mission.step.title}</strong>
+                <small>Sem tempo mínimo · {mission.course.example ? 'Curso de exemplo' : 'Registro manual'}</small>
+              </div>
+              {progress && <span className="spotlight-badge">{progress.done}/{progress.total}</span>}
+            </div>
+            <div className="action-row">
+              <Button onClick={() => open({ type: 'session', id: mission.course.id, preparation: !!prepare })}><Icon name="play"/>{prepare ? 'Preparar meu material' : 'Começar este passo'}</Button>
+              <Button secondary onClick={() => open({ type: 'session', id: mission.course.id, preparation: !prepare })}><Icon name="sprout"/>{prepare ? 'Fazer a etapa completa' : 'Tornar ainda menor'}</Button>
+            </div>
+          </> : <Button onClick={() => go('biblioteca')}>Explorar biblioteca<Icon name="arrow"/></Button>}
+        </div>
+      </div>
+
+      <aside className="rest-card">
+        <div className="rest-card-top">
+          <span className="eyebrow">Cuidado com seu ritmo</span>
+          <h3 className="title">Pausa consciente</h3>
+          <p className="muted-text">Se hoje não der, você pode descansar. Seu progresso continua aqui para quando quiser voltar.</p>
+        </div>
+        <div className="rest-visual">
+          <img src="/assets/stitch/calm.png" alt=""/>
+          <div className="rest-overlay">
+            <Button secondary onClick={() => open({ type: 'break' })}><Icon name="leaf"/>Fazer uma pausa</Button>
+            <small>Pausar sem culpa · não retira XP nem conquistas</small>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <div className="metrics-bento">
+      <section className="card-surface metric-card">
+        <div className="metric-card-row">
+          <div>
+            <span className="eyebrow">Ritmo da semana</span>
+            <h2 className="title">{count} de {state.preferences.weeklyGoal} passos</h2>
+            <p className="muted-text">Sem cobrança. Seu progresso não expira.</p>
+          </div>
+          <Ring value={count} max={Math.max(count, state.preferences.weeklyGoal)} size={68} stroke={6} label="Passos na semana">
+            <strong><AnimatedNumber value={count}/></strong>
+          </Ring>
+        </div>
+        <Progress value={count} max={Math.max(count, state.preferences.weeklyGoal)} label="Passos registrados nesta semana"/>
+      </section>
+
+      <section className="card-surface metric-card">
+        <span className="eyebrow">Trilha atual</span>
+        <h2 className="title">{mission?.course.title || 'Um caminho percorrido'}</h2>
+        <p className="muted-text">Continue de onde parou.</p>
+        <Progress value={progress?.percent ?? 100} tone="lume" label="Progresso da trilha atual"/>
+        <button className="text-button accent" onClick={() => mission ? open({ type: 'course', id: mission.course.id }) : go('biblioteca')}>Ver detalhes da trilha<Icon name="arrow"/></button>
+      </section>
+
+      <section className="card-surface metric-card">
+        <span className="eyebrow">Adaptação de foco</span>
+        <h2 className="title">Mudar de jornada</h2>
+        <p className="muted-text">Alterne para outro interesse sem perder seu progresso.</p>
+        <div className="metric-links">
+          <a className="text-link" href="#biblioteca">Explorar toda a biblioteca<Icon name="arrow"/></a>
+          <button className="text-button" onClick={() => open({ type: 'new' })}><Icon name="plus"/>Adicionar um novo interesse</button>
+        </div>
+      </section>
+    </div>
+
+    <div className="Split-bento">
+      <section className="card-surface journey-card" aria-labelledby="journey-title">
+        <span className="eyebrow">Seu momento · {journey.journey === 'starting' ? 'Quero começar' : journey.journey === 'sometimes' ? 'Estudo de vez em quando' : journey.journey === 'often' ? 'Estudo com frequência' : 'Ainda explorando'}</span>
+        <h2 id="journey-title" className="title">{journey.title}</h2>
+        <p className="muted-text">{journey.detail}</p>
+        {journey.firstActivity && <p className="next-activity-pill"><Icon name="spark"/><span>Próxima atividade: <strong>{journey.firstActivity}</strong></span></p>}
+        <button className="text-button accent" onClick={() => go('inicio')}>Rever meu ritmo sem apagar o progresso<Icon name="arrow"/></button>
+      </section>
+
+      <section className="card-surface comfort-banner">
+        <span className="pace-icon"><Icon name="sun"/></span>
+        <div>
+          <h2 className="title">Lembrete de conforto</h2>
+          <p className="muted-text">Você pode parar e voltar depois. Seu caminho não precisa seguir o ritmo de ninguém.</p>
+          <a className="text-link" href="#configuracoes">Ajustar meu espaço<Icon name="arrow"/></a>
+        </div>
+      </section>
+    </div>
   </div>;
 }
 
 const statuses = { all: 'Todos', active: 'Em andamento', new: 'Para começar', paused: 'Em pausa', completed: 'Concluídos' };
+
 export function CourseCard({ course, state, open }) {
   const progress = courseProgress(state, course);
+  const status = courseStatus(state, course);
   const art = ['design', 'code', 'language', 'nature'].includes(course.art) ? course.art : 'nature';
-  return <motion.button layout="position" {...enter} whileHover={{ y: -4 }} whileTap={{ scale: .99 }} className={`course-card ${state.selectedCourseId === course.id ? 'selected-course' : ''}`} onClick={() => open({ type: 'course', id: course.id })} aria-label={`${course.title}, ${statuses[courseStatus(state, course)]}, ${progress.done} de ${progress.total} etapas`}><div className="course-image"><div className={`course-cover art-${art}`}><img src={`/assets/stitch/${art}.png`} alt="" loading="lazy"/></div><span className={`course-status status-${courseStatus(state, course)}`}>{statuses[courseStatus(state, course)]}</span></div><div className="course-card-body"><h3>{course.title}</h3><p className="course-description">{course.category}{course.example ? ' · Exemplo' : ''}</p><div className="course-progress-label"><span>{progress.done} de {progress.total} etapas</span><strong>{progress.percent}%</strong></div><Progress value={progress.percent} label={`Progresso de ${course.title}`}/></div></motion.button>;
+  return <motion.button layout="position" {...enter} whileHover={{ y: -4 }} whileTap={{ scale: .99 }} className={`course-card ${state.selectedCourseId === course.id ? 'selected-course' : ''}`} onClick={() => open({ type: 'course', id: course.id })} aria-label={`${course.title}, ${statuses[status]}, ${progress.done} de ${progress.total} etapas`}>
+    <div className="course-image">
+      <Cover art={art}/>
+      <span className={`course-status status-${status}`}>{statuses[status]}</span>
+      {course.resumeAt && <span className="course-resume-chip"><Icon name="return"/>{course.resumeAt}</span>}
+    </div>
+    <div className="course-card-body">
+      <h3 className="title">{course.title}</h3>
+      <p className="course-description">{course.category}{course.example ? ' · Exemplo' : ''}</p>
+      <div className="course-progress-label"><span>{progress.done} de {progress.total} etapas</span><strong>{progress.percent}%</strong></div>
+      <Progress value={progress.percent} tone={status === 'completed' ? 'mint' : 'lume'} label={`Progresso de ${course.title}`}/>
+    </div>
+  </motion.button>;
 }
+
 export function Library({ state, open }) {
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const courses = state.courses.filter(course => (filter === 'all' || courseStatus(state, course) === filter) && course.title.toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR')));
   const selected = state.courses.find(course => course.id === state.selectedCourseId) || state.courses[0];
   const next = selected && nextMission({ ...state, courses: [selected] }, selected.id);
-  return <div data-stitch="" className="max-w-[1440px] mx-auto flex flex-col gap-space-md"><header><h1 className="font-display-lg text-display-lg text-on-surface">Biblioteca</h1><p className="font-body-lg text-body-lg text-on-surface-variant mt-6">Guarde seus cursos e tópicos de estudo. Continue de onde parou, no seu ritmo.</p></header><div className="library-controls"><label className="search-field"><Icon name="search"/><input type="search" id="course-search" placeholder="Buscar nas minhas trilhas…" aria-label="Buscar um curso pelo nome" value={search} onChange={event => setSearch(event.target.value)}/>{search && <button className="icon-button" onClick={() => { setSearch(''); document.getElementById('course-search').focus(); }} aria-label="Limpar busca"><Icon name="close"/></button>}</label><Button onClick={() => open({ type: 'new' })}><Icon name="plus"/>Adicionar curso</Button></div><div className="filter-tabs" role="group" aria-label="Filtrar cursos por situação">{Object.entries(statuses).map(([id, title]) => <button className="filter-btn" key={id} aria-pressed={filter === id} onClick={() => setFilter(id)}>{filter === id && <motion.span className="selection-highlight" layoutId="library-filter" transition={{ duration: .24 }}/>}<span>{title} ({id === 'all' ? state.courses.length : state.courses.filter(course => courseStatus(state, course) === id).length})</span></button>)}</div>
-    <div className="grid grid-cols-1 xl:grid-cols-12 gap-space-md items-start"><section className="xl:col-span-8 flex flex-col gap-3"><h2 className="font-headline-md text-headline-md text-on-surface">Minha estante <span className="shelf-count">{state.courses.length} trilhas</span></h2><div role="status" className="search-result-count">{courses.length} {courses.length === 1 ? 'trilha encontrada' : 'trilhas encontradas'}</div><motion.div layout className="grid grid-cols-1 sm:grid-cols-2 gap-space-sm" id="library-results"><AnimatePresence initial={false} mode="sync">{courses.map(course => <CourseCard key={course.id} course={course} state={state} open={open}/>)}</AnimatePresence>{!courses.length && <Empty title="Nenhum curso por aqui. Ainda." onAdd={() => open({ type: 'new' })}>Tente outro filtro ou adicione algo que você quer aprender.</Empty>}</motion.div><p className="font-label-sm text-label-sm text-on-surface-variant">Capas ilustrativas. Os cursos de exemplo não incluem aulas.</p></section>
-    {selected && <aside className={`xl:col-span-4 ${panel}`}><div className="detail-image"><img src={`/assets/stitch/${selected.art === 'design' ? 'detail' : selected.art}.png`} alt=""/><div><span className="green-pill">Sua trilha atual</span><h2>{selected.title}</h2></div></div><Button onClick={() => open({ type: next ? 'session' : 'course', id: selected.id })}><Icon name={next ? 'play' : 'book'}/>{next ? 'Continuar meu próximo passo' : 'Ver detalhes da trilha'}</Button><Steps course={selected} state={state}/><Progress value={courseProgress(state, selected).percent} label={`Progresso de ${selected.title}`}/><p className="font-body-sm text-body-sm text-on-surface-variant">Ritmo livre · sem pressa. Não há penalidades por pausas.</p></aside>}</div>
+  const selectedArt = selected && (['design', 'code', 'language', 'nature'].includes(selected.art) ? selected.art : 'nature');
+
+  return <div className="library-root">
+    <Heading eyebrow="Estante viva & continuidade" title="Biblioteca" actions={<Button onClick={() => open({ type: 'new' })}><Icon name="plus"/>Adicionar curso</Button>}>
+      Guarde seus cursos e tópicos de estudo. Continue de onde parou, no seu ritmo.
+    </Heading>
+
+    <div className="library-toolbar">
+      <label className="search-field">
+        <Icon name="search"/>
+        <input type="search" id="course-search" placeholder="Buscar nas minhas trilhas…" aria-label="Buscar um curso pelo nome" value={search} onChange={event => setSearch(event.target.value)}/>
+        {search && <button className="icon-button" onClick={() => { setSearch(''); document.getElementById('course-search').focus(); }} aria-label="Limpar busca"><Icon name="close"/></button>}
+      </label>
+      <div className="filter-tabs" role="group" aria-label="Filtrar cursos por situação">
+        {Object.entries(statuses).map(([id, title]) => <button className="filter-btn" key={id} aria-pressed={filter === id} onClick={() => setFilter(id)}>
+          {filter === id && <motion.span className="selection-highlight" layoutId="library-filter" transition={{ duration: .26, ease }}/>}
+          <span>{title} ({id === 'all' ? state.courses.length : state.courses.filter(course => courseStatus(state, course) === id).length})</span>
+        </button>)}
+      </div>
+    </div>
+
+    <div className="library-grid">
+      <section className="library-shelf">
+        <div className="shelf-header">
+          <h2 className="headline">Minha estante <span className="shelf-count">{state.courses.length} trilhas</span></h2>
+          <div role="status" className="search-result-count">{courses.length} {courses.length === 1 ? 'trilha encontrada' : 'trilhas encontradas'}</div>
+        </div>
+        <motion.div layout className="course-grid" id="library-results">
+          <AnimatePresence initial={false} mode="sync">{courses.map(course => <CourseCard key={course.id} course={course} state={state} open={open}/>)}</AnimatePresence>
+          {!courses.length && <Empty title="Nenhum curso por aqui. Ainda." onAdd={() => open({ type: 'new' })}>Tente outro filtro ou adicione algo que você quer aprender.</Empty>}
+        </motion.div>
+        <p className="quiet-note">Capas ilustrativas. Os cursos de exemplo não incluem aulas.</p>
+      </section>
+
+      {selected && <aside className="library-inspector">
+        {/* Profundidade tátil suave com Atropos (FGLibs) na capa da trilha em foco */}
+        <Atropos className="inspector-atropos" activeOffset={18} shadow={false} highlight={true} rotateXMax={6} rotateYMax={6}>
+          <div className="detail-image" data-atropos-offset="0">
+            <img src={`/assets/stitch/${selectedArt === 'design' ? 'detail' : selectedArt}.png`} alt="" data-atropos-offset="-2"/>
+            <div className="detail-image-caption" data-atropos-offset="3">
+              <span className="green-pill">Sua trilha atual</span>
+              <h2 className="title">{selected.title}</h2>
+            </div>
+          </div>
+        </Atropos>
+        <Button className="full-width" onClick={() => open({ type: next ? 'session' : 'course', id: selected.id })}><Icon name={next ? 'play' : 'book'}/>{next ? 'Continuar meu próximo passo' : 'Ver detalhes da trilha'}</Button>
+        <Steps course={selected} state={state}/>
+        <Progress value={courseProgress(state, selected).percent} tone="lume" label={`Progresso de ${selected.title}`}/>
+        <p className="quiet-note">Ritmo livre · sem pressa. Não há penalidades por pausas.</p>
+      </aside>}
+    </div>
   </div>;
 }
+
 export function Steps({ course, state }) {
-  return <ol className="course-step-list">{course.steps.map((step, index) => <li className={state.completed.includes(step.id) ? 'completed-step' : ''} key={step.id}><span className="step-number">{state.completed.includes(step.id) ? <Icon name="check"/> : String(index + 1).padStart(2, '0')}</span><span>{step.title}{hasPreparation(state, step.id) && !state.completed.includes(step.id) && <small className="preparation-label">Material preparado</small>}</span></li>)}</ol>;
+  return <ol className="course-step-list">{course.steps.map((step, index) => {
+    const done = state.completed.includes(step.id);
+    const prepared = hasPreparation(state, step.id) && !done;
+    return <li className={done ? 'completed-step' : prepared ? 'prepared-step' : ''} key={step.id}>
+      <span className="step-number">{done ? <Icon name="check"/> : String(index + 1).padStart(2, '0')}</span>
+      <span className="step-copy">{step.title}{prepared && <small className="preparation-label">Material preparado</small>}</span>
+    </li>;
+  })}</ol>;
 }

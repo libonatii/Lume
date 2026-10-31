@@ -15,11 +15,14 @@ O onboarding tem três jornadas com sequências próprias: **Quero começar** (a
 - **Astro** gera HTML e bundles estáticos em `dist/`.
 - **React** controla todas as telas, formulários, busca, filtros e diálogos com componentes e estado; o controlador antigo de strings HTML foi removido.
 - **Motion** anima seleção de ritmo, destaque do menu e dos filtros, reorganização dos cartões, progresso, diálogos, avisos e respostas dos botões.
-- O visual reutiliza o sistema do Stitch, as imagens e a fonte Plus Jakarta Sans locais.
+- **Motion** anima seleção de ritmo, destaque do menu e dos filtros, reorganização dos cartões, contadores com mola (`AnimatedNumber`), progresso, diálogos, avisos e respostas dos botões.
+- **Paper Shaders (`@paper-design/shaders-react`)**, listada na [FGLibs](https://fglibs.com/), projeta campos de luz ambiente em WebGL2 (`MeshGradient`) no painel de entrada, na ação focal do estudo, no resumo do plano e nas celebrações, com fallback estático em CSS.
+- **Atropos (`atropos`)**, listada na [FGLibs](https://fglibs.com/), adiciona profundidade e inclinação tátil suave à capa da trilha em foco na Biblioteca e aos selos conquistados na vitrine.
+- O sistema visual unificado (`public/lume.css`) aplica a direção editorial **"Luz Quente sobre Ardósia"** (temas escuro *Noite Acolhedora* e claro *Papel Quente*) em todas as 9 rotas, combinando títulos na serifada variável **Fraunces** (`@fontsource-variable/fraunces`) com interface em **Plus Jakarta Sans** local.
 - Por decisão explícita da responsável, **não há modo essencial nem tratamento de movimento reduzido**. Preferências antigas permanecem nos dados apenas para compatibilidade.
 - A API existente continua no **Cloudflare Worker com D1**, ou no servidor Node local. O frontend não exige renderização no servidor.
 
-A [FGLibs](https://fglibs.com/) foi consultada pelo site, pois seu MCP não estava disponível. As interações são implementações próprias em React e Motion, inspiradas nos [princípios da Arc Library](https://uiarc.dev/docs/motion), listada no catálogo; o pacote Arc não foi instalado.
+As bibliotecas e padrões de interação foram escolhidos a partir do catálogo da [FGLibs](https://fglibs.com/): **Paper Shaders**, **Atropos**, **Motion**, transições finitas inspiradas na [Arc Library](https://uiarc.dev/docs/motion) e contadores com mola inspirados na [Motion-Primitives](https://motion-primitives.com/).
 
 ## Executar localmente
 Use Node **22.23.4 ou superior** (testado com Node 24). Na primeira execução:
@@ -74,7 +77,15 @@ O endereço de referência é [lume.lume-prototype.workers.dev](https://lume.lum
 
 O build gera hashes CSP dos scripts e estilos inline exatos do Astro e grava `dist/_headers`, utilizado também pelo servidor Node. Não libera execução genérica de scripts inline.
 
-Novas senhas usam **100.000 iterações**, ajustáveis por `PBKDF2_ITERATIONS`. É uma escolha de menor custo, abaixo das [600.000 iterações recomendadas pela OWASP para PBKDF2-HMAC-SHA256](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#pbkdf2). O Workers Free tem [limite de 10 ms de CPU por requisição](https://developers.cloudflare.com/workers/platform/limits/); a execução precisa ser medida após publicação. Hashes antigos continuam usando o custo e o encadeamento originais.
+Novas senhas e redefinições usam **bcrypt (`bcryptjs`), com custo 6** no Node e no Worker. `BCRYPT_ROUNDS` aceita inteiros de 4 a 12; o padrão está em `auth.js` e o Worker configura explicitamente 6. Valores inválidos geram erro, sem redução silenciosa. `PBKDF2_ITERATIONS` deixou de configurar a criação de senhas.
+
+O custo 6 é um compromisso com o [limite de 10 ms de CPU por requisição do Workers Free](https://developers.cloudflare.com/workers/platform/limits/) e fica abaixo do [mínimo 10 recomendado pela OWASP para bcrypt](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#bcrypt), oferecendo menor resistência a ataques offline. Medição local inicial com `bcryptjs` encontrou aproximadamente 5 ms por hash aquecido com custo 6 e 77 ms com custo 10. A primeira execução local com custo 6 levou cerca de 13 ms. Isso **não comprova** o orçamento de CPU no Worker publicado. Antes de considerar a configuração validada para o Free, medir cadastro, login e redefinição completos, incluindo partidas frias, e conferir erros `exceededCpu`. A API mantém o limite de tentativas antes do trabalho criptográfico; esse limite não protege um banco vazado. A API assíncrona do bcrypt não amplia o orçamento de CPU.
+
+Para repetir a medição local com dados sintéticos: `node scripts/benchmark-auth.mjs 6` (ou `10`). Ela informa tempo de parede, incluindo a primeira execução, e não acessa contas nem a rede.
+
+O [bcrypt aceita até 72 bytes em UTF-8](https://github.com/dcodeIO/bcrypt.js#security-considerations). Cadastro e redefinição recusam senhas acima desse limite, inclusive com acentos e emojis, sem truncamento. O login preserva o limite legado de 200 caracteres para contas PBKDF2. Hashes PBKDF2 existentes continuam usando seu custo e encadeamento originais, sem modificar contas ou progresso; passam para bcrypt quando a senha é redefinida. Não há rehash automático no login, evitando somar PBKDF2 e bcrypt na mesma requisição do Free. O custo de verificação de hashes antigos também continua sujeito ao orçamento do Worker.
+
+Verificação desta troca: testes de autenticação/domínio, build estático, bundle do Worker em `wrangler deploy --dry-run` e fluxos da API no runtime local da Cloudflare. A publicação e a medição de CPU em produção continuam pendentes.
 
 ## Estrutura
 

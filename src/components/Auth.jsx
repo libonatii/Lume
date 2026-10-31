@@ -1,8 +1,14 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import Icon from './Icon.jsx';
-import { Button, enter } from './ui.jsx';
+import { Button, Glow, enter, stagger } from './ui.jsx';
 import { api, apiError } from '../lib/api.js';
+
+const promises = [
+  ['book', 'Uma biblioteca que lembra onde você parou', 'Cursos, leituras, exercícios e projetos com ponto de retomada.'],
+  ['trophy', 'Conquistas por estudo real', 'Reconhecimento por concluir, não por clicar.'],
+  ['users', 'Amigos, grupos e ranking', 'Planejados, opcionais e sob o seu controle.'],
+];
 
 export function Login({ model, mode, setMode, go, notify }) {
   const [error, setError] = useState('');
@@ -25,23 +31,35 @@ export function Login({ model, mode, setMode, go, notify }) {
     } catch (error) { setError(error.message); }
     finally { setBusy(false); }
   }
-  return <div data-stitch="" className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-    <motion.section {...enter} className="lg:col-span-5 flex flex-col justify-between p-8 rounded-xl bg-surface-container-low shadow-xl relative overflow-hidden" aria-labelledby="welcome-title">
-      <span className="font-label-sm text-label-sm uppercase tracking-wider text-secondary">APRENDIZADO COM PROPÓSITO</span>
-      <div className="my-8"><h1 id="welcome-title" className="font-headline-lg text-headline-lg text-on-surface tracking-tight leading-snug mb-3">Descubra o prazer de aprender e ir cada vez mais longe.</h1><p className="font-body-md text-body-md text-on-surface-variant leading-relaxed">Aprender não precisa ser uma obrigação pesada. O Lume existe para despertar sua curiosidade, transformar esforço em satisfação e impulsionar suas conquistas.</p><div className="mt-6 p-4 rounded-lg bg-surface-container flex items-start gap-3"><Icon name="leaf"/><div><strong>Entusiasmo &amp; Conquistas Reais</strong><p className="font-body-sm text-body-sm text-on-surface-variant">Cada avanço tem uma história. Construa a sua.</p></div></div></div>
-      <div className="rounded-lg overflow-hidden"><motion.img whileHover={{ scale: 1.035 }} transition={{ duration: .48 }} className="w-full object-cover" src="/assets/stitch/welcome.png" alt="Jardim tranquilo com pedras e vegetação suave"/></div><p className="font-body-sm text-body-sm text-outline mt-6">Feito com cuidado por e para mentes curiosas e neurodivergentes.</p>
-    </motion.section>
-    <section className="lg:col-span-7 flex flex-col justify-center p-8 sm:p-10 rounded-xl bg-surface-container shadow-xl" aria-labelledby="login-title">
-      <div className="flex items-center justify-between gap-3 mb-4"><span className="text-secondary font-label-sm text-label-sm">{registering ? 'UM NOVO COMEÇO' : 'ENERGIA FOCADA'}</span><span className="text-outline font-label-sm text-label-sm">{model.accountStatus === 'checking' ? 'Verificando sessão…' : model.accountStatus === 'offline' ? 'Servidor indisponível' : 'Sessão protegida'}</span></div>
-      <div className="auth-tabs" role="group" aria-label="Entrar ou criar conta">{[['login', 'Entrar'], ['register', 'Criar conta']].map(([id, label]) => <button key={id} type="button" aria-pressed={mode === id} onClick={() => { setMode(id); setError(''); }}>{mode === id && <motion.span layoutId="auth-selection" className="selection-highlight"/>}<span>{label}</span></button>)}</div>
-      <AnimatePresence mode="wait" initial={false}><motion.div key={mode} {...enter}><div className="mb-6"><h2 id="login-title" className="font-headline-lg text-headline-lg text-on-surface tracking-tight">{registering ? 'Vamos criar seu espaço.' : 'Bem-vindo de volta ao Lume.'}</h2><p className="font-body-md text-body-md text-on-surface-variant mt-1">{registering ? 'Seu nome, um e-mail e uma senha.' : 'Seu próximo aprendizado está esperando por você.'}</p></div>
-      <form id="auth-form" className="auth-form space-y-4" onSubmit={submit} aria-busy={busy}>
-        {registering && <label className="auth-field">Seu nome<input name="name" autoComplete="name" required minLength={2} maxLength={60} placeholder="Como você quer ser chamada"/></label>}
-        <label className="auth-field">E-mail<input name="email" type="email" autoComplete="email" required maxLength={254} placeholder="nome@exemplo.com"/></label>
-        <div className="flex items-center justify-between"><label htmlFor="auth-password">Senha</label>{!registering && <a className="text-link" href="#recuperar">Esqueci minha senha</a>}</div><div className="password-field"><input id="auth-password" name="password" type={visible ? 'text' : 'password'} autoComplete={registering ? 'new-password' : 'current-password'} required minLength={8} maxLength={200} placeholder={registering ? 'Pelo menos 8 caracteres' : 'Sua senha'}/><button type="button" className="text-button" aria-label={visible ? 'Ocultar senha' : 'Mostrar senha'} aria-pressed={visible} onClick={() => setVisible(!visible)}>{visible ? 'Ocultar' : 'Mostrar'}</button></div>
-        {error && <p className="form-error" role="alert">{error}</p>}<Button type="submit" className="full-width" disabled={busy || model.accountStatus === 'checking'}>{busy ? 'Um instante…' : registering ? 'Criar minha conta' : 'Entrar e ir além'}<Icon name="arrow"/></Button>
-      </form></motion.div></AnimatePresence>
-      <div className="mt-8 pt-6"><p className="font-body-sm text-body-sm text-on-surface-variant">Prefere olhar primeiro? <button className="text-button" onClick={() => { model.enterPreview(); go('inicio'); }}>Explorar a prévia<Icon name="arrow"/></button></p></div>
+  return <div className="auth-layout">
+    <section className="auth-hero" aria-labelledby="welcome-title">
+      <Glow palette="lume"/>
+      <div className="auth-hero-content">
+        <span className="eyebrow on-glow">Plataforma social de estudos</span>
+        <h1 id="welcome-title" className="display hero-title">Descubra o prazer de aprender e ir <em>cada vez mais longe.</em></h1>
+        <p className="lead">O Lume guarda o que você estuda, mostra onde parou e transforma avanços reais em conquistas — no seu ritmo, com espaço para pausar.</p>
+        <ul className="promise-list">{promises.map(([icon, title, text], index) => <motion.li key={title} {...stagger(index + 2)}><span className="promise-icon"><Icon name={icon}/></span><span><strong>{title}</strong><small>{text}</small></span></motion.li>)}</ul>
+      </div>
+      <motion.figure className="sample-achievement" initial={{ opacity: 0, y: 12, rotate: -1 }} animate={{ opacity: 1, y: 0, rotate: -1 }} transition={{ duration: .32, ease: [.22, 1, .36, 1] }} aria-label="Exemplo ilustrativo de conquista">
+        <span className="sample-badge"><Icon name="trophy"/></span>
+        <figcaption><small>Exemplo de conquista</small><strong>Terminei de ler o artigo Introdução a Processo Penal</strong></figcaption>
+      </motion.figure>
+      <p className="auth-hero-note">Feito com cuidado por e para mentes curiosas e neurodivergentes.</p>
+    </section>
+    <section className="auth-card" aria-labelledby="login-title">
+      <div className="auth-card-top"><span className="eyebrow">{registering ? 'Um novo começo' : 'Que bom te ver'}</span><span className={`session-state state-${model.accountStatus}`}><span className="dot"/>{model.accountStatus === 'checking' ? 'Verificando sessão…' : model.accountStatus === 'offline' ? 'Servidor indisponível' : 'Sessão protegida'}</span></div>
+      <div className="segmented" role="group" aria-label="Entrar ou criar conta">{[['login', 'Entrar'], ['register', 'Criar conta']].map(([id, label]) => <button key={id} type="button" aria-pressed={mode === id} onClick={() => { setMode(id); setError(''); }}>{mode === id && <motion.span layoutId="auth-selection" className="segmented-highlight" transition={{ duration: .3, ease: [.22, 1, .36, 1] }}/>}<span>{label}</span></button>)}</div>
+      <AnimatePresence mode="wait" initial={false}><motion.div key={mode} {...enter}>
+        <div className="auth-title"><h2 id="login-title" className="headline">{registering ? 'Vamos criar seu espaço.' : 'Bem-vindo de volta ao Lume.'}</h2><p>{registering ? 'Seu nome, um e-mail e uma senha.' : 'Seu próximo aprendizado está esperando por você.'}</p></div>
+        <form id="auth-form" className="form-stack" onSubmit={submit} aria-busy={busy}>
+          {registering && <label className="field">Seu nome<input name="name" autoComplete="name" required minLength={2} maxLength={60} placeholder="Como você quer ser chamada"/></label>}
+          <label className="field">E-mail<input name="email" type="email" autoComplete="email" required maxLength={254} placeholder="nome@exemplo.com"/></label>
+          <div className="field"><span className="field-row"><label htmlFor="auth-password">Senha</label>{!registering && <a className="text-link" href="#recuperar">Esqueci minha senha</a>}</span><span className="password-field"><input id="auth-password" name="password" type={visible ? 'text' : 'password'} autoComplete={registering ? 'new-password' : 'current-password'} required minLength={8} maxLength={registering ? 72 : 200} placeholder={registering ? 'Pelo menos 8 caracteres' : 'Sua senha'}/><button type="button" className="text-button" aria-label={visible ? 'Ocultar senha' : 'Mostrar senha'} aria-pressed={visible} onClick={() => setVisible(!visible)}>{visible ? 'Ocultar' : 'Mostrar'}</button></span></div>
+          {error && <p className="form-error" role="alert">{error}</p>}
+          <Button type="submit" className="full-width large" disabled={busy || model.accountStatus === 'checking'}>{busy ? 'Um instante…' : registering ? 'Criar minha conta' : 'Entrar e ir além'}<Icon name="arrow"/></Button>
+        </form>
+      </motion.div></AnimatePresence>
+      <div className="auth-preview"><span className="divider-label">ou</span><p>Prefere olhar primeiro? <button className="text-button accent" onClick={() => { model.enterPreview(); go('inicio'); }}>Explorar a prévia<Icon name="arrow"/></button></p><small>A prévia guarda o progresso só neste navegador.</small></div>
     </section>
   </div>;
 }
@@ -65,5 +83,19 @@ export function Recovery({ reset = false, notify, go }) {
     } catch (error) { setError(error.message); }
     finally { setBusy(false); }
   }
-  return <section className="panel recovery-panel"><h1>{reset ? result ? 'Acesso validado.' : 'Uma nova senha.' : 'Vamos recuperar seu acesso.'}</h1>{result ? <><p>{reset ? 'Sua senha foi atualizada. Você já pode entrar.' : 'Se existir uma conta para esse e-mail, o pedido de recuperação foi registrado. O envio por e-mail ainda não está disponível.'}</p>{!reset && result.resetUrl && <a className="text-link" href={result.resetUrl}>Link de recuperação de teste</a>}<Button onClick={() => go('login')}>Voltar à entrada<Icon name="arrow"/></Button></> : <form onSubmit={submit} aria-busy={busy}>{reset ? <><label className="auth-field">Nova senha<input name="password" type="password" autoComplete="new-password" minLength={8} maxLength={200} required/></label><label className="auth-field">Repita a senha<input name="confirm" type="password" autoComplete="new-password" minLength={8} maxLength={200} required/></label></> : <label className="auth-field">E-mail<input name="email" type="email" autoComplete="email" required maxLength={254}/></label>}{error && <p className="form-error" role="alert">{error}</p>}<Button type="submit" disabled={busy}>{busy ? 'Um instante…' : reset ? 'Salvar nova senha' : 'Solicitar recuperação'}</Button><a className="text-link" href="#login">Voltar à entrada</a></form>}</section>;
+  return <section className="recovery-card">
+    <span className={`dialog-emblem ${result ? 'tone-mint' : ''}`}><Icon name={result ? 'shield' : reset ? 'lock' : 'mail'}/></span>
+    <h1 className="headline">{reset ? result ? 'Acesso validado.' : 'Uma nova senha.' : 'Vamos recuperar seu acesso.'}</h1>
+    {result ? <>
+      <p className="muted-text">{reset ? 'Sua senha foi atualizada. Você já pode entrar.' : 'Se existir uma conta para esse e-mail, o pedido de recuperação foi registrado. O envio por e-mail ainda não está disponível.'}</p>
+      {!reset && result.resetUrl && <a className="text-link" href={result.resetUrl}>Link de recuperação de teste</a>}
+      <Button className="full-width" onClick={() => go('login')}>Voltar à entrada<Icon name="arrow"/></Button>
+    </> : <form className="form-stack" onSubmit={submit} aria-busy={busy}>
+      <p className="muted-text">{reset ? 'Escolha uma senha com pelo menos 8 caracteres.' : 'Informe o e-mail da sua conta. O link de recuperação vale por 30 minutos.'}</p>
+      {reset ? <><label className="field">Nova senha<input name="password" type="password" autoComplete="new-password" minLength={8} maxLength={72} required/></label><label className="field">Repita a senha<input name="confirm" type="password" autoComplete="new-password" minLength={8} maxLength={72} required/></label></> : <label className="field">E-mail<input name="email" type="email" autoComplete="email" required maxLength={254} placeholder="nome@exemplo.com"/></label>}
+      {error && <p className="form-error" role="alert">{error}</p>}
+      <Button type="submit" className="full-width" disabled={busy}>{busy ? 'Um instante…' : reset ? 'Salvar nova senha' : 'Solicitar recuperação'}</Button>
+      <a className="text-link centered" href="#login">Voltar à entrada</a>
+    </form>}
+  </section>;
 }

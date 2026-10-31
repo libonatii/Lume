@@ -4,7 +4,15 @@ const icons = {
   flag: '<path d="M5 21V3m0 1c5-4 9 4 15 0v10c-6 4-10-4-15 0"/>',
   trophy: '<path d="M8 3h8v7a4 4 0 0 1-8 0Zm4 11v7m-4 0h8M8 5H4v3a4 4 0 0 0 4 4m8-7h4v3a4 4 0 0 1-4 4"/>',
   history: '<path d="M3 11a9 9 0 1 1 2.6 7.4M3 4v7h7m2-4v5l3 2"/>',
-  settings: '<path d="m10 3-1 3-3 1-3-1-1 4 3 2v3l-1 3 4 2 2-2h3l3 1 3-4-2-2v-3l1-3-4-3-2 1Z"/><circle cx="11" cy="12" r="3"/>',
+  settings: '<path d="M4 7h10m4 0h2M4 17h4m4 0h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/>',
+  users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/>',
+  podium: '<path d="M9 21V9h6v12M3 21v-7h6M15 21v-9h6v9M2 21h20M12 3l.9 1.8 2 .3-1.45 1.4.35 2-1.8-.95-1.8.95.35-2L9.1 5.1l2-.3Z"/>',
+  bolt: '<path d="M13 2 4 14h7l-1 8 9-12h-7Z"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  logout: '<path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 8l-4 4 4 4M6 12h10"/>',
+  moon: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z"/>',
+  type: '<path d="M4 7V5h16v2M12 5v14m-3 0h6"/>',
+  cloud: '<path d="M7 18a4.5 4.5 0 0 1-.5-9 6 6 0 0 1 11.5 1.5A3.75 3.75 0 0 1 17.5 18Z"/>',
   arrow: '<path d="M4 12h15m-6-6 6 6-6 6"/>',
   back: '<path d="M20 12H5m6-6-6 6 6 6"/>',
   chevron: '<path d="m9 5 7 7-7 7"/>',
@@ -34,4 +42,4 @@ const icons = {
   menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
 };
 
-export default function Icon({name, className = ''}) { return <svg className={'icon '+className} viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.65' strokeLinecap='round' strokeLinejoin='round' aria-hidden='true' focusable='false' dangerouslySetInnerHTML={{__html: icons[name] || icons.spark}} />; }
+export default function Icon({name, className = ''}) { return <svg className={'icon '+className} viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.8' strokeLinecap='round' strokeLinejoin='round' aria-hidden='true' focusable='false' dangerouslySetInnerHTML={{__html: icons[name] || icons.spark}} />; }

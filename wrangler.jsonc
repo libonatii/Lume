@@ -27,11 +27,12 @@
     // Em produção o link de recuperação não volta na resposta da API: ele vai
     // para o log estruturado, acessível apenas ao dono da conta. Trocar por
     // "true" reabre o fluxo de teste local e não deve ser usado em site público.
-    "SHOW_RESET_LINK": "false"
+    "SHOW_RESET_LINK": "false",
+    "BCRYPT_ROUNDS": "6"
   },
 
-  // O padrão de PBKDF2 está em auth.js (100.000 iterações). Medir o consumo
-  // de CPU após publicar; o Workers Free tem limite de 10 ms por requisição.
+  // bcrypt com custo 6 para o orçamento do Free (10 ms de CPU por requisição).
+  // Abaixo do mínimo 10 recomendado pela OWASP; medir CPU após publicar.
   "observability": {
     "enabled": true,
     "logs": { "enabled": true, "head_sampling_rate": 1 },

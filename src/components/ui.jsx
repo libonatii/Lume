@@ -1,22 +1,93 @@
 import { useEffect, useRef } from 'react';
-import { motion } from 'motion/react';
+import { motion, useSpring, useTransform } from 'motion/react';
+import { MeshGradient } from '@paper-design/shaders-react';
 import Icon from './Icon.jsx';
 
-// Arc Library (FGLibs): transições finitas, sem rebote ou efeitos de cursor.
-export const enter = { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -6 }, transition: { duration: .28, ease: [.22, 1, .36, 1] } };
-export function Button({ children, secondary = false, className = '', ...props }) {
-  return <motion.button type="button" whileTap={{ scale: .98 }} className={`button ${secondary ? 'secondary' : 'primary'} ${className}`} {...props}>{children}</motion.button>;
+// Movimento finito inspirado na Arc Library (FGLibs): entrada curta, sem rebote nem efeitos de cursor.
+export const ease = [.22, 1, .36, 1];
+export const enter = { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -6 }, transition: { duration: .32, ease } };
+export const stagger = index => ({ initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0 }, transition: { duration: .36, ease, delay: Math.min(index, 8) * .045 } });
+
+export function Button({ children, secondary = false, ghost = false, className = '', ...props }) {
+  const variant = ghost ? 'ghost' : secondary ? 'secondary' : 'primary';
+  return <motion.button type="button" whileTap={{ scale: .97 }} className={`button ${variant} ${className}`} {...props}>{children}</motion.button>;
 }
-export function Heading({ title, children }) {
-  return <header className="page-heading"><div><h1>{title}</h1>{children && <p>{children}</p>}</div></header>;
+
+export function Heading({ eyebrow, title, children, actions }) {
+  return <header className="page-heading"><div>{eyebrow && <span className="eyebrow">{eyebrow}</span>}<h1 className="display">{title}</h1>{children && <p className="lead">{children}</p>}</div>{actions && <div className="page-heading-actions">{actions}</div>}</header>;
 }
-export function Progress({ value, max = 100, label }) {
+
+export function Progress({ value, max = 100, label, tone = 'mint' }) {
   const percent = Math.max(0, Math.min(100, value / (max || 1) * 100));
-  return <div className="animated-progress" role="progressbar" aria-label={label} aria-valuenow={value} aria-valuemin={0} aria-valuemax={max}><motion.span initial={false} animate={{ scaleX: percent / 100 }} transition={{ duration: .4, ease: [.22, 1, .36, 1] }}/></div>;
+  return <div className={`progress tone-${tone}`} role="progressbar" aria-label={label} aria-valuenow={value} aria-valuemin={0} aria-valuemax={max}><motion.span initial={{ scaleX: 0 }} animate={{ scaleX: percent / 100 }} transition={{ duration: .7, ease }}/></div>;
 }
+
+// Contador com mola do Motion, adaptado do padrão AnimatedNumber da Motion-Primitives (FGLibs).
+// O valor real fica disponível para leitores de tela; a animação é só visual.
+export function AnimatedNumber({ value, className = '' }) {
+  const spring = useSpring(value, { stiffness: 110, damping: 24, mass: .6 });
+  const display = useTransform(spring, current => Math.round(current).toLocaleString('pt-BR'));
+  useEffect(() => { spring.set(value); }, [spring, value]);
+  return <span className={`animated-number ${className}`}><motion.span aria-hidden="true">{display}</motion.span><span className="sr-only">{value.toLocaleString('pt-BR')}</span></span>;
+}
+
+export function Ring({ value, max = 100, size = 88, stroke = 8, children, label }) {
+  const radius = (size - stroke) / 2;
+  const percent = Math.max(0, Math.min(1, value / (max || 1)));
+  return <div className="ring" style={{ width: size, height: size }} role="img" aria-label={label}>
+    <svg viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
+      <defs><linearGradient id={`ring-${size}`} x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="var(--lume)"/><stop offset="100%" stopColor="var(--lume-2)"/></linearGradient></defs>
+      <circle className="ring-track" cx={size / 2} cy={size / 2} r={radius} strokeWidth={stroke}/>
+      <motion.circle cx={size / 2} cy={size / 2} r={radius} strokeWidth={stroke} stroke={`url(#ring-${size})`} fill="none" strokeLinecap="round" initial={{ pathLength: 0 }} animate={{ pathLength: Math.max(percent, .015) }} transition={{ duration: 1, ease }} transform={`rotate(-90 ${size / 2} ${size / 2})`}/>
+    </svg>
+    <div className="ring-content">{children}</div>
+  </div>;
+}
+
+let webglSupport;
+function supportsWebGL() {
+  if (webglSupport !== undefined) return webglSupport;
+  try {
+    const context = document.createElement('canvas').getContext('webgl2');
+    webglSupport = !!context;
+    context?.getExtension('WEBGL_lose_context')?.loseContext();
+  } catch { webglSupport = false; }
+  return webglSupport;
+}
+
+// Luz ambiente com o MeshGradient da Paper Shaders (FGLibs). Sem WebGL, fica o gradiente em CSS.
+const glowPalettes = {
+  lume: ['#1b1426', '#f6b94a', '#ff8f5e', '#5a3d8a'],
+  dusk: ['#120f1c', '#6b4fd1', '#f6b94a', '#2b9c7a'],
+  mint: ['#0f1a18', '#5fe0b4', '#f6b94a', '#3a2f6b'],
+};
+export function Glow({ palette = 'lume', speed = .18, className = '' }) {
+  const enabled = typeof document !== 'undefined' && supportsWebGL();
+  return <div className={`glow glow-${palette} ${className}`} aria-hidden="true">{enabled && <MeshGradient className="glow-canvas" colors={glowPalettes[palette]} distortion={.85} swirl={.2} speed={speed} maxPixelCount={640 * 640} minPixelRatio={1}/>}</div>;
+}
+
+export function Logo({ size = 36 }) {
+  return <svg className="logo-mark" width={size} height={size} viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+    <defs>
+      <radialGradient id="logo-light" cx="50%" cy="28%" r="40%"><stop offset="0%" stopColor="#fff4d6"/><stop offset="55%" stopColor="#f6b94a"/><stop offset="100%" stopColor="#f6b94a" stopOpacity="0"/></radialGradient>
+      <linearGradient id="logo-leaf" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#7ff0c6"/><stop offset="100%" stopColor="#2fae86"/></linearGradient>
+    </defs>
+    <rect width="48" height="48" rx="14" fill="var(--logo-bg, #1a1724)"/>
+    <circle cx="24" cy="14" r="10" fill="url(#logo-light)" opacity=".55"/>
+    <path d="m24 7 2 4.6 4.6 2-4.6 2L24 20.2l-2-4.6-4.6-2 4.6-2Z" fill="#ffd584"/>
+    <path d="M24 39V26m0 6c-7.5.8-10-5.6-10-9.6 6.4 0 10 3.6 10 9.6Zm0-2c0-6 3.6-9.6 10-9.6 0 4-2.5 10.4-10 9.6Z" fill="url(#logo-leaf)" stroke="url(#logo-leaf)" strokeWidth="1.4" strokeLinejoin="round"/>
+  </svg>;
+}
+
+export function Cover({ art = 'nature', className = '', children }) {
+  const safe = ['design', 'code', 'language', 'nature'].includes(art) ? art : 'nature';
+  return <div className={`cover art-${safe} ${className}`}><img src={`/assets/stitch/${safe}.png`} alt="" loading="lazy"/>{children}</div>;
+}
+
 export function Empty({ title, children, onAdd }) {
-  return <motion.div {...enter} className="empty-state"><Icon name="book"/><h2>{title}</h2><p>{children}</p>{onAdd && <Button secondary onClick={onAdd}><Icon name="plus"/>Adicionar curso</Button>}</motion.div>;
+  return <motion.div {...enter} className="empty-state"><span className="empty-icon"><Icon name="book"/></span><h2 className="title">{title}</h2><p>{children}</p>{onAdd && <Button secondary onClick={onAdd}><Icon name="plus"/>Adicionar curso</Button>}</motion.div>;
 }
+
 export function Dialog({ children, onClose, identity }) {
   const ref = useRef(null);
   const closeRef = useRef(onClose);
@@ -37,5 +108,5 @@ export function Dialog({ children, onClose, identity }) {
     if (event.target !== ref.current) return;
     const bounds = ref.current.getBoundingClientRect();
     if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) onClose();
-  }}><button className="dialog-close icon-button" onClick={onClose} aria-label="Fechar janela"><Icon name="close"/></button><motion.div key={identity} {...enter}>{children}</motion.div></dialog>;
+  }}><button className="dialog-close icon-button" onClick={onClose} aria-label="Fechar janela"><Icon name="close"/></button><motion.div key={identity} initial={{ opacity: 0, y: 10, scale: .985 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: .3, ease }}>{children}</motion.div></dialog>;
 }

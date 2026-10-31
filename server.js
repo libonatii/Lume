@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import {
-  ValidationError, SESSION_TTL_MS, RESET_TTL_MS, DEFAULT_ITERATIONS,
+  ValidationError, SESSION_TTL_MS, RESET_TTL_MS, bcryptRounds,
   validateName, validateEmail, validatePassword, normalizeEmail,
   hashPassword, verifyPassword, createSessionToken, hashSessionToken,
   sessionCookie, clearedSessionCookie, parseCookies,
@@ -19,7 +19,7 @@ const MAX_BODY_BYTES = 16 * 1024;
 const MAX_STATE_BYTES = 256 * 1024;
 const ATTEMPT_LIMIT = 10;
 const ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
-const ITERATIONS = Number(process.env.PBKDF2_ITERATIONS) || DEFAULT_ITERATIONS;
+const BCRYPT_ROUNDS = bcryptRounds(process.env.BCRYPT_ROUNDS);
 
 const staticFiles = new Map();
 const mime = { html: 'text/html; charset=utf-8', css: 'text/css; charset=utf-8', js: 'text/javascript; charset=utf-8', png: 'image/png', svg: 'image/svg+xml', woff2: 'font/woff2', json: 'application/json' };
@@ -176,7 +176,7 @@ async function handleRegister(request, response) {
   }
 
   const id = crypto.randomUUID();
-  const passwordHash = await hashPassword(password, ITERATIONS);
+  const passwordHash = await hashPassword(password, BCRYPT_ROUNDS);
   try {
     insertUser.run(id, name, email, passwordHash, new Date().toISOString());
   } catch (error) {
@@ -245,7 +245,7 @@ async function handlePasswordReset(request, response) {
     return send(response, 400, { error: 'Este link expirou. Peça uma nova recuperação.' });
   }
 
-  updatePassword.run(await hashPassword(password, ITERATIONS), reset.user_id);
+  updatePassword.run(await hashPassword(password, BCRYPT_ROUNDS), reset.user_id);
   useReset.run(new Date().toISOString(), tokenHash);
   deleteUserSessions.run(reset.user_id);
   return send(response, 200, { message: 'Senha alterada. Você já pode entrar com a nova senha.' });

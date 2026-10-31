@@ -1,21 +1,31 @@
 // Autenticação compartilhada entre o Worker (Cloudflare) e o servidor local (Node).
-// Usa somente Web Crypto, disponível nos dois ambientes: nenhum built-in do Node.
+// bcryptjs usa Web Crypto para salt e funciona no bundle do Worker e no Node.
+import bcrypt from 'bcryptjs';
 
 export const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const MIN_PASSWORD_LENGTH = 8;
 export const MAX_PASSWORD_LENGTH = 200;
+export const MAX_PASSWORD_BYTES = 72;
 export const MAX_NAME_LENGTH = 60;
 export const RESET_TTL_MS = 30 * 60 * 1000;
 
-// Padrão de menor custo para o projeto no Workers Free, ajustável por
-// PBKDF2_ITERATIONS. É inferior às 600.000 iterações recomendadas pela OWASP;
-// o consumo de CPU precisa ser medido no Worker publicado.
-export const DEFAULT_ITERATIONS = 100000;
+// Compromisso com os 10 ms de CPU do Workers Free; medir em produção.
+// Custo 6 é inferior ao mínimo 10 recomendado pela OWASP para bcrypt.
+export const DEFAULT_BCRYPT_ROUNDS = 6;
+
+export function bcryptRounds(value) {
+  if (value === undefined || value === '') return DEFAULT_BCRYPT_ROUNDS;
+  const rounds = Number(value);
+  if (!Number.isInteger(rounds) || rounds < 4 || rounds > 12) {
+    throw new Error('BCRYPT_ROUNDS deve ser um inteiro entre 4 e 12.');
+  }
+  return rounds;
+}
 
 // O runtime da Cloudflare recusa qualquer chamada de PBKDF2 acima de 100.000
-// iterações ("iteration counts above 100000 are not supported"). O padrão usa
-// um bloco. O encadeamento é preservado para verificar hashes antigos com
-// custo maior e configurações explícitas, sem invalidar senhas existentes.
+// iterações ("iteration counts above 100000 are not supported").
+// O encadeamento é preservado apenas para verificar hashes antigos com
+// custo maior, sem invalidar senhas existentes.
 // O hash guarda o total; a verificação repete a sequência original.
 export const MAX_ITERATIONS_PER_ROUND = 100000;
 
@@ -56,6 +66,9 @@ export function validatePassword(value) {
   }
   if (value.length > MAX_PASSWORD_LENGTH) {
     throw new ValidationError(`A senha pode ter no máximo ${MAX_PASSWORD_LENGTH} caracteres.`, 'password');
+  }
+  if (encoder.encode(value).length > MAX_PASSWORD_BYTES) {
+    throw new ValidationError('Use uma senha de até 72 bytes. Acentos e emojis ocupam mais de um byte.', 'password');
   }
   return value;
 }
@@ -104,15 +117,20 @@ function constantTimeEqual(first, second) {
   return difference === 0;
 }
 
-// Formato guardado: pbkdf2$sha256$<iterações>$<salt em base64>$<hash em base64>
-export async function hashPassword(password, iterations = DEFAULT_ITERATIONS) {
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  const derived = await derive(password, salt, iterations);
-  return `pbkdf2$sha256$${iterations}$${toBase64(salt)}$${toBase64(derived)}`;
+// Formato padrão bcrypt: $2b$<custo>$<salt e hash>. Nunca truncar a senha.
+export async function hashPassword(password, rounds = DEFAULT_BCRYPT_ROUNDS) {
+  validatePassword(password);
+  return bcrypt.hash(password, bcryptRounds(rounds));
 }
 
 export async function verifyPassword(password, stored) {
   if (typeof password !== 'string' || typeof stored !== 'string') return false;
+  if (password.length > MAX_PASSWORD_LENGTH) return false;
+  if (/^\$2[ab]\$(0[4-9]|1[0-2])\$[./A-Za-z0-9]{53}$/.test(stored)) {
+    if (encoder.encode(password).length > MAX_PASSWORD_BYTES) return false;
+    return bcrypt.compare(password, stored);
+  }
+  // Somente leitura do formato legado. Novas senhas sempre usam bcrypt.
   const parts = stored.split('$');
   if (parts.length !== 5 || parts[0] !== 'pbkdf2' || parts[1] !== 'sha256') return false;
   const iterations = Number(parts[2]);

@@ -1,28 +1,70 @@
 import { useState } from 'react';
 import { achievements, addCourse, completeMission, courseProgress, hasPreparation, nextMission } from '../../public/domain.js';
 import Icon from './Icon.jsx';
-import { Button } from './ui.jsx';
+import { Button, Cover, Glow, Progress } from './ui.jsx';
 import { Steps } from './Study.jsx';
 
 export default function StudyDialog({ modal, state, update, open, close, notify, go }) {
   const [error, setError] = useState('');
   const course = state.courses.find(course => course.id === modal.id);
-  if (modal.type === 'new') return <div className="dialog-content"><span className="eyebrow">MAIS UMA POSSIBILIDADE</span><h2 id="dialog-title">O que você quer aprender?</h2><p className="dialog-subtitle">Pode ser um curso, um livro ou um assunto.</p><form onSubmit={event => {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    try {
-      const next = addCourse(state, { title: data.get('title'), url: data.get('url'), steps: data.get('steps').split('\n'), art: data.get('art') });
-      update(next); close(); go('biblioteca'); notify('Uma nova possibilidade na sua biblioteca.');
-    } catch (error) { setError(error.message); }
-  }}><label className="auth-field" htmlFor="course-title">Nome do curso ou assunto<input id="course-title" name="title" required maxLength={100} autoComplete="off" placeholder="Ex.: Aprender a desenhar"/></label><label className="auth-field">Link do material (opcional)<input name="url" type="url" maxLength={2000} placeholder="https://…"/></label><label className="auth-field">Próximas etapas<textarea name="steps" required rows={4} placeholder={'Uma etapa por linha\nAté 40 etapas de 180 caracteres'}/></label><label className="auth-field">Estilo da capa<select name="art" defaultValue="nature"><option value="nature">Novos caminhos · verde</option><option value="design">Criatividade · areia</option><option value="code">Tecnologia · azul</option><option value="language">Descobertas · lilás</option></select></label>{error && <p role="alert" className="form-error">{error}</p>}<Button className="full-width" type="submit">Adicionar à minha biblioteca<Icon name="plus"/></Button></form></div>;
-  if (modal.type === 'success') return <div className="success-content"><div className="success-emblem"><Icon name={modal.preparation ? 'sprout' : 'spark'}/></div><h2 id="dialog-title">{modal.preparation ? 'O caminho está preparado.' : 'Olha só: você avançou.'}</h2><p>{modal.preparation ? 'A etapa original continua disponível, sem pressa.' : 'O que você fez já faz parte do seu caminho.'}</p><p className="quiet-note">Registro do protótipo, conforme o modelo legado. A nova política de recompensas ainda está planejada.</p>{state.preferences.gamification && <span className="success-xp">+{modal.xp} XP de legado</span>}{modal.award && state.preferences.gamification && <div className="new-achievement"><Icon name={modal.award.icon}/><strong>{modal.award.title}</strong></div>}<Button className="full-width" onClick={() => { close(); go('hoje'); }}>Voltar ao meu espaço<Icon name="arrow"/></Button>{modal.preparation && <button className="text-button" onClick={() => open({ type: 'session', id: modal.id })}>Quero continuar a etapa</button>}</div>;
-  if (!course) return <div className="dialog-content"><h2 id="dialog-title">Este curso não está disponível.</h2><Button onClick={close}>Voltar</Button></div>;
+  if (modal.type === 'new') return <div className="dialog-content">
+    <span className="eyebrow">Mais uma possibilidade</span>
+    <h2 id="dialog-title" className="headline">O que você quer aprender?</h2>
+    <p className="muted-text">Pode ser um curso, um livro ou um assunto.</p>
+    <form className="form-stack" onSubmit={event => {
+      event.preventDefault();
+      const data = new FormData(event.currentTarget);
+      try {
+        const next = addCourse(state, { title: data.get('title'), url: data.get('url'), steps: data.get('steps').split('\n'), art: data.get('art') });
+        update(next); close(); go('biblioteca'); notify('Uma nova possibilidade na sua biblioteca.');
+      } catch (error) { setError(error.message); }
+    }}>
+      <label className="field" htmlFor="course-title">Nome do curso ou assunto<input id="course-title" name="title" required maxLength={100} autoComplete="off" placeholder="Ex.: Aprender a desenhar"/></label>
+      <label className="field">Link do material (opcional)<input name="url" type="url" maxLength={2000} placeholder="https://…"/></label>
+      <label className="field">Próximas etapas<textarea name="steps" required rows={4} placeholder={'Uma etapa por linha\nAté 40 etapas de 180 caracteres'}/></label>
+      <label className="field">Estilo da capa<select name="art" defaultValue="nature"><option value="nature">Novos caminhos · verde</option><option value="design">Criatividade · areia</option><option value="code">Tecnologia · azul</option><option value="language">Descobertas · lilás</option></select></label>
+      {error && <p role="alert" className="form-error">{error}</p>}
+      <Button className="full-width" type="submit">Adicionar à minha biblioteca<Icon name="plus"/></Button>
+    </form>
+  </div>;
+
+  if (modal.type === 'success') return <div className="success-content">
+    <Glow palette={modal.preparation ? 'mint' : 'lume'} speed={.16}/>
+    <div className="success-body">
+      <div className={`dialog-emblem ${modal.preparation ? 'tone-mint' : ''}`}><Icon name={modal.preparation ? 'sprout' : 'spark'}/></div>
+      <h2 id="dialog-title" className="headline">{modal.preparation ? 'O caminho está preparado.' : 'Olha só: você avançou.'}</h2>
+      <p className="muted-text">{modal.preparation ? 'A etapa original continua disponível, sem pressa.' : 'O que você fez já faz parte do seu caminho.'}</p>
+      <p className="quiet-note">Registro do protótipo, conforme o modelo legado. A nova política de recompensas ainda está planejada.</p>
+      {state.preferences.gamification && <span className="success-xp"><Icon name="spark"/>+{modal.xp} XP de legado</span>}
+      {modal.award && state.preferences.gamification && <div className="new-achievement"><Icon name={modal.award.icon}/><strong>{modal.award.title}</strong></div>}
+      <Button className="full-width" onClick={() => { close(); go('hoje'); }}>Voltar ao meu espaço<Icon name="arrow"/></Button>
+      {modal.preparation && <button className="text-button centered" onClick={() => open({ type: 'session', id: modal.id })}>Quero continuar a etapa</button>}
+    </div>
+  </div>;
+
+  if (!course) return <div className="dialog-content"><h2 id="dialog-title" className="title">Este curso não está disponível.</h2><Button onClick={close}>Voltar</Button></div>;
   const mission = nextMission({ ...state, courses: [course] }, course.id);
   if (modal.type === 'course') {
     const progress = courseProgress(state, course);
-    return <><div className="dialog-course-cover"><div className="course-cover"><img src={`/assets/stitch/${course.art}.png`} alt=""/></div></div><div className="dialog-content"><div className="eyebrow">{course.example ? 'CURSO DE EXEMPLO' : 'SUA TRILHA'}</div><h2 id="dialog-title">{course.title}</h2><p>{progress.done} de {progress.total} etapas concluídas. Seu progresso fica com você.</p>{course.url ? <a className="text-link" target="_blank" rel="noopener noreferrer" href={course.url}>Abrir conteúdo do curso<Icon name="external"/></a> : <p className="inline-note">Este curso não tem conteúdo vinculado.</p>}<Steps course={course} state={state}/><div className="dialog-actions">{progress.done < progress.total && <Button secondary onClick={() => update(previous => ({ ...previous, courses: previous.courses.map(item => item.id === course.id ? { ...item, paused: !item.paused } : item) }))}><Icon name={course.paused ? 'play' : 'pause'}/>{course.paused ? 'Retomar curso' : 'Pausar curso'}</Button>}{mission && <Button onClick={() => { update(previous => ({ ...previous, selectedCourseId: course.id })); open({ type: 'session', id: course.id }); }}>Continuar<Icon name="arrow"/></Button>}{progress.done === progress.total && <span className="completed-message"><Icon name="check"/>Um caminho concluído.</span>}</div></div></>;
+    return <>
+      <div className="dialog-course-cover"><Cover art={course.art}/></div>
+      <div className="dialog-content">
+        <div className="eyebrow">{course.example ? 'Curso de exemplo' : 'Sua trilha'}</div>
+        <h2 id="dialog-title" className="headline">{course.title}</h2>
+        <p className="muted-text">{progress.done} de {progress.total} etapas concluídas. Seu progresso fica com você.</p>
+        <Progress value={progress.percent} tone="lume" label={`Progresso de ${course.title}`}/>
+        {course.url ? <a className="text-link" target="_blank" rel="noopener noreferrer" href={course.url}>Abrir conteúdo do curso<Icon name="external"/></a> : <p className="inline-note"><Icon name="book"/><span>Este curso não tem conteúdo vinculado.</span></p>}
+        <Steps course={course} state={state}/>
+        <div className="dialog-actions">
+          {progress.done < progress.total && <Button secondary onClick={() => update(previous => ({ ...previous, courses: previous.courses.map(item => item.id === course.id ? { ...item, paused: !item.paused } : item) }))}><Icon name={course.paused ? 'play' : 'pause'}/>{course.paused ? 'Retomar curso' : 'Pausar curso'}</Button>}
+          {mission && <Button onClick={() => { update(previous => ({ ...previous, selectedCourseId: course.id })); open({ type: 'session', id: course.id }); }}>Continuar<Icon name="arrow"/></Button>}
+          {progress.done === progress.total && <span className="completed-message"><Icon name="check"/>Um caminho concluído.</span>}
+        </div>
+      </div>
+    </>;
   }
-  if (!mission) return <div className="dialog-content"><h2 id="dialog-title">Nenhuma etapa disponível agora.</h2><Button onClick={close}>Voltar</Button></div>;
+
+  if (!mission) return <div className="dialog-content"><h2 id="dialog-title" className="title">Nenhuma etapa disponível agora.</h2><Button onClick={close}>Voltar</Button></div>;
   function finish() {
     const result = completeMission(state, course.id, mission.step.id, { preparation: !!modal.preparation });
     if (!result.added) { notify('Esse passo já foi registrado.'); close(); return; }
@@ -30,5 +72,18 @@ export default function StudyDialog({ modal, state, update, open, close, notify,
     const award = achievements(result.state).find(item => item.unlocked && !previous.find(old => old.id === item.id)?.unlocked);
     update(result.state); open({ type: 'success', id: course.id, preparation: modal.preparation, xp: result.xp, award });
   }
-  return <div className="session-content"><div className="session-emblem"><Icon name={modal.preparation ? 'sprout' : 'focus'}/></div><span className="eyebrow">UMA COISA DE CADA VEZ</span><h2 id="dialog-title">{modal.preparation ? 'Só preparar o caminho.' : mission.step.title}</h2><p className="session-course">{course.title}</p><p className="session-instruction">{modal.preparation ? 'Abra o material, separe o que precisa ou encontre o link da aula.' : 'Faça essa etapa no seu tempo. Quando terminar, volte aqui para registrar seu passo.'}</p>{course.url ? <a href={course.url} className="button secondary" target="_blank" rel="noopener noreferrer">Abrir material<Icon name="external"/></a> : <p className="inline-note">{course.example ? 'Curso de exemplo, sem aula vinculada. A conclusão é uma simulação.' : 'Use o material de estudo que você escolheu. Não há link cadastrado.'}</p>}{modal.preparation && <p className="small-hint">Isso não marcará a aula como concluída.</p>}<div className="session-actions"><Button className="full-width" onClick={finish}><Icon name="check"/>{modal.preparation ? 'Preparei meu material' : 'Concluí esse passo'}</Button>{!modal.preparation && !hasPreparation(state, mission.step.id) && <button className="text-button" onClick={() => open({ type: 'session', id: course.id, preparation: true })}>Tornar essa missão menor<Icon name="sprout"/></button>}<button className="text-button" onClick={close}>Voltar depois, sem perder nada</button></div></div>;
+  return <div className="session-content">
+    <div className={`dialog-emblem ${modal.preparation ? 'tone-mint' : ''}`}><Icon name={modal.preparation ? 'sprout' : 'focus'}/></div>
+    <span className="eyebrow">Uma coisa de cada vez</span>
+    <h2 id="dialog-title" className="headline">{modal.preparation ? 'Só preparar o caminho.' : mission.step.title}</h2>
+    <p className="session-course">{course.title}</p>
+    <p className="dialog-text">{modal.preparation ? 'Abra o material, separe o que precisa ou encontre o link da aula.' : 'Faça essa etapa no seu tempo. Quando terminar, volte aqui para registrar seu passo.'}</p>
+    {course.url ? <a href={course.url} className="button secondary full-width" target="_blank" rel="noopener noreferrer">Abrir material<Icon name="external"/></a> : <p className="inline-note"><Icon name="book"/><span>{course.example ? 'Curso de exemplo, sem aula vinculada. A conclusão é uma simulação.' : 'Use o material de estudo que você escolheu. Não há link cadastrado.'}</span></p>}
+    {modal.preparation && <p className="quiet-note">Isso não marcará a aula como concluída.</p>}
+    <div className="session-actions">
+      <Button className="full-width" onClick={finish}><Icon name="check"/>{modal.preparation ? 'Preparei meu material' : 'Concluí esse passo'}</Button>
+      {!modal.preparation && !hasPreparation(state, mission.step.id) && <button className="text-button centered" onClick={() => open({ type: 'session', id: course.id, preparation: true })}>Tornar essa missão menor<Icon name="sprout"/></button>}
+      <button className="text-button centered" onClick={close}>Voltar depois, sem perder nada</button>
+    </div>
+  </div>;
 }
