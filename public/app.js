@@ -341,9 +341,66 @@ function resetPage() {
 }
 
 function onboarding() {
-  return `<section class="rhythm-page"><div class="rhythm-progress-label"><span>UM COMEÇO DO SEU JEITO</span><span>Etapa 1 de 1</span></div><progress class="rhythm-progress" max="1" value="1" aria-label="Personalização inicial, etapa 1 de 1"></progress><div class="rhythm-intro"><span class="green-pill">VAMOS ENCONTRAR SEU RITMO</span><h1>Como os estudos fazem parte <br>da sua vida hoje?</h1><p>Não existe resposta certa, nem ritmo melhor. Escolha o que combina com seu momento. Você pode mudar depois.</p></div><fieldset class="rhythm-options"><legend class="sr-only">Seu ritmo de estudo</legend>${STUDY_RHYTHMS.map(item => `<label class="rhythm-card"><input id="rhythm-${item.id}" type="radio" name="habit" value="${item.id}" ${onboardingDraft.habit === item.id ? 'checked' : ''}/><span class="rhythm-card-top"><span class="rhythm-icon">${icon(item.icon)}</span><span class="rhythm-check" aria-hidden="true">${icon('check')}</span></span><span class="rhythm-label">${item.label}</span><strong class="rhythm-title">${item.title}</strong><span class="rhythm-subtitle">${item.subtitle}</span><span class="rhythm-description">${item.text}</span><span class="rhythm-detail">${icon('calendar')}${item.detail}</span></label>`).join('')}</fieldset><section class="study-supports"><div class="support-heading"><h2>${icon('focus')} O que ajudaria você a estudar?</h2><span>Escolha opcional · pode marcar mais de um</span></div><fieldset class="support-options"><legend class="sr-only">Apoios para o estudo</legend>${STUDY_SUPPORTS.map(item => `<label class="support-option"><input id="support-${item.id}" type="checkbox" name="support" value="${item.id}" ${onboardingDraft.supports.includes(item.id) ? 'checked' : ''}/><span><strong>${item.title}</strong><small>${item.text}</small></span>${icon(item.icon)}</label>`).join('')}</fieldset></section><div class="rhythm-result"><span>${icon('settings')} O que muda no seu espaço</span><p id="rhythm-summary" aria-live="polite">${esc(rhythmSummary())}</p></div><div class="rhythm-actions"><button class="text-button" data-action="skip-onboarding">${state.onboarded ? 'Usar minhas preferências salvas' : 'Explorar sem personalizar agora'}</button><button id="onboarding-next" class="button primary" data-action="finish-onboarding" ${!onboardingDraft.habit ? 'disabled' : ''}>Continuar no meu ritmo ${icon('arrow')}</button></div><p class="rhythm-footer">Sem diagnóstico, sem comparações. O plano é uma sugestão, não uma obrigação.</p></section>`;
-}
+  const rhythmCards = STUDY_RHYTHMS.map((item, index) => `<label class="pace-card group relative flex flex-col justify-between p-6 rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors duration-200 cursor-pointer shadow-sm">
+    <input class="peer sr-only" id="rhythm-${item.id}" type="radio" name="habit" value="${item.id}" ${onboardingDraft.habit === item.id ? 'checked' : ''}/>
+    <div class="flex flex-col gap-4">
+      <div class="flex items-start justify-between">
+        <div class="w-12 h-12 rounded-lg bg-surface-container-highest flex items-center justify-center card-accent text-2xl">${icon(item.icon)}</div>
+        <span class="card-indicator w-6 h-6 rounded-full bg-surface-container-highest">${icon('check')}</span>
+      </div>
+      <div class="flex flex-col gap-1">
+        <span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant/80">${esc(item.label)}</span>
+        <h2 class="font-headline-sm text-headline-sm text-on-surface group-hover:text-primary">${esc(item.title)}</h2>
+        <p class="text-on-surface-variant/80 font-body-sm text-body-sm">${esc(item.subtitle)}</p>
+      </div>
+      <p class="font-body-sm text-body-sm text-on-surface-variant">${esc(item.text)}</p>
+    </div>
+    <div class="flex items-center gap-2 pt-2 mt-6 border-t border-surface-variant/40 text-on-surface-variant font-label-sm text-label-sm"><span class="material-symbols-outlined text-lg">${icon('calendar')}</span><span>${esc(item.detail)}</span></div>
+  </label>`).join('');
 
+  const supportCards = STUDY_SUPPORTS.map((item) => `<label class="pace-card group relative flex items-start gap-3 p-6 rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors duration-200 cursor-pointer shadow-sm">
+    <input class="peer sr-only" id="support-${item.id}" type="checkbox" name="support" value="${item.id}" ${onboardingDraft.supports.includes(item.id) ? 'checked' : ''}/>
+    <span class="card-indicator w-6 h-6 rounded-sm bg-surface-container-highest flex-shrink-0 mt-0.5">${icon('check')}</span>
+    <span class="flex flex-col gap-1"><strong class="font-label-lg text-label-lg text-on-surface">${esc(item.title)}</strong><small class="font-body-sm text-body-sm text-on-surface-variant">${esc(item.text)}</small></span>
+    <span class="material-symbols-outlined text-lg card-accent self-start">${icon(item.icon)}</span>
+  </label>`).join('');
+
+  return `<div data-stitch class="w-full flex flex-col items-center">
+    <div class="relative w-full max-w-5xl mx-auto md:px-margin py-8 md:py-12 flex flex-col gap-space-lg">
+      <div class="absolute -top-12 left-1/2 -translate-x-1/2 w-96 h-48 bg-primary/5 rounded-full blur-3xl pointer-events-none -z-10"></div>
+      <div class="absolute top-1/3 -right-20 w-80 h-80 bg-secondary/5 rounded-full blur-3xl pointer-events-none -z-10"></div>
+
+      <header class="flex flex-col gap-space-sm w-full">
+        <div class="flex items-center justify-between text-on-surface-variant font-label-md text-label-md"><span class="inline-flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-secondary"></span>Passo 1 de 1 • Vamos calibrar seu potencial</span><span class="text-on-surface-variant font-label-sm text-label-sm uppercase tracking-wider">Etapa inicial</span></div>
+        <div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden"><div class="h-full w-1/2 bg-secondary rounded-full transition-all duration-500 ease-out"></div></div>
+      </header>
+
+      <section class="flex flex-col gap-space-xs mt-2">
+        <div class="inline-flex items-center gap-2 text-primary font-label-lg text-label-lg"><span class="material-symbols-outlined text-lg">${icon('spark')}</span><span>Sua jornada de descoberta</span></div>
+        <h1 class="font-headline-lg text-headline-lg text-on-surface md:text-display-lg md:font-display-lg">Como os estudos fazem parte da sua vida hoje?</h1>
+        <p class="font-body-lg text-body-lg text-on-surface-variant max-w-3xl">Não existe resposta certa, nem ritmo melhor. Escolha o que combina com seu momento. Você pode mudar depois, sem perder nada do que já estudou.</p>
+      </section>
+
+      <fieldset class="grid grid-cols-1 md:grid-cols-3 gap-space-md" id="pace-card-group"><legend class="sr-only">Seu ritmo de estudo</legend>${rhythmCards}</fieldset>
+
+      <section class="flex flex-col gap-space-sm"><div class="flex items-center justify-between flex-wrap gap-2"><h2 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-2"><span class="material-symbols-outlined card-accent">${icon('focus')}</span> O que ajudaria você a estudar?</h2><span class="font-label-sm text-label-sm text-on-surface-variant">Opcional • pode marcar mais de um</span></div>
+        <fieldset class="grid grid-cols-1 md:grid-cols-2 gap-space-sm"><legend class="sr-only">Apoios para o estudo</legend>${supportCards}</fieldset>
+      </section>
+
+      <div class="rounded-xl bg-surface-container border-t border-surface-variant/40 p-6 flex flex-col gap-2">
+        <span class="inline-flex items-center gap-2 text-secondary font-label-md text-label-md"><span class="material-symbols-outlined text-lg">${icon('settings')}</span> O que muda no seu espaço</span>
+        <p id="rhythm-summary" class="font-body-sm text-body-sm text-on-surface-variant" aria-live="polite">${esc(rhythmSummary())}</p>
+      </div>
+
+      <div class="flex flex-col-reverse md:flex-row items-center justify-between gap-4">
+        <button class="text-on-surface-variant hover:bg-surface-container rounded-lg px-8 py-3.5 font-label-md text-label-md transition-colors duration-200" data-action="skip-onboarding">${state.onboarded ? 'Usar minhas preferências salvas' : 'Explorar sem personalizar agora'}</button>
+        <button id="onboarding-next" class="w-full sm:w-auto px-8 py-3.5 rounded-lg bg-primary-container hover:bg-inverse-primary text-on-primary font-headline-sm text-headline-sm tracking-tight flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-primary" data-action="finish-onboarding" ${!onboardingDraft.habit ? 'disabled' : ''}>Continuar no meu ritmo ${icon('arrow')}</button>
+      </div>
+
+      <p class="text-center font-label-sm text-label-sm text-on-surface-variant">Sem diagnóstico, sem comparações. O plano é uma sugestão, não uma obrigação.</p>
+    </div>
+  </div>`;
+}
 function rhythmSummary() {
   if (!onboardingDraft.habit) return 'Escolha um ritmo para ver as sugestões. Seus dados e conquistas continuam guardados.';
   const suggested = applyStudyRhythm(state, onboardingDraft);
