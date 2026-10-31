@@ -165,6 +165,9 @@ function broadcast() {
     buildMenu();
   }
   if (panelWindow && !panelWindow.isDestroyed()) panelWindow.webContents.send('state', snapshot());
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('lume:update-status', { ...updateInfo, currentVersion: app.getVersion() });
+  }
 }
 
 // ---------- Atualização ----------
@@ -342,6 +345,13 @@ ipcMain.on('lume:theme', (_event, theme) => {
       height: TITLEBAR_HEIGHT,
     });
   } catch { /* plataformas sem overlay seguem com a barra padrão. */ }
+});
+
+ipcMain.handle('lume:update', async (_event, name) => {
+  if (name === 'check') return checkUpdate();
+  if (name === 'download') return downloadUpdate();
+  if (name === 'install') return installUpdate();
+  return { ...updateInfo, currentVersion: app.getVersion() };
 });
 
 ipcMain.handle('action', async (_event, name, payload = {}) => {

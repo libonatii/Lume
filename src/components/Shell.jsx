@@ -1,8 +1,10 @@
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import Icon from './Icon.jsx';
 import { AnimatedNumber, Logo, Progress, Ring } from './ui.jsx';
 import { levelInfo } from '../../public/domain.js';
 import { isDesktopApp } from '../lib/desktop.js';
+import DesktopUpdate from './DesktopUpdate.jsx';
 
 const desktop = isDesktopApp();
 
@@ -11,11 +13,36 @@ const planned = [['podium', 'Ranking']];
 const syncLabels = { saving: 'Salvando na conta…', saved: 'Progresso salvo na conta', error: 'Sem sincronização · cópia local preservada' };
 
 export default function Shell({ route, model, children, onComfort, onHelp, onRegister, onExit }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
   const entry = ['login', 'inicio', 'recuperar', 'redefinir'].includes(route);
   const level = levelInfo(model.state);
   const gamified = model.state.preferences.gamification;
   const name = model.account?.name || 'Prévia';
   const today = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [route]);
+
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    function onPointerDown(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    }
+    function onKeyDown(event) {
+      if (event.key === 'Escape') setMenuOpen(false);
+    }
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [menuOpen]);
+
   if (entry) return <div className="entry-shell">
     <header className="entry-header"><a className="brand" href="#login" aria-label="Lume — início"><Logo size={34}/><span className="brand-name">Lume</span></a><nav aria-label="Entrada no Lume"><button className="chip-button" onClick={onComfort}><Icon name="sun"/>Conforto visual</button>{route === 'login' ? <button className="text-button" onClick={onRegister}>Criar conta</button> : route === 'inicio' ? <button className="text-button" onClick={onExit}>Sair</button> : <a className="text-button" href="#login">Voltar à entrada</a>}<button className="text-button" onClick={onHelp}>Ajuda</button></nav></header>
     <main id="main" tabIndex={-1} className="entry-main">{children}</main>
@@ -40,10 +67,59 @@ export default function Shell({ route, model, children, onComfort, onHelp, onReg
         <div className="topbar-right">
           {gamified && <div className="level-chip"><Icon name="spark"/><span>Nível {level.level} · <strong>{level.current} / {level.next} XP</strong></span><Progress value={level.current} max={level.next} tone="lume" label="Experiência até o próximo nível"/></div>}
           <span className={`sync-chip sync-${model.account ? model.syncStatus : 'local'}`}><Icon name="cloud"/>{model.account ? syncLabels[model.syncStatus] || 'Conta conectada' : 'Prévia · progresso neste navegador'}</span>
-          <a className={`chip-button profile-top-link ${route === 'perfil' ? 'active' : ''}`} href="#perfil" aria-label="Meu Perfil"><Icon name="user"/><span>Meu Perfil</span></a>
+          {desktop && <DesktopUpdate/>}
           <a className="icon-button" href="#configuracoes" aria-label="Abrir minhas preferências"><Icon name="settings"/></a>
-          {model.account && <a className="account-chip" href="#perfil" title={model.account.email}>{model.state.profile?.avatar ? <img className="avatar small player-avatar-img" src={model.state.profile.avatar} alt=""/> : <span className="avatar small">{model.account.name.slice(0, 1).toUpperCase()}</span>}<span className="account-name">{model.account.name}</span></a>}
-          <button className="text-button exit-button" onClick={onExit}><Icon name="logout"/>{model.account ? 'Sair' : 'Sair da prévia'}</button>
+          <div className="user-menu-wrap" ref={menuRef}>
+            <button
+              type="button"
+              className={`account-chip user-menu-trigger ${menuOpen || route === 'perfil' ? 'active' : ''}`}
+              onClick={() => setMenuOpen(open => !open)}
+              aria-expanded={menuOpen}
+              aria-haspopup="menu"
+              aria-label={`Menu da conta (${name})`}
+              title={model.account?.email || 'Modo prévia'}
+            >
+              {model.state.profile?.avatar
+                ? <img className="avatar small player-avatar-img" src={model.state.profile.avatar} alt=""/>
+                : <span className="avatar small">{name.slice(0, 1).toUpperCase()}</span>}
+              <span className="account-name">{name}</span>
+              <span className={`user-menu-caret ${menuOpen ? 'open' : ''}`} aria-hidden="true">▾</span>
+            </button>
+            {menuOpen && <div className="user-dropdown" role="menu" aria-label="Opções do usuário">
+              <div className="user-dropdown-header">
+                <strong>{name}</strong>
+                <small>{model.account?.email || 'Modo prévia local'}</small>
+              </div>
+              <a
+                role="menuitem"
+                className={`user-dropdown-item ${route === 'perfil' ? 'active' : ''}`}
+                href="#perfil"
+                onClick={() => setMenuOpen(false)}
+              >
+                <Icon name="user"/>
+                <span>Meu Perfil</span>
+              </a>
+              <a
+                role="menuitem"
+                className={`user-dropdown-item ${route === 'configuracoes' ? 'active' : ''}`}
+                href="#configuracoes"
+                onClick={() => setMenuOpen(false)}
+              >
+                <Icon name="settings"/>
+                <span>Configurações</span>
+              </a>
+              <div className="user-dropdown-divider" role="separator"/>
+              <button
+                type="button"
+                role="menuitem"
+                className="user-dropdown-item danger"
+                onClick={() => { setMenuOpen(false); onExit(); }}
+              >
+                <Icon name="logout"/>
+                <span>{model.account ? 'Sair' : 'Sair da prévia'}</span>
+              </button>
+            </div>}
+          </div>
         </div>
       </header>
       <main id="main" tabIndex={-1}>{children}</main>

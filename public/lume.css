@@ -3377,7 +3377,7 @@ html[data-theme='light'] .steam-hero.has-custom-header .steam-hero-backdrop {
   position: relative;
   width: 158px;
   height: 158px;
-  border-radius: 20px;
+  border-radius: 50%;
   padding: 5px;
   background: linear-gradient(135deg, var(--lume) 0%, var(--mint) 52%, var(--lilac) 100%);
   box-shadow: 0 18px 38px -14px rgba(2, 6, 15, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.16) inset;
@@ -3390,7 +3390,7 @@ html[data-theme='light'] .steam-hero.has-custom-header .steam-hero-backdrop {
 .steam-avatar-fallback {
   width: 100%;
   height: 100%;
-  border-radius: 15px;
+  border-radius: 50%;
   background: var(--bg-elevated);
 }
 
@@ -3410,11 +3410,11 @@ html[data-theme='light'] .steam-hero.has-custom-header .steam-hero-backdrop {
 
 .steam-avatar-upload-trigger {
   position: absolute;
-  inset: auto 8px 8px 8px;
-  padding: 0.35rem 0.55rem;
-  border-radius: 10px;
+  inset: auto 18px 12px 18px;
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--radius-pill);
   border: 1px solid rgba(255, 255, 255, 0.22);
-  background: rgba(8, 13, 23, 0.82);
+  background: rgba(8, 13, 23, 0.85);
   color: #edf3ff;
   font-size: 0.74rem;
   font-weight: 650;
@@ -4107,4 +4107,26 @@ html[data-desktop="true"] .topbar input,
 html[data-desktop="true"] .entry-header a,
 html[data-desktop="true"] .entry-header button {
   -webkit-app-region: no-drag;
+}
+
+/* Botao pequeno de atualizacao, so na janela do app. */
+.desktop-update {
+  position: relative;
+}
+.desktop-update.is-available {
+  color: var(--lume);
+}
+.desktop-update-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--lume);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+.desktop-update:disabled {
+  opacity: 0.55;
+  cursor: default;
 }
