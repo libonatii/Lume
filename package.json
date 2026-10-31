@@ -3,12 +3,26 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Lume — um espaço de estudos no seu ritmo. Protótipo local, sem dependências.",
+  "description": "Lume — plataforma de estudos com Astro e React.",
   "scripts": {
-    "start": "node server.js",
-    "test": "node --test"
+    "start": "npm run build && node server.js",
+    "dev": "node scripts/dev.mjs",
+    "build": "astro build && node scripts/headers.mjs",
+    "preview": "node server.js",
+    "test": "node --test auth.test.js domain.test.js",
+    "test:e2e": "playwright test"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22.23.4"
+  },
+  "dependencies": {
+    "@astrojs/react": "^7.1.2",
+    "astro": "^7.4.4",
+    "motion": "^14.9.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1"
   }
 }

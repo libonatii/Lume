@@ -1066,9 +1066,9 @@
   [data-stitch] .md\:font-display-lg { font-family: var(--font-plus-jakarta); }
 }
 
-/* Marcadores de estado do Tailwind usados no export. O comportamento de seleção
-   é implementado com :has() nas regras de .pace-card acima, que funciona sem
-   precisar que o input seja irmão imediato do elemento estilizado. */
+/* Marcadores de estado do Tailwind usados no export. O comportamento de seleï¿½ï¿½o
+   ï¿½ implementado com :has() nas regras de .pace-card acima, que funciona sem
+   precisar que o input seja irmï¿½o imediato do elemento estilizado. */
 [data-stitch] .group { position: relative; }
 [data-stitch] .peer { position: absolute; opacity: 0; width: 1px; height: 1px; }
 [data-stitch] .peer-checked\:bg-secondary { }

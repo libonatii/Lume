@@ -1,6 +1,6 @@
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
-import { mkdirSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -12,45 +12,43 @@ import {
 } from './auth.js';
 
 // Servidor local (Node) com o mesmo contrato de API do Worker em worker.js.
-// Serve os arquivos de public/ e guarda contas em data/lume.db.
+// Serve o build estático do Astro e guarda contas em data/lume.db.
 
 const port = Number(process.env.PORT || 4173);
 const MAX_BODY_BYTES = 16 * 1024;
+const MAX_STATE_BYTES = 256 * 1024;
 const ATTEMPT_LIMIT = 10;
 const ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
 const ITERATIONS = Number(process.env.PBKDF2_ITERATIONS) || DEFAULT_ITERATIONS;
 
-const staticFiles = new Map([
-  ['/', ['public/index.html', 'text/html; charset=utf-8']],
-  ['/index.html', ['public/index.html', 'text/html; charset=utf-8']],
-  ['/styles.css', ['public/styles.css', 'text/css; charset=utf-8']],
-  ['/neurofocus.css', ['public/neurofocus.css', 'text/css; charset=utf-8']],
-  ['/entry.css', ['public/entry.css', 'text/css; charset=utf-8']],
-  ['/motion.css', ['public/motion.css', 'text/css; charset=utf-8']],
-  ['/stitch.css', ['public/stitch.css', 'text/css; charset=utf-8']],
-  ['/app.js', ['public/app.js', 'text/javascript; charset=utf-8']],
-  ['/domain.js', ['public/domain.js', 'text/javascript; charset=utf-8']],
-  ['/favicon.svg', ['public/favicon.svg', 'image/svg+xml']],
-]);
-for (const name of ['logo', 'calm', 'design', 'code', 'language', 'nature', 'detail', 'welcome']) {
-  staticFiles.set(`/assets/stitch/${name}.png`, [`public/assets/stitch/${name}.png`, 'image/png']);
+const staticFiles = new Map();
+const mime = { html: 'text/html; charset=utf-8', css: 'text/css; charset=utf-8', js: 'text/javascript; charset=utf-8', png: 'image/png', svg: 'image/svg+xml', woff2: 'font/woff2', json: 'application/json' };
+const dist = fileURLToPath(new URL('./dist/', import.meta.url));
+if (existsSync(dist)) {
+  for (const file of readdirSync(dist, { recursive: true, withFileTypes: true })) {
+    if (!file.isFile() || file.name.startsWith('_') || file.name.startsWith('.')) continue;
+    const absolute = join(file.parentPath, file.name);
+    const relative = absolute.slice(dist.length).replaceAll('\\', '/');
+    const extension = file.name.split('.').pop();
+    staticFiles.set(`/${relative}`, [absolute, mime[extension] || 'application/octet-stream']);
+  }
+  if (staticFiles.has('/index.html')) staticFiles.set('/', staticFiles.get('/index.html'));
 }
-for (const name of ['plus-jakarta-sans-latin', 'plus-jakarta-sans-latin-ext']) {
-  staticFiles.set(`/assets/fonts/${name}.woff2`, [`public/assets/fonts/${name}.woff2`, 'font/woff2']);
-}
+const headersFile = join(dist, '_headers');
+const builtCsp = existsSync(headersFile) ? readFileSync(headersFile, 'utf8').match(/Content-Security-Policy: (.+)/)?.[1] : null;
 
 const baseHeaders = {
   'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'no-referrer',
   'Cache-Control': 'no-store',
-  'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
+  'Content-Security-Policy': builtCsp || "default-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
 };
 
 // ---------- Banco local ----------
 
-const dataDirectory = fileURLToPath(new URL('./data/', import.meta.url));
+const dataDirectory = process.env.LUME_DATA_DIR || fileURLToPath(new URL('./data/', import.meta.url));
 mkdirSync(dataDirectory, { recursive: true });
-const db = new DatabaseSync(fileURLToPath(new URL('./data/lume.db', import.meta.url)));
+const db = new DatabaseSync(join(dataDirectory, 'lume.db'));
 const migrationsDirectory = fileURLToPath(new URL('./migrations/', import.meta.url));
 for (const file of readdirSync(migrationsDirectory).filter((name) => name.endsWith('.sql')).sort()) {
   db.exec(readFileSync(join(migrationsDirectory, file), 'utf8'));
@@ -335,7 +333,7 @@ const server = http.createServer(async (request, response) => {
       response.end('Página não encontrada.');
       return;
     }
-    const data = await readFile(fileURLToPath(new URL(entry[0], import.meta.url)));
+    const data = await readFile(entry[0]);
     response.writeHead(200, { ...baseHeaders, 'Content-Type': entry[1] });
     response.end(request.method === 'HEAD' ? undefined : data);
   } catch (error) {

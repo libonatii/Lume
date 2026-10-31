@@ -4,13 +4,15 @@
   "main": "worker.js",
   "compatibility_date": "2026-10-30",
 
-  // Os arquivos enviados ao navegador ficam em public/. O resto do repositório
+  // O Astro gera os arquivos enviados ao navegador em dist/. O resto do repositório
   // (worker.js, auth.js, migrations/, docs/) não é servido publicamente.
   "assets": {
-    "directory": "./public",
+    "directory": "./dist",
     "binding": "ASSETS",
     "not_found_handling": "none"
   },
+
+  "build": { "command": "npm run build" },
 
   "d1_databases": [
     {

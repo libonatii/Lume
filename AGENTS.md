@@ -33,6 +33,6 @@ Esses documentos descrevem o destino do Lume. O código atual é um protótipo e
 
 ## Verificação e entrega
 
-O projeto atual usa JavaScript sem dependências de aplicação. Execute `npm test` quando alterar regras de domínio e verifique os fluxos afetados quando alterar a interface. Mudanças apenas em documentação exigem revisão de coerência e links, sem necessidade de repetir testes de código inalterado.
+O projeto usa Astro, React e Motion, com build estático e API em JavaScript no servidor local ou Cloudflare Worker. Execute `npm test` quando alterar regras de domínio, `npm run build` para validar a aplicação e `npm run test:e2e` para verificar os fluxos de interface afetados. Mudanças apenas em documentação exigem revisão de coerência e links, sem necessidade de repetir testes de código inalterado. Por decisão explícita da responsável, a interface não oferece modo essencial nem tratamento de movimento reduzido; os campos antigos permanecem apenas para compatibilidade dos dados.
 
 Na entrega, informe o que mudou, o que foi verificado e o que ainda não está implementado. Não chame um recurso de concluído com base apenas em sua aparência.

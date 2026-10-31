@@ -32,14 +32,14 @@ Princípios obrigatórios:
 - **Sociabilidade com propósito:** conversar, compartilhar descobertas e colaborar em estudos reais.
 - **Pausas sem punição:** descanso não retira XP nem destrói conquistas; não exigir sequências diárias.
 - **Transparência:** diferenciar progresso informado pela pessoa de atividade observada por integração.
-- **Conforto:** interface legível, teclado, movimentos reduzidos, temas e modo essencial.
+- **Conforto:** interface legível, teclado, temas e tamanho de texto ajustável. Por decisão explícita da responsável nesta revisão, a interface não oferece modo essencial nem tratamento de movimento reduzido.
 - **Privacidade:** cada pessoa escolhe o que compartilhar; leitura de um material não deve torná-lo público automaticamente.
 
 O Lume não promete liberação de dopamina, eficácia clínica, aprendizado garantido ou aferição de inteligência. Gamificação é uma estratégia de engajamento a validar com usuários.
 
 ## 3. Ciclo principal de uso
 
-1. A pessoa cria uma conta e entra no produto completo. O cadastro e o login com e-mail e senha já funcionam no protótipo; o progresso ainda não é sincronizado entre dispositivos.
+1. A pessoa cria uma conta e entra no produto completo. O protótipo oferece cadastro e login com e-mail e senha e sincronização básica de uma cópia do progresso; reconciliação de alterações simultâneas entre dispositivos ainda está pendente.
 2. Informa seu ritmo, áreas de interesse e apoios desejados.
 3. Adiciona cursos, aulas, artigos, livros, exercícios ou projetos à biblioteca.
 4. Retoma um material do ponto salvo ou inicia uma atividade de estudo.
@@ -52,7 +52,7 @@ Preparar o ambiente e tornar uma atividade menor são apoios possíveis nesse ci
 
 ## 4. Entrada e personalização
 
-**O cadastro e o login com e-mail e senha já funcionam.** Esse acesso faz parte do produto, com recuperação de senha, saída da conta e dados associados à pessoa autenticada; a associação do progresso de estudo à conta ainda está pendente. O acesso demonstrativo da prévia continua existindo e não substitui a conta. Login com Google pode complementar o acesso; não substitui o requisito de e-mail e senha.
+**O cadastro e o login com e-mail e senha já funcionam.** Esse acesso faz parte do produto, com recuperação de senha, saída da conta e cópia do progresso associada à pessoa autenticada. A sincronização básica não implementa reconciliação de conflitos nem validação de XP no servidor. O acesso demonstrativo da prévia continua existindo e não substitui a conta. Login com Google pode complementar o acesso; não substitui o requisito de e-mail e senha.
 
 O onboarding deve identificar:
 
@@ -202,4 +202,4 @@ As regras detalhadas estão em [Gamificação](GAMIFICACAO.md).
 7. Pessoas podem compartilhar aprendizados e colaborar com amigos sem tornar toda a biblioteca pública.
 8. O ranking permite alternar entre nível, cursos concluídos e empenho no período, com regras visíveis e dados autorizados. A visão acumulada não desaparece na virada da semana.
 9. Mudar o ritmo ou precisar de uma pausa não retira conquistas.
-10. A experiência funciona com teclado, movimento reduzido e recursos sociais ocultos quando a pessoa assim escolher.
+10. A experiência funciona com teclado, temas e texto ajustável; os recursos sociais podem ser ocultos quando a pessoa assim escolher. Modo essencial e tratamento de movimento reduzido foram retirados do escopo por decisão explícita da responsável.

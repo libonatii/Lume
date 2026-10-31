@@ -1891,11 +1891,11 @@ dialog::backdrop {
   font-size:.88rem
 }
 
-@media (prefers-reduced-motion:no-preference) {
+
   .button,.course-card {
     transition:background .15s,border-color .15s
   }
-}
+
 
 
 @media(min-width:1500px) {
@@ -2438,16 +2438,3 @@ main {
 
 
 }
-
-
-@media(prefers-reduced-motion:reduce) {
-  *,*::before,*::after {
-  animation:none!important;
-  transition:none!important;
-  scroll-behavior:auto!important
-}
-
-
-}
-
-
