@@ -7,6 +7,7 @@ import {
 import Icon from './Icon.jsx';
 import { Button, Glow, ease, stagger } from './ui.jsx';
 import { api, apiError } from '../lib/api.js';
+import { copyText, selectText } from '../lib/clipboard.js';
 
 // Cada jornada tem a própria sequência. Não é o mesmo formulário com outro título.
 const STEPS = {
@@ -113,12 +114,12 @@ export default function Onboarding({ state, update, go, notify, account }) {
   async function copyInvite() {
     if (!invite) return;
     const link = `${location.origin}/#amigos?convite=${invite.code}`;
-    try {
-      await navigator.clipboard.writeText(link);
+    if (await copyText(link)) {
       notify('Link do convite copiado. Vale por 7 dias e só pode ser usado uma vez.');
-    } catch {
-      notify('Não foi possível copiar. Selecione o código e envie como preferir.');
+      return;
     }
+    selectText('.invite-code');
+    notify('Não foi possível copiar automaticamente. O código está selecionado: use Ctrl+C ou toque e segure.');
   }
 
   // Cria o primeiro material a partir das respostas. Não concede XP.

@@ -198,6 +198,8 @@ Um evento observado por um player ou integração ainda não comprova compreens�
 
 Na implementação da nova política para contas, o servidor deverá ser a autoridade de concessão de XP e pontuação compartilhada. A autenticação existente e o armazenamento de uma cópia do estado por `/api/state` ainda não implementam essa validação nem um livro de eventos elegíveis.
 
+O perfil entre amigos exibe XP, nível e progresso a partir dessa cópia sincronizada. São valores declarados, não validados: aparecem no perfil porque a pessoa os compartilhou, mas não tornam o registro elegível nem podem alimentar placar.
+
 Cada evento de XP deve ter uma chave única, por exemplo:
 
 ```text

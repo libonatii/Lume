@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Icon from './Icon.jsx';
 import { Button, Heading } from './ui.jsx';
 import { api, apiError } from '../lib/api.js';
+import { copyText, selectText } from '../lib/clipboard.js';
 
 // Amizades por convite. O convite é um código de uso único; não existe busca
 // por e-mail. Ser amigo não compartilha biblioteca, progresso nem XP — grupos,
@@ -42,12 +43,12 @@ export default function Friends({ account, notify, go }) {
   async function copyInvite() {
     if (!invite) return;
     const link = `${location.origin}/#amigos?convite=${invite.code}`;
-    try {
-      await navigator.clipboard.writeText(link);
+    if (await copyText(link)) {
       notify('Link do convite copiado. Ele vale por 7 dias e só pode ser usado uma vez.');
-    } catch {
-      notify('Não foi possível copiar. Selecione o código e envie como preferir.');
+      return;
     }
+    selectText('.invite-code');
+    notify('Não foi possível copiar automaticamente. O código está selecionado: use Ctrl+C ou toque e segure.');
   }
 
   async function accept(event) {
@@ -79,7 +80,7 @@ export default function Friends({ account, notify, go }) {
 
   return <div className="personal-root">
     <Heading eyebrow="Aprender junto, sem expor o que é seu" title="Amigos">
-      Convide por link. A amizade não libera sua biblioteca, seu progresso nem seu XP.
+      Convide por link. Cada pessoa escolhe o que os amigos veem no perfil; o e-mail nunca aparece.
     </Heading>
 
     {!account
@@ -126,6 +127,7 @@ export default function Friends({ account, notify, go }) {
                   <strong>{friend.name}</strong>
                   <small>Amigos desde {new Date(friend.since).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</small>
                 </span>
+                <button className="text-button" onClick={() => go(`perfil?id=${encodeURIComponent(friend.id)}`)}>Ver perfil</button>
                 <button className="text-button" onClick={() => remove(friend)} disabled={busy} aria-label={`Remover ${friend.name} da lista`}>Remover</button>
               </li>)}
             </ul>}
@@ -146,6 +148,6 @@ export default function Friends({ account, notify, go }) {
       </div>}
 
     {error && <p className="form-error" role="alert">{error}</p>}
-    <p className="quiet-note">Convites, amizades e remoções não geram XP. Grupos, compartilhamento de aprendizados e ranking continuam planejados.</p>
+    <p className="quiet-note">Convites, amizades e remoções não geram XP. O perfil mostra só o que cada pessoa autorizou: biblioteca, fila, progresso e XP são declarados, não validados pelo servidor. Grupos, compartilhamento de aprendizados e ranking continuam planejados.</p>
   </div>;
 }

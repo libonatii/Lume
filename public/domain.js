@@ -181,7 +181,7 @@ export function createInitialState() {
     habit: null,
     challenges: [],
     supports: [],
-    preferences: { essential: false, gamification: true, theme: 'dark', textSize: 'normal', weeklyGoal: 3, weeklyGoalSource: 'suggested' },
+    preferences: { essential: false, gamification: true, theme: 'dark', textSize: 'normal', weeklyGoal: 3, weeklyGoalSource: 'suggested', sharing: { library: true, queue: true, progress: true, xp: true } },
     onboarding: emptyOnboarding(),
     courses: [
       { id: 'design', title: 'Design de interfaces', category: 'Design & criatividade', art: 'design', url: '', example: true, paused: false, steps: [
@@ -471,6 +471,12 @@ export function restoreState(raw) {
         textSize: preferences.textSize === 'large' ? 'large' : 'normal',
         weeklyGoal: Number.isInteger(preferences.weeklyGoal) && preferences.weeklyGoal >= 1 && preferences.weeklyGoal <= 7 ? preferences.weeklyGoal : 3,
         weeklyGoalSource: preferences.weeklyGoalSource === 'manual' ? 'manual' : 'suggested',
+        sharing: {
+          library: preferences.sharing?.library !== false,
+          queue: preferences.sharing?.queue !== false,
+          progress: preferences.sharing?.progress !== false,
+          xp: preferences.sharing?.xp !== false,
+        },
       },
       onboarding: normalizeOnboarding(value.onboarding),
     };

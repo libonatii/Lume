@@ -6,6 +6,8 @@ import {
 } from './auth.js';
 import { ImportError, analyzeUrl, analyzeText } from './import-server.js';
 import { normalizePayload, detectProvider } from './public/import-domain.js';
+import { buildProfile } from './public/profile-domain.js';
+import { createInitialState, restoreState } from './public/domain.js';
 import {
   CompanionError, authenticateDevice, clearPresence, companionSelf, createPairCode,
   listCompanion, redeemPairCode, reportPresence, revokeDevice, studySnapshot,
@@ -380,6 +382,40 @@ async function handleCompanion(request, env, url) {
 
 // ---------- Amigos ----------
 
+// ---------- Perfil compartilhado ----------
+// O perfil é uma projeção da cópia de estado que a própria pessoa sincronizou.
+// Só amigos veem, o e-mail nunca sai e o que não foi autorizado não entra na resposta.
+
+async function handleProfile(request, env, url) {
+  const user = await currentUser(request, env);
+  if (!user) return json({ error: 'Entre na sua conta para ver perfis.' }, 401);
+  if (!sameOrigin(request, url)) return json({ error: 'Origem não autorizada.' }, 403);
+
+  const friendId = decodeURIComponent(url.pathname.slice('/api/profile/'.length));
+  if (!friendId) return json({ error: 'Perfil não encontrado.' }, 404);
+
+  const link = await env.DB.prepare('SELECT 1 AS linked FROM friendships WHERE user_id = ?1 AND friend_id = ?2')
+    .bind(user.id, friendId).first();
+  if (!link) return json({ error: 'Você só vê o perfil de quem está na sua lista de amigos.' }, 403);
+
+  const target = await env.DB.prepare('SELECT id, name FROM users WHERE id = ?1').bind(friendId).first();
+  if (!target) return json({ error: 'Perfil não encontrado.' }, 404);
+
+  const row = await env.DB.prepare('SELECT state, updated_at FROM user_state WHERE user_id = ?1').bind(friendId).first();
+  let state = createInitialState();
+  if (row?.state) {
+    try { state = restoreState(row.state); } catch { state = createInitialState(); }
+  }
+
+  return json({
+    profile: {
+      user: { id: target.id, name: target.name },
+      updatedAt: row?.updated_at ?? null,
+      ...buildProfile(state),
+    },
+  });
+}
+
 async function handleFriends(request, env, url) {
   const { pathname } = url;
   const method = request.method;
@@ -406,6 +442,11 @@ async function handleFriends(request, env, url) {
 
 async function handleApi(request, env, url) {
   const { pathname } = url;
+
+  if (pathname.startsWith('/api/profile/')) {
+    if (request.method !== 'GET') return json({ error: 'Método não permitido.' }, 405, { Allow: 'GET' });
+    return handleProfile(request, env, url);
+  }
 
   if (pathname === '/api/companion' || pathname.startsWith('/api/companion/')) {
     return handleCompanion(request, env, url);

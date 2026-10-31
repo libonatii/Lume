@@ -20,6 +20,8 @@ import {
 import {
   FriendsError, acceptInvite, createInvite, listFriends, removeFriend,
 } from './friends.js';
+import { buildProfile } from './public/profile-domain.js';
+import { createInitialState, restoreState } from './public/domain.js';
 
 // Servidor local (Node) com o mesmo contrato de API do Worker em worker.js.
 // Serve o build estático do Astro e guarda contas em data/lume.db.
@@ -460,6 +462,36 @@ async function handleFriendsRoute(request, response, pathname) {
   return send(response, 404, { error: 'Rota não encontrada.' });
 }
 
+async function handleProfileRoute(request, response, pathname) {
+  const user = await currentUser(request);
+  if (!user) return send(response, 401, { error: 'Entre na sua conta para ver perfis.' });
+  if (!sameOrigin(request)) return send(response, 403, { error: 'Origem não autorizada.' });
+  if (request.method !== 'GET') return send(response, 405, { error: 'Método não permitido.' }, { Allow: 'GET' });
+
+  const friendId = decodeURIComponent(pathname.slice('/api/profile/'.length));
+  if (!friendId) return send(response, 404, { error: 'Perfil não encontrado.' });
+
+  const linked = db.prepare('SELECT 1 AS linked FROM friendships WHERE user_id = ? AND friend_id = ?').get(user.id, friendId);
+  if (!linked) return send(response, 403, { error: 'Você só vê o perfil de quem está na sua lista de amigos.' });
+
+  const target = findUserById.get(friendId);
+  if (!target) return send(response, 404, { error: 'Perfil não encontrado.' });
+
+  const row = db.prepare('SELECT state, updated_at FROM user_state WHERE user_id = ?').get(friendId);
+  let state = createInitialState();
+  if (row?.state) {
+    try { state = restoreState(row.state); } catch { state = createInitialState(); }
+  }
+
+  return send(response, 200, {
+    profile: {
+      user: { id: target.id, name: target.name },
+      updatedAt: row?.updated_at ?? null,
+      ...buildProfile(state),
+    },
+  });
+}
+
 const server = http.createServer(async (request, response) => {
   const { pathname } = new URL(request.url, 'http://localhost');
 
@@ -480,6 +512,9 @@ const server = http.createServer(async (request, response) => {
       return request.method === 'GET' ? await handleStateGet(request, response) : await handleStatePut(request, response);
     }
 
+    if (pathname.startsWith('/api/profile/')) {
+      return await handleProfileRoute(request, response, pathname);
+    }
     if (pathname.startsWith('/api/companion')) {
       return await handleCompanionRoute(request, response, pathname);
     }

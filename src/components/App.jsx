@@ -7,11 +7,12 @@ import { Home, Library } from './Study.jsx';
 import Onboarding from './Onboarding.jsx';
 import { Achievements, History, Missions, Preferences } from './Personal.jsx';
 import Friends from './Friends.jsx';
+import Profile from './Profile.jsx';
 import StudyDialog from './StudyDialog.jsx';
 import { Button, Dialog, enter, ease } from './ui.jsx';
 import Icon from './Icon.jsx';
 
-const titles = { login: 'Bem-vindo', inicio: 'Seu ritmo', hoje: 'Hoje', biblioteca: 'Biblioteca', missoes: 'Missões', conquistas: 'Conquistas', historico: 'Meu caminho', amigos: 'Amigos', configuracoes: 'Do seu jeito', recuperar: 'Recuperar acesso', redefinir: 'Nova senha' };
+const titles = { login: 'Bem-vindo', inicio: 'Seu ritmo', hoje: 'Hoje', biblioteca: 'Biblioteca', missoes: 'Missões', conquistas: 'Conquistas', historico: 'Meu caminho', amigos: 'Amigos', configuracoes: 'Do seu jeito', perfil: 'Perfil', recuperar: 'Recuperar acesso', redefinir: 'Nova senha' };
 // Enquanto a sessão é verificada, o formulário não aparece: evita a impressão de estar deslogada.
 function SessionCheck() {
   return <section className="recovery-card" aria-busy="true"><span className="dialog-emblem"><Icon name="cloud"/></span><h1 className="headline">Verificando sua sessão.</h1><p className="muted-text">Só um instante enquanto confirmamos se você já está conectada.</p></section>;
@@ -78,6 +79,7 @@ export default function App() {
     case 'historico': page = <History state={state}/>; break;
     case 'amigos': page = <Friends account={model.account} notify={notify} go={go}/>; break;
     case 'configuracoes': page = <Preferences state={state} update={update} account={model.account} notify={notify} go={go} onPersonalize={() => go('inicio')}/>; break;
+    case 'perfil': page = <Profile id={new URLSearchParams(hash.split('?')[1] || '').get('id') || ''} state={state} account={model.account} go={go}/>; break;
   }
   return <><Shell route={route} model={model} onComfort={() => open({ type: 'comfort' })} onHelp={() => open({ type: 'help' })} onRegister={() => setAuthMode('register')} onExit={exit}><motion.div className={`page page-${route}`} key={route} {...enter}>{page}</motion.div></Shell>
     <div className="toast-region" role="status" aria-live="polite" aria-atomic="true"><AnimatePresence>{toast && <motion.div key="feedback" className="toast" initial={{ opacity: 0, y: 16, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8 }} transition={{ duration: .28, ease }}><span className="toast-icon"><Icon name="check"/></span><span>{toast.message}</span><button aria-label="Fechar aviso" className="icon-button" onClick={() => setToast(null)}><Icon name="close"/></button></motion.div>}</AnimatePresence></div>

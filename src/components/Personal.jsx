@@ -129,6 +129,17 @@ export function Preferences({ state, update, notify, onPersonalize, account, go 
     update(previous => ({ ...previous, preferences: { ...previous.preferences, [key]: value, ...(key === 'weeklyGoal' ? { weeklyGoalSource: 'manual' } : {}) } }));
     notify('Preferência salva. Seu espaço, do seu jeito.');
   }
+  function sharingPreference(key, value) {
+    update(previous => ({ ...previous, preferences: { ...previous.preferences, sharing: { ...previous.preferences.sharing, [key]: value } } }));
+    notify('Privacidade do perfil atualizada.');
+  }
+  function toggleProject(course) {
+    const open = course.shared !== true;
+    update(previous => ({ ...previous, courses: previous.courses.map(item => item.id === course.id ? { ...item, shared: open } : item) }));
+    notify(open ? 'Projeto marcado como público no seu perfil.' : 'Projeto voltou a ser privado.');
+  }
+  const sharing = state.preferences.sharing ?? {};
+  const projects = state.courses.filter(course => course.type === 'project');
   function download() {
     const url = URL.createObjectURL(new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' }));
     const anchor = document.createElement('a');
@@ -173,6 +184,29 @@ export function Preferences({ state, update, notify, onPersonalize, account, go 
             <span><strong>Plano semanal</strong><span>Passos sugeridos, sem obrigação.</span></span>
             <select value={state.preferences.weeklyGoal} onChange={event => preference('weeklyGoal', Number(event.target.value))}>{Array.from({ length: 7 }, (_, i) => <option key={i} value={i + 1}>{i + 1}</option>)}</select>
           </label>
+        </section>
+
+        <section className="card-surface settings-panel" aria-labelledby="sharing-title">
+          <div className="panel-title"><span className="pace-icon"><Icon name="users"/></span><div><h2 className="title" id="sharing-title">O que amigos veem</h2><p className="muted-text">O perfil abre só para quem está na sua lista de amigos.</p></div></div>
+          {[['library', 'Biblioteca', 'Materiais em estudo e concluídos.'], ['queue', 'Fila de estudo', 'O roteiro que aparece em Hoje.'], ['progress', 'Progresso', 'Aulas concluídas e percentuais.'], ['xp', 'XP e nível', 'Somados pela cópia sincronizada; não valem para ranking.']].map(([key, label, hint]) => <label className="setting-row" key={key}>
+            <span><strong>{label}</strong><span>{hint}</span></span>
+            <input className="switch" type="checkbox" checked={sharing[key] !== false} onChange={event => sharingPreference(key, event.target.checked)}/>
+          </label>)}
+          {account
+            ? <Button secondary onClick={() => go(`perfil?id=${encodeURIComponent(account.id)}`)}>Ver meu perfil<Icon name="arrow"/></Button>
+            : <p className="inline-note"><Icon name="info"/><span>Na prévia não existe lista de amigos: o perfil fica só neste navegador.</span></p>}
+          <div className="sharing-projects">
+            <strong className="title">Projetos no perfil</strong>
+            <p className="muted-text">Projetos começam privados e só aparecem quando você marca.</p>
+            {projects.length === 0
+              ? <p className="inline-note"><Icon name="info"/><span>Nenhum material do tipo projeto na biblioteca.</span></p>
+              : <ul className="sharing-project-list">{projects.map(course => <li key={course.id}>
+                <label className="setting-row">
+                  <span><strong>{course.title}</strong><span>{course.shared === true ? 'Aparece no seu perfil' : 'Privado'}</span></span>
+                  <input className="switch" type="checkbox" checked={course.shared === true} onChange={() => toggleProject(course)}/>
+                </label>
+              </li>)}</ul>}
+          </div>
         </section>
 
         <section className="card-surface privacy-note">

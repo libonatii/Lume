@@ -171,6 +171,14 @@ A vitrine reúne marcos permanentes, vinculados ao material real, com título, d
 
 Cada conquista possui uma página ou detalhe que explica o que foi concluído. A pessoa escolhe quais exibir no perfil e compartilhar. Textos personalizados não exigem geração por IA: modelos com o título do material são suficientes.
 
+### Perfil entre amigos (implementado no código local)
+
+- O perfil reúne o que a pessoa está estudando, o roteiro que aparece em Hoje, os projetos que ela marcou como públicos, os materiais concluídos e os números de progresso e XP.
+- Abrir o perfil exige amizade. Não existe perfil público por link, busca por e-mail nem página anônima.
+- Cada seção pode ser desligada em Configurações › O que amigos veem, e cada projeto nasce privado até ser marcado. Projeto privado não aparece em lugar nenhum, nem nas contagens.
+- XP, nível e progresso exibidos vêm da cópia que o navegador sincronizou: são declarados pela própria pessoa, não validados pelo servidor, e não valem para placar. A página informa isso.
+- Conquistas escolhidas para o perfil, grupos e compartilhamento de aprendizados continuam pendentes.
+
 ### Placares
 
 **O ranking é um recurso central previsto para o Lume.** Deve permitir comparar quem tem mais nível, quem concluiu mais cursos e quem está mais ativo e empenhado nos estudos. A existência desse recurso faz parte do escopo; a participação e a exposição de cada pessoa continuam configuráveis.
