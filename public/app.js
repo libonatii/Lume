@@ -36,7 +36,8 @@ let searchTerm = '';
 let session = null;
 let toastTimer;
 let lastRenderedRoute = null;
-let activePageTransition = null;
+const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
+const entranceAnimations = new Set();
 const icons = {
   home: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/>',
   book: '<path d="M12 5v16M3 4h5a4 4 0 0 1 4 2 4 4 0 0 1 4-2h5v15h-5a4 4 0 0 0-4 2 4 4 0 0 0-4-2H3Z"/>',
@@ -246,6 +247,7 @@ function go(destination) {
 function applyPreferences() {
   document.documentElement.dataset.theme = state.preferences.theme;
   document.documentElement.dataset.text = state.preferences.textSize;
+  document.documentElement.dataset.essential = String(state.preferences.essential);
   document.querySelector('meta[name="theme-color"]').content = state.preferences.theme === 'light' ? '#f4f5ef' : '#0c1322';
 }
 
@@ -416,20 +418,22 @@ function courseCard(course) {
   const progress = courseProgress(state, course);
   const status = courseStatus(state, course);
   const labels = { new: 'Para começar', active: 'Em andamento', paused: 'Em pausa para descansar', completed: 'Concluído' };
-  return `<button class="course-card ${course.id === state.selectedCourseId ? 'selected-course' : ''}" data-action="open-course" data-id="${esc(course.id)}" aria-label="${esc(course.title)}, ${labels[status]}, ${progress.done} de ${progress.total} etapas">
-    <div class="course-image">${cover(course)}<span class="course-status status-${status}"><span class="live-dot"></span>${labels[status]}</span></div><div class="course-card-body"><h3>${esc(course.title)}</h3><p class="course-description">${esc(course.category)}${course.example ? ' · Exemplo' : ''}</p><div class="course-progress-label"><span>${progress.done} de ${progress.total} etapas</span><strong>${progress.percent}%</strong></div><progress max="100" value="${progress.percent}" aria-hidden="true"></progress></div></button>`;
+  const art = ['design', 'code', 'language', 'nature'].includes(course.art) ? course.art : 'nature';
+  return `<button class="group relative flex flex-col rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors duration-200 overflow-hidden text-left w-full ${course.id === state.selectedCourseId ? 'ring-2' : ''}" data-action="open-course" data-id="${esc(course.id)}" aria-label="${esc(course.title)}, ${labels[status]}, ${progress.done} de ${progress.total} etapas">
+    <div class="relative h-44 overflow-hidden"><img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="./assets/stitch/${art}.png" alt="" loading="lazy"/><span class="absolute left-3 top-3 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface/90 backdrop-blur text-on-surface-variant font-label-sm text-label-sm"><span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>${labels[status]}</span></div>
+    <div class="p-4 flex flex-col gap-2 min-w-0"><h3 class="font-headline-sm text-headline-sm text-on-surface group-hover:text-primary truncate">${esc(course.title)}</h3><p class="font-body-sm text-body-sm text-on-surface-variant truncate">${esc(course.category)}${course.example ? ' · Exemplo' : ''}</p><div class="flex items-center justify-between font-label-sm text-label-sm text-on-surface-variant"><span>${progress.done} de ${progress.total} etapas</span><strong class="text-secondary font-semibold">${progress.percent}%</strong></div><div class="w-full h-1.5 bg-surface-container-highest rounded-full overflow-hidden"><div class="h-full bg-secondary rounded-full" style="width:${progress.percent}%"></div></div></div>
+  </button>`;
 }
-
 function progressCard() {
   const level = levelInfo(state);
   const count = weekCount(state);
   const target = state.preferences.weeklyGoal;
-  return `<aside class="journey-card panel"><div class="card-eyebrow">${icon('compass')} SEU CAMINHO</div>
-    ${state.preferences.gamification ? `<div class="level-row"><div class="level-medallion">${icon('spark')}</div><div><span class="overline">CADA PASSO CONTA</span><h2>Nível ${level.level}</h2><span class="muted">${level.total === 0 ? 'Toda jornada tem um começo.' : `${level.total} XP de descobertas.`}</span></div></div><div class="xp-label"><span>${level.current} / ${level.next} XP</span><span>Próximo nível</span></div><progress class="xp-progress" max="100" value="${level.current}" aria-label="Experiência até o próximo nível"></progress>` : `<div class="level-row"><div class="level-medallion">${icon('leaf')}</div><div><h2>Do seu jeito</h2><p>Progresso também é encontrar<br>um ritmo confortável.</p></div></div>`}
-    <div class="weekly-plan"><div><span>Seu plano da semana</span><strong>${count} <span class="muted">/ ${target} missões</span></strong></div><div class="week-dots" aria-label="${count} de ${target} missões nesta semana">${Array.from({ length: target }, (_, index) => `<span class="${index < count ? 'done' : ''}">${index < count ? icon('check') : ''}</span>`).join('')}</div><p>Uma sugestão, não uma cobrança.<br>Você pode ajustar quando quiser.</p></div>
+  return `<aside class="flex flex-col gap-4 p-6 rounded-xl bg-surface-container-low border border-outline-variant/30">
+    <span class="inline-flex items-center gap-2 text-secondary font-label-sm text-label-sm uppercase tracking-wider">${icon('compass')} Seu caminho</span>
+    ${state.preferences.gamification ? `<div class="flex items-center gap-3"><div class="w-12 h-12 rounded-lg bg-surface-container-highest flex items-center justify-center text-tertiary text-[24px]">${icon('spark')}</div><div><span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Cada passo conta</span><h2 class="font-headline-sm text-headline-sm text-on-surface">Nível ${level.level}</h2><span class="font-body-sm text-body-sm text-on-surface-variant">${level.total === 0 ? 'Toda jornada tem um começo.' : `${level.total} XP de descobertas.`}</span></div></div><div class="flex items-center justify-between font-label-sm text-label-sm text-on-surface-variant"><span>${level.current} / ${level.next} XP</span><span>Próximo nível</span></div><div class="w-full h-1.5 bg-surface-container-highest rounded-full overflow-hidden"><div class="h-full bg-primary rounded-full" style="width:${level.current}%"></div></div>` : `<div class="flex items-center gap-3"><div class="w-12 h-12 rounded-lg bg-surface-container-highest flex items-center justify-center text-secondary text-[24px]">${icon('leaf')}</div><div><h2 class="font-headline-sm text-headline-sm text-on-surface">Do seu jeito</h2><p class="font-body-sm text-body-sm text-on-surface-variant">Progresso também é encontrar um ritmo confortável.</p></div></div>`}
+    <div class="flex flex-col gap-2 pt-4 border-t border-outline-variant/30"><div class="flex items-center justify-between font-label-md text-label-md text-on-surface-variant"><span>Seu plano da semana</span><strong class="text-on-surface">${count} <span class="text-on-surface-variant">/ ${target} missões</span></strong></div><div class="flex gap-1.5" aria-label="${count} de ${target} missões nesta semana">${Array.from({ length: target }, (_, index) => `<span class="h-1.5 flex-1 rounded-full ${index < count ? 'bg-secondary' : 'bg-surface-container-highest'}"></span>`).join('')}</div><p class="font-body-sm text-body-sm text-on-surface-variant">Uma sugestão, não uma cobrança. Você pode ajustar quando quiser.</p></div>
   </aside>`;
 }
-
 function home() {
   const mission = nextMission(state);
   const essential = state.preferences.essential;
@@ -438,16 +442,33 @@ function home() {
   const prepareFirst = mission && plan.prepareFirst && !hasPreparation(state, mission.step.id);
   const goal = state.preferences.weeklyGoal;
   const progress = mission ? courseProgress(state, mission.course) : null;
-  return `<section class="welcome-heading"><span class="welcome-badge">${icon('sprout')} ESPAÇO SEU · SEM URGÊNCIA</span><h1>Olá. <span>Que bom ter você aqui.</span></h1><p>${esc(plan.message)}</p><button class="rhythm-profile" data-action="personalize">${icon('settings')} Seu ritmo: ${esc(plan.title)} · ajustar</button></section>
-  ${!state.onboarded ? `<div class="notice">${icon('sprout')}<span>Um começo mais seu: responda duas perguntas rápidas.</span><button class="text-button" data-action="personalize">Personalizar ${icon('arrow')}</button></div>` : ''}
-  <section class="focus-card ${essential ? 'focus-essential' : ''}" aria-labelledby="next-title"><div class="focus-main"><div class="focus-meta"><span class="focus-pill">Ação Focal Única</span><span>·</span><span>${mission ? esc(mission.course.title) : 'Seu caminho de descobertas'}</span></div><h2 id="next-title">${mission ? 'O começo pode ser pequeno.' : 'Cada passo já faz parte do seu caminho.'}</h2><p class="focus-description">${mission ? 'Você não precisa fazer tudo agora. Escolha um movimento pequeno, no seu tempo e sem compromisso de perfeição.' : 'Você pode adicionar um curso ou retomar uma trilha quando fizer sentido.'}</p>
-  ${mission ? `<div class="focal-task">${icon('focus')}<div><strong>${prepareFirst ? `Preparar o material: ${esc(mission.course.title)}` : esc(mission.step.title)}</strong><small>Sem tempo mínimo · Sem pressão de entrega${mission.course.example ? ' · Curso de exemplo' : ''}</small></div><span class="free-rhythm">${icon('history')} Ritmo livre</span></div><div class="focus-actions"><button class="button primary" data-action="${prepareFirst ? 'smaller-mission' : 'start-mission'}" data-id="${esc(mission.course.id)}">${icon('play')} ${prepareFirst ? 'Preparar meu material' : 'Começar este passo'}</button><button class="button secondary" data-action="${prepareFirst ? 'start-mission' : 'smaller-mission'}" data-id="${esc(mission.course.id)}">${icon('sprout')} ${prepareFirst ? 'Fazer a etapa completa' : 'Tornar ainda menor'}</button></div>` : `<button class="button primary" data-action="navigate" data-route="biblioteca">Explorar biblioteca ${icon('arrow')}</button>`}</div>
-  ${!essential ? `<aside class="rest-card"><span class="overline">CUIDADO COM SEU RITMO</span><h3>Pausa consciente</h3><p>Se hoje não der, você pode descansar. Seu progresso continua aqui para quando quiser voltar.</p><div class="rest-image"><img src="./assets/stitch/calm.png" alt=""/><div>${icon('leaf')}<span>Um respiro por vez</span><button class="button secondary" data-action="take-break">Fazer uma pausa</button></div></div><span class="rest-caption">Pausar sem culpa ${icon('pause')}</span></aside>` : ''}</section>
-  ${!essential ? `<div class="home-insights"><section class="insight-card"><div class="insight-label"><span>RITMO DA SEMANA</span><span class="green-pill">No seu tempo</span></div><h2>${count} de ${goal} passos dados</h2><p>Sem cobrança: descanse se precisar, seu progresso não expira.</p><div class="week-dots">${Array.from({length: goal}, (_,i) => `<span class="${i<count ? 'done' : ''}">${i<count ? icon('check') : ''}</span>`).join('')}</div><progress max="${Math.max(goal,count)}" value="${count}" aria-label="${count} de ${goal} missões nesta semana"></progress></section>
-  <section class="insight-card"><div class="insight-label"><span>TRILHA ATUAL</span><span>${progress ? progress.percent : 100}%</span></div><h2>${mission ? esc(mission.course.title) : 'Um caminho percorrido'}</h2><p>${mission ? 'Um pequeno passo de cada vez. Continue de onde parou.' : 'Explore um assunto novo quando quiser.'}</p><div class="insight-bottom"><span>Progresso contínuo ${progress ? `· ${progress.done} de ${progress.total} etapas` : ''}</span><progress max="100" value="${progress ? progress.percent : 100}" aria-label="Progresso da trilha atual"></progress><button class="text-button" data-action="${mission ? 'open-course' : 'navigate'}" ${mission ? `data-id="${esc(mission.course.id)}"` : 'data-route="biblioteca"'}>Ver detalhes da trilha ${icon('arrow')}</button></div></section>
-  <section class="insight-card"><div class="insight-label">ADAPTAÇÃO DE FOCO</div><h2>Mudar de jornada</h2><p>Não está fluindo hoje? Alterne para outro interesse sem perder seu progresso.</p><div class="insight-bottom"><a class="library-shortcut" href="#biblioteca">${icon('book')} Explorar toda a biblioteca ${icon('arrow')}</a><button class="text-button" data-action="add-course">${icon('plus')} Adicionar um novo interesse</button></div></section></div><section class="comfort-note">${icon('shield')}<div><h2>Lembrete de conforto</h2><p>Você pode parar e voltar depois. Seu caminho não precisa seguir o ritmo de ninguém.</p></div><a class="button secondary" href="#configuracoes">Ajustar meu espaço</a></section>` : '<p class="essential-note">Só o próximo passo. O restante está no menu, quando você precisar.</p>'}`;
+  return `<div data-stitch class="max-w-[1440px] mx-auto flex flex-col gap-space-lg">
+    <header class="flex flex-col gap-2">
+      <span class="inline-flex items-center gap-2 text-secondary font-label-sm text-label-sm uppercase tracking-wider"><span class="w-2 h-2 rounded-full bg-secondary shadow-[0_0_8px_rgba(69,223,164,0.7)]"></span>Espaço seu · sem urgência</span>
+      <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">Olá. <span class="text-secondary">Que bom ter você aqui.</span></h1>
+      <p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">${esc(plan.message)}</p>
+      <button class="inline-flex items-center gap-2 self-start px-3 py-2 rounded-lg bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-colors duration-200 font-label-md text-label-md" data-action="personalize"><span class="material-symbols-outlined text-lg">${icon('settings')}</span> Seu ritmo: ${esc(plan.title)} · ajustar</button>
+    </header>
+    ${!state.onboarded ? `<div class="flex items-center gap-3 p-4 rounded-xl bg-tertiary-container/30 border border-outline-variant/30"><span class="text-tertiary">${icon('sprout')}</span><span class="font-body-md text-body-md text-on-surface">Um começo mais seu: responda duas perguntas rápidas.</span><button class="text-secondary hover:underline font-label-md text-label-md inline-flex items-center gap-1" data-action="personalize">Personalizar ${icon('arrow')}</button></div>` : ''}
+    <section class="grid grid-cols-1 xl:grid-cols-2 gap-space-md" aria-labelledby="next-title">
+      <div class="relative flex flex-col gap-4 p-6 md:p-8 rounded-xl bg-surface-container-low shadow-xl overflow-hidden">
+        <div class="absolute -right-16 -top-32 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="relative z-10 flex items-center gap-2 flex-wrap font-label-sm text-label-sm text-on-surface-variant"><span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-secondary/15 text-secondary">Ação focal única</span><span>·</span><span>${mission ? esc(mission.course.title) : 'Seu caminho de descobertas'}</span></div>
+        <h2 id="next-title" class="relative z-10 font-headline-lg text-headline-lg text-on-surface tracking-tight">${mission ? 'O começo pode ser pequeno.' : 'Cada passo já faz parte do seu caminho.'}</h2>
+        <p class="relative z-10 font-body-md text-body-md text-on-surface-variant">${mission ? 'Você não precisa fazer tudo agora. Escolha um movimento pequeno, no seu tempo e sem compromisso de perfeição.' : 'Você pode adicionar um curso ou retomar uma trilha quando fizer sentido.'}</p>
+        ${mission ? `<div class="relative z-10 flex items-center gap-3 p-4 rounded-lg bg-surface-container"><span class="text-secondary">${icon('focus')}</span><div class="min-w-0"><strong class="font-label-lg text-label-lg text-on-surface block truncate">${prepareFirst ? `Preparar o material: ${esc(mission.course.title)}` : esc(mission.step.title)}</strong><small class="font-body-sm text-body-sm text-on-surface-variant">Sem tempo mínimo · Sem pressão de entrega${mission.course.example ? ' · Curso de exemplo' : ''}</small></div></div>
+        <div class="relative z-10 flex flex-wrap gap-3 pt-2"><button class="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-primary-container hover:bg-inverse-primary text-on-primary font-headline-sm text-headline-sm transition-all active:scale-[0.99]" data-action="${prepareFirst ? 'smaller-mission' : 'start-mission'}" data-id="${esc(mission.course.id)}">${icon('play')} ${prepareFirst ? 'Preparar meu material' : 'Começar este passo'}</button><button class="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-surface-container-high hover:bg-surface-bright text-on-surface font-label-lg text-label-lg transition-colors" data-action="${prepareFirst ? 'start-mission' : 'smaller-mission'}" data-id="${esc(mission.course.id)}">${icon('sprout')} ${prepareFirst ? 'Fazer a etapa completa' : 'Tornar ainda menor'}</button></div>` : `<button class="relative z-10 self-start flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary-container hover:bg-inverse-primary text-on-primary font-label-lg text-label-lg transition-colors" data-action="navigate" data-route="biblioteca">Explorar biblioteca ${icon('arrow')}</button>`}
+      </div>
+      ${!essential ? `<aside class="flex flex-col gap-3 p-6 rounded-xl bg-surface-container border border-outline-variant/30"><span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Cuidado com seu ritmo</span><h3 class="font-headline-sm text-headline-sm text-on-surface">Pausa consciente</h3><p class="font-body-sm text-body-sm text-on-surface-variant">Se hoje não der, você pode descansar. Seu progresso continua aqui para quando quiser voltar.</p><div class="relative h-32 rounded-lg overflow-hidden"><img class="w-full h-full object-cover opacity-80" src="./assets/stitch/calm.png" alt=""/><div class="absolute inset-0 bg-gradient-to-t from-surface-container-low/90 via-surface-container-low/20 to-transparent"></div><div class="absolute bottom-3 left-3 flex items-center gap-2"><span class="text-secondary">${icon('leaf')}</span><button class="px-3 py-1.5 rounded-lg bg-surface-container-high text-on-surface font-label-sm text-label-sm hover:bg-surface-container-highest transition-colors" data-action="take-break">Fazer uma pausa</button></div></div><span class="inline-flex items-center gap-1.5 font-label-sm text-label-sm text-on-surface-variant">Pausar sem culpa ${icon('pause')}</span></aside>` : ''}
+    </section>
+    ${!essential ? `<div class="grid grid-cols-1 md:grid-cols-3 gap-space-sm">
+      <section class="flex flex-col gap-3 p-6 rounded-xl bg-surface-container border border-outline-variant/30"><div class="flex items-center justify-between font-label-sm text-label-sm text-on-surface-variant"><span class="uppercase tracking-wider">Ritmo da semana</span><span class="px-2 py-0.5 rounded-full bg-secondary/15 text-secondary">No seu tempo</span></div><h2 class="font-headline-md text-headline-md text-on-surface">${count} de ${goal} passos</h2><p class="font-body-sm text-body-sm text-on-surface-variant">Sem cobrança: descanse se precisar, seu progresso não expira.</p><div class="flex gap-1.5" aria-label="${count} de ${goal} missões nesta semana">${Array.from({ length: goal }, (_, i) => `<span class="h-1.5 flex-1 rounded-full ${i < count ? 'bg-secondary' : 'bg-surface-container-highest'}"></span>`).join('')}</div></section>
+      <section class="flex flex-col gap-3 p-6 rounded-xl bg-surface-container border border-outline-variant/30"><div class="flex items-center justify-between font-label-sm text-label-sm text-on-surface-variant"><span class="uppercase tracking-wider">Trilha atual</span><span class="text-secondary">${progress ? progress.percent : 100}%</span></div><h2 class="font-headline-md text-headline-md text-on-surface truncate">${mission ? esc(mission.course.title) : 'Um caminho percorrido'}</h2><p class="font-body-sm text-body-sm text-on-surface-variant">${mission ? 'Um pequeno passo de cada vez. Continue de onde parou.' : 'Explore um assunto novo quando quiser.'}</p><div class="w-full h-1.5 bg-surface-container-highest rounded-full overflow-hidden"><div class="h-full bg-secondary rounded-full" style="width:${progress ? progress.percent : 100}%"></div></div><button class="inline-flex items-center gap-1 self-start text-secondary hover:underline font-label-md text-label-md" data-action="${mission ? 'open-course' : 'navigate'}" ${mission ? `data-id="${esc(mission.course.id)}"` : 'data-route="biblioteca"'}>Ver detalhes da trilha ${icon('arrow')}</button></section>
+      <section class="flex flex-col gap-3 p-6 rounded-xl bg-surface-container border border-outline-variant/30"><span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Adaptação de foco</span><h2 class="font-headline-md text-headline-md text-on-surface">Mudar de jornada</h2><p class="font-body-sm text-body-sm text-on-surface-variant">Não está fluindo hoje? Alterne para outro interesse sem perder seu progresso.</p><a class="inline-flex items-center gap-1 text-secondary hover:underline font-label-md text-label-md" href="#biblioteca">${icon('book')} Explorar toda a biblioteca ${icon('arrow')}</a><button class="inline-flex items-center gap-1 self-start text-on-surface-variant hover:text-on-surface font-label-md text-label-md" data-action="add-course">${icon('plus')} Adicionar um novo interesse</button></section>
+    </div>
+    <section class="flex flex-col md:flex-row md:items-center gap-4 p-6 rounded-xl bg-surface-container-low border border-outline-variant/30"><span class="text-secondary">${icon('shield')}</span><div class="flex-1"><h2 class="font-headline-sm text-headline-sm text-on-surface">Lembrete de conforto</h2><p class="font-body-sm text-body-sm text-on-surface-variant">Você pode parar e voltar depois. Seu caminho não precisa seguir o ritmo de ninguém.</p></div><a class="inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-surface-container-high hover:bg-surface-bright text-on-surface font-label-lg text-label-lg transition-colors" href="#configuracoes">Ajustar meu espaço</a></section>` : '<p class="font-body-sm text-body-sm text-on-surface-variant">Só o próximo passo. O restante está no menu, quando você precisar.</p>'}
+  </div>`;
 }
-
 const statusLabels = { all: 'Todos', active: 'Em andamento', new: 'Para começar', paused: 'Em pausa', completed: 'Concluídos' };
 function filteredCourses() {
   return state.courses.filter((course) => (libraryFilter === 'all' || courseStatus(state, course) === libraryFilter) && course.title.toLocaleLowerCase('pt-BR').includes(searchTerm.toLocaleLowerCase('pt-BR')));
@@ -463,12 +484,38 @@ function libraryDetail() {
   if (!course) return '';
   const progress = courseProgress(state, course);
   const next = course.steps.find(step => !state.completed.includes(step.id));
-  return `<aside class="library-detail"><div class="detail-image"><img src="./assets/stitch/${course.art === 'design' ? 'detail' : ['code','language','nature'].includes(course.art) ? course.art : 'nature'}.png" alt=""/><div><span class="green-pill">Sua trilha atual</span><h2>${esc(course.title)}</h2></div></div><button class="button primary full-width" data-action="${next && !course.paused ? 'start-mission' : 'open-course'}" data-id="${esc(course.id)}">${icon(next ? 'play' : 'check')} ${course.paused ? 'Ver curso em pausa' : next ? 'Continuar meu próximo passo' : 'Ver caminho concluído'}</button><span class="detail-rhythm">Ritmo livre · Sem pressa</span><div class="detail-section-heading">PRÓXIMOS PASSOS CLAROS</div><ol class="detail-steps">${course.steps.map((step,i) => `<li class="${state.completed.includes(step.id) ? 'detail-done' : step.id === next?.id ? 'detail-next' : ''}"><span>${state.completed.includes(step.id) ? icon('check') : i+1}</span><div>${esc(step.title)}<small>${state.completed.includes(step.id) ? 'Passo registrado' : step.id === next?.id ? 'Uma próxima ação possível' : 'Quando chegar o seu momento'}</small></div></li>`).join('')}</ol><div class="detail-progress"><span>${progress.done} de ${progress.total} etapas concluídas</span><progress max="100" value="${progress.percent}" aria-label="Progresso de ${esc(course.title)}"></progress></div><p class="detail-note">${icon('sprout')} Seu progresso é salvo neste navegador. Não há penalidades por pausas.</p></aside>`;
+  const art = course.art === 'design' ? 'detail' : ['code', 'language', 'nature'].includes(course.art) ? course.art : 'nature';
+  return `<aside class="xl:col-span-4 flex flex-col gap-4 p-6 rounded-xl bg-surface-container-low border border-outline-variant/30">
+    <div class="relative h-44 rounded-lg overflow-hidden"><img class="w-full h-full object-cover" src="./assets/stitch/${art}.png" alt=""/><div class="absolute inset-0 bg-gradient-to-t from-surface-container-low/90 via-surface-container-low/50 to-transparent"></div><div class="absolute bottom-3 left-3 right-3"><span class="inline-flex px-2 py-0.5 rounded-full bg-secondary/20 text-secondary font-label-sm text-label-sm">Sua trilha atual</span><h2 class="font-headline-sm text-headline-sm text-on-surface truncate">${esc(course.title)}</h2></div></div>
+    <button class="w-full px-5 py-3 rounded-lg bg-primary-container hover:bg-inverse-primary text-on-primary font-headline-sm text-headline-sm flex items-center justify-center gap-2 transition-all active:scale-[0.99]" data-action="${next && !course.paused ? 'start-mission' : 'open-course'}" data-id="${esc(course.id)}">${icon(next ? 'play' : 'check')} ${course.paused ? 'Ver curso em pausa' : next ? 'Continuar meu próximo passo' : 'Ver caminho concluído'}</button>
+    <span class="font-label-sm text-label-sm text-on-surface-variant">Ritmo livre · sem pressa</span>
+    <div class="flex flex-col gap-2 pt-4 border-t border-outline-variant/30">
+      <span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Próximos passos claros</span>
+      <ol class="flex flex-col gap-2">${course.steps.map((step, i) => `<li class="flex items-start gap-3 p-2 rounded-lg ${step.id === next?.id ? 'bg-surface-container-high' : ''}"><span class="w-6 h-6 rounded-full grid place-items-center flex-shrink-0 ${state.completed.includes(step.id) ? 'bg-secondary text-on-secondary' : 'bg-surface-container-highest text-on-surface-variant'} text-xs font-semibold">${state.completed.includes(step.id) ? icon('check') : i + 1}</span><div class="min-w-0"><span class="block font-body-sm text-body-sm text-on-surface ${state.completed.includes(step.id) ? 'opacity-60' : ''}">${esc(step.title)}</span><small class="block font-label-sm text-label-sm text-on-surface-variant">${state.completed.includes(step.id) ? 'Passo registrado' : step.id === next?.id ? 'Uma próxima ação possível' : 'Quando chegar o seu momento'}</small></div></li>`).join('')}</ol>
+    </div>
+    <div class="flex flex-col gap-2"><div class="flex items-center justify-between font-label-sm text-label-sm text-on-surface-variant"><span>${progress.done} de ${progress.total} etapas</span><strong class="text-secondary">${progress.percent}%</strong></div><div class="w-full h-1.5 bg-surface-container-highest rounded-full overflow-hidden"><div class="h-full bg-secondary rounded-full" style="width:${progress.percent}%"></div></div></div>
+    <p class="flex items-start gap-2 font-body-sm text-body-sm text-on-surface-variant"><span class="text-secondary">${icon('sprout')}</span> Seu progresso é salvo neste navegador. Não há penalidades por pausas.</p>
+  </aside>`;
 }
 function library() {
-  return `<div class="library-page-heading"><h1>Biblioteca</h1><p>Guarde seus cursos e tópicos de estudo. Continue de onde parou, no seu ritmo.</p></div><div class="library-toolbar"><label class="search-field">${icon('search')}<input id="course-search" type="search" placeholder="Buscar nas minhas trilhas…" aria-label="Buscar um curso pelo nome" value="${esc(searchTerm)}" /></label><div class="filter-list" role="group" aria-label="Filtrar cursos por situação">${Object.entries(statusLabels).map(([id,label]) => `<button class="filter-button ${libraryFilter===id ? 'selected' : ''}" aria-pressed="${libraryFilter===id}" data-action="filter" data-filter="${id}">${label} <span>(${id==='all' ? state.courses.length : state.courses.filter(c=>courseStatus(state,c)===id).length})</span></button>`).join('')}</div><button class="button primary" data-action="add-course">${icon('plus')} Adicionar curso</button></div><div class="library-layout"><section><div class="section-heading"><h2>Minha Estante <span class="shelf-count">${state.courses.length} trilhas</span></h2><span class="muted">Um interesse de cada vez</span></div><div class="course-grid library-grid" id="library-results">${libraryResults()}</div><div id="search-status" class="sr-only" role="status"></div><p class="library-help">${icon('help')} Capas ilustrativas. Os cursos de exemplo não incluem aulas.</p></section>${libraryDetail()}</div>`;
+  return `<div data-stitch class="max-w-[1440px] mx-auto flex flex-col gap-space-md">
+    <header class="flex flex-col gap-2"><h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">Biblioteca</h1><p class="font-body-lg text-body-lg text-on-surface-variant max-w-3xl">Guarde seus cursos e tópicos de estudo. Continue de onde parou, no seu ritmo.</p></header>
+    <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+      <label class="relative flex items-center gap-2 px-3 py-2.5 rounded-lg bg-surface-container-lowest shadow-inner min-w-0 md:w-80" for="course-search"><span class="text-on-surface-variant pointer-events-none">${icon('search')}</span><input class="w-full bg-transparent font-body-md text-body-md text-on-surface placeholder:text-outline-variant focus:outline-none" id="course-search" type="search" placeholder="Buscar nas minhas trilhas…" aria-label="Buscar um curso pelo nome" value="${esc(searchTerm)}"/></label>
+      <div class="flex flex-wrap gap-2" role="group" aria-label="Filtrar cursos por situação">${Object.entries(statusLabels).map(([id, label]) => `<button class="filter-btn" aria-pressed="${libraryFilter === id}" data-action="filter" data-filter="${id}">${label} <span class="opacity-60">(${id === 'all' ? state.courses.length : state.courses.filter((c) => courseStatus(state, c) === id).length})</span></button>`).join('')}</div>
+      <button class="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-primary-container hover:bg-inverse-primary text-on-primary font-label-lg text-label-lg transition-all active:scale-[0.99]" data-action="add-course">${icon('plus')} Adicionar curso</button>
+    </div>
+    <div class="grid grid-cols-1 xl:grid-cols-12 gap-space-md items-start">
+      <section class="xl:col-span-8 flex flex-col gap-3">
+        <div class="flex items-center justify-between flex-wrap gap-2"><h2 class="font-headline-md text-headline-md text-on-surface flex items-center gap-2">Minha estante <span class="px-2 py-0.5 rounded-full bg-secondary/15 text-secondary font-label-sm text-label-sm">${state.courses.length} trilhas</span></h2><span class="font-label-sm text-label-sm text-on-surface-variant">Um interesse de cada vez</span></div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-space-sm" id="library-results">${libraryResults()}</div>
+        <div id="search-status" class="sr-only" role="status"></div>
+        <p class="flex items-center gap-2 font-label-sm text-label-sm text-on-surface-variant"><span class="material-symbols-outlined text-lg">${icon('help')}</span> Capas ilustrativas. Os cursos de exemplo não incluem aulas.</p>
+      </section>
+      ${libraryDetail()}
+    </div>
+  </div>`;
 }
-
 function missions() {
   const available = state.courses.filter((course) => !course.paused).map((course) => ({ course, step: course.steps.find((step) => !state.completed.includes(step.id)) })).filter((mission) => mission.step);
   const today = state.history.filter((entry) => localDay(entry.at) === localDay(new Date()));
@@ -507,19 +554,44 @@ function settings() {
 }
 
 function motionEnabled() {
-  return !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return !motionPreference.matches && !state.preferences.essential;
 }
 
+function stopEntranceAnimations() {
+  entranceAnimations.forEach(animation => animation.cancel());
+  entranceAnimations.clear();
+}
+
+// Entradas finitas inspiradas no calm motion da Arc (catálogo FGLibs).
+// O conteúdo permanece visível e funcional sem a Web Animations API.
+function revealElements(elements, stagger = 45) {
+  if (!motionEnabled()) return;
+  [...elements].slice(0, 12).forEach((element, index) => {
+    if (typeof element.animate !== 'function') return;
+    const animation = element.animate([
+      { opacity: 0, transform: 'translateY(10px)' },
+      { opacity: 1, transform: 'translateY(0)' },
+    ], { duration: 400, delay: Math.min(index * stagger, 180), easing: 'cubic-bezier(.22, 1, .36, 1)', fill: 'backwards' });
+    entranceAnimations.add(animation);
+    animation.finished.catch(() => {}).finally(() => entranceAnimations.delete(animation));
+  });
+}
+
+motionPreference.addEventListener('change', stopEntranceAnimations);
+
 function render(focusMain = false) {
-  const changingPage = lastRenderedRoute !== null && lastRenderedRoute !== route();
-  activePageTransition?.skipTransition();
-  if (changingPage && motionEnabled() && typeof document.startViewTransition === 'function') {
-    activePageTransition = document.startViewTransition(() => renderContent(focusMain));
-    activePageTransition.ready.catch(() => {});
-  } else {
-    activePageTransition = null;
-    renderContent(focusMain);
-    if (changingPage && motionEnabled()) document.querySelector('#main').classList.add('screen-enter');
+  const enteringPage = lastRenderedRoute !== route();
+  stopEntranceAnimations();
+  renderContent(focusMain);
+  // Não repetir entradas ao digitar, salvar preferências ou receber resposta da API.
+  if (enteringPage) {
+    const selectors = {
+      login: '[aria-labelledby="welcome-title"], [aria-labelledby="login-title"]',
+      inicio: '#main header, #main section, #pace-card-group > label',
+      hoje: '.welcome-heading, .focus-card, .home-insights > section, .comfort-note',
+      biblioteca: '.library-page-heading, .library-toolbar, .course-card, .library-detail',
+    };
+    revealElements(document.querySelectorAll(selectors[route()] || '#main > :first-child, #main .panel, #main .task-card, #main .achievement-card, #main .history-entry'));
   }
 }
 
@@ -643,7 +715,11 @@ document.addEventListener('click', (event) => {
     case 'complete-mission': finishMission(); break;
     case 'close-dialog': session = null; dialog.close(); break;
     case 'finish-session': dialog.close(); go('hoje'); break;
-    case 'filter': libraryFilter = button.dataset.filter; render(); break;
+    case 'filter':
+      libraryFilter = button.dataset.filter;
+      render();
+      revealElements(document.querySelectorAll('#library-results > *'), 25);
+      break;
     case 'toggle-pause': {
       state.courses = state.courses.map((course) => course.id === id ? { ...course, paused: !course.paused } : course);
       save(); render(); showCourse(id); break;
