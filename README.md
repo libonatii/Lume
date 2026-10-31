@@ -1,3 +1,5 @@
+**🌐 Site publicado: <https://lume.lume-prototype.workers.dev>**
+
 # Lume ✳
 
 **Seu ritmo, seu caminho.** Uma plataforma social de estudos para organizar e retomar aprendizados, colaborar com amigos, compartilhar descobertas, conquistar marcos personalizados e participar de placares de estudo.
@@ -73,7 +75,7 @@ Amigos, grupos, colaboração, ranking com suas três classificações, integra�
 
 ## Hospedagem
 
-O endereço de referência é [lume.lume-prototype.workers.dev](https://lume.lume-prototype.workers.dev). A configuração de Wrangler agora gera o build antes de publicar e envia `dist/`; o backend e os vínculos com D1 são mantidos. Esta migração ainda precisa ser publicada para aparecer no site público. Nenhum plano pago foi ativado.
+O endereço de referência é [lume.lume-prototype.workers.dev](https://lume.lume-prototype.workers.dev), que responde com o build React/Astro e mantém o backend e os vínculos com D1. A configuração de Wrangler gera o build antes de publicar e envia `dist/`. Alterações feitas depois de uma publicação só aparecem no site público com um novo `npx wrangler deploy`. Nenhum plano pago foi ativado.
 
 O build gera hashes CSP dos scripts e estilos inline exatos do Astro e grava `dist/_headers`, utilizado também pelo servidor Node. Não libera execução genérica de scripts inline.
 
