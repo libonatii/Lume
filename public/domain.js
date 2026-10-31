@@ -26,6 +26,123 @@ export const STUDY_SUPPORTS = [
   { id: 'chunking', icon: 'steps', title: 'Passos ainda menores', text: 'Oferecer uma preparação antes da etapa completa.' },
 ];
 
+// Tipos de material usados no onboarding e na biblioteca. Não representam
+// capacidade nem nível: são apenas o formato do conteúdo.
+export const STUDY_TYPES = [
+  { id: 'lesson', title: 'Aula' },
+  { id: 'article', title: 'Artigo ou leitura' },
+  { id: 'exercise', title: 'Lista de exercícios' },
+  { id: 'project', title: 'Projeto' },
+  { id: 'course', title: 'Curso completo' },
+];
+
+export const SESSION_MINUTES = [10, 20, 30, 45];
+
+export const CONTINUITY_OBSTACLES = [
+  { id: 'choose', title: 'Escolher entre materiais' },
+  { id: 'where', title: 'Esquecer onde parei' },
+  { id: 'time', title: 'Falta de tempo' },
+  { id: 'clear', title: 'Tarefas pouco claras' },
+];
+
+export const TRACKING_PREFERENCES = [
+  { id: 'conclusions', title: 'Conclusões' },
+  { id: 'time', title: 'Tempo efetivo' },
+  { id: 'deliveries', title: 'Entregas' },
+  { id: 'collaboration', title: 'Colaboração' },
+];
+
+// O onboarding é versionado e retomável: interromper não obriga a recomeçar.
+export function emptyOnboarding() {
+  return { version: 2, status: 'pending', journey: null, step: 0, answers: {}, savedAt: null, finishedAt: null };
+}
+
+export function normalizeOnboarding(value) {
+  const base = emptyOnboarding();
+  if (!value || typeof value !== 'object') return base;
+  const journey = STUDY_RHYTHMS.some((item) => item.id === value.journey) ? value.journey : null;
+  const status = ['pending', 'active', 'done'].includes(value.status) ? value.status : base.status;
+  const step = Number.isInteger(value.step) && value.step >= 0 && value.step <= 8 ? value.step : 0;
+  const answers = value.answers && typeof value.answers === 'object' && !Array.isArray(value.answers) ? value.answers : {};
+  return {
+    version: 2,
+    status: journey ? status : 'pending',
+    journey,
+    step: journey ? step : 0,
+    answers,
+    savedAt: typeof value.savedAt === 'string' ? value.savedAt : null,
+    finishedAt: typeof value.finishedAt === 'string' ? value.finishedAt : null,
+  };
+}
+
+export function startJourney(state, journey) {
+  if (!STUDY_RHYTHMS.some((item) => item.id === journey)) throw new Error('Escolha uma das três jornadas.');
+  const current = normalizeOnboarding(state.onboarding);
+  const resuming = current.status === 'active' && current.journey === journey;
+  return {
+    ...state,
+    habit: journey,
+    onboarding: { ...current, journey, status: 'active', step: resuming ? current.step : 1, savedAt: new Date().toISOString() },
+  };
+}
+
+export function saveOnboardingAnswer(state, patch, step) {
+  const current = normalizeOnboarding(state.onboarding);
+  return {
+    ...state,
+    onboarding: {
+      ...current,
+      status: 'active',
+      answers: { ...current.answers, ...patch },
+      step: Number.isInteger(step) ? step : current.step,
+      savedAt: new Date().toISOString(),
+    },
+  };
+}
+
+// Conclui o onboarding sem conceder XP: criar material e escolher ritmo não são
+// eventos elegíveis na política de recompensas.
+export function completeJourney(state) {
+  const current = normalizeOnboarding(state.onboarding);
+  const rhythm = STUDY_RHYTHMS.find((item) => item.id === current.journey);
+  const manualGoal = state.preferences.weeklyGoalSource === 'manual';
+  return {
+    ...state,
+    onboarded: true,
+    habit: current.journey,
+    onboarding: { ...current, status: 'done', finishedAt: new Date().toISOString() },
+    preferences: {
+      ...state.preferences,
+      // Só sugere a meta quando ela nunca foi ajustada à mão.
+      weeklyGoal: manualGoal ? state.preferences.weeklyGoal : rhythm?.weeklyGoal ?? state.preferences.weeklyGoal,
+      weeklyGoalSource: manualGoal ? 'manual' : 'suggested',
+    },
+  };
+}
+
+// Plano inicial por jornada, usado na página Hoje e na revisão do ritmo.
+export function journeyPlan(state) {
+  const journey = normalizeOnboarding(state.onboarding).journey ?? state.habit;
+  const pending = state.courses.find((course) => !course.paused && course.steps.some((step) => !state.completed.includes(step.id)));
+  const resumed = pending ? pending.steps.find((step) => !state.completed.includes(step.id)) : null;
+  const base = { journey, title: 'Seu próximo passo', detail: 'Registro manual, no seu tempo.', firstActivity: resumed?.title ?? null, course: pending?.title ?? null };
+  if (journey === 'starting') return { ...base, title: 'Comece por uma coisa só', detail: 'Uma atividade concreta, sem montar um sistema inteiro.' };
+  if (journey === 'sometimes') return { ...base, title: 'Continuar de onde parei', detail: 'Retome o material que ficou aberto, sem recomeçar do zero.' };
+  if (journey === 'often') return { ...base, title: 'Prioridades e entregas', detail: 'Acompanhe trilhas, pontos de retomada e entregas próximas.' };
+  return base;
+}
+
+export function addMaterial(state, { title, url = '', type = 'lesson', resumeAt = '', firstActivity = '', steps = [] }) {
+  const activities = steps.length ? steps : [firstActivity || 'Concluir a primeira atividade'];
+  const next = addCourse(state, { title, url, steps: activities, art: 'nature' });
+  return {
+    ...next,
+    courses: next.courses.map((course) => course.id === next.selectedCourseId
+      ? { ...course, type, resumeAt, origin: 'onboarding' }
+      : course),
+  };
+}
+
 export function studyRhythm(state) {
   const rhythm = STUDY_RHYTHMS.find(item => item.id === state.habit);
   return {
@@ -45,9 +162,12 @@ export function applyStudyRhythm(state, { habit, supports = [] }) {
   const cleanSupports = [...new Set(supports.filter(id => STUDY_SUPPORTS.some(item => item.id === id)))];
   const changedRhythm = !state.onboarded || state.habit !== habit;
   const changedCalm = !state.onboarded || (state.supports || []).includes('calm') !== cleanSupports.includes('calm');
+  const manualGoal = state.preferences.weeklyGoalSource === 'manual';
   const next = { ...state, onboarded: true, habit, supports: cleanSupports };
   return { ...next, preferences: { ...state.preferences,
-    weeklyGoal: changedRhythm ? studyRhythm(next).weeklyGoal : state.preferences.weeklyGoal,
+    // Meta ajustada à mão não é substituída por sugestão de ritmo.
+    weeklyGoal: manualGoal || !changedRhythm ? state.preferences.weeklyGoal : studyRhythm(next).weeklyGoal,
+    weeklyGoalSource: manualGoal ? 'manual' : 'suggested',
     essential: changedCalm ? cleanSupports.includes('calm') : state.preferences.essential,
   } };
 }
@@ -59,7 +179,8 @@ export function createInitialState() {
     habit: null,
     challenges: [],
     supports: [],
-    preferences: { essential: false, gamification: true, theme: 'dark', textSize: 'normal', weeklyGoal: 3 },
+    preferences: { essential: false, gamification: true, theme: 'dark', textSize: 'normal', weeklyGoal: 3, weeklyGoalSource: 'suggested' },
+    onboarding: emptyOnboarding(),
     courses: [
       { id: 'design', title: 'Design de interfaces', category: 'Design & criatividade', art: 'design', url: '', example: true, paused: false, steps: [
         { id: 'design-1', title: 'Abrir o material e conhecer o curso' },
@@ -236,7 +357,9 @@ export function restoreState(raw) {
         theme: preferences.theme === 'light' ? 'light' : 'dark',
         textSize: preferences.textSize === 'large' ? 'large' : 'normal',
         weeklyGoal: Number.isInteger(preferences.weeklyGoal) && preferences.weeklyGoal >= 1 && preferences.weeklyGoal <= 7 ? preferences.weeklyGoal : 3,
+        weeklyGoalSource: preferences.weeklyGoalSource === 'manual' ? 'manual' : 'suggested',
       },
+      onboarding: normalizeOnboarding(value.onboarding),
     };
   } catch {
     return fallback;

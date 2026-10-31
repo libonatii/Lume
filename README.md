@@ -8,6 +8,8 @@ Leia nesta ordem: [Produto](docs/PRODUTO.md), [Gamificação](docs/GAMIFICACAO.m
 
 A gamificação desejada reconhece estudo efetivo e conclusões. O código ainda preserva o **modelo legado de 5 XP por preparação e 10 XP por etapa**, sem migrar nem reinterpretar os registros antigos. Esses valores não são uma implementação da nova política nem podem alimentar um ranking compartilhado.
 
+O onboarding tem três jornadas com sequências próprias: **Quero começar** (assunto, resultado, material e tempo de sessão), **Estudo de vez em quando** (materiais em andamento, prioridade e ponto de retomada) e **Estudo com frequência** (áreas, rotina, o que está em andamento e o que acompanhar). Cada uma cria um primeiro material concreto e um plano sugerido. Concluir o onboarding não concede XP.
+
 ## Stack e interações
 
 - **Astro** gera HTML e bundles estáticos em `dist/`.
@@ -20,7 +22,6 @@ A gamificação desejada reconhece estudo efetivo e conclusões. O código ainda
 A [FGLibs](https://fglibs.com/) foi consultada pelo site, pois seu MCP não estava disponível. As interações são implementações próprias em React e Motion, inspiradas nos [princípios da Arc Library](https://uiarc.dev/docs/motion), listada no catálogo; o pacote Arc não foi instalado.
 
 ## Executar localmente
-
 Use Node **22.23.4 ou superior** (testado com Node 24). Na primeira execução:
 
 ```sh

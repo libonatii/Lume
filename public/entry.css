@@ -166,3 +166,12 @@ main.entry-main { flex: 1; width: min(1120px, 100%); min-height: 0; padding: 24p
   .rhythm-actions .button { width: 100%; }
   .exit-preview { font-size: 8px; max-width: 45px; line-height: 1.5; }
 }
+
+/* Progresso do onboarding por jornada */
+.onboarding-progress { display: flex; flex-direction: column; gap: 8px; }
+.onboarding-progress-track { height: 6px; border-radius: 999px; background: var(--panel2); overflow: hidden; }
+.onboarding-progress-fill { height: 100%; border-radius: 999px; background: var(--green); }
+.auth-input { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font: inherit; }
+.auth-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pace-card.selected, .pace-card[aria-pressed="true"] { border-color: var(--green); }
+@media (prefers-reduced-motion: reduce) { .onboarding-progress-fill { transition: none !important; } }

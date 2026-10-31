@@ -13,9 +13,9 @@ A aplicação usa Astro, React e Motion. O Astro gera arquivos estáticos em `di
 | Capacidade | Situação |
 | --- | --- |
 | Entrada | Cadastro, login e saída com e-mail e senha; prévia local mantida como caminho alternativo, sem conta |
-| Ritmo de estudo | Três ritmos, apoios e sugestões de plano semanal |
+| Ritmo de estudo | Três jornadas de onboarding com sequências próprias (Quero começar, Estudo de vez em quando, Estudo com frequência), apoios opcionais, etapa social dispensável e retomada de onde parou. O estado fica em `onboarding` no documento da conta |
 | Biblioteca | Cursos/assuntos com etapas, busca, filtros, pausa e links |
-| Progresso | Registro local de conclusão de etapas e preparação |
+| Progresso | Registro local de conclusão de etapas e preparação; o documento de estudo é sincronizado por conta no D1 |
 | Gamificação | Modelo legado: 5 XP por preparação, 10 XP por etapa, nível a cada 100 XP |
 | Conquistas | Selos genéricos do protótipo, incluindo ações que não serão elegíveis na nova política |
 | Histórico | Dados no navegador e exportação JSON |
@@ -58,9 +58,19 @@ As telas de Entrada, Ritmo de Estudo, Hoje e Biblioteca usam essa marcação den
 
 Ainda sem exportação no Stitch, e por isso ainda no visual anterior: Missões, Conquistas, Meu Caminho, Configurações, Esqueci Minha Senha e Acesso Validado.
 
-### Contas e recuperação de acesso
+### Jornadas de onboarding
 
-`auth.js` concentra validação, derivação de senha com PBKDF2-SHA256 e sessão, usado tanto pelo `server.js` quanto pelo `worker.js`. O banco guarda apenas o resumo SHA-256 do token de sessão. Trocar a senha encerra todas as sessões daquela conta. Cadastro, entrada e recuperação não concedem XP.
+A escolha do ritmo não é só um título: cada jornada tem perguntas, configuração e plano próprios.
+
+- **Quero começar:** assunto, resultado esperado, se já existe material e quanto tempo reservar. Cria um material com uma primeira atividade concreta.
+- **Estudo de vez em quando:** materiais em andamento, prioridade, ponto de retomada e o que dificulta a continuidade. Cria o material já com o ponto de retomada.
+- **Estudo com frequência:** áreas, rotina existente, o que está em andamento e o que acompanhar. Preserva a rotina informada em vez de impor um plano.
+
+O estado do onboarding é versionado em `onboarding` (status, jornada, etapa, respostas, datas) e salvo no documento da conta, então interromper não obriga a recomeçar. Concluir não concede XP, e o histórico continua vazio. A meta semanal só é sugerida quando nunca foi ajustada à mão (`preferences.weeklyGoalSource`). A etapa social é opcional e não altera XP, plano ou ranking.
+
+Ainda não implementados: convites de amigos, grupos por convite e ranking. A tela informa isso em vez de simular números. As integrações por área também não existem; o acompanhamento é por registro manual.
+
+### Contas e recuperação de acesso`auth.js` concentra validação, derivação de senha com PBKDF2-SHA256 e sessão, usado tanto pelo `server.js` quanto pelo `worker.js`. O banco guarda apenas o resumo SHA-256 do token de sessão. Trocar a senha encerra todas as sessões daquela conta. Cadastro, entrada e recuperação não concedem XP.
 
 Por decisão da responsável, o padrão foi reduzido de 600.000 para 100.000 iterações para priorizar o plano gratuito, mantendo a opção `PBKDF2_ITERATIONS`. É uma redução da resistência a tentativas offline, abaixo da recomendação OWASP para PBKDF2-HMAC-SHA256. O custo de CPU precisa ser validado no Worker publicado. A verificação mantém o custo e o encadeamento originais dos hashes existentes; a mudança não migra contas nem redefine senhas antigas.
 

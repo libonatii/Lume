@@ -102,16 +102,43 @@ test('cadastro, saída, login, sincronização e recuperação na API local', as
   await expect(page.getByRole('heading', { name: 'Acesso validado.' })).toBeVisible();
 });
 
-test('personalização, pausa, retomada e navegação das telas restantes', async ({ page }) => {
+test('jornada 3 preserva a rotina e não gera XP ao configurar', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Explorar a prévia' }).click();
   await page.getByRole('heading', { name: 'Estudo com frequência', exact: true }).click();
-  await expect(page.getByRole('radio', { name: /Estudo com frequência/ })).toBeChecked();
-  await page.getByText('Retomar sem culpa', { exact: true }).click();
-  await expect(page.getByRole('checkbox', { name: /Retomar sem culpa/ })).toBeChecked();
-  await page.getByRole('button', { name: 'Continuar no meu ritmo' }).click();
-  await expect(page.getByText('5 de 5 passos', { exact: true })).toHaveCount(0);
+
+  // Etapa 1: áreas
+  await expect(page.getByRole('heading', { name: 'Quais áreas e trilhas você acompanha?' })).toBeVisible();
+  await page.getByLabel('Áreas e trilhas').fill('programação');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  // Etapa 2: rotina
+  await page.getByLabel('Rotina ou meta atual').fill('3 noites por semana, 40 minutos');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  // Etapa 3: em andamento
+  await page.getByLabel('Em andamento').fill('curso de algoritmos');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  // Etapa 4: acompanhamento
+  await page.getByText('Conclusões', { exact: true }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  // Revisão e material
+  await expect(page.getByRole('heading', { name: 'Seu plano inicial' })).toBeVisible();
+  await page.getByRole('button', { name: /Criar material e continuar/ }).click();
+  await page.getByRole('button', { name: /Concluir e ir para Hoje/ }).click();
+
   await expect(page.getByRole('heading', { name: '0 de 5 passos' })).toBeVisible();
+
+  const state = await page.evaluate(key => JSON.parse(localStorage.getItem(key)), STORAGE_KEY);
+  expect(state.onboarded).toBe(true);
+  expect(state.onboarding.status).toBe('done');
+  expect(state.onboarding.journey).toBe('often');
+  expect(state.history).toEqual([]);
+  expect(state.courses.some(course => course.title === 'curso de algoritmos' && course.origin === 'onboarding')).toBe(true);
+
+  // Navegação das telas restantes continua funcionando
   await page.getByRole('link', { name: 'Biblioteca', exact: true }).click();
   await page.getByRole('button', { name: /^Design de interfaces,/ }).click();
   await page.getByRole('button', { name: 'Pausar curso' }).click();
@@ -122,7 +149,58 @@ test('personalização, pausa, retomada e navegação das telas restantes', asyn
     await page.getByRole('link', { name: link, exact: true }).click();
     await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible();
   }
+});
+
+
+test('jornada 1 leva a uma primeira atividade concreta sem XP', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Explorar a prévia' }).click();
+  await page.getByRole('heading', { name: 'Quero começar', exact: true }).click();
+
+  await page.getByLabel('Assunto').fill('fundamentos de redes');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByLabel('Resultado esperado').fill('concluir a primeira aula');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  await page.getByText('Já tenho um material', { exact: false }).click();
+  await page.getByLabel('Nome do material').fill('Curso de redes — módulo 1');
+  await page.getByLabel('Primeira atividade').fill('Assistir à aula 1 completa');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  await page.getByRole('button', { name: '20 minutos' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: /Criar material e continuar/ }).click();
+  await page.getByRole('button', { name: /Concluir e ir para Hoje/ }).click();
+
   const state = await page.evaluate(key => JSON.parse(localStorage.getItem(key)), STORAGE_KEY);
+  expect(state.onboarding.journey).toBe('starting');
   expect(state.history).toEqual([]);
-  expect(state.courses.find(course => course.id === 'design').paused).toBe(false);
+  const material = state.courses.find(course => course.title === 'Curso de redes — módulo 1');
+  expect(material.type).toBe('lesson');
+  expect(material.steps[0].title).toBe('Assistir à aula 1 completa');
+  await expect(page.getByRole('heading', { name: '0 de 2 passos' })).toBeVisible();
+});
+
+test('jornada 2 registra o ponto de retomada', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Explorar a prévia' }).click();
+  await page.getByRole('heading', { name: 'Estudo de vez em quando', exact: true }).click();
+
+  await page.getByLabel('Materiais em andamento').fill('Curso de estatística');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByText('Curso de estatística', { exact: true }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByLabel('Onde você parou?').fill('aula 3');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByText('Esquecer onde parei', { exact: true }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: /Criar material e continuar/ }).click();
+  await page.getByRole('button', { name: /Concluir e ir para Hoje/ }).click();
+
+  const state = await page.evaluate(key => JSON.parse(localStorage.getItem(key)), STORAGE_KEY);
+  expect(state.onboarding.journey).toBe('sometimes');
+  expect(state.history).toEqual([]);
+  const material = state.courses.find(course => course.title === 'Curso de estatística');
+  expect(material.resumeAt).toBe('aula 3');
+  expect(material.steps[0].title).toBe('Retomar em: aula 3');
 });

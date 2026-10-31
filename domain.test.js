@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createInitialState, restoreState, completeMission, totalXP, courseProgress, courseStatus, nextMission, achievements, addCourse, safeCourseURL, weekCount } from './public/domain.js';
-import { applyStudyRhythm, studyRhythm } from './public/domain.js';
+import { applyStudyRhythm, studyRhythm, startJourney, saveOnboardingAnswer, completeJourney, normalizeOnboarding, addMaterial, journeyPlan } from './public/domain.js';
 
 test('comeÃ§a sem XP, com uma prÃ³xima aÃ§Ã£o concreta', () => {
   const state = createInitialState();
@@ -130,4 +130,64 @@ test('preferÃªncia antiga de reduzir movimentos Ã© descartada e nÃ£o volta ao es
   assert.equal('reducedMotion' in restored.preferences, false);
   assert.equal('reducedMotion' in createInitialState().preferences, false);
   assert.equal(restored.preferences.theme, 'dark');
+});
+
+test('cada jornada inicia uma sequência própria e retoma de onde parou', () => {
+  const initial = createInitialState();
+  const starting = startJourney(initial, 'starting');
+  assert.equal(starting.habit, 'starting');
+  assert.equal(starting.onboarding.status, 'active');
+  assert.equal(starting.onboarding.step, 1);
+
+  const inProgress = saveOnboardingAnswer(starting, { subject: 'redes' }, 2);
+  assert.equal(inProgress.onboarding.answers.subject, 'redes');
+  assert.equal(inProgress.onboarding.step, 2);
+
+  // Mesma jornada retoma a etapa; trocar de jornada recomeça a sequência.
+  assert.equal(startJourney(inProgress, 'starting').onboarding.step, 2);
+  assert.equal(startJourney(inProgress, 'often').onboarding.step, 1);
+  assert.throws(() => startJourney(initial, 'inexistente'));
+});
+
+test('onboarding interrompido sobrevive à restauração do estado', () => {
+  const interrupted = saveOnboardingAnswer(startJourney(createInitialState(), 'sometimes'), { studying: 'estatística' }, 2);
+  const restored = restoreState(JSON.stringify(interrupted));
+  assert.equal(restored.onboarding.status, 'active');
+  assert.equal(restored.onboarding.journey, 'sometimes');
+  assert.equal(restored.onboarding.step, 2);
+  assert.equal(restored.onboarding.answers.studying, 'estatística');
+  assert.equal(normalizeOnboarding({ journey: 'nada', step: 99 }).status, 'pending');
+});
+
+test('concluir a jornada não concede XP nem apaga materiais', () => {
+  const withMaterial = addMaterial(createInitialState(), { title: 'Curso de redes', type: 'lesson', firstActivity: 'Assistir à aula 1' });
+  const done = completeJourney(saveOnboardingAnswer(startJourney(withMaterial, 'starting'), { subject: 'redes' }, 5));
+  assert.equal(done.onboarded, true);
+  assert.equal(done.onboarding.status, 'done');
+  assert.equal(totalXP(done), 0);
+  assert.equal(done.courses.length, withMaterial.courses.length);
+  assert.equal(done.preferences.weeklyGoal, 2);
+  assert.equal(done.preferences.weeklyGoalSource, 'suggested');
+});
+
+test('meta ajustada à mão não é substituída ao revisar o ritmo', () => {
+  const initial = createInitialState();
+  initial.preferences.weeklyGoal = 6;
+  initial.preferences.weeklyGoalSource = 'manual';
+  const done = completeJourney(startJourney(initial, 'often'));
+  assert.equal(done.preferences.weeklyGoal, 6);
+  const reviewed = applyStudyRhythm(done, { habit: 'starting', supports: [] });
+  assert.equal(reviewed.preferences.weeklyGoal, 6);
+});
+
+test('material do onboarding guarda tipo e ponto de retomada sem gerar histórico', () => {
+  const next = addMaterial(createInitialState(), { title: 'Artigo de processo penal', type: 'article', resumeAt: 'página 12', firstActivity: 'Ler a seção 2' });
+  const created = next.courses.at(-1);
+  assert.equal(created.title, 'Artigo de processo penal');
+  assert.equal(created.type, 'article');
+  assert.equal(created.resumeAt, 'página 12');
+  assert.equal(created.origin, 'onboarding');
+  assert.deepEqual(next.history, []);
+  assert.equal(totalXP(next), 0);
+  assert.equal(journeyPlan(next).firstActivity !== null, true);
 });
