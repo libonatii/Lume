@@ -1,0 +1,37 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "lume",
+  "main": "worker.js",
+  "compatibility_date": "2026-10-30",
+
+  // Os arquivos enviados ao navegador ficam em public/. O resto do repositório
+  // (worker.js, auth.js, migrations/, docs/) não é servido publicamente.
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "not_found_handling": "none"
+  },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "lume",
+      "database_id": "d7de0740-0fcc-49a9-8c70-e8c4f85c5f63",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  "vars": {
+    // Sem transporte de e-mail configurado, o link de recuperação volta na
+    // resposta para permitir testar o fluxo. Desligue quando o envio existir.
+    "SHOW_RESET_LINK": "true"
+  },
+
+  // PBKDF2 com 600.000 iterações não cabe nos 10 ms de CPU do plano gratuito.
+  // No plano pago, 30 s é o padrão e sobra folga.
+  "observability": {
+    "enabled": true,
+    "logs": { "enabled": true, "head_sampling_rate": 1 },
+    "traces": { "enabled": true, "head_sampling_rate": 0.01 }
+  }
+}

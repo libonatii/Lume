@@ -1,0 +1,989 @@
+/* =============================================================================
+   Lume — sistema visual do Stitch, preservado das exportações originais.
+   Fonte dos tokens: designs/stitch/*/index.html (tailwind.config do export).
+   Nomes de cor, tipografia, espaçamento e raio são idênticos ao Stitch.
+   Aplicado apenas dentro de [data-stitch] para não afetar o resto do app.
+   ============================================================================= */
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('./assets/fonts/plus-jakarta-sans-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('./assets/fonts/plus-jakarta-sans-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20BF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+:root {
+  --color-on-error-container: #ffdad6;
+  --color-inverse-primary: #005ac2;
+  --color-on-surface-variant: #c2c6d6;
+  --color-error: #ffb4ab;
+  --color-outline-variant: #424754;
+  --color-tertiary-fixed: #ffddb8;
+  --color-tertiary: #ffb95f;
+  --color-on-background: #dce2f7;
+  --color-on-tertiary-container: #3e2400;
+  --color-on-tertiary-fixed: #2a1700;
+  --color-on-primary-fixed-variant: #004395;
+  --color-on-secondary-fixed: #002114;
+  --color-secondary-container: #00bd85;
+  --color-on-error: #690005;
+  --color-on-tertiary-fixed-variant: #653e00;
+  --color-surface-variant: #2e3545;
+  --color-secondary-fixed: #68fcbf;
+  --color-primary-fixed: #d8e2ff;
+  --color-surface: #0c1322;
+  --color-background: #0c1322;
+  --color-surface-container-low: #141b2b;
+  --color-on-primary-fixed: #001a42;
+  --color-inverse-on-surface: #293040;
+  --color-secondary-fixed-dim: #45dfa4;
+  --color-outline: #8c909f;
+  --color-primary: #adc6ff;
+  --color-on-secondary: #003825;
+  --color-on-surface: #dce2f7;
+  --color-primary-container: #4d8eff;
+  --color-surface-container-highest: #2e3545;
+  --color-tertiary-fixed-dim: #ffb95f;
+  --color-surface-bright: #323949;
+  --color-on-primary: #002e6a;
+  --color-on-tertiary: #472a00;
+  --color-on-primary-container: #00285d;
+  --color-on-secondary-container: #00452e;
+  --color-secondary: #45dfa4;
+  --color-surface-container-lowest: #070e1d;
+  --color-primary-fixed-dim: #adc6ff;
+  --color-on-secondary-fixed-variant: #005137;
+  --color-error-container: #93000a;
+  --color-surface-dim: #0c1322;
+  --color-surface-container: #191f2f;
+  --color-surface-container-high: #232a3a;
+  --color-tertiary-container: #ca8100;
+  --color-inverse-surface: #dce2f7;
+  --color-surface-tint: #adc6ff;
+
+  --spacing-margin-mobile: 1.25rem;
+  --spacing-space-lg: 2rem;
+  --spacing-gutter: 1.5rem;
+  --spacing-gutter-mobile: 1rem;
+  --spacing-space-xl: 3rem;
+  --spacing-space-md: 1.25rem;
+  --spacing-margin: 2.5rem;
+  --spacing-space-sm: 0.75rem;
+  --spacing-space-xs: 0.375rem;
+
+  --radius-default: 0.25rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-full: 9999px;
+
+  --text-headline-lg: 28px;
+  --text-label-lg: 14px;
+  --text-display-lg-mobile: 30px;
+  --text-body-lg: 16px;
+  --text-label-sm: 11px;
+  --text-display-lg: 40px;
+  --text-label-md: 12px;
+  --text-body-sm: 13px;
+  --text-body-md: 14px;
+  --text-headline-sm: 18px;
+  --text-headline-md: 22px;
+
+  --font-plus-jakarta: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
+}
+
+
+/* Base: herda os tokens do Stitch dentro do escopo. */
+[data-stitch] {
+  font-family: var(--font-plus-jakarta);
+  color: var(--color-on-surface);
+  background-color: var(--color-surface);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+
+[data-stitch] ::selection {
+  background: var(--color-secondary-container);
+  color: var(--color-on-secondary-container);
+}
+
+/* Ícones: o export usa Material Symbols. Sem a fonte (4 MB), os glifos viram
+   texto. Onde o app já tem SVG próprio, use .stitch-icon. */
+[data-stitch] .material-symbols-outlined {
+  font-family: var(--font-plus-jakarta);
+  font-weight: 500;
+  font-size: 1em;
+  vertical-align: -0.1em;
+  opacity: .85;
+}
+
+/* Tipografia — nomes e medidas idênticos ao export. */
+[data-stitch] .text-headline-lg,
+[data-stitch] .font-headline-lg {
+  font-size: 28px;
+  line-height: 36px;
+  letter-spacing: -0.01em;
+  font-weight: 600;
+}
+
+[data-stitch] .text-label-lg,
+[data-stitch] .font-label-lg {
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  font-weight: 500;
+}
+
+[data-stitch] .text-display-lg-mobile,
+[data-stitch] .font-display-lg-mobile {
+  font-size: 30px;
+  line-height: 38px;
+  letter-spacing: -0.01em;
+  font-weight: 700;
+}
+
+[data-stitch] .text-body-lg,
+[data-stitch] .font-body-lg {
+  font-size: 16px;
+  line-height: 26px;
+  letter-spacing: 0.01em;
+  font-weight: 400;
+}
+
+[data-stitch] .text-label-sm,
+[data-stitch] .font-label-sm {
+  font-size: 11px;
+  line-height: 14px;
+  letter-spacing: 0.03em;
+  font-weight: 600;
+}
+
+[data-stitch] .text-display-lg,
+[data-stitch] .font-display-lg {
+  font-size: 40px;
+  line-height: 48px;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+[data-stitch] .text-label-md,
+[data-stitch] .font-label-md {
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.02em;
+  font-weight: 500;
+}
+
+[data-stitch] .text-body-sm,
+[data-stitch] .font-body-sm {
+  font-size: 13px;
+  line-height: 20px;
+  letter-spacing: 0.015em;
+  font-weight: 400;
+}
+
+[data-stitch] .text-body-md,
+[data-stitch] .font-body-md {
+  font-size: 14px;
+  line-height: 22px;
+  letter-spacing: 0.01em;
+  font-weight: 400;
+}
+
+[data-stitch] .text-headline-sm,
+[data-stitch] .font-headline-sm {
+  font-size: 18px;
+  line-height: 26px;
+  letter-spacing: 0em;
+  font-weight: 600;
+}
+
+[data-stitch] .text-headline-md,
+[data-stitch] .font-headline-md {
+  font-size: 22px;
+  line-height: 30px;
+  letter-spacing: -0.005em;
+  font-weight: 600;
+}
+
+/* Cores semânticas. */
+[data-stitch] .text-on-error-container { color: var(--color-on-error-container); }
+[data-stitch] .bg-on-error-container { background-color: var(--color-on-error-container); }
+[data-stitch] .border-on-error-container { border-color: var(--color-on-error-container); }
+[data-stitch] .text-inverse-primary { color: var(--color-inverse-primary); }
+[data-stitch] .bg-inverse-primary { background-color: var(--color-inverse-primary); }
+[data-stitch] .border-inverse-primary { border-color: var(--color-inverse-primary); }
+[data-stitch] .text-on-surface-variant { color: var(--color-on-surface-variant); }
+[data-stitch] .bg-on-surface-variant { background-color: var(--color-on-surface-variant); }
+[data-stitch] .border-on-surface-variant { border-color: var(--color-on-surface-variant); }
+[data-stitch] .text-error { color: var(--color-error); }
+[data-stitch] .bg-error { background-color: var(--color-error); }
+[data-stitch] .border-error { border-color: var(--color-error); }
+[data-stitch] .text-outline-variant { color: var(--color-outline-variant); }
+[data-stitch] .bg-outline-variant { background-color: var(--color-outline-variant); }
+[data-stitch] .border-outline-variant { border-color: var(--color-outline-variant); }
+[data-stitch] .text-tertiary-fixed { color: var(--color-tertiary-fixed); }
+[data-stitch] .bg-tertiary-fixed { background-color: var(--color-tertiary-fixed); }
+[data-stitch] .border-tertiary-fixed { border-color: var(--color-tertiary-fixed); }
+[data-stitch] .text-tertiary { color: var(--color-tertiary); }
+[data-stitch] .bg-tertiary { background-color: var(--color-tertiary); }
+[data-stitch] .border-tertiary { border-color: var(--color-tertiary); }
+[data-stitch] .text-on-background { color: var(--color-on-background); }
+[data-stitch] .bg-on-background { background-color: var(--color-on-background); }
+[data-stitch] .border-on-background { border-color: var(--color-on-background); }
+[data-stitch] .text-on-tertiary-container { color: var(--color-on-tertiary-container); }
+[data-stitch] .bg-on-tertiary-container { background-color: var(--color-on-tertiary-container); }
+[data-stitch] .border-on-tertiary-container { border-color: var(--color-on-tertiary-container); }
+[data-stitch] .text-on-tertiary-fixed { color: var(--color-on-tertiary-fixed); }
+[data-stitch] .bg-on-tertiary-fixed { background-color: var(--color-on-tertiary-fixed); }
+[data-stitch] .border-on-tertiary-fixed { border-color: var(--color-on-tertiary-fixed); }
+[data-stitch] .text-on-primary-fixed-variant { color: var(--color-on-primary-fixed-variant); }
+[data-stitch] .bg-on-primary-fixed-variant { background-color: var(--color-on-primary-fixed-variant); }
+[data-stitch] .border-on-primary-fixed-variant { border-color: var(--color-on-primary-fixed-variant); }
+[data-stitch] .text-on-secondary-fixed { color: var(--color-on-secondary-fixed); }
+[data-stitch] .bg-on-secondary-fixed { background-color: var(--color-on-secondary-fixed); }
+[data-stitch] .border-on-secondary-fixed { border-color: var(--color-on-secondary-fixed); }
+[data-stitch] .text-secondary-container { color: var(--color-secondary-container); }
+[data-stitch] .bg-secondary-container { background-color: var(--color-secondary-container); }
+[data-stitch] .border-secondary-container { border-color: var(--color-secondary-container); }
+[data-stitch] .text-on-error { color: var(--color-on-error); }
+[data-stitch] .bg-on-error { background-color: var(--color-on-error); }
+[data-stitch] .border-on-error { border-color: var(--color-on-error); }
+[data-stitch] .text-on-tertiary-fixed-variant { color: var(--color-on-tertiary-fixed-variant); }
+[data-stitch] .bg-on-tertiary-fixed-variant { background-color: var(--color-on-tertiary-fixed-variant); }
+[data-stitch] .border-on-tertiary-fixed-variant { border-color: var(--color-on-tertiary-fixed-variant); }
+[data-stitch] .text-surface-variant { color: var(--color-surface-variant); }
+[data-stitch] .bg-surface-variant { background-color: var(--color-surface-variant); }
+[data-stitch] .border-surface-variant { border-color: var(--color-surface-variant); }
+[data-stitch] .text-secondary-fixed { color: var(--color-secondary-fixed); }
+[data-stitch] .bg-secondary-fixed { background-color: var(--color-secondary-fixed); }
+[data-stitch] .border-secondary-fixed { border-color: var(--color-secondary-fixed); }
+[data-stitch] .text-primary-fixed { color: var(--color-primary-fixed); }
+[data-stitch] .bg-primary-fixed { background-color: var(--color-primary-fixed); }
+[data-stitch] .border-primary-fixed { border-color: var(--color-primary-fixed); }
+[data-stitch] .text-surface { color: var(--color-surface); }
+[data-stitch] .bg-surface { background-color: var(--color-surface); }
+[data-stitch] .border-surface { border-color: var(--color-surface); }
+[data-stitch] .text-background { color: var(--color-background); }
+[data-stitch] .bg-background { background-color: var(--color-background); }
+[data-stitch] .border-background { border-color: var(--color-background); }
+[data-stitch] .text-surface-container-low { color: var(--color-surface-container-low); }
+[data-stitch] .bg-surface-container-low { background-color: var(--color-surface-container-low); }
+[data-stitch] .border-surface-container-low { border-color: var(--color-surface-container-low); }
+[data-stitch] .text-on-primary-fixed { color: var(--color-on-primary-fixed); }
+[data-stitch] .bg-on-primary-fixed { background-color: var(--color-on-primary-fixed); }
+[data-stitch] .border-on-primary-fixed { border-color: var(--color-on-primary-fixed); }
+[data-stitch] .text-inverse-on-surface { color: var(--color-inverse-on-surface); }
+[data-stitch] .bg-inverse-on-surface { background-color: var(--color-inverse-on-surface); }
+[data-stitch] .border-inverse-on-surface { border-color: var(--color-inverse-on-surface); }
+[data-stitch] .text-secondary-fixed-dim { color: var(--color-secondary-fixed-dim); }
+[data-stitch] .bg-secondary-fixed-dim { background-color: var(--color-secondary-fixed-dim); }
+[data-stitch] .border-secondary-fixed-dim { border-color: var(--color-secondary-fixed-dim); }
+[data-stitch] .text-outline { color: var(--color-outline); }
+[data-stitch] .bg-outline { background-color: var(--color-outline); }
+[data-stitch] .border-outline { border-color: var(--color-outline); }
+[data-stitch] .text-primary { color: var(--color-primary); }
+[data-stitch] .bg-primary { background-color: var(--color-primary); }
+[data-stitch] .border-primary { border-color: var(--color-primary); }
+[data-stitch] .text-on-secondary { color: var(--color-on-secondary); }
+[data-stitch] .bg-on-secondary { background-color: var(--color-on-secondary); }
+[data-stitch] .border-on-secondary { border-color: var(--color-on-secondary); }
+[data-stitch] .text-on-surface { color: var(--color-on-surface); }
+[data-stitch] .bg-on-surface { background-color: var(--color-on-surface); }
+[data-stitch] .border-on-surface { border-color: var(--color-on-surface); }
+[data-stitch] .text-primary-container { color: var(--color-primary-container); }
+[data-stitch] .bg-primary-container { background-color: var(--color-primary-container); }
+[data-stitch] .border-primary-container { border-color: var(--color-primary-container); }
+[data-stitch] .text-surface-container-highest { color: var(--color-surface-container-highest); }
+[data-stitch] .bg-surface-container-highest { background-color: var(--color-surface-container-highest); }
+[data-stitch] .border-surface-container-highest { border-color: var(--color-surface-container-highest); }
+[data-stitch] .text-tertiary-fixed-dim { color: var(--color-tertiary-fixed-dim); }
+[data-stitch] .bg-tertiary-fixed-dim { background-color: var(--color-tertiary-fixed-dim); }
+[data-stitch] .border-tertiary-fixed-dim { border-color: var(--color-tertiary-fixed-dim); }
+[data-stitch] .text-surface-bright { color: var(--color-surface-bright); }
+[data-stitch] .bg-surface-bright { background-color: var(--color-surface-bright); }
+[data-stitch] .border-surface-bright { border-color: var(--color-surface-bright); }
+[data-stitch] .text-on-primary { color: var(--color-on-primary); }
+[data-stitch] .bg-on-primary { background-color: var(--color-on-primary); }
+[data-stitch] .border-on-primary { border-color: var(--color-on-primary); }
+[data-stitch] .text-on-tertiary { color: var(--color-on-tertiary); }
+[data-stitch] .bg-on-tertiary { background-color: var(--color-on-tertiary); }
+[data-stitch] .border-on-tertiary { border-color: var(--color-on-tertiary); }
+[data-stitch] .text-on-primary-container { color: var(--color-on-primary-container); }
+[data-stitch] .bg-on-primary-container { background-color: var(--color-on-primary-container); }
+[data-stitch] .border-on-primary-container { border-color: var(--color-on-primary-container); }
+[data-stitch] .text-on-secondary-container { color: var(--color-on-secondary-container); }
+[data-stitch] .bg-on-secondary-container { background-color: var(--color-on-secondary-container); }
+[data-stitch] .border-on-secondary-container { border-color: var(--color-on-secondary-container); }
+[data-stitch] .text-secondary { color: var(--color-secondary); }
+[data-stitch] .bg-secondary { background-color: var(--color-secondary); }
+[data-stitch] .border-secondary { border-color: var(--color-secondary); }
+[data-stitch] .text-surface-container-lowest { color: var(--color-surface-container-lowest); }
+[data-stitch] .bg-surface-container-lowest { background-color: var(--color-surface-container-lowest); }
+[data-stitch] .border-surface-container-lowest { border-color: var(--color-surface-container-lowest); }
+[data-stitch] .text-primary-fixed-dim { color: var(--color-primary-fixed-dim); }
+[data-stitch] .bg-primary-fixed-dim { background-color: var(--color-primary-fixed-dim); }
+[data-stitch] .border-primary-fixed-dim { border-color: var(--color-primary-fixed-dim); }
+[data-stitch] .text-on-secondary-fixed-variant { color: var(--color-on-secondary-fixed-variant); }
+[data-stitch] .bg-on-secondary-fixed-variant { background-color: var(--color-on-secondary-fixed-variant); }
+[data-stitch] .border-on-secondary-fixed-variant { border-color: var(--color-on-secondary-fixed-variant); }
+[data-stitch] .text-error-container { color: var(--color-error-container); }
+[data-stitch] .bg-error-container { background-color: var(--color-error-container); }
+[data-stitch] .border-error-container { border-color: var(--color-error-container); }
+[data-stitch] .text-surface-dim { color: var(--color-surface-dim); }
+[data-stitch] .bg-surface-dim { background-color: var(--color-surface-dim); }
+[data-stitch] .border-surface-dim { border-color: var(--color-surface-dim); }
+[data-stitch] .text-surface-container { color: var(--color-surface-container); }
+[data-stitch] .bg-surface-container { background-color: var(--color-surface-container); }
+[data-stitch] .border-surface-container { border-color: var(--color-surface-container); }
+[data-stitch] .text-surface-container-high { color: var(--color-surface-container-high); }
+[data-stitch] .bg-surface-container-high { background-color: var(--color-surface-container-high); }
+[data-stitch] .border-surface-container-high { border-color: var(--color-surface-container-high); }
+[data-stitch] .text-tertiary-container { color: var(--color-tertiary-container); }
+[data-stitch] .bg-tertiary-container { background-color: var(--color-tertiary-container); }
+[data-stitch] .border-tertiary-container { border-color: var(--color-tertiary-container); }
+[data-stitch] .text-inverse-surface { color: var(--color-inverse-surface); }
+[data-stitch] .bg-inverse-surface { background-color: var(--color-inverse-surface); }
+[data-stitch] .border-inverse-surface { border-color: var(--color-inverse-surface); }
+[data-stitch] .text-surface-tint { color: var(--color-surface-tint); }
+[data-stitch] .bg-surface-tint { background-color: var(--color-surface-tint); }
+[data-stitch] .border-surface-tint { border-color: var(--color-surface-tint); }
+
+/* Raios. */
+[data-stitch] .rounded-default { border-radius: 0.25rem; }
+[data-stitch] .rounded-lg { border-radius: 0.5rem; }
+[data-stitch] .rounded-xl { border-radius: 0.75rem; }
+[data-stitch] .rounded-full { border-radius: 9999px; }
+
+/* Espaçamento nomeado. */
+[data-stitch] .p-margin-mobile { 
+  padding: 1.25rem;
+}
+[data-stitch] .px-margin-mobile { 
+  padding-inline: 1.25rem;
+}
+[data-stitch] .py-margin-mobile { 
+  padding-block: 1.25rem;
+}
+[data-stitch] .pt-margin-mobile { 
+  padding-top: 1.25rem;
+}
+[data-stitch] .pb-margin-mobile { 
+  padding-bottom: 1.25rem;
+}
+[data-stitch] .pl-margin-mobile { 
+  padding-left: 1.25rem;
+}
+[data-stitch] .pr-margin-mobile { 
+  padding-right: 1.25rem;
+}
+[data-stitch] .m-margin-mobile { 
+  margin: 1.25rem;
+}
+[data-stitch] .mx-margin-mobile { 
+  margin-inline: 1.25rem;
+}
+[data-stitch] .my-margin-mobile { 
+  margin-block: 1.25rem;
+}
+[data-stitch] .mt-margin-mobile { 
+  margin-top: 1.25rem;
+}
+[data-stitch] .mb-margin-mobile { 
+  margin-bottom: 1.25rem;
+}
+[data-stitch] .ml-margin-mobile { 
+  margin-left: 1.25rem;
+}
+[data-stitch] .mr-margin-mobile { 
+  margin-right: 1.25rem;
+}
+[data-stitch] .gap-margin-mobile { 
+  gap: 1.25rem;
+}
+[data-stitch] .p-space-lg { 
+  padding: 2rem;
+}
+[data-stitch] .px-space-lg { 
+  padding-inline: 2rem;
+}
+[data-stitch] .py-space-lg { 
+  padding-block: 2rem;
+}
+[data-stitch] .pt-space-lg { 
+  padding-top: 2rem;
+}
+[data-stitch] .pb-space-lg { 
+  padding-bottom: 2rem;
+}
+[data-stitch] .pl-space-lg { 
+  padding-left: 2rem;
+}
+[data-stitch] .pr-space-lg { 
+  padding-right: 2rem;
+}
+[data-stitch] .m-space-lg { 
+  margin: 2rem;
+}
+[data-stitch] .mx-space-lg { 
+  margin-inline: 2rem;
+}
+[data-stitch] .my-space-lg { 
+  margin-block: 2rem;
+}
+[data-stitch] .mt-space-lg { 
+  margin-top: 2rem;
+}
+[data-stitch] .mb-space-lg { 
+  margin-bottom: 2rem;
+}
+[data-stitch] .ml-space-lg { 
+  margin-left: 2rem;
+}
+[data-stitch] .mr-space-lg { 
+  margin-right: 2rem;
+}
+[data-stitch] .gap-space-lg { 
+  gap: 2rem;
+}
+[data-stitch] .p-gutter { 
+  padding: 1.5rem;
+}
+[data-stitch] .px-gutter { 
+  padding-inline: 1.5rem;
+}
+[data-stitch] .py-gutter { 
+  padding-block: 1.5rem;
+}
+[data-stitch] .pt-gutter { 
+  padding-top: 1.5rem;
+}
+[data-stitch] .pb-gutter { 
+  padding-bottom: 1.5rem;
+}
+[data-stitch] .pl-gutter { 
+  padding-left: 1.5rem;
+}
+[data-stitch] .pr-gutter { 
+  padding-right: 1.5rem;
+}
+[data-stitch] .m-gutter { 
+  margin: 1.5rem;
+}
+[data-stitch] .mx-gutter { 
+  margin-inline: 1.5rem;
+}
+[data-stitch] .my-gutter { 
+  margin-block: 1.5rem;
+}
+[data-stitch] .mt-gutter { 
+  margin-top: 1.5rem;
+}
+[data-stitch] .mb-gutter { 
+  margin-bottom: 1.5rem;
+}
+[data-stitch] .ml-gutter { 
+  margin-left: 1.5rem;
+}
+[data-stitch] .mr-gutter { 
+  margin-right: 1.5rem;
+}
+[data-stitch] .gap-gutter { 
+  gap: 1.5rem;
+}
+[data-stitch] .p-gutter-mobile { 
+  padding: 1rem;
+}
+[data-stitch] .px-gutter-mobile { 
+  padding-inline: 1rem;
+}
+[data-stitch] .py-gutter-mobile { 
+  padding-block: 1rem;
+}
+[data-stitch] .pt-gutter-mobile { 
+  padding-top: 1rem;
+}
+[data-stitch] .pb-gutter-mobile { 
+  padding-bottom: 1rem;
+}
+[data-stitch] .pl-gutter-mobile { 
+  padding-left: 1rem;
+}
+[data-stitch] .pr-gutter-mobile { 
+  padding-right: 1rem;
+}
+[data-stitch] .m-gutter-mobile { 
+  margin: 1rem;
+}
+[data-stitch] .mx-gutter-mobile { 
+  margin-inline: 1rem;
+}
+[data-stitch] .my-gutter-mobile { 
+  margin-block: 1rem;
+}
+[data-stitch] .mt-gutter-mobile { 
+  margin-top: 1rem;
+}
+[data-stitch] .mb-gutter-mobile { 
+  margin-bottom: 1rem;
+}
+[data-stitch] .ml-gutter-mobile { 
+  margin-left: 1rem;
+}
+[data-stitch] .mr-gutter-mobile { 
+  margin-right: 1rem;
+}
+[data-stitch] .gap-gutter-mobile { 
+  gap: 1rem;
+}
+[data-stitch] .p-space-xl { 
+  padding: 3rem;
+}
+[data-stitch] .px-space-xl { 
+  padding-inline: 3rem;
+}
+[data-stitch] .py-space-xl { 
+  padding-block: 3rem;
+}
+[data-stitch] .pt-space-xl { 
+  padding-top: 3rem;
+}
+[data-stitch] .pb-space-xl { 
+  padding-bottom: 3rem;
+}
+[data-stitch] .pl-space-xl { 
+  padding-left: 3rem;
+}
+[data-stitch] .pr-space-xl { 
+  padding-right: 3rem;
+}
+[data-stitch] .m-space-xl { 
+  margin: 3rem;
+}
+[data-stitch] .mx-space-xl { 
+  margin-inline: 3rem;
+}
+[data-stitch] .my-space-xl { 
+  margin-block: 3rem;
+}
+[data-stitch] .mt-space-xl { 
+  margin-top: 3rem;
+}
+[data-stitch] .mb-space-xl { 
+  margin-bottom: 3rem;
+}
+[data-stitch] .ml-space-xl { 
+  margin-left: 3rem;
+}
+[data-stitch] .mr-space-xl { 
+  margin-right: 3rem;
+}
+[data-stitch] .gap-space-xl { 
+  gap: 3rem;
+}
+[data-stitch] .p-space-md { 
+  padding: 1.25rem;
+}
+[data-stitch] .px-space-md { 
+  padding-inline: 1.25rem;
+}
+[data-stitch] .py-space-md { 
+  padding-block: 1.25rem;
+}
+[data-stitch] .pt-space-md { 
+  padding-top: 1.25rem;
+}
+[data-stitch] .pb-space-md { 
+  padding-bottom: 1.25rem;
+}
+[data-stitch] .pl-space-md { 
+  padding-left: 1.25rem;
+}
+[data-stitch] .pr-space-md { 
+  padding-right: 1.25rem;
+}
+[data-stitch] .m-space-md { 
+  margin: 1.25rem;
+}
+[data-stitch] .mx-space-md { 
+  margin-inline: 1.25rem;
+}
+[data-stitch] .my-space-md { 
+  margin-block: 1.25rem;
+}
+[data-stitch] .mt-space-md { 
+  margin-top: 1.25rem;
+}
+[data-stitch] .mb-space-md { 
+  margin-bottom: 1.25rem;
+}
+[data-stitch] .ml-space-md { 
+  margin-left: 1.25rem;
+}
+[data-stitch] .mr-space-md { 
+  margin-right: 1.25rem;
+}
+[data-stitch] .gap-space-md { 
+  gap: 1.25rem;
+}
+[data-stitch] .p-margin { 
+  padding: 2.5rem;
+}
+[data-stitch] .px-margin { 
+  padding-inline: 2.5rem;
+}
+[data-stitch] .py-margin { 
+  padding-block: 2.5rem;
+}
+[data-stitch] .pt-margin { 
+  padding-top: 2.5rem;
+}
+[data-stitch] .pb-margin { 
+  padding-bottom: 2.5rem;
+}
+[data-stitch] .pl-margin { 
+  padding-left: 2.5rem;
+}
+[data-stitch] .pr-margin { 
+  padding-right: 2.5rem;
+}
+[data-stitch] .m-margin { 
+  margin: 2.5rem;
+}
+[data-stitch] .mx-margin { 
+  margin-inline: 2.5rem;
+}
+[data-stitch] .my-margin { 
+  margin-block: 2.5rem;
+}
+[data-stitch] .mt-margin { 
+  margin-top: 2.5rem;
+}
+[data-stitch] .mb-margin { 
+  margin-bottom: 2.5rem;
+}
+[data-stitch] .ml-margin { 
+  margin-left: 2.5rem;
+}
+[data-stitch] .mr-margin { 
+  margin-right: 2.5rem;
+}
+[data-stitch] .gap-margin { 
+  gap: 2.5rem;
+}
+[data-stitch] .p-space-sm { 
+  padding: 0.75rem;
+}
+[data-stitch] .px-space-sm { 
+  padding-inline: 0.75rem;
+}
+[data-stitch] .py-space-sm { 
+  padding-block: 0.75rem;
+}
+[data-stitch] .pt-space-sm { 
+  padding-top: 0.75rem;
+}
+[data-stitch] .pb-space-sm { 
+  padding-bottom: 0.75rem;
+}
+[data-stitch] .pl-space-sm { 
+  padding-left: 0.75rem;
+}
+[data-stitch] .pr-space-sm { 
+  padding-right: 0.75rem;
+}
+[data-stitch] .m-space-sm { 
+  margin: 0.75rem;
+}
+[data-stitch] .mx-space-sm { 
+  margin-inline: 0.75rem;
+}
+[data-stitch] .my-space-sm { 
+  margin-block: 0.75rem;
+}
+[data-stitch] .mt-space-sm { 
+  margin-top: 0.75rem;
+}
+[data-stitch] .mb-space-sm { 
+  margin-bottom: 0.75rem;
+}
+[data-stitch] .ml-space-sm { 
+  margin-left: 0.75rem;
+}
+[data-stitch] .mr-space-sm { 
+  margin-right: 0.75rem;
+}
+[data-stitch] .gap-space-sm { 
+  gap: 0.75rem;
+}
+[data-stitch] .p-space-xs { 
+  padding: 0.375rem;
+}
+[data-stitch] .px-space-xs { 
+  padding-inline: 0.375rem;
+}
+[data-stitch] .py-space-xs { 
+  padding-block: 0.375rem;
+}
+[data-stitch] .pt-space-xs { 
+  padding-top: 0.375rem;
+}
+[data-stitch] .pb-space-xs { 
+  padding-bottom: 0.375rem;
+}
+[data-stitch] .pl-space-xs { 
+  padding-left: 0.375rem;
+}
+[data-stitch] .pr-space-xs { 
+  padding-right: 0.375rem;
+}
+[data-stitch] .m-space-xs { 
+  margin: 0.375rem;
+}
+[data-stitch] .mx-space-xs { 
+  margin-inline: 0.375rem;
+}
+[data-stitch] .my-space-xs { 
+  margin-block: 0.375rem;
+}
+[data-stitch] .mt-space-xs { 
+  margin-top: 0.375rem;
+}
+[data-stitch] .mb-space-xs { 
+  margin-bottom: 0.375rem;
+}
+[data-stitch] .ml-space-xs { 
+  margin-left: 0.375rem;
+}
+[data-stitch] .mr-space-xs { 
+  margin-right: 0.375rem;
+}
+[data-stitch] .gap-space-xs { 
+  gap: 0.375rem;
+}
+/* =============================================================================
+   Camada de layout e estado — utilitários do Stitch usados nas telas de entrada.
+   Cobre exatamente as classes do export inicio-login. Valores em rem seguem a
+   escala do Tailwind configurada no Stitch; não invente números novos aqui.
+   ============================================================================= */
+
+[data-stitch], [data-stitch] *, [data-stitch] *::before, [data-stitch] *::after { box-sizing: border-box; }
+[data-stitch] img { max-width: 100%; display: block; }
+[data-stitch] button, [data-stitch] input { font: inherit; color: inherit; }
+[data-stitch] p, [data-stitch] h1, [data-stitch] h2, [data-stitch] h4 { margin: 0; }
+
+/* Posicionamento */
+[data-stitch] .relative { position: relative; }
+[data-stitch] .absolute { position: absolute; }
+[data-stitch] .fixed { position: fixed; }
+[data-stitch] .inset-0 { inset: 0; }
+[data-stitch] .top-0 { top: 0; }
+[data-stitch] .bottom-3 { bottom: .75rem; }
+[data-stitch] .left-4 { left: 1rem; }
+[data-stitch] .right-4 { right: 1rem; }
+[data-stitch] .-top-12 { top: -3rem; }
+[data-stitch] .-left-16 { left: -4rem; }
+[data-stitch] .-bottom-10 { bottom: -2.5rem; }
+[data-stitch] .-right-12 { right: -3rem; }
+[data-stitch] .z-10 { z-index: 10; }
+[data-stitch] .z-50 { z-index: 50; }
+[data-stitch] .overflow-hidden { overflow: hidden; }
+
+/* Display e flex */
+[data-stitch] .flex { display: flex; }
+[data-stitch] .inline-flex { display: inline-flex; }
+[data-stitch] .grid { display: grid; }
+[data-stitch] .block { display: block; }
+[data-stitch] .inline-block { display: inline-block; }
+[data-stitch] .hidden { display: none; }
+[data-stitch] .flex-col { flex-direction: column; }
+[data-stitch] .flex-1 { flex: 1 1 0%; }
+[data-stitch] .flex-grow { flex-grow: 1; }
+[data-stitch] .flex-shrink { flex-shrink: 1; }
+[data-stitch] .flex-shrink-0 { flex-shrink: 0; }
+[data-stitch] .items-center { align-items: center; }
+[data-stitch] .items-start { align-items: flex-start; }
+[data-stitch] .items-stretch { align-items: stretch; }
+[data-stitch] .justify-center { justify-content: center; }
+[data-stitch] .justify-between { justify-content: space-between; }
+[data-stitch] .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+[data-stitch] .space-y-4 > * + * { margin-top: 1rem; }
+
+/* Dimensões */
+[data-stitch] .w-full { width: 100%; }
+[data-stitch] .h-full { height: 100%; }
+[data-stitch] .h-px { height: 1px; }
+[data-stitch] .min-h-screen { min-height: 100vh; }
+[data-stitch] .max-w-5xl { max-width: 64rem; }
+[data-stitch] .mx-auto { margin-inline: auto; }
+[data-stitch] .mx-4 { margin-inline: 1rem; }
+[data-stitch] .my-6 { margin-block: 1.5rem; }
+[data-stitch] .my-8 { margin-block: 2rem; }
+[data-stitch] .w-1\.5 { width: .375rem; }
+[data-stitch] .h-1\.5 { height: .375rem; }
+[data-stitch] .w-2 { width: .5rem; }
+[data-stitch] .h-2 { height: .5rem; }
+[data-stitch] .w-2\.5 { width: .625rem; }
+[data-stitch] .h-2\.5 { height: .625rem; }
+[data-stitch] .w-4 { width: 1rem; }
+[data-stitch] .h-4 { height: 1rem; }
+[data-stitch] .w-5 { width: 1.25rem; }
+[data-stitch] .h-5 { height: 1.25rem; }
+[data-stitch] .w-8 { width: 2rem; }
+[data-stitch] .h-8 { height: 2rem; }
+[data-stitch] .w-16 { width: 4rem; }
+[data-stitch] .h-16 { height: 4rem; }
+[data-stitch] .w-80 { width: 20rem; }
+[data-stitch] .h-80 { height: 20rem; }
+[data-stitch] .w-96 { width: 24rem; }
+[data-stitch] .h-96 { height: 24rem; }
+
+/* Objeto e proporção */
+[data-stitch] .object-cover { object-fit: cover; }
+[data-stitch] .aspect-\[16\/10\] { aspect-ratio: 16 / 10; }
+
+/* Bordas, sombras e filtros */
+[data-stitch] .rounded { border-radius: .25rem; }
+[data-stitch] .shadow-sm { box-shadow: 0 1px 2px 0 rgb(0 0 0 / .05); }
+[data-stitch] .shadow-md { box-shadow: 0 4px 6px -1px rgb(0 0 0 / .1), 0 2px 4px -2px rgb(0 0 0 / .1); }
+[data-stitch] .shadow-xl { box-shadow: 0 20px 25px -5px rgb(0 0 0 / .1), 0 8px 10px -6px rgb(0 0 0 / .1); }
+[data-stitch] .shadow-inner { box-shadow: inset 0 2px 4px 0 rgb(0 0 0 / .05); }
+[data-stitch] .shadow-\[0_0_8px_rgba\(69\,223\,164\,0\.7\)\] { box-shadow: 0 0 8px rgba(69, 223, 164, .7); }
+[data-stitch] .shadow-\[0_0_12px_rgba\(69\,223\,164\,0\.65\)\] { box-shadow: 0 0 12px rgba(69, 223, 164, .65); }
+[data-stitch] .shadow-\[0_1px_8px_rgba\(0\,0\,0\,0\.04\)\] { box-shadow: 0 1px 8px rgba(0, 0, 0, .04); }
+[data-stitch] .backdrop-blur-xl { backdrop-filter: blur(24px); }
+[data-stitch] .blur-3xl { filter: blur(64px); }
+
+/* Tipografia de apoio */
+[data-stitch] .text-center { text-align: center; }
+[data-stitch] .tracking-tight { letter-spacing: -.025em; }
+[data-stitch] .tracking-wider { letter-spacing: .05em; }
+[data-stitch] .uppercase { text-transform: uppercase; }
+[data-stitch] .leading-snug { line-height: 1.375; }
+[data-stitch] .leading-relaxed { line-height: 1.625; }
+[data-stitch] .font-semibold { font-weight: 600; }
+[data-stitch] .antialiased { -webkit-font-smoothing: antialiased; }
+[data-stitch] .select-none { user-select: none; }
+[data-stitch] .pointer-events-none { pointer-events: none; }
+[data-stitch] .transform { transform: translateZ(0); }
+[data-stitch] .text-\[14px\] { font-size: 14px; }
+[data-stitch] .text-\[16px\] { font-size: 16px; }
+[data-stitch] .text-\[18px\] { font-size: 18px; }
+[data-stitch] .text-\[20px\] { font-size: 20px; }
+[data-stitch] .text-\[22px\] { font-size: 22px; }
+
+/* Fundos com opacidade */
+[data-stitch] .bg-transparent { background-color: transparent; }
+[data-stitch] .bg-primary-container\/10 { background-color: color-mix(in srgb, var(--color-primary-container) 10%, transparent); }
+[data-stitch] .bg-secondary-container\/20 { background-color: color-mix(in srgb, var(--color-secondary-container) 20%, transparent); }
+[data-stitch] .bg-secondary\/10 { background-color: color-mix(in srgb, var(--color-secondary) 10%, transparent); }
+[data-stitch] .bg-surface-container-lowest\/60 { background-color: color-mix(in srgb, var(--color-surface-container-lowest) 60%, transparent); }
+[data-stitch] .bg-surface\/80 { background-color: color-mix(in srgb, var(--color-surface) 80%, transparent); }
+
+/* Gradientes do export */
+[data-stitch] .bg-gradient-to-b { background-image: linear-gradient(to bottom, var(--from, transparent), var(--via, transparent), var(--to, transparent)); }
+[data-stitch] .bg-gradient-to-t { background-image: linear-gradient(to top, var(--from, transparent), var(--via, transparent), var(--to, transparent)); }
+[data-stitch] .from-primary\/5 { --from: color-mix(in srgb, var(--color-primary) 5%, transparent); }
+[data-stitch] .from-surface-container-low\/90 { --from: color-mix(in srgb, var(--color-surface-container-low) 90%, transparent); }
+[data-stitch] .via-transparent { --via: transparent; }
+[data-stitch] .via-surface-container-low\/20 { --via: color-mix(in srgb, var(--color-surface-container-low) 20%, transparent); }
+[data-stitch] .to-transparent { --to: transparent; }
+[data-stitch] .to-secondary\/5 { --to: color-mix(in srgb, var(--color-secondary) 5%, transparent); }
+
+/* Formulário */
+[data-stitch] .accent-secondary { accent-color: var(--color-secondary); }
+[data-stitch] .cursor-pointer { cursor: pointer; }
+[data-stitch] .placeholder\:text-outline-variant::placeholder { color: var(--color-outline-variant); }
+[data-stitch] .focus\:outline-none:focus { outline: 2px solid transparent; outline-offset: 2px; }
+[data-stitch] .focus\:ring-0:focus { box-shadow: none; }
+[data-stitch] .focus\:ring-2:focus { box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-primary); }
+[data-stitch] .focus\:ring-primary:focus { --ring: var(--color-primary); }
+[data-stitch] .focus-within\:ring-2:focus-within { box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-primary); }
+[data-stitch] .focus-within\:ring-primary:focus-within { --ring: var(--color-primary); }
+[data-stitch] .selection\:bg-secondary-container ::selection { background: var(--color-secondary-container); }
+[data-stitch] .selection\:text-on-secondary-container ::selection { color: var(--color-on-secondary-container); }
+
+/* Interações */
+[data-stitch] .transition-colors { transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease; }
+[data-stitch] .transition-transform { transition: transform 180ms ease; }
+[data-stitch] .transition-all { transition: all 180ms ease; }
+[data-stitch] .duration-700 { transition-duration: 700ms; }
+[data-stitch] .ease-out { transition-timing-function: cubic-bezier(0, 0, .2, 1); }
+[data-stitch] .hover\:bg-surface-container-high:hover { background-color: var(--color-surface-container-high); }
+[data-stitch] .hover\:bg-surface-bright:hover { background-color: var(--color-surface-bright); }
+[data-stitch] .hover\:bg-inverse-primary:hover { background-color: var(--color-inverse-primary); }
+[data-stitch] .hover\:text-on-surface:hover { color: var(--color-on-surface); }
+[data-stitch] .hover\:text-primary-fixed:hover { color: var(--color-primary-fixed); }
+[data-stitch] .hover\:text-secondary-fixed:hover { color: var(--color-secondary-fixed); }
+[data-stitch] .hover\:shadow-lg:hover { box-shadow: 0 10px 15px -3px rgb(0 0 0 / .1), 0 4px 6px -4px rgb(0 0 0 / .1); }
+[data-stitch] .hover\:scale-105:hover { transform: scale(1.05); }
+
+/* Responsivo — pontos de quebra do Tailwind */
+@media (min-width: 640px) {
+  [data-stitch] .sm\:flex { display: flex; }
+  [data-stitch] .sm\:flex-row { flex-direction: row; }
+  [data-stitch] .sm\:p-10 { padding: 2.5rem; }
+  [data-stitch] .sm\:text-left { text-align: left; }
+}
+@media (min-width: 768px) {
+  [data-stitch] .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 1024px) {
+  [data-stitch] .lg\:grid-cols-12 { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+  [data-stitch] .lg\:col-span-5 { grid-column: span 5 / span 5; }
+  [data-stitch] .lg\:col-span-7 { grid-column: span 7 / span 7; }
+}
+/* Escala numérica do Tailwind usada no export. Os valores seguem
+   rem = número / 4, exatamente como o Stitch configurou. */
+[data-stitch] .p-4 { padding: 1rem; }
+[data-stitch] .p-8 { padding: 2rem; }
+[data-stitch] .px-3 { padding-inline: .75rem; }
+[data-stitch] .px-4 { padding-inline: 1rem; }
+[data-stitch] .px-6 { padding-inline: 1.5rem; }
+[data-stitch] .py-1 { padding-block: .25rem; }
+[data-stitch] .py-1\.5 { padding-block: .375rem; }
+[data-stitch] .py-2 { padding-block: .5rem; }
+[data-stitch] .py-3 { padding-block: .75rem; }
+[data-stitch] .py-6 { padding-block: 1.5rem; }
+[data-stitch] .py-10 { padding-block: 2.5rem; }
+[data-stitch] .pt-1 { padding-top: .25rem; }
+[data-stitch] .pt-4 { padding-top: 1rem; }
+[data-stitch] .pt-6 { padding-top: 1.5rem; }
+[data-stitch] .pt-16 { padding-top: 4rem; }
+[data-stitch] .mt-0\.5 { margin-top: .125rem; }
+[data-stitch] .mt-1 { margin-top: .25rem; }
+[data-stitch] .mt-2 { margin-top: .5rem; }
+[data-stitch] .mt-6 { margin-top: 1.5rem; }
+[data-stitch] .mt-8 { margin-top: 2rem; }
+[data-stitch] .mb-1\.5 { margin-bottom: .375rem; }
+[data-stitch] .mb-3 { margin-bottom: .75rem; }
+[data-stitch] .mb-4 { margin-bottom: 1rem; }
+[data-stitch] .mb-6 { margin-bottom: 1.5rem; }
+[data-stitch] .ml-1 { margin-left: .25rem; }
+[data-stitch] .ml-3 { margin-left: .75rem; }
+[data-stitch] .gap-1\.5 { gap: .375rem; }
+[data-stitch] .gap-2 { gap: .5rem; }
+[data-stitch] .gap-2\.5 { gap: .625rem; }
+[data-stitch] .gap-3 { gap: .75rem; }
+[data-stitch] .gap-4 { gap: 1rem; }
+[data-stitch] .gap-6 { gap: 1.5rem; }
+[data-stitch] .gap-8 { gap: 2rem; }
+
+/* O export aplica a classe .dark no <html>. Os tokens do Stitch já são o tema
+   escuro, então a classe só declara a intenção para o navegador. */
+[data-stitch].dark, [data-stitch] .dark { color-scheme: dark; }
+
+/* O anel de foco já inclui o deslocamento na definição de ring-2; estas classes
+   existem no export e ficam declaradas para não surpreender quem ler a marcação. */
+[data-stitch] .focus\:ring-offset-2:focus,
+[data-stitch] .focus\:ring-offset-surface:focus { --ring-offset: 2px; }

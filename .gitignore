@@ -1,5 +1,8 @@
 node_modules/
 coverage/
+data/
+.wrangler/
+.cloudflare/
 .env
 .env.*
 *.log

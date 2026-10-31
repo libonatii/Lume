@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createInitialState, restoreState, completeMission, totalXP, courseProgress, courseStatus, nextMission, achievements, addCourse, safeCourseURL, weekCount } from './domain.js';
-import { applyStudyRhythm, studyRhythm } from './domain.js';
+import { createInitialState, restoreState, completeMission, totalXP, courseProgress, courseStatus, nextMission, achievements, addCourse, safeCourseURL, weekCount } from './public/domain.js';
+import { applyStudyRhythm, studyRhythm } from './public/domain.js';
 
 test('começa sem XP, com uma próxima ação concreta', () => {
   const state = createInitialState();

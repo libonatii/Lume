@@ -19,11 +19,11 @@ Antes de desenvolver ou pedir alterações a uma IA, leia:
 
 ## Estado do projeto
 
-Protótipo navegável em português, feito em HTML, CSS e JavaScript, sem dependências externas. **Ainda não há cadastro, login real, banco de dados ou sincronização.** O progresso é guardado no `localStorage` do navegador. Os cursos iniciais são exemplos ilustrativos, sem aulas hospedadas.
+Protótipo navegável em português, feito em HTML, CSS e JavaScript. **O Lume terá cadastro e login com e-mail e senha, recuperação de acesso e dados por conta. O fluxo completo de contas está em implementação.** A prévia de estudos ainda guarda o progresso no `localStorage` do navegador. Os cursos iniciais são exemplos ilustrativos, sem aulas hospedadas.
 
 ## O que já funciona
 
-- Tela de entrada com o visual do Stitch e acesso à prévia sem fornecer e-mail ou senha.
+- Tela de entrada com o visual do Stitch e campos previstos para e-mail e senha; acesso à prévia enquanto a integração de contas é concluída.
 - Personalização após entrar: três ritmos de estudo e quatro apoios opcionais, com opção de pular e revisar depois.
 - Ritmo ajusta a sugestão semanal (2, 3 ou 5 passos); apoios permitem sugerir a preparação do material e ativar o modo essencial.
 - Transições suaves entre telas e animações discretas em cartões e diálogos, respeitando a preferência de movimento reduzido do sistema.
@@ -38,23 +38,21 @@ Protótipo navegável em português, feito em HTML, CSS e JavaScript, sem depend
 
 ## Experimentar no computador
 
+### Pelo terminal (necessário para contas)
+
+Instale o Node.js 22 ou superior. Abra um terminal na pasta do projeto e execute `npm start` (`node server.js`), depois acesse **http://localhost:4173**.
+
+O cadastro, o login e a recuperação de senha dependem desse servidor: eles rodam em `/api/*` e gravam em `data/lume.db`. **O Live Server não serve para criar conta** — ele entrega apenas arquivos estáticos e responde 405 nas rotas de API.
+
 ### Pelo VS Code
 
-Abra a pasta `D:\tabletop` e use **Open with Live Server** no arquivo `index.html` da raiz. Esse é o aplicativo funcional, com as telas Entrada, Ritmo de Estudo, Hoje e Biblioteca integradas ao design do Stitch. Os arquivos dentro de `designs/stitch` são as exportações originais de referência.
+Use **Open with Live Server** apenas para conferir o layout sem conta, pela prévia. Para entrar com e-mail e senha, abra `http://localhost:4173` com o `npm start` rodando. Os arquivos dentro de `designs/stitch` são as exportações originais de referência.
 
 Se já estiver com uma prévia aberta, recarregue com `Ctrl+Shift+R`.
 
-### Pelo terminal
-
-Instale o Node.js 22 ou superior. Abra um terminal na pasta do projeto e execute:
-
-```sh
-npm start
-```
-
 Abra **http://localhost:4173** no navegador. Para encerrar, use `Ctrl+C` no terminal. Não é necessário executar `npm install`.
 
-Para verificar as regras de progresso:
+Para verificar as regras de progresso e a autenticação:
 
 ```sh
 npm test
@@ -62,7 +60,7 @@ npm test
 
 ## Um primeiro caminho
 
-1. Use **Entrar na prévia**. O login com conta e Google ainda não está disponível; os campos de credenciais ficam desativados.
+1. Use **Entrar na prévia** para experimentar o estudo enquanto a integração de cadastro e login com e-mail e senha é concluída. Os campos da tela permanecem desativados até essa integração; isso não significa que o produto será sem contas.
 2. Escolha como os estudos fazem parte da sua rotina e marque os apoios desejados. Confirme para aplicar as sugestões ao seu espaço.
 3. Na página Hoje, comece uma missão de exemplo ou prepare o material. Uma preparação não conclui a aula original.
 4. Registre a conclusão e acompanhe seu histórico e suas conquistas.
@@ -81,7 +79,7 @@ npm test
 
 ## Dados e limitações
 
-Os dados permanecem no navegador e na origem em que o site foi aberto. Limpar os dados do site ou trocar de navegador pode remover ou separar o progresso. A exportação permite guardar uma cópia, mas ainda não há restauração pela interface. Não cadastre senhas ou dados sensíveis como conteúdo de estudo. O servidor incluído serve arquivos locais e não oferece contas ou APIs de dados.
+O progresso da prévia permanece no navegador e na origem em que o site foi aberto. Limpar os dados do site ou trocar de navegador pode remover ou separar esse progresso. A exportação permite guardar uma cópia, mas ainda não há restauração pela interface. Não cadastre senhas ou dados sensíveis como conteúdo de estudo. O serviço de contas está em desenvolvimento, e a integração com a interface e a sincronização dos estudos devem ser verificadas antes de anunciar o fluxo completo como disponível.
 
 ## Estrutura
 
