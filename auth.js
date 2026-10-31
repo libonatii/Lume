@@ -7,14 +7,16 @@ export const MAX_PASSWORD_LENGTH = 200;
 export const MAX_NAME_LENGTH = 60;
 export const RESET_TTL_MS = 30 * 60 * 1000;
 
-// OWASP recomenda 600.000 iterações para PBKDF2-HMAC-SHA256.
-export const DEFAULT_ITERATIONS = 600000;
+// Padrão de menor custo para o projeto no Workers Free, ajustável por
+// PBKDF2_ITERATIONS. É inferior às 600.000 iterações recomendadas pela OWASP;
+// o consumo de CPU precisa ser medido no Worker publicado.
+export const DEFAULT_ITERATIONS = 100000;
 
 // O runtime da Cloudflare recusa qualquer chamada de PBKDF2 acima de 100.000
-// iterações ("iteration counts above 100000 are not supported"). Para manter o
-// custo de 600.000 sem inventar outra primitiva, a derivação é encadeada em
-// blocos de no máximo 100.000, cada um com o próprio salt derivado. O hash
-// guarda o total, então a verificação repete exatamente a mesma sequência.
+// iterações ("iteration counts above 100000 are not supported"). O padrão usa
+// um bloco. O encadeamento é preservado para verificar hashes antigos com
+// custo maior e configurações explícitas, sem invalidar senhas existentes.
+// O hash guarda o total; a verificação repete a sequência original.
 export const MAX_ITERATIONS_PER_ROUND = 100000;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;

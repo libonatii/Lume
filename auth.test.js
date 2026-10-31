@@ -4,9 +4,25 @@ import {
   ValidationError, normalizeEmail, validateName, validateEmail, validatePassword,
   hashPassword, verifyPassword, createSessionToken, hashSessionToken,
   sessionCookie, clearedSessionCookie, parseCookies,
+  DEFAULT_ITERATIONS,
 } from './auth.js';
 
 const fast = { iterations: 1000 };
+
+test('novas senhas usam o padrão de 100.000 iterações', async () => {
+  assert.equal(DEFAULT_ITERATIONS, 100000);
+  const stored = await hashPassword('senha-padrao-de-teste');
+  assert.match(stored, /^pbkdf2\$sha256\$100000\$/);
+  assert.equal(await verifyPassword('senha-padrao-de-teste', stored), true);
+  assert.equal(await verifyPassword('senha-errada', stored), false);
+});
+
+test('hash de 600.000 iterações anterior à redução continua aceitando a senha original', async () => {
+  // Fixture criada pela implementação anterior, sem dados de uma conta real.
+  const stored = 'pbkdf2$sha256$600000$6P0lUqPcwSKKssyCQkx+QA==$ExWGYnzoAxu6SErtrcuOUCi5G7WiEZnrrc5dc1pxjAk=';
+  assert.equal(await verifyPassword('senha-legada-de-teste', stored), true);
+  assert.equal(await verifyPassword('senha-errada', stored), false);
+});
 
 test('e-mail é normalizado sem espaços e sem diferenciar maiúsculas', () => {
   assert.equal(normalizeEmail('  Ana@Exemplo.COM '), 'ana@exemplo.com');

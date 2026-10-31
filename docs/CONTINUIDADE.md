@@ -21,7 +21,7 @@ Na revisão que acompanha esta documentação, o projeto é uma aplicação em H
 | Histórico | Dados no navegador e exportação JSON |
 | Visual | Telas inspiradas em referências Stitch, com o sistema visual do export preservado em `public/stitch.css`, temas, entradas escalonadas, destaque de cartões, respostas em botões e transições de diálogos/avisos; efeitos desativados no modo essencial e com movimento reduzido |
 | Contas e sincronização | Cadastro, login, saída e recuperação de senha implementados em `auth.js`, com sessão em cookie `HttpOnly` e limite de tentativas no banco. O progresso de estudo ainda fica no navegador e não é associado à conta |
-| Hospedagem | Publicado em `lume.lume-prototype.workers.dev` com Cloudflare Workers e D1. O runtime recusa PBKDF2 acima de 100.000 iterações por chamada, então a derivação é encadeada em blocos para manter o custo de 600.000; a medição em produção ficou em 3 ms de CPU por requisição. Não há domínio próprio registrado |
+| Hospedagem | Publicado em `lume.lume-prototype.workers.dev` com Cloudflare Workers e D1. O código local passou a usar 100.000 iterações para novas senhas, visando menor custo no plano gratuito; publicação e medição desse ajuste estão pendentes. Hashes antigos mantêm seu custo original. Não há domínio próprio registrado |
 | Envio de e-mail | Não implementado; o link de recuperação é exibido na tela e no console do servidor |
 | Amigos, grupos e comunicação | Não implementados |
 | Placares compartilhados | Não implementados |
@@ -53,6 +53,8 @@ Ainda sem exportação no Stitch, e por isso ainda no visual anterior: Missões,
 ### Contas e recuperação de acesso
 
 `auth.js` concentra validação, derivação de senha com PBKDF2-SHA256 e sessão, usado tanto pelo `server.js` quanto pelo `worker.js`. O banco guarda apenas o resumo SHA-256 do token de sessão. Trocar a senha encerra todas as sessões daquela conta. Cadastro, entrada e recuperação não concedem XP.
+
+Por decisão da responsável, o padrão foi reduzido de 600.000 para 100.000 iterações para priorizar o plano gratuito, mantendo a opção `PBKDF2_ITERATIONS`. É uma redução da resistência a tentativas offline, abaixo da recomendação OWASP para PBKDF2-HMAC-SHA256. O custo de CPU precisa ser validado no Worker publicado. A verificação mantém o custo e o encadeamento originais dos hashes existentes; a mudança não migra contas nem redefine senhas antigas.
 
 O link de recuperação vale 30 minutos, é de uso único e a resposta é idêntica exista ou não a conta. O transporte por e-mail não foi implementado.
 

@@ -57,7 +57,7 @@ function iterations(env) {
   return Number.isInteger(configured) && configured >= 1000 ? configured : DEFAULT_ITERATIONS;
 }
 
-// O plano gratuito não tem CPU para PBKDF2 seguro; em produção o cookie vai com Secure.
+// Em HTTPS, o cookie de sessão só pode ser enviado por conexão segura.
 function secureCookies(url) {
   return url.protocol === 'https:';
 }

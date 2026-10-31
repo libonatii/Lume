@@ -107,7 +107,7 @@ O progresso de estudo permanece no navegador e na origem em que o site foi abert
 
 O backend está publicado em **https://lume.lume-prototype.workers.dev** (Cloudflare Workers + D1). O endereço `workers.dev` é funcional, mas não é domínio próprio: nenhum domínio está registrado na conta.
 
-O runtime da Cloudflare recusa PBKDF2 acima de 100.000 iterações por chamada. Para manter o custo recomendado de 600.000, `auth.js` encadeia blocos de até 100.000 iterações e guarda o total no hash. A medição em produção mostrou 3 ms de CPU por requisição, dentro do plano gratuito.
+Novas senhas usam **100.000 iterações** em `auth.js`, com ajuste opcional por `PBKDF2_ITERATIONS`. Essa escolha reduz o custo para priorizar o plano gratuito, mas fica abaixo das [600.000 iterações recomendadas pela OWASP para PBKDF2-HMAC-SHA256](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#pbkdf2). O Workers Free tem [limite de 10 ms de CPU por requisição](https://developers.cloudflare.com/workers/platform/limits/): o novo padrão precisa ser medido após publicação, sem garantia de enquadramento só pelo número de iterações. Hashes antigos preservam o custo original, inclusive os de 600.000; a verificação mantém o encadeamento em blocos de até 100.000 e não exige recadastro. A redução vale para cadastros e redefinições de senha futuros, sem migrar o banco.
 
 ## Próximos passos
 

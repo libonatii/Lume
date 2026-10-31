@@ -28,8 +28,8 @@
     "SHOW_RESET_LINK": "false"
   },
 
-  // PBKDF2 com 600.000 iterações não cabe nos 10 ms de CPU do plano gratuito.
-  // No plano pago, 30 s é o padrão e sobra folga.
+  // O padrão de PBKDF2 está em auth.js (100.000 iterações). Medir o consumo
+  // de CPU após publicar; o Workers Free tem limite de 10 ms por requisição.
   "observability": {
     "enabled": true,
     "logs": { "enabled": true, "head_sampling_rate": 1 },
