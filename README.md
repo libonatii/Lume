@@ -1,12 +1,15 @@
 **🌐 Site publicado: <https://lume.lume-prototype.workers.dev>**
 
+[![CI](https://github.com/libonatii/Lume/actions/workflows/ci.yml/badge.svg)](https://github.com/libonatii/Lume/actions/workflows/ci.yml)
+[![Companion](https://github.com/libonatii/Lume/actions/workflows/companion-release.yml/badge.svg)](https://github.com/libonatii/Lume/releases)
+
 # Lume ✳
 
 **Seu ritmo, seu caminho.** Uma plataforma social de estudos para organizar e retomar aprendizados, colaborar com amigos, compartilhar descobertas, conquistar marcos personalizados e participar de placares de estudo.
 
 ## Referências do produto
 
-Leia nesta ordem: [Produto](docs/PRODUTO.md), [Gamificação](docs/GAMIFICACAO.md) e [Continuidade](docs/CONTINUIDADE.md). A [importação de cursos](docs/IMPORTACAO.md) descreve o fluxo por link, as fontes verificadas e suas limitações; o [Lume Companion](docs/COMPANHEIRO.md) descreve o programa de desktop, a presença local e o roteiro por prioridade. As [instruções para colaboradores](AGENTS.md) descrevem os cuidados com dados, integrações e verificação.
+Leia nesta ordem: [Produto](docs/PRODUTO.md), [Gamificação](docs/GAMIFICACAO.md) e [Continuidade](docs/CONTINUIDADE.md). A [importação de cursos](docs/IMPORTACAO.md) descreve o fluxo por link, as fontes verificadas e suas limitações; o [Lume Companion](docs/COMPANHEIRO.md) descreve o programa de desktop, a presença local e o roteiro por prioridade; [Publicação e CI](docs/RELEASE.md) explica como gerar o instalador pelo GitHub Actions. As [instruções para colaboradores](AGENTS.md) descrevem os cuidados com dados, integrações e verificação.
 
 A gamificação desejada reconhece estudo efetivo e conclusões. O código ainda preserva o **modelo legado de 5 XP por preparação e 10 XP por etapa**, sem migrar nem reinterpretar os registros antigos. Esses valores não são uma implementação da nova política nem podem alimentar um ranking compartilhado.
 
@@ -119,7 +122,9 @@ Verificação desta troca: testes de autenticação/domínio, build estático, b
 | `public/companion-domain.js` | Regras do Companion: allowlist, presença e categorias |
 | `import-server.js` | Análise de fontes no servidor: validação de URL, limites, extração e organizador por IA |
 | `companion.js` / `companion/` | Pareamento, presença e roteiro; núcleo, agente local e app Electron (bandeja e janela) |
+| `companion/electron-builder.yml` | Empacotamento do instalador Windows (NSIS) |
 | `lume-companion.cmd` | Iniciador do app de bandeja; funciona de qualquer pasta |
+| `.github/workflows/` | CI do site e publicação do instalador do Companion |
 | `friends.js` | Convites, amizades e remoção |
 | `public/*.css` | Estilos, sistema visual do Stitch e interações |
 | `public/assets/` | Fontes e imagens locais |

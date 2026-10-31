@@ -3,13 +3,18 @@
   "version": "0.3.0",
   "private": true,
   "description": "Lume Companion — presença local, aulas restantes e roteiro de estudo.",
+  "author": "Lume",
+  "license": "UNLICENSED",
   "type": "module",
   "main": "electron/main.mjs",
   "scripts": {
     "start": "electron .",
-    "smoke": "electron . --smoke"
+    "smoke": "electron . --smoke",
+    "pack": "electron-builder --win dir",
+    "dist": "electron-builder --win nsis"
   },
   "devDependencies": {
-    "electron": "^45.2.1"
+    "electron": "^45.2.1",
+    "electron-builder": "^26.18.0"
   }
 }

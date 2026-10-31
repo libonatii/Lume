@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: Site, API e testes
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Testes de domínio, autenticação, importação, Companion e amigos
+        run: npm test
+
+      - name: Build estático
+        run: npm run build
+
+      - name: Instalar navegador dos testes
+        run: npx playwright install chromium
+
+      - name: Testes de navegador (desktop e celular)
+        run: npx playwright test
+        env:
+          # No CI usamos o Chromium baixado; localmente o padrão continua Chrome.
+          PLAYWRIGHT_CHANNEL: bundled
+
+      - name: Guardar rastros em caso de falha
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-falhas
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
+
+  companion:
+    name: Companion (sintaxe e contratos)
+    runs-on: windows-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Checar sintaxe do núcleo e do app
+        shell: pwsh
+        run: |
+          $files = @(
+            "companion/core.mjs",
+            "companion/agent.mjs",
+            "companion/electron/main.mjs",
+            "companion/electron/preload.cjs",
+            "companion/electron/renderer/app.js",
+            "companion/domain.mjs"
+          )
+          foreach ($file in $files) {
+            node --check $file
+            if ($LASTEXITCODE -ne 0) { throw "Sintaxe inválida em $file" }
+          }
+          Write-Host "Sintaxe do Companion ok"
+
+      - name: Ler o contrato de presença sem rede
+        run: node -e "import('./companion/domain.mjs').then(m => { const p = m.presenceState({ app: 'Anki', category: 'study', since: new Date().toISOString(), updatedAt: new Date().toISOString() }); if (!p.active || p.app !== 'Anki') process.exit(1); console.log('presença ok'); })"

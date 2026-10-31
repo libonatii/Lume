@@ -12,7 +12,7 @@ import {
 } from '../core.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const assets = join(here, '..', 'assets');
+const assets = app.isPackaged ? join(process.resourcesPath, 'assets') : join(here, '..', 'assets');
 const smoke = process.argv.includes('--smoke') || process.env.LUME_COMPANION_SMOKE === '1';
 
 let tray = null;

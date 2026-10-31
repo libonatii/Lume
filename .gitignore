@@ -14,3 +14,5 @@ playwright-report/
 companion/node_modules/
 companion/out/
 companion/release/
+companion/smoke-*.json
+companion/package-smoke.json

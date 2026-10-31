@@ -1,0 +1,37 @@
+appId: com.lume.companion
+productName: Lume Companion
+copyright: Copyright © 2026 Lume
+
+directories:
+  output: release
+  buildResources: build
+
+# Só o necessário para a janela e a bandeja. O agente de terminal (agent.mjs)
+# não vai no pacote: quem usa o app não precisa dele.
+files:
+  - electron/**/*
+  - core.mjs
+  - domain.mjs
+  - package.json
+
+# Ícones fora do asar, para o nativeImage ler caminho real.
+extraResources:
+  - from: assets
+    to: assets
+    filter:
+      - "*.png"
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  icon: build/icon.png
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Lume Companion
+  artifactName: ${productName}-${version}-setup.${ext}

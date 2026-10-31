@@ -164,13 +164,14 @@ opt-in; pausa não é punida; nada de vigilância.
 | 1 | Agente CLI, pareamento, presença, painel no site | Feito |
 | 2 | Roteiro e contagem de aulas no agente | Feito |
 | 3 | App Electron: bandeja, janela e estado visual | Feito no código |
-| 4 | Instalador assinado e início com o Windows | Pendente |
-| 5 | Sessão declarada dentro do programa + retomada | Planejado |
-| 6 | Presença social entre amigos (opt-in) | Depende de amigos e grupos |
+| 4 | Instalador Windows via GitHub Actions | Feito; assinatura é opcional |
+| 5 | Início com o Windows e auto-update | Planejado |
+| 6 | Sessão declarada dentro do programa + retomada | Planejado |
+| 7 | Presença social entre amigos (opt-in) | Depende de amigos e grupos |
 
-A fase 3 exige o Electron instalado em `companion/` (`npm install --prefix companion`).
-O instalador da fase 4 exigirá empacotamento com assinatura de código; nada foi
-publicado nem ativado como serviço pago.
+A publicação é feita por tag (`companion-v0.4.0`) e o workflow gera o instalador
+NSIS, sem precisar de máquina Windows local. Detalhes, secrets de assinatura e
+solução de problemas em [Publicação e CI](RELEASE.md).
 
 ### Como abrir agora
 
@@ -190,6 +191,9 @@ D:\tabletop\lume-companion.cmd
 O iniciador entra sozinho na pasta certa e confere se o Electron está instalado.
 Use `D:\tabletop\lume-companion.cmd --debug` para abrir com o console visível e
 ver mensagens de erro.
+
+Quem baixa pelo GitHub usa o instalador publicado em **Releases** (gerado pelo
+workflow `Companion release`); não precisa de Node nem do projeto.
 
 > `npm run companion:app` só funciona dentro de `D:\tabletop`. Rodar em
 > `C:\Users\Ana` produz `npm error ENOENT ... C:\Users\Ana\package.json` — não é

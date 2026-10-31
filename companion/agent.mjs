@@ -10,7 +10,7 @@
 import {
   COMPANION_CATEGORIES, MAX_ALLOWLIST, matchAllowlist, normalizeCategory,
   normalizeProcessName,
-} from '../public/companion-domain.js';
+} from './domain.mjs';
 import {
   addAllowlistEntry, configPath, createCompanion, fetchPlan, listProcesses,
   pairDevice, readConfig, removeAllowlistEntry, setPaused, unpairDevice,

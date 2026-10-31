@@ -1,0 +1,77 @@
+name: Companion release
+
+on:
+  push:
+    tags:
+      - "companion-v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag já existente, no formato companion-v0.3.0"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: companion-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Instalador Windows
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: companion
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: companion/package-lock.json
+
+      - name: Instalar dependências do Companion
+        run: npm ci
+
+      - name: Conferir se a tag combina com a versão
+        shell: pwsh
+        run: |
+          $tag = if ("${{ github.event_name }}" -eq "workflow_dispatch") { "${{ inputs.tag }}" } else { "${{ github.ref_name }}" }
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          if ($tag -ne "companion-v$version") {
+            throw "A tag $tag não corresponde a companion-v$version. Atualize companion/package.json ou use a tag certa."
+          }
+          Write-Host "Publicando $tag"
+
+      - name: Gerar instalador
+        run: npm run dist
+        env:
+          # Sem certificado, gera instalador não assinado (o Windows mostra aviso).
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+
+      - name: Publicar no GitHub Releases
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = if ("${{ github.event_name }}" -eq "workflow_dispatch") { "${{ inputs.tag }}" } else { "${{ github.ref_name }}" }
+          $assets = Get-ChildItem -Path release -Recurse -File -Include *.exe,*.blockmap,latest.yml | ForEach-Object { $_.FullName }
+          if (-not $assets) { throw "Nenhum artefato encontrado em companion/release" }
+          gh release create $tag --title "Lume Companion $tag" --generate-notes --verify-tag 2>$null
+          gh release upload $tag $assets --clobber
+          Write-Host "Release $tag publicada com $($assets.Count) arquivo(s)."
+
+      - name: Guardar instalador como artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: lume-companion-windows
+          path: companion/release/*.exe
+          retention-days: 14

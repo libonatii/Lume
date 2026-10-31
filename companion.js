@@ -11,7 +11,7 @@ import {
   MAX_ALLOWLIST, MAX_DEVICES, PAIR_CODE_LENGTH, PAIR_TTL_MS, PRESENCE_TTL_MS,
   cleanAppLabel, formatPairCode, generatePairCode, normalizeCategory,
   normalizePairCode, presenceState,
-} from './public/companion-domain.js';
+} from './companion/domain.mjs';
 import { studyPlan } from './public/study-plan.js';
 
 export class CompanionError extends Error {

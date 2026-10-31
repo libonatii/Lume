@@ -11,7 +11,7 @@ import { promisify } from 'node:util';
 import {
   MAX_ALLOWLIST, cleanAppLabel, matchAllowlist, normalizeCategory,
   normalizeProcessName, parseTasklist,
-} from '../public/companion-domain.js';
+} from './domain.mjs';
 
 const exec = promisify(execFile);
 
