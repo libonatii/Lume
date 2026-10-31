@@ -7,6 +7,10 @@ O repositório tem dois fluxos no GitHub Actions:
 | `CI` (`.github/workflows/ci.yml`) | push na `main`, pull request e manual | testes de domínio, build estático e 26 cenários de navegador; também checa a sintaxe do Companion |
 | `Companion release` (`.github/workflows/companion-release.yml`) | tag `companion-v*` ou manual | gera o instalador Windows e publica no GitHub Releases |
 
+O instalador tem nome fixo (`Lume-Companion-setup.exe`) justamente para o botão
+**Instalar aplicativo** do site usar um link estável:
+`https://github.com/libonatii/Lume/releases/latest/download/Lume-Companion-setup.exe`.
+
 ## 1. Configuração única no GitHub
 
 1. **Actions habilitado** em *Settings → Actions → General*.

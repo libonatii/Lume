@@ -139,6 +139,7 @@ $('pair-form').addEventListener('submit', (event) => {
 
 $('pause').addEventListener('click', () => run('toggle-pause'));
 $('refresh').addEventListener('click', () => run('refresh'));
+$('open-settings').addEventListener('click', () => run('open-settings'));
 $('unpair').addEventListener('click', () => {
   if (confirm('Desconectar este computador? A presença deixa de ser enviada até um novo pareamento.')) run('unpair');
 });

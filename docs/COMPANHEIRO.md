@@ -175,7 +175,13 @@ solução de problemas em [Publicação e CI](RELEASE.md).
 
 ### Como abrir agora
 
-Dentro da pasta do projeto:
+O caminho normal é pelo site: **Configurações → Lume Companion →
+Instalar aplicativo**. O botão baixa o instalador da última release
+(`Lume-Companion-setup.exe`) e mostra o aviso de que ele ainda não é assinado.
+
+Para instalar manualmente, use a página de Releases do repositório.
+
+Dentro da pasta do projeto (desenvolvimento):
 
 ```sh
 npm install --prefix companion   # instala o Electron (uma vez)

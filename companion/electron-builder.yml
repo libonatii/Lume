@@ -34,4 +34,4 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: Lume Companion
-  artifactName: ${productName}-${version}-setup.${ext}
+  artifactName: Lume-Companion-setup.${ext}

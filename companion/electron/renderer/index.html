@@ -22,7 +22,7 @@
   <main>
     <section id="pair" class="card hidden" aria-labelledby="pair-title">
       <h2 id="pair-title">Conectar este computador</h2>
-      <p class="muted">No Lume, abra <strong>Configurações &amp; Conforto → Lume Companion</strong> e gere um código.</p>
+      <p class="muted">No Lume, abra <strong>Configurações → Lume Companion</strong> e gere um código.</p>
       <form id="pair-form">
         <label>Código<input id="pair-code" autocomplete="off" spellcheck="false" placeholder="ABCD-EFGH" maxlength="20" required/></label>
         <label>Nome do computador<input id="pair-name" autocomplete="off" maxlength="40" placeholder="PC da Ana"/></label>
@@ -32,6 +32,7 @@
         </details>
         <button id="pair-submit" type="submit">Conectar</button>
       </form>
+      <button id="open-settings" class="ghost" type="button">Abrir o Lume para gerar o código</button>
     </section>
 
     <section id="presence" class="card hidden" aria-labelledby="presence-title">

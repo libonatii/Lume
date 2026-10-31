@@ -1107,6 +1107,146 @@ html[data-theme='light'] .plan-material-highlight {
   background: var(--surface-2);
   color: var(--text);
 }
+
+/* Perfil compartilhado */
+.profile-hero {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  flex-wrap: wrap;
+  padding: 1.35rem;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.profile-avatar {
+  width: 64px;
+  height: 64px;
+  font-size: 1.5rem;
+}
+.profile-identity {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+.profile-identity h1 {
+  margin: 0.15rem 0 0.35rem;
+  overflow-wrap: anywhere;
+}
+.profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.9rem;
+}
+.profile-stat {
+  display: grid;
+  gap: 0.15rem;
+  padding: 1rem 1.1rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.profile-stat strong {
+  font-family: var(--font-serif);
+  font-size: 1.9rem;
+  line-height: 1;
+  color: var(--lume);
+}
+.profile-stat small {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 0.9rem;
+}
+.profile-section {
+  min-width: 0;
+}
+.profile-list,
+.profile-queue {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+.profile-list li,
+.profile-queue li {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  justify-content: space-between;
+  min-width: 0;
+}
+.profile-item-copy {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+.profile-item-copy strong {
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.profile-item-copy small {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.profile-progress {
+  flex: 0 1 130px;
+  min-width: 90px;
+  display: grid;
+  gap: 0.25rem;
+  justify-items: end;
+}
+.profile-progress small {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+.profile-queue-index {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.profile-queue li {
+  justify-content: flex-start;
+}
+.profile-check {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: var(--radius-pill);
+  background: rgba(77, 224, 184, 0.16);
+  color: var(--mint, var(--lume));
+}
+.sharing-projects {
+  display: grid;
+  gap: 0.45rem;
+  padding-top: 0.6rem;
+  border-top: 1px dashed var(--border);
+}
+.sharing-project-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.25rem;
+}
 .card-head {
   display: flex;
   align-items: center;
@@ -3118,4 +3258,30 @@ html[data-theme='light'] .import-badge.tone-warn {
   .friends-layout {
     grid-template-columns: 1fr;
   }
+}
+
+/* Bloco de instalação do Lume Companion no painel de configurações */
+.companion-install {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+}
+.companion-install strong {
+  font-size: 0.92rem;
+}
+.companion-install .button {
+  justify-content: center;
+}
+.companion-steps summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.companion-steps details {
+  display: grid;
+  gap: 0.4rem;
 }

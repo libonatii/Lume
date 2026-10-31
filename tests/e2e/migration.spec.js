@@ -58,7 +58,7 @@ test('prévia, dados legados, busca, filtros, teclado, curso e progresso', async
   expect(restored.studyLog[0].origin).toBe('manual');
   expect(restored.completed).toContain('design-1');
   expect(restored.preferences.essential).toBe(true); // Guardado como legado, sem efeito visual.
-  await page.getByRole('link', { name: 'Configurações & Conforto' }).click();
+  await page.getByRole('link', { name: 'Configurações' }).click();
   await page.getByRole('combobox', { name: /^Tema/ }).selectOption('light');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await expect(page.getByText(/movimento reduzido|modo essencial/i)).toHaveCount(0);

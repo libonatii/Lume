@@ -21,7 +21,7 @@ test('conectar programa, ver presença local e revogar o acesso', async ({ page,
   const baseURL = testInfo.project.use.baseURL;
   const sameOrigin = { origin: baseURL };
   await register(page, testInfo, 'companion');
-  await page.getByRole('link', { name: 'Configurações & Conforto' }).click();
+  await page.getByRole('link', { name: 'Configurações' }).click();
   await expect(page.getByRole('heading', { name: 'Lume Companion' })).toBeVisible();
   await expect(page.getByText('Nenhum programa conectado ainda.')).toBeVisible();
 
@@ -50,7 +50,7 @@ test('conectar programa, ver presença local e revogar o acesso', async ({ page,
   await page.getByRole('button', { name: 'Atualizar status' }).click();
   await expect(page.getByText('Anki', { exact: true })).toBeVisible();
   await expect(page.getByText('observado localmente')).toBeVisible();
-  await expect(page.getByText(/não gera XP/i)).toBeVisible();
+  await expect(page.locator('.companion-presence').getByText(/não gera XP/i)).toBeVisible();
 
   // Presença observada não cria histórico nem XP.
   const state = await page.evaluate(key => JSON.parse(localStorage.getItem(key) || '{}'), STORAGE_KEY);

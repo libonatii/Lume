@@ -2,11 +2,28 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Icon from './Icon.jsx';
 import { Button } from './ui.jsx';
 import { api, apiError } from '../lib/api.js';
+import { copyText, selectText } from '../lib/clipboard.js';
 import { formatPairCode, presenceState } from '../../public/companion-domain.js';
 
-// Painel do Lume Companion: conectar o programa local, ver o que ele observa e
-// remover o acesso. Presença é informação privada e temporária: não entra no
-// histórico, não conta como estudo e não gera XP.
+// Painel do Lume Companion: instalar o programa, conectar, ver o que ele
+// observa e remover o acesso. Presença é informação privada e temporária: não
+// entra no histórico, não conta como estudo e não gera XP.
+
+const RELEASES_URL = 'https://github.com/libonatii/Lume/releases/latest';
+const DOWNLOAD_URL = `${RELEASES_URL}/download/Lume-Companion-setup.exe`;
+
+function InstallApp() {
+  return <div className="companion-install">
+    <div>
+      <strong>Programa para Windows</strong>
+      <p className="muted-text small">Fica na bandeja, mostra o aplicativo em uso, as aulas restantes e o roteiro do dia. Presença não gera XP.</p>
+    </div>
+    <a className="button primary full-width" href={DOWNLOAD_URL} target="_blank" rel="noopener noreferrer">
+      <Icon name="cloud"/>Instalar aplicativo
+    </a>
+    <p className="quiet-note">Windows 10/11 · o instalador ainda não tem assinatura digital, então o Windows pode pedir confirmação. Versões e notas em <a className="text-link" href={RELEASES_URL} target="_blank" rel="noopener noreferrer">Releases<Icon name="external"/></a>.</p>
+  </div>;
+}
 
 function relativeSeen(value) {
   if (!value) return 'nunca';
@@ -57,12 +74,12 @@ export default function Companion({ account, notify, go }) {
 
   async function copyCode() {
     if (!pairing) return;
-    try {
-      await navigator.clipboard.writeText(formatPairCode(pairing.code));
+    if (await copyText(formatPairCode(pairing.code))) {
       notify('Código copiado. Cole no programa em até 10 minutos.');
-    } catch {
-      notify('Não foi possível copiar automaticamente. Selecione o código e copie.');
+      return;
     }
+    selectText('.companion-code > code');
+    notify('Não foi possível copiar automaticamente. O código está selecionado: use Ctrl+C.');
   }
 
   async function revoke(device) {
@@ -79,7 +96,8 @@ export default function Companion({ account, notify, go }) {
   if (!account) {
     return <section className="card-surface settings-panel companion-panel">
       <div className="panel-title"><span className="pace-icon"><Icon name="lock"/></span><div><h2 className="title">Lume Companion</h2><p className="muted-text">O programa que acompanha sua atividade local.</p></div></div>
-      <p className="muted-text">Conectar o Companion exige uma conta: é ela que autoriza o programa e guarda a lista dos seus dispositivos.</p>
+      <InstallApp/>
+      <p className="muted-text">Conectar o programa exige uma conta: é ela que autoriza o dispositivo e guarda a lista dos seus computadores.</p>
       <Button secondary onClick={() => go('login')}>Entrar para conectar<Icon name="arrow"/></Button>
     </section>;
   }
@@ -88,7 +106,8 @@ export default function Companion({ account, notify, go }) {
 
   return <section className="card-surface settings-panel companion-panel">
     <div className="panel-title"><span className="pace-icon"><Icon name="cloud"/></span><div><h2 className="title">Lume Companion</h2><p className="muted-text">Presença local, opcional e sem XP.</p></div></div>
-    <p className="muted-text">Um programa instalado no computador informa qual aplicativo da sua lista está aberto. O Lume lê apenas nomes de processo — nunca títulos de janela, tela, teclado ou arquivos.</p>
+    <InstallApp/>
+    <p className="muted-text">Depois de instalar, gere um código e cole no programa. Ele informa qual aplicativo da sua lista está aberto. O Lume lê apenas nomes de processo — nunca títulos de janela, tela, teclado ou arquivos.</p>
 
     {!data && <p className="quiet-note">Verificando dispositivos…</p>}
     {data && data.devices.length === 0 && <p className="inline-note"><Icon name="help"/><span>Nenhum programa conectado ainda.</span></p>}
@@ -125,11 +144,13 @@ export default function Companion({ account, notify, go }) {
         <button className="text-button" onClick={() => setPairing(null)}>Fechar</button>
       </div>
       <div className="companion-steps">
-        <p>No computador, dentro do projeto:</p>
-        <code className="companion-command">npm run companion:pair -- {formatPairCode(pairing.code)} --name "Meu computador"</code>
-        <p>Depois deixe o programa em execução:</p>
-        <code className="companion-command">npm run companion</code>
-        <p className="quiet-note">Testando localmente, acrescente <code>--api http://127.0.0.1:4173</code>. Sem esse parâmetro, o programa usa o endereço publicado.</p>
+        <p>Abra o <strong>Lume Companion</strong> (ícone na bandeja do Windows), clique em <strong>Abrir painel</strong> e cole o código.</p>
+        <details>
+          <summary>Rodando pelo projeto (desenvolvimento)</summary>
+          <code className="companion-command">npm run companion:pair -- {formatPairCode(pairing.code)} --name "Meu computador"</code>
+          <code className="companion-command">npm run companion</code>
+          <p className="quiet-note">Testando localmente, acrescente <code>--api http://127.0.0.1:4173</code>. Sem esse parâmetro, o programa usa o endereço publicado.</p>
+        </details>
       </div>
     </div>}
 
