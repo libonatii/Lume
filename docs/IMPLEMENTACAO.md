@@ -207,3 +207,26 @@ CRITÉRIOS DE ACEITE
 12. Integrações indisponíveis não são apresentadas como funcionais.
 
 Implemente os fluxos completos, atualize a documentação e execute os testes pertinentes. Ao terminar, informe o que funciona, o que foi verificado e quais dependências externas ainda impedem alguma funcionalidade.
+
+## Situação da implementação
+
+Implementado nas jornadas de onboarding, com estado versionado em `state.onboarding` e sincronizado com a conta.
+
+| # | Critério | Situação |
+| ---: | --- | --- |
+| 1 | Cada opção leva a uma sequência diferente | Implementado: 4 perguntas próprias por jornada, revisão e etapa social |
+| 2 | Conta nova chega a uma atividade concreta | Implementado na jornada 1: material com tipo e primeira atividade |
+| 3 | Quem já tem materiais registra e retoma | Implementado na jornada 2: prioridade e `resumeAt` |
+| 4 | Quem já tem rotina preserva a rotina | Implementado na jornada 3: a rotina informada é guardada, não substituída |
+| 5 | Interromper não perde escolhas | Implementado: etapa e respostas salvas a cada passo |
+| 6 | Login posterior não repete onboarding | Implementado: estado vem da conta e `onboarded` decide a rota |
+| 7 | Mudar de ritmo não apaga nem sobrescreve meta | Implementado: `weeklyGoalSource` distingue meta manual de sugerida |
+| 8 | Nenhuma ação de onboarding gera XP | Implementado e verificado: histórico permanece vazio |
+| 9 | Progresso anterior não fabrica pontuação | Implementado: não há ranking nem evento de XP no onboarding |
+| 10 | Três jornadas em celular e teclado | Verificado por testes e2e em desktop e mobile |
+| 11 | Recursos sociais acessíveis a todas as jornadas | Parcial: a etapa social aparece em todas e informa o que não existe. Amigos, grupos e ranking não estão implementados |
+| 12 | Integrações indisponíveis não parecem funcionais | Implementado: a tela declara acompanhamento manual e ausência de integração automática |
+
+Pendências externas e de produto: convites de amigos, grupos por convite, ranking por nível/cursos/empenho, integrações por área (GitHub e outras) e envio de e-mail da recuperação de senha. Nenhuma delas bloqueia as jornadas; todas aparecem na interface como indisponíveis.
+
+Verificação executada: `npm run build`, `npm test` (28 testes de domínio) e `npm run test:e2e` (10 cenários, desktop e mobile).

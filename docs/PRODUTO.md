@@ -68,7 +68,7 @@ O onboarding deve identificar:
 
 As perguntas podem ser puladas e revisitadas. A pessoa não recebe uma classificação de capacidade. Estudar com frequência não dá multiplicador de XP; precisar de mais apoio não diminui a pontuação pela mesma atividade.
 
-Na interface atual, a personalização oferece três ritmos e três apoios: ajuda para começar, retomar sem culpa e passos ainda menores. Áreas de estudo, objetivos e preferências sociais da tabela ainda são requisitos futuros. O apoio antigo `calm` e a preferência `essential` permanecem apenas no formato legado dos dados, sem ativar um modo visual.
+Na interface atual, a personalização oferece três jornadas com sequências próprias: **Quero começar** (assunto, resultado, material, tempo de sessão), **Estudo de vez em quando** (materiais em andamento, prioridade, ponto de retomada, dificuldades) e **Estudo com frequência** (áreas, rotina, em andamento, o que acompanhar). Cada jornada cria um primeiro material concreto, guarda as respostas na conta e pode ser retomada se for interrompida. Os três apoios disponíveis são ajuda para começar, retomar sem culpa e passos ainda menores. Preferências sociais e ranking da tabela ainda são requisitos futuros: a etapa social existe, é opcional e informa que convites e grupos não estão disponíveis. O apoio antigo `calm` e a preferência `essential` permanecem apenas no formato legado dos dados, sem ativar um modo visual.
 
 ## 5. Biblioteca e continuidade
 
