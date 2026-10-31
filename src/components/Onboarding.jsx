@@ -115,7 +115,7 @@ export default function Onboarding({ state, update, go, notify, account }) {
     if (!invite) return;
     const link = `${location.origin}/#amigos?convite=${invite.code}`;
     if (await copyText(link)) {
-      notify('Link do convite copiado. Vale por 7 dias e só pode ser usado uma vez.');
+      notify('Link do convite copiado. Vale por 7 dias e pode ser usado por várias pessoas.');
       return;
     }
     selectText('.invite-code');
@@ -196,7 +196,7 @@ export default function Onboarding({ state, update, go, notify, account }) {
             {account
               ? invite
                 ? <>
-                    <p className="muted-text">Envie este código. Vale por 7 dias e só pode ser usado uma vez.</p>
+                    <p className="muted-text">Envie este código. Vale por 7 dias e várias pessoas podem usá-lo.</p>
                     <code className="invite-code">{invite.code}</code>
                     <Button secondary onClick={copyInvite}><Icon name="check"/>Copiar link do convite</Button>
                   </>

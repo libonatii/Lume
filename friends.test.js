@@ -2,11 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   FriendsError, acceptInvite, createInvite, formatInviteCode, generateInviteCode,
-  normalizeInviteCode, removeFriend,
+  friendshipPolicy, normalizeInviteCode, removeFriend,
 } from './friends.js';
 import { hashSessionToken } from './auth.js';
 
-test('convite é um código longo, legível e de uso único', async () => {
+test('convite é um código longo, legível e guardado como hash', async () => {
   const code = generateInviteCode(new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]));
   assert.equal(code.length, 12);
   assert.match(code, /^[A-HJ-NP-Z2-9]{12}$/);
@@ -24,16 +24,18 @@ test('convite é um código longo, legível e de uso único', async () => {
   assert.equal(invite.ttlSeconds, 7 * 24 * 3600);
   const insert = saved.find((call) => call.sql.includes('INSERT INTO friend_invites'));
   assert.ok(insert.params[0] !== invite.code.replace(/-/g, ''), 'o código não é guardado em claro');
-  assert.ok(saved.some((call) => call.sql.includes('DELETE FROM friend_invites')), 'convite anterior é invalidado');
+  const cleanup = saved.find((call) => call.sql.includes('DELETE FROM friend_invites'));
+  assert.ok(cleanup, 'convite anterior em vigor é invalidado');
+  assert.ok(cleanup.sql.includes('expires_at >'), 'o histórico expirado não é apagado');
 });
 
-function fakeDb({ invite = null, friendsCount = 0, existing = null, consume = 1, friendName = 'Bia' } = {}) {
-  const calls = { friendships: [], consumed: null };
+function fakeDb({ invite = null, friendsCount = 0, existing = null, friendName = 'Bia' } = {}) {
+  const calls = { friendships: [], uses: [] };
   return {
     calls,
     async run(sql, params) {
-      if (sql.includes('UPDATE friend_invites')) { calls.consumed = params; return consume; }
-      if (sql.includes('INSERT INTO friendships')) calls.friendships.push(params);
+      if (sql.includes('friend_invite_uses')) calls.uses.push(params);
+      if (sql.includes('friendships')) calls.friendships.push(params);
       return 1;
     },
     async first(sql) {
@@ -60,7 +62,7 @@ async function rowFor(code, overrides = {}) {
 const NOW = Date.parse('2026-10-31T12:00:00Z');
 const CODE = 'ABCD-EFGH-IJKL';
 
-test('aceitar convite cria amizade nos dois sentidos e consome o código', async () => {
+test('aceitar convite cria amizade nos dois sentidos e registra o uso', async () => {
   const db = fakeDb({ invite: await rowFor(CODE) });
   const result = await acceptInvite(db, 'guest', CODE, NOW);
   assert.equal(result.alreadyFriends, false);
@@ -68,18 +70,28 @@ test('aceitar convite cria amizade nos dois sentidos e consome o código', async
   assert.equal(db.calls.friendships.length, 2);
   assert.deepEqual(db.calls.friendships[0].slice(0, 2), ['guest', 'owner']);
   assert.deepEqual(db.calls.friendships[1].slice(0, 2), ['owner', 'guest']);
-  assert.equal(db.calls.consumed[1], 'guest');
+  assert.equal(db.calls.uses.length, 1);
+  assert.equal(db.calls.uses[0][1], 'guest');
+  assert.equal(db.calls.uses[0][0], await hashSessionToken(normalizeInviteCode(CODE)));
 });
 
-test('convite não pode ser aceito pelo próprio autor, usado ou expirado', async () => {
+test('o mesmo convite serve para várias pessoas até expirar', async () => {
+  const row = await rowFor(CODE);
+  const first = await acceptInvite(fakeDb({ invite: row }), 'guest_1', CODE, NOW);
+  const second = await acceptInvite(fakeDb({ invite: row }), 'guest_2', CODE, NOW + 1000);
+  const third = await acceptInvite(fakeDb({ invite: row }), 'guest_3', CODE, NOW + 60000);
+  assert.equal(first.alreadyFriends, false);
+  assert.equal(second.alreadyFriends, false);
+  assert.equal(third.alreadyFriends, false);
+  assert.equal(first.friend.id, second.friend.id);
+  assert.equal(friendshipPolicy().invitesAreSingleUse, false);
+});
+
+test('convite não pode ser aceito pelo próprio autor, expirado ou inexistente', async () => {
   const validRow = await rowFor(CODE);
   await assert.rejects(
     () => acceptInvite(fakeDb({ invite: validRow }), 'owner', CODE, NOW),
     (error) => error instanceof FriendsError && error.code === 'self_invite',
-  );
-  await assert.rejects(
-    () => acceptInvite(fakeDb({ invite: { ...validRow, used_at: '2026-10-30T12:00:00Z' } }), 'guest', CODE, NOW),
-    (error) => error.code === 'used_code',
   );
   await assert.rejects(
     () => acceptInvite(fakeDb({ invite: { ...validRow, expires_at: '2026-10-01T12:00:00Z' } }), 'guest', CODE, NOW),
@@ -95,14 +107,13 @@ test('convite não pode ser aceito pelo próprio autor, usado ou expirado', asyn
   );
 });
 
-test('corrida no uso do convite não cria amizade duplicada', async () => {
+test('aceitar de novo não duplica amizade nem registra outro uso', async () => {
   const validRow = await rowFor(CODE);
-  await assert.rejects(
-    () => acceptInvite(fakeDb({ invite: validRow, consume: 0 }), 'guest', CODE, NOW),
-    (error) => error.code === 'used_code',
-  );
-  const already = await acceptInvite(fakeDb({ invite: validRow, existing: { ok: 1 } }), 'guest', CODE, NOW);
-  assert.equal(already.alreadyFriends, true);
+  const db = fakeDb({ invite: validRow, existing: { ok: 1 } });
+  const again = await acceptInvite(db, 'guest', CODE, NOW);
+  assert.equal(again.alreadyFriends, true);
+  assert.equal(db.calls.friendships.length, 0);
+  assert.equal(db.calls.uses.length, 0);
 });
 
 test('limite de amigos e remoção', async () => {

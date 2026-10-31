@@ -2,8 +2,10 @@
 //
 // Decisões de privacidade:
 // - não existe busca por e-mail: criar conta no Lume não fica descobrível;
-// - o convite é um código de uso único que a pessoa compartilha como quiser;
-// - a amizade não libera biblioteca, progresso, XP nem histórico;
+// - o convite é um código que a pessoa compartilha como quiser: vale por 7 dias
+//   e pode ser aceito por várias pessoas, sempre limitado ao prazo;
+// - a amizade, sozinha, não expõe biblioteca, progresso ou XP: o perfil usa as
+//   escolhas de compartilhamento de cada pessoa;
 // - convidar, aceitar ou remover não concedem XP.
 
 import { hashSessionToken } from './auth.js';
@@ -44,9 +46,9 @@ export async function createInvite(db, userId, now = Date.now()) {
   if (!userId) throw new FriendsError('Entre na sua conta para convidar alguém.', 'unauthenticated', 401);
   const code = generateInviteCode();
   const codeHash = await hashSessionToken(normalizeInviteCode(code));
-  // Um convite por vez: o último gerado é o que vale, para não deixar códigos
-  // esquecidos circulando.
-  await db.run('DELETE FROM friend_invites WHERE user_id = ? AND used_at IS NULL', [userId]);
+  // Um convite válido por vez: o último gerado é o que vale, para não deixar
+  // códigos esquecidos circulando. Os já expirados ficam no histórico.
+  await db.run('DELETE FROM friend_invites WHERE user_id = ? AND expires_at > ?', [userId, iso(now)]);
   await db.run(
     'INSERT INTO friend_invites (code_hash, user_id, created_at, expires_at, used_at, used_by) VALUES (?, ?, ?, ?, NULL, NULL)',
     [codeHash, userId, iso(now), iso(now + INVITE_TTL_MS)],
@@ -61,9 +63,8 @@ export async function acceptInvite(db, userId, rawCode, now = Date.now()) {
     throw new FriendsError('O convite tem 12 caracteres. Confira e tente de novo.', 'invalid_code', 400);
   }
   const codeHash = await hashSessionToken(code);
-  const invite = await db.first('SELECT user_id, expires_at, used_at FROM friend_invites WHERE code_hash = ?', [codeHash]);
+  const invite = await db.first('SELECT user_id, expires_at FROM friend_invites WHERE code_hash = ?', [codeHash]);
   if (!invite) throw new FriendsError('Convite não encontrado. Peça um novo link a quem convidou.', 'invalid_code', 400);
-  if (invite.used_at) throw new FriendsError('Este convite já foi usado. Peça outro.', 'used_code', 400);
   if (Date.parse(invite.expires_at) <= now) throw new FriendsError('Este convite expirou. Peça outro.', 'expired_code', 400);
   if (invite.user_id === userId) throw new FriendsError('Você não pode aceitar o seu próprio convite.', 'self_invite', 400);
 
@@ -77,15 +78,16 @@ export async function acceptInvite(db, userId, rawCode, now = Date.now()) {
     return { alreadyFriends: true, friend: await publicFriend(db, invite.user_id), friendId: invite.user_id };
   }
 
-  // Uso único garantido pela condição no UPDATE.
-  const consumed = await db.run(
-    'UPDATE friend_invites SET used_at = ?, used_by = ? WHERE code_hash = ? AND used_at IS NULL',
-    [iso(now), userId, codeHash],
+  // O convite vale até expirar: cada pessoa é registrada uma vez em
+  // friend_invite_uses, para contar quantos entraram por ele. O INSERT OR IGNORE
+  // mantém a operação repetível sem duplicar o registro.
+  await db.run(
+    'INSERT OR IGNORE INTO friend_invite_uses (code_hash, user_id, used_at) VALUES (?, ?, ?)',
+    [codeHash, userId, iso(now)],
   );
-  if (consumed !== 1) throw new FriendsError('Este convite já foi usado. Peça outro.', 'used_code', 400);
 
-  await db.run('INSERT INTO friendships (user_id, friend_id, created_at) VALUES (?, ?, ?)', [userId, invite.user_id, iso(now)]);
-  await db.run('INSERT INTO friendships (user_id, friend_id, created_at) VALUES (?, ?, ?)', [invite.user_id, userId, iso(now)]);
+  await db.run('INSERT OR IGNORE INTO friendships (user_id, friend_id, created_at) VALUES (?, ?, ?)', [userId, invite.user_id, iso(now)]);
+  await db.run('INSERT OR IGNORE INTO friendships (user_id, friend_id, created_at) VALUES (?, ?, ?)', [invite.user_id, userId, iso(now)]);
 
   return { alreadyFriends: false, friend: await publicFriend(db, invite.user_id), friendId: invite.user_id };
 }
@@ -105,8 +107,10 @@ export async function listFriends(db, userId, now = Date.now()) {
     [userId],
   );
   const invites = await db.all(
-    `SELECT created_at, expires_at, used_at FROM friend_invites
-      WHERE user_id = ? ORDER BY created_at DESC LIMIT 10`,
+    `SELECT i.created_at, i.expires_at,
+            (SELECT COUNT(*) FROM friend_invite_uses u WHERE u.code_hash = i.code_hash) AS uses
+       FROM friend_invites i
+      WHERE i.user_id = ? ORDER BY i.created_at DESC LIMIT 10`,
     [userId],
   );
   return {
@@ -114,8 +118,8 @@ export async function listFriends(db, userId, now = Date.now()) {
     invites: invites.map((row) => ({
       createdAt: row.created_at,
       expiresAt: row.expires_at,
-      used: Boolean(row.used_at),
       expired: Date.parse(row.expires_at) <= now,
+      uses: Number(row.uses ?? 0),
     })),
     maxFriends: MAX_FRIENDS,
   };
@@ -136,7 +140,8 @@ export function friendshipPolicy() {
     sharesLibrary: false,
     sharesProgress: false,
     grantsXp: false,
-    invitesAreSingleUse: true,
+    invitesAreSingleUse: false,
+    invitesReusableUntilExpiry: true,
     inviteTtlDays: Math.round(INVITE_TTL_MS / 86400000),
   };
 }

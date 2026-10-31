@@ -4,9 +4,9 @@ import { Button, Heading } from './ui.jsx';
 import { api, apiError } from '../lib/api.js';
 import { copyText, selectText } from '../lib/clipboard.js';
 
-// Amizades por convite. O convite é um código de uso único; não existe busca
-// por e-mail. Ser amigo não compartilha biblioteca, progresso nem XP — grupos,
-// feed e ranking continuam planejados.
+// Amizades por convite. O convite é um código reaproveitável, válido por 7 dias;
+// não existe busca por e-mail. Ser amigo não compartilha biblioteca, progresso
+// nem XP — isso depende do perfil e das escolhas de quem é dono dos dados.
 
 function initialOf(name) {
   return String(name || '?').trim().slice(0, 1).toUpperCase();
@@ -44,7 +44,7 @@ export default function Friends({ account, notify, go }) {
     if (!invite) return;
     const link = `${location.origin}/#amigos?convite=${invite.code}`;
     if (await copyText(link)) {
-      notify('Link do convite copiado. Ele vale por 7 dias e só pode ser usado uma vez.');
+      notify('Link do convite copiado. Vale por 7 dias e pode ser usado por várias pessoas.');
       return;
     }
     selectText('.invite-code');
@@ -95,9 +95,9 @@ export default function Friends({ account, notify, go }) {
             <p className="muted-text">Não procuramos pessoas por e-mail: assim ninguém descobre quem tem conta no Lume.</p>
             <Button onClick={createInvite} disabled={busy}><Icon name="plus"/>Criar convite</Button>
             {invite && <div className="companion-code" aria-live="polite">
-              <span className="eyebrow">Convite de uso único</span>
+              <span className="eyebrow">Convite por 7 dias</span>
               <code>{invite.code}</code>
-              <p className="quiet-note">Vale por 7 dias. Depois de aceito, o código não funciona de novo.</p>
+              <p className="quiet-note">Vale por 7 dias e pode ser aceito por várias pessoas. Cada uma entra só uma vez.</p>
               <div className="action-row">
                 <Button secondary onClick={copyInvite}>Copiar link do convite</Button>
                 <button className="text-button" onClick={() => setInvite(null)}>Fechar</button>
@@ -138,8 +138,12 @@ export default function Friends({ account, notify, go }) {
             <ul className="invite-history">
               {data.invites.map((item, index) => <li key={`${item.createdAt}-${index}`}>
                 <span>{new Date(item.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
-                <span className={`invite-status ${item.used ? 'is-used' : item.expired ? 'is-expired' : 'is-open'}`}>
-                  {item.used ? 'usado' : item.expired ? 'expirado' : 'aguardando'}
+                <span className={`invite-status ${item.expired ? 'is-expired' : item.uses > 0 ? 'is-used' : 'is-open'}`}>
+                  {item.expired
+                    ? 'expirado'
+                    : item.uses > 0
+                      ? `${item.uses} ${item.uses === 1 ? 'pessoa entrou' : 'pessoas entraram'}`
+                      : 'aguardando'}
                 </span>
               </li>)}
             </ul>
