@@ -19,13 +19,13 @@
 | --- | --- | --- |
 | Gamificação | Fundação implementada | XP validado no servidor, níveis de 500, blocos de tempo e teto diário; falta migração assistida de casos ambíguos e correções com explicação |
 | Ranking | Implementado entre amigos | Três abas, opt-in, empates e período; grupos e ranking público estão fora desta etapa |
-| Mensagens diretas e colaboração | Não implementado | Sem DMs, bloqueio, não lidas, convites de entrega ou GitHub |
-| Biblioteca | Implementado o essencial | Criação manual, edição, exclusão com confirmação, etapas editáveis, tipos de material e slides; falta posição estruturada por tipo |
+| Mensagens diretas e colaboração | Implementado o núcleo | DMs, bloqueio, não lidas, referências e convites de entrega; falta feed, OAuth GitHub e notificações nativas |
+| Biblioteca | Implementado o essencial | Criação manual, edição, exclusão com confirmação, etapas editáveis, tipos e posição estruturada por tipo; slides com imagem dependem de R2 |
 | Organização | Não implementado | Sem anotações, listas com prioridade, quadro de projeto ou modelos |
-| GitHub | Não implementado | Sem conexão, leitura autorizada, sugestões revisáveis ou colaboração |
+| GitHub | Parcial | Leitura pública de README/issues/milestones e criação de projeto; sem OAuth, repositórios privados ou escrita |
 | Importação | Parcial | Lê grade pública e progresso marcado na página copiada; não contorna login nem consulta progresso por API |
-| Slides | Implementado | Criação, edição, ordem, visualização interna, progresso e XP único; falta armazenamento binário de imagens |
-| Contas | Parcial | Sem envio de e-mail nem reconciliação entre dispositivos; restauração de cópia implementada |
+| Slides | Implementado | Criação, edição, ordem, visualização interna, progresso, imagens via R2 e XP único |
+| Contas | Parcial | Envio por Resend configurável, reconciliação por revisão e restauração de cópia; falta envio global testado e sessões ativas |
 | Companion | Parcial | App pronto para uso local; presença social, notificações e assinatura pendentes |
 | Consistência | Parcial | Documentação e textos ainda mencionam grupos; grupos estão fora do escopo |
 
@@ -61,6 +61,21 @@
   substitui preferências, privacidade ou onboarding atuais.
 - **Consistência:** textos de Amigos, Companion e Entrada deixam de tratar grupos como pendência; mensagens
   diretas são o próximo passo social.
+- **Mensagens diretas:** conversas entre amizades, histórico, não lidas, referência de material, bloqueio/desbloqueio,
+  preferência de notificação e contador no menu. Sem desconhecidos, grupos ou canais.
+- **Reconciliação:** `/api/state` usa revisão otimista; em conflito, o cliente mescla cursos, conclusões, histórico,
+  tarefas, sessões e slides e preserva preferências desta sessão.
+- **GitHub:** leitura pública de README, issues e milestones, com sugestões de entrega e criação de projeto. Sem OAuth,
+  repositórios privados, escrita ou XP por analisar.
+- **Colaboração:** convite de uma amizade para uma entrega específica de projeto, com aceite/recusa e cancelamento;
+  aceitar não copia o projeto, não dá acesso ao GitHub e não gera XP.
+- **Posição por tipo:** vídeo (tempo), artigo (página/seção), livro (capítulo), exercícios (questão/tentativas) e
+  projeto (próxima entrega), com rótulo legível.
+- **Imagens de slides:** upload para R2/local, validação de formato, substituição e remoção. Em produção, depende de
+  R2 habilitado na conta.
+- **Correção de XP:** ajuste negativo com motivo no extrato, revogação da conquista vinculada e chave idempotente;
+  classificação de materiais antigos sem recriar XP.
+- **E-mail:** recuperação por Resend quando configurado; sem provider, mantém o fallback local/produção documentado.
 
 
 ## 2. Gamificação e conquistas
@@ -72,15 +87,18 @@
   apresentação, 500 de bônus por curso/projeto e 25 por bloco de 30 minutos, com teto diário de 200 XP de tempo.
 - `completeMission` grava novas conclusões com `xp: 0` no histórico do navegador; o XP elegível aparece apenas
   no extrato do servidor. Preparação não concede XP.
-- Ainda falta: correção/ajuste de evento com explicação na interface, migração assistida de conclusões genéricas
-  antigas e teste de concorrência entre dispositivos no Worker publicado.
+- Correção assistida: um evento positivo pode receber um ajuste negativo com motivo, vinculado ao original, e a
+  conquista correspondente é revogada. Repetir a correção não duplica o ajuste.
+- Ainda falta: edição de data/origem, migração assistida de conclusões genéricas antigas e teste de concorrência
+  entre dispositivos no Worker publicado.
 
 **G2 — Migração e separação do saldo legado.** **Implementada como separação; sem conversão automática.**
 - O saldo antigo continua no histórico local e é exibido em uma seção “Saldo legado”, fora do nível novo e do
   ranking. Nenhum registro antigo é apagado ou convertido em aula/leitura concluída.
 - O servidor só considera eventos posteriores a `xp_settings.eligible_since`; progresso importado marcado como
   `historical`/`import` também fica fora.
-- A migração assistida de etapas genéricas ambíguas continua pendente; a regra atual é conservadora.
+- A classificação de materiais antigos existe em Configurações: a pessoa pode ajustar o tipo e marcar planejamento,
+  sem recriar XP antigo. A migração assistida de etapas genéricas ambíguas continua pendente; a regra atual é conservadora.
 
 **G3 — Conquistas personalizadas por material.** **Parcial.**
 - Curso, projeto, leitura, lista de exercícios e apresentação geram conquista com título do material, critério,
@@ -119,13 +137,12 @@
   editáveis.
 - Coberto por `library-slides.spec.js` em desktop e celular.
 
-**B2 — Materiais tipados e progresso por tipo.** **Parcial.**
+**B2 — Materiais tipados e progresso por tipo.** **Implementado o modelo declarado.**
 - `STUDY_TYPES` inclui aula, videoaula, artigo/leitura, livro, lista de exercícios, projeto e curso. O onboarding
-  e a criação manual gravam o tipo; a Biblioteca mostra o rótulo e a retomada usa um texto específico por tipo
-  (instante do vídeo, página/seção/capítulo, exercício/tentativa, próxima entrega).
-- Ainda não há posição estruturada de vídeo, página de PDF, capítulo de livro, contagem de tentativas ou
-  entregas de projeto com critérios. O ponto salvo continua sendo texto declarado (`resumeAt`) ou a próxima etapa.
-- Player e retomada automática dependem de uma fonte compatível e continuam fora desta etapa.
+  e a criação manual gravam o tipo; a Biblioteca mostra o rótulo e o editor guarda posição estruturada: tempo de
+  vídeo, página/seção, capítulo, questão/tentativas ou próxima entrega.
+- O ponto salvo continua sendo **declarado**; não há player, leitura de PDF ou retomada automática de site externo.
+- `resumeAt` permanece como rótulo legível e dados antigos continuam válidos.
 
 **B3 — Progresso automático e integrações de estudo.** **Parcial.**
 - A página copiada da conta pode trazer aulas marcadas como concluídas; elas entram como histórico `import`,
@@ -155,8 +172,8 @@
   o **último slide** e clicou em **Concluir apresentação**. O XP é único, de 100, e só o servidor o concede.
 - O progresso fica em `course.slideProgress` (slides vistos, último slide e data de conclusão); reabrir não
   repete o evento. O evento usa a chave `slide|courseId`, tem origem manual e versão da política.
-- Limitação: slides são texto no documento da conta; imagens binárias e apresentações importadas de arquivos
-  ainda não são suportadas.
+- Limitação: imagens são armazenadas no R2/bucket local e dependem de `MEDIA` habilitado; apresentações importadas
+  de arquivos e vídeos dentro do slide ainda não são suportadas. Em produção, o binding R2 está desativado nesta conta.
 - Coberto por `library-slides.spec.js` e `xp.test.js`.
 
 **B8 — Favoritos e destaque de retomada.** **Parcial.**
@@ -202,24 +219,22 @@
 - Não há chave declarada no `wrangler.jsonc`; se existir um secret no Worker, ele não está documentado nem
   tem teste com provedor real, custo ou latência medidos.
 
-**I5 — Conexão com GitHub.** **Não implementado.**
-- Ver B3. As capacidades declaradas em `GITHUB_CAPABILITIES` não estão ligadas a nenhuma tela ou API.
-- Escopo desta etapa: conexão opcional, seleção explícita de repositórios, leitura autorizada de README,
-  issues e milestones, e sugestões de objetivo, entregas, pendências e próxima ação.
-- Toda sugestão deve distinguir dado encontrado no repositório de sugestão da IA, mostrar a origem e permitir
-  revisão. Inatividade, issues abertas ou ausência de documentação não bastam para afirmar que o projeto está
-  incompleto.
-- Colaboração: convidar um amigo para uma entrega específica, com projeto, ajuda desejada, aceite ou recusa e
-  acompanhamento. Aceitar no Lume não concede acesso ao repositório no GitHub.
-- Não executar issues, comentários, código ou permissões automaticamente. Credenciais só no servidor e
-  permissões mínimas. Repositórios privados não aparecem em perfil, mensagem ou convite sem escolha explícita.
+**I5 — Conexão com GitHub.** **Parcial — leitura pública e colaboração.**
+- `github.js` lê repositórios públicos (README, issues abertas e milestones), gera sugestões revisáveis e permite
+  criar um projeto com as entregas escolhidas. Analisar ou criar não concede XP.
+- Não há OAuth: nenhuma conta GitHub é conectada, nenhum token do usuário é pedido no formulário e repositórios
+  privados não são acessados. Escrita, comentários e alteração de código estão fora.
+- Colaboração: convite de uma amizade para uma entrega específica de projeto, com aceite/recusa e cancelamento.
+  Aceitar no Lume não concede acesso ao repositório e não copia o material.
+- Toda sugestão é marcada como sugestão; issues/milestones não são tratados como conclusão ou prova de estudo.
 
 ## 5. Contas, privacidade e dados
 
-**C1 — Envio de e-mail da recuperação.** **Não implementado.**
-- O pedido gera token de 30 minutos e link; no servidor local o link pode voltar na resposta, e no Worker
-  com `SHOW_RESET_LINK=false` ele fica só no log. Não há transporte de e-mail.
-- Falta escolher provedor, template, tratamento de bounce e teste de entrega.
+**C1 — Envio de e-mail da recuperação.** **Implementado quando configurado.**
+- `email.js` envia a recuperação pelo Resend com `LUME_EMAIL_PROVIDER=resend`, `RESEND_API_KEY` e
+  `LUME_EMAIL_FROM`; o link não aparece na resposta com provider ativo.
+- Sem configuração, mantém o fallback: link no log e, apenas no modo local/teste, na resposta. Falta medir entrega,
+  bounce e reputação em produção, além de decidir se o provedor será mantido.
 
 **C2 — Verificação de e-mail, login social e segundo fator.** **Não implementado.**
 - Só existe cadastro/login com e-mail e senha. Google é citado como complemento opcional no produto, mas
@@ -229,9 +244,12 @@
 - Cadastro, login, saída e recuperação por link funcionam. Não há troca de senha estando logada, exclusão
   de conta, lista de sessões ativas nem encerramento remoto de sessões (a redefinição encerra todas).
 
-**C4 — Reconciliação entre dispositivos.** **Não implementado.**
-- `/api/state` grava a cópia inteira; a última escrita vence. Não há versão, merge, detecção de conflito
-  nem resolução visível. Duas abas/dispositivos podem sobrescrever progresso um do outro.
+**C4 — Reconciliação entre dispositivos.** **Implementado no documento de estado.**
+- `/api/state` grava com `revision`; uma escrita baseada em revisão antiga recebe 409 com a cópia atual. O cliente
+  mescla cursos, conclusões, histórico, tarefas, sessões e slides e tenta de novo, preservando as preferências
+  desta sessão.
+- A UI avisa quando a cópia de outro dispositivo foi mesclada. Conflitos de preferências simultâneas ainda são
+  resolvidos a favor da sessão local, sem escolha detalhada por campo.
 
 **C5 — Restaurar backup.** **Implementado.**
 - Configurações exporta JSON e permite escolher uma cópia para restaurar. O arquivo é validado (formato, versão,
@@ -275,22 +293,19 @@
 - O fluxo desta etapa compartilha referências por mensagem direta e mostra no perfil o que a pessoa escolheu;
   um feed social não é pré-requisito das DMs nem do ranking.
 
-**S3 — Mensagens diretas.** **Não implementado.**
-- Não há conversas individuais, envio e recebimento, histórico persistente, indicação de não lidas,
-  compartilhamento de referências, controle de notificações nem bloqueio.
-- Escopo: DMs apenas entre amizades aceitas; sem mensagens de desconhecidos, conversas em grupo, canais,
-  chamadas de voz ou vídeo.
-- Regras: somente participantes autorizados acessam a conversa; bloquear ou remover amizade interrompe novas
-  mensagens e preserva o histórico; compartilhar uma referência não concede acesso a conteúdo privado ou
-  restrito; mensagens e notificações não geram XP.
-- Pronto quando: API no Node e no Worker com o mesmo contrato, tela de conversas, não lidas e bloqueio,
-  com testes de acesso indevido, persistência e repetição.
+**S3 — Mensagens diretas.** **Implementado.**
+- Conversas individuais entre amizades, histórico, não lidas, referência de material, bloqueio/desbloqueio e
+  preferência de notificação. O menu mostra o contador de não lidas; abrir a conversa marca como lida.
+- DMs apenas entre amizades aceitas; sem desconhecidos, grupos, canais ou chamadas. Remover a amizade bloqueia
+  o acesso à conversa; bloquear interrompe novas mensagens e preserva o histórico.
+- Referências mostram apenas tipo, título e id; nenhum conteúdo privado é copiado. Mensagens e notificações não
+  geram XP.
+- Coberto por `messages.test.js` e `tests/e2e/messages.spec.js`.
 
 **S4 — Segurança social.** **Parcial.**
-- Amigos podem ser removidos, mas não há bloqueio, denúncia, silenciamento, prevenção de spam ou regras de
-  moderação.
-- O bloqueio de contato faz parte de S3: impede novas mensagens sem apagar o histórico. Denúncia e moderação
-  continuam pendentes.
+- Amigos podem ser removidos e contatos bloqueados/desbloqueados; não há denúncia, silenciamento por período,
+  prevenção de spam além do limite de envio ou regras de moderação.
+- Denúncia e moderação continuam pendentes.
 
 **S5 — Presença social / rich presence.** **Não implementado.**
 - A presença local existe e mostra aplicativo, categoria, desde quando e computador — mas **só para a
@@ -417,9 +432,9 @@ e ranking.
 ## 11. Verificação antes de dizer "pronto"
 
 ```sh
-npm test          # 125 testes Node de domínio/autenticação/importação/Companion/sessão/amigos/perfil/tarefas/XP/biblioteca/backup
+npm test          # 149 testes Node de domínio/autenticação/importação/Companion/sessão/amigos/perfil/tarefas/XP/biblioteca/backup/reconciliação/mensagens/e-mail/GitHub/colaboração
 npm run build     # Astro + CSP
-npm run test:e2e  # 50 cenários, desktop e celular
+npm run test:e2e  # 54 cenários, desktop e celular
 ```
 
 - O e2e de importação por link **simula** a análise por interceptação de rota; o teste de progresso copiado usa
@@ -797,4 +812,4 @@ Implementado nas jornadas de onboarding, com estado versionado em `state.onboard
 
 Pendências externas e de produto: mensagens diretas entre amizades, colaboração em projetos, integrações por área (GitHub e outras) e envio de e-mail da recuperação de senha. Grupos, comunidades, canais e servidores estão fora do escopo. Nenhuma dessas pendências bloqueia as jornadas; o que não existe aparece como indisponível.
 
-Verificação executada nesta rodada: `npm run build`, `npm test` (125 testes Node) e `npm run test:e2e` (50 cenários, desktop e mobile).
+Verificação executada nesta rodada: `npm run build`, `npm test` (149 testes Node) e `npm run test:e2e` (54 cenários, desktop e mobile).

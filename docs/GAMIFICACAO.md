@@ -97,7 +97,7 @@ Assim, concluir um curso elegível e receber seu bônus de 500 XP garante pelo m
 
 Exemplo: com 450 XP, a pessoa está no nível 1. Um bônus de curso de 500 XP a leva a 950 XP e ao nível 2, com 450/500 XP para o próximo nível.
 
-Nível é permanente e não reinicia toda semana. Pausas não diminuem nível. Uma correção de evento duplicado ou fraudulento é um ajuste de integridade com explicação no extrato, não uma punição por ausência.
+Nível é permanente e não reinicia toda semana. Pausas não diminuem nível. Uma correção de evento duplicado ou fraudulento é um ajuste de integridade com explicação no extrato, não uma punição por ausência. A implementação registra um evento `adjustment` negativo vinculado ao original, com motivo, e revoga a conquista correspondente; repetir a correção não duplica o ajuste.
 
 ## 5. Tempo efetivo e blocos de estudo
 
