@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Icon from './Icon.jsx';
-import { Button } from './ui.jsx';
+import { Button, Heading } from './ui.jsx';
 import { api, apiError } from '../lib/api.js';
 import { copyText, selectText } from '../lib/clipboard.js';
 import { formatPairCode, presenceState } from '../../public/companion-domain.js';
@@ -93,21 +93,29 @@ export default function Companion({ account, notify, go }) {
     finally { setBusy(false); }
   }
 
+  // Tela própria: a instalação e a conexão não ficam mais dentro de Configurações.
+  const page = (content) => <div className="personal-root">
+    <Heading eyebrow="Lume no seu computador" title="Instalar aplicativo">
+      O programa opcional que mostra o aplicativo em uso, quantas aulas faltam e o roteiro do dia. Presença não gera XP.
+    </Heading>
+    {content}
+  </div>;
+
   if (!account) {
-    return <section className="card-surface settings-panel companion-panel">
+    return page(<section className="card-surface settings-panel companion-panel">
       <div className="panel-title"><span className="pace-icon"><Icon name="lock"/></span><div><h2 className="title">Lume Companion</h2><p className="muted-text">O programa que acompanha sua atividade local.</p></div></div>
       <InstallApp/>
       <p className="muted-text">Conectar o programa exige uma conta: é ela que autoriza o dispositivo e guarda a lista dos seus computadores.</p>
       <Button secondary onClick={() => go('login')}>Entrar para conectar<Icon name="arrow"/></Button>
-    </section>;
+    </section>);
   }
 
   const active = (data?.active || []).map((device) => ({ device, state: presenceState(device.presence) }));
 
-  return <section className="card-surface settings-panel companion-panel">
+  return page(<section className="card-surface settings-panel companion-panel">
     <div className="panel-title"><span className="pace-icon"><Icon name="cloud"/></span><div><h2 className="title">Lume Companion</h2><p className="muted-text">Presença local, opcional e sem XP.</p></div></div>
     <InstallApp/>
-    <p className="muted-text">Depois de instalar, gere um código e cole no programa. Ele informa qual aplicativo da sua lista está aberto. O Lume lê apenas nomes de processo — nunca títulos de janela, tela, teclado ou arquivos.</p>
+    <p className="muted-text">Depois de instalar, gere um código aqui nesta tela e cole no programa. Ele informa qual aplicativo da sua lista está aberto. O Lume lê apenas nomes de processo — nunca títulos de janela, tela, teclado ou arquivos.</p>
 
     {!data && <p className="quiet-note">Verificando dispositivos…</p>}
     {data && data.devices.length === 0 && <p className="inline-note"><Icon name="help"/><span>Nenhum programa conectado ainda.</span></p>}
@@ -160,5 +168,5 @@ export default function Companion({ account, notify, go }) {
     </div>
     <p className="quiet-note">Cada computador recebe um acesso próprio, que você pode remover a qualquer momento. Amigos e grupos ainda não existem: por enquanto, a presença aparece só para você.</p>
     {error && <p className="form-error" role="alert">{error}</p>}
-  </section>;
+  </section>);
 }

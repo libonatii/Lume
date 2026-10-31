@@ -25,7 +25,7 @@ externas. A bandeja do sistema e o instalador ficam para a próxima etapa.
 
 ## Conectar
 
-1. No Lume, entre na conta e abra **Configurações → Lume Companion**.
+1. No Lume, entre na conta e clique em **Instalar aplicativo** na barra lateral.
 2. Clique em **Conectar um programa**. Um código de 8 caracteres aparece (vale 10
    minutos, uso único).
 3. No computador, dentro do projeto:

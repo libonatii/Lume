@@ -175,9 +175,11 @@ solução de problemas em [Publicação e CI](RELEASE.md).
 
 ### Como abrir agora
 
-O caminho normal é pelo site: **Configurações → Lume Companion →
-Instalar aplicativo**. O botão baixa o instalador da última release
+O caminho normal é pelo site: **Instalar aplicativo**, na barra lateral,
+abaixo do menu e acima do perfil. O botão baixa o instalador da última release
 (`Lume-Companion-setup.exe`) e mostra o aviso de que ele ainda não é assinado.
+A mesma tela gera o código de conexão — o programa não pede mais que a pessoa
+procure em Configurações.
 
 Para instalar manualmente, use a página de Releases do repositório.
 

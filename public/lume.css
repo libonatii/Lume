@@ -1348,8 +1348,31 @@ html[data-theme='light'] .plan-material-highlight {
   margin-right: auto;
 }
 
-.player-card {
+.install-app {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   margin-top: auto;
+  padding: 0.7rem 0.85rem;
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--border-strong);
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: 650;
+  font-size: 0.86rem;
+  text-decoration: none;
+  transition: border-color 0.16s ease, color 0.16s ease;
+}
+.install-app:hover,
+.install-app:focus-visible {
+  border-color: var(--lume);
+  color: var(--lume);
+}
+.install-app svg {
+  flex: none;
+}
+.player-card {
+  margin-top: 0.4rem;
   padding: 0.85rem;
   border-radius: var(--radius-lg);
   background: var(--surface);
@@ -2399,6 +2422,7 @@ dialog#dialog::backdrop {
   }
   .sidebar .brand,
   .sidebar .nav-planned,
+  .sidebar .install-app,
   .sidebar .player-card {
     display: none;
   }

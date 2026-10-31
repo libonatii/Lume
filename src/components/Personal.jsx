@@ -4,7 +4,6 @@ import { achievements, courseProgress, courseStatus, levelInfo, localDay, nextMi
 import { formatSessionDuration } from '../../public/session-domain.js';
 import Icon from './Icon.jsx';
 import { AnimatedNumber, Button, Cover, Empty, Glow, Heading, Progress, Ring, stagger } from './ui.jsx';
-import Companion from './Companion.jsx';
 
 export function Missions({ state, open }) {
   const available = state.courses.flatMap(course => {
@@ -215,8 +214,6 @@ export function Preferences({ state, update, notify, onPersonalize, account, go 
           <p className="quiet-note">Não inclua senhas ou informações sensíveis nas suas etapas.</p>
           <button className="text-button accent" onClick={download}>Baixar cópia dos meus dados<Icon name="arrow"/></button>
         </section>
-
-        <Companion account={account} notify={notify} go={go}/>
       </div>
     </div>
   </div>;

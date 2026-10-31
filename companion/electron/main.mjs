@@ -225,7 +225,7 @@ ipcMain.handle('action', async (_event, name, payload = {}) => {
       await shell.openExternal(state.apiUrl || readConfig().apiUrl);
       return state;
     case 'open-settings':
-      await shell.openExternal(`${(state.apiUrl || readConfig().apiUrl).replace(/\/+$/, '')}/#configuracoes`);
+      await shell.openExternal(`${(state.apiUrl || readConfig().apiUrl).replace(/\/+$/, '')}/#aplicativo`);
       return state;
     case 'hide':
       window?.hide();
