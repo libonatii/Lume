@@ -12,6 +12,7 @@ files:
   - electron/**/*
   - core.mjs
   - domain.mjs
+  - update.mjs
   - package.json
 
 # Ícones fora do asar, para o nativeImage ler caminho real.
