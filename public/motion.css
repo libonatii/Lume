@@ -1,40 +1,89 @@
-/* A navegação continua imediata quando as animações não estão disponíveis. */
-@keyframes page-arrive {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
+/* Referências: FGLibs → Arc Library / https://uiarc.dev/docs/motion
+   Adaptação nativa, sem dependências. Movimento pontual, nunca em loop. */
+:root {
+  --motion-fast: 160ms;
+  --motion-panel: 240ms;
+  --motion-ease: cubic-bezier(.22, 1, .36, 1);
 }
-@keyframes page-leave {
-  from { opacity: 1; transform: translateY(0); }
-  to { opacity: 0; transform: translateY(-6px); }
+
+/* O halo estático orienta para a próxima ação. */
+html:not([data-essential="true"]) .focus-card {
+  background-image: radial-gradient(ellipse at 0 0, color-mix(in srgb, var(--accent) 9%, transparent), transparent 65%);
 }
+html:not([data-essential="true"]) .course-card:is(:focus-within, :hover) {
+  box-shadow: 0 12px 28px -18px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.course-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
 @keyframes dialog-arrive {
   from { opacity: 0; transform: translateY(8px) scale(.985); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
-@media (prefers-reduced-motion: no-preference) {
-  #main { view-transition-name: page-content; }
-  ::view-transition-old(page-content) {
-    animation: page-leave 150ms ease-out both;
-  }
-  ::view-transition-new(page-content) {
-    animation: page-arrive 260ms cubic-bezier(.2, .7, .3, 1) both;
-  }
-  ::view-transition-group(page-content) { animation-duration: 260ms; }
-  ::view-transition-old(root),
-  ::view-transition-new(root) { animation: none; }
-  .screen-enter { animation: page-arrive 260ms ease-out both; }
-  dialog[open] { animation: dialog-arrive 180ms ease-out both; }
-  .rhythm-card,
-  .support-option,
-  .nav-link,
-  .button,
-  .filter-button {
-    transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
-  }
-  .rhythm-card:hover { transform: translateY(-3px); }
-  .button:active:not(:disabled) { transform: translateY(1px); }
-  .rhythm-check { transition: background-color 180ms ease, border-color 180ms ease; }
+@keyframes backdrop-arrive {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
+@keyframes selection-settle {
+  from { transform: scale(.85); }
+  to { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html:not([data-essential="true"]) dialog[open] {
+    animation: dialog-arrive var(--motion-panel) var(--motion-ease) both;
+  }
+  html:not([data-essential="true"]) dialog[open]::backdrop {
+    animation: backdrop-arrive var(--motion-panel) ease-out both;
+  }
+  html:not([data-essential="true"]) :is(.button, .icon-button, .nav-link, .filter-button, .pace-card, .course-card) {
+    transition: background-color var(--motion-fast) ease, border-color var(--motion-fast) ease,
+      color var(--motion-fast) ease, box-shadow var(--motion-panel) ease, transform var(--motion-panel) var(--motion-ease);
+  }
+  html:not([data-essential="true"]) .button .icon {
+    transition: transform var(--motion-panel) var(--motion-ease);
+  }
+  html:not([data-essential="true"]) .button:is(:hover, :focus-visible) .icon:last-child {
+    transform: translateX(2px);
+  }
+  html:not([data-essential="true"]) :is(.button, .icon-button):active:not(:disabled) {
+    transform: scale(.98);
+  }
+  html:not([data-essential="true"]) .pace-card:has(input:checked) .card-indicator {
+    animation: selection-settle var(--motion-panel) var(--motion-ease);
+  }
+  html:not([data-essential="true"]) .toast {
+    opacity: 0;
+    translate: 0 8px;
+    transition: opacity var(--motion-fast) ease, translate var(--motion-panel) var(--motion-ease), visibility var(--motion-panel);
+  }
+  html:not([data-essential="true"]) .toast.visible { opacity: 1; translate: 0 0; }
+}
+
+/* Os efeitos de hover ficam restritos a dispositivos com ponteiro preciso. */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  html:not([data-essential="true"]) :is(.course-card, .pace-card):hover { transform: translateY(-3px); }
+  html:not([data-essential="true"]) .course-card .course-cover img {
+    transition: transform 480ms var(--motion-ease);
+  }
+  html:not([data-essential="true"]) .course-card:hover .course-cover img { transform: scale(1.035); }
+}
+
+/* Último CSS: neutraliza também os utilitários exportados do Stitch. */
+html[data-essential="true"] *,
+html[data-essential="true"] *::before,
+html[data-essential="true"] *::after,
+html[data-essential="true"] dialog::backdrop {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+html[data-essential="true"] .course-card:hover,
+html[data-essential="true"] [data-stitch] img:hover { transform: none !important; }
 @media (prefers-reduced-motion: reduce) {
-  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+  *, *::before, *::after, dialog::backdrop {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+  .course-card:hover, [data-stitch] img:hover { transform: none !important; }
 }

@@ -19,7 +19,7 @@ Na revisão que acompanha esta documentação, o projeto é uma aplicação loca
 | Gamificação | Modelo legado: 5 XP por preparação, 10 XP por etapa, nível a cada 100 XP |
 | Conquistas | Selos genéricos do protótipo, incluindo ações que não serão elegíveis na nova política |
 | Histórico | Dados no navegador e exportação JSON |
-| Visual | Telas inspiradas em referências Stitch, temas, modo essencial e transições com movimento reduzido |
+| Visual | Telas inspiradas em referências Stitch, temas, entradas escalonadas, destaque de cartões, respostas em botões e transições de diálogos/avisos; efeitos desativados no modo essencial e com movimento reduzido |
 | Contas e sincronização | Cadastro e login com e-mail e senha são requisitos; serviço de contas em implementação, com integração completa e sincronização ainda a verificar |
 | Amigos, grupos e comunicação | Não implementados |
 | Placares compartilhados | Não implementados |
@@ -30,6 +30,14 @@ Na revisão que acompanha esta documentação, o projeto é uma aplicação loca
 O nome “curso” no protótipo pode representar um assunto com tarefas arbitrárias. Isso ainda não é o modelo de curso com aulas e critérios de conclusão definido para o produto.
 
 ## 3. Mudança de direção documentada
+
+### Efeitos visuais — referência FGLibs
+
+Os efeitos usam como referência a [Arc Library, listada na FGLibs](https://fglibs.com/), e seus [princípios de movimento](https://uiarc.dev/docs/motion). A implementação é própria em CSS e Web Animations API, sem instalar React ou dependências. O MCP da FGLibs não estava disponível na sessão; foi consultado o site como alternativa.
+
+Entradas finitas orientam a chegada às telas de entrada, personalização, Hoje e Biblioteca; cartões recebem destaque e leve elevação com ponteiro preciso. Filtros revelam os resultados, sem repetir animações durante a busca. Diálogos, botões e avisos recebem respostas discretas. O conteúdo permanece funcional sem Web Animations API. Ativar o modo essencial ou a preferência de movimento reduzido cancela as entradas; o CSS também neutraliza as transições exportadas do Stitch.
+
+Esta alteração é visual: não migra dados nem implementa a nova política de XP, contas sincronizadas ou recursos sociais. Verificação: sintaxe JavaScript e 20 testes existentes aprovados. A revisão visual no navegador ficou pendente: o navegador interno não alcançou a prévia local, e o controle do Chrome foi interrompido pela ferramenta por não conseguir determinar a URL atual com segurança.
 
 O protótipo inicial enfatizou passos de preparação e pequenas recompensas. A direção atual exige progresso real de estudo e um componente social central.
 

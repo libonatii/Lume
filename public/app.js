@@ -588,8 +588,8 @@ function render(focusMain = false) {
     const selectors = {
       login: '[aria-labelledby="welcome-title"], [aria-labelledby="login-title"]',
       inicio: '#main header, #main section, #pace-card-group > label',
-      hoje: '.welcome-heading, .focus-card, .home-insights > section, .comfort-note',
-      biblioteca: '.library-page-heading, .library-toolbar, .course-card, .library-detail',
+      hoje: '[data-stitch] > header, [data-stitch] > section, [data-stitch] > div > section',
+      biblioteca: '[data-stitch] > header, [data-stitch] > div, #library-results > button, [data-stitch] aside',
     };
     revealElements(document.querySelectorAll(selectors[route()] || '#main > :first-child, #main .panel, #main .task-card, #main .achievement-card, #main .history-entry'));
   }
