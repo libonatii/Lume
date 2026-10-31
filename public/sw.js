@@ -10,7 +10,7 @@
 //   segundo plano, porque os nomes já vêm com hash do build;
 // - `/api/*` nunca entra no cache: conta, amigos e progresso sempre vêm da rede.
 
-const CACHE = 'lume-assets-v1';
+const CACHE = 'lume-assets-v2';
 
 self.addEventListener('install', () => {
   self.skipWaiting();
@@ -33,8 +33,25 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.startsWith('/api/')) return;
   if (request.mode === 'navigate') return;
 
+  if (!url.pathname.startsWith('/_astro/')) {
+    event.respondWith(networkFirst(request));
+    return;
+  }
+
   event.respondWith(staleWhileRevalidate(request));
 });
+
+async function networkFirst(request) {
+  const cache = await caches.open(CACHE);
+  try {
+    const response = await fetch(request);
+    if (response.ok) cache.put(request, response.clone());
+    return response;
+  } catch {
+    const cached = await cache.match(request);
+    return cached || new Response('', { status: 504, statusText: 'Sem conexão' });
+  }
+}
 
 async function staleWhileRevalidate(request) {
   const cache = await caches.open(CACHE);

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import Atropos from 'atropos/react';
-import { studyRhythm, nextMission, hasPreparation, courseProgress, courseStatus, weekCount, journeyPlan } from '../../public/domain.js';
+import { studyRhythm, nextMission, hasPreparation, courseProgress, courseStatus, weekCount, journeyPlan, addMaterial } from '../../public/domain.js';
 import { courseSummary, isImportedCourse, sourceLabel } from '../../public/import-domain.js';
 import {
   endSession, formatSessionDuration, pauseSession, resumeSession, sessionElapsed,
@@ -197,7 +197,7 @@ export function CourseCard({ course, state, open }) {
   </motion.button>;
 }
 
-export function Library({ state, open }) {
+export function Library({ state, open, update }) {
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const courses = state.courses.filter(course => (filter === 'all' || courseStatus(state, course) === filter) && course.title.toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR')));
@@ -210,7 +210,7 @@ export function Library({ state, open }) {
       Guarde seus cursos e tópicos de estudo. Continue de onde parou, no seu ritmo.
     </Heading>
 
-    <div className="library-toolbar">
+    {state.courses.length > 0 && <div className="library-toolbar">
       <label className="search-field">
         <Icon name="search"/>
         <input type="search" id="course-search" placeholder="Buscar nas minhas trilhas…" aria-label="Buscar um curso pelo nome" value={search} onChange={event => setSearch(event.target.value)}/>
@@ -222,9 +222,11 @@ export function Library({ state, open }) {
           <span>{title} ({id === 'all' ? state.courses.length : state.courses.filter(course => courseStatus(state, course) === id).length})</span>
         </button>)}
       </div>
-    </div>
+    </div>}
 
-    <div className="library-grid">
+    {state.courses.length === 0
+      ? <FirstStudyArea update={update} open={open}/>
+      : <div className="library-grid">
       <section className="library-shelf">
         <div className="shelf-header">
           <h2 className="headline">Minha estante <span className="shelf-count">{state.courses.length} trilhas</span></h2>
@@ -234,7 +236,7 @@ export function Library({ state, open }) {
           {courses.map(course => <CourseCard key={course.id} course={course} state={state} open={open}/>)}
           {!courses.length && <Empty title="Nenhum curso por aqui. Ainda." onAdd={() => open({ type: 'new' })}>Tente outro filtro ou adicione algo que você quer aprender.</Empty>}
         </div>
-        <p className="quiet-note">Capas ilustrativas. Os cursos de exemplo não incluem aulas.</p>
+        <p className="quiet-note">Capas ilustrativas. Cada trilha reúne os passos que você registrou.</p>
       </section>
 
       {selected && <aside className="library-inspector">
@@ -255,8 +257,45 @@ export function Library({ state, open }) {
         <Progress value={courseProgress(state, selected).percent} tone="lume" label={`Progresso de ${selected.title}`}/>
         <p className="quiet-note">Ritmo livre · sem pressa. Não há penalidades por pausas.</p>
       </aside>}
-    </div>
+    </div>}
   </div>;
+}
+
+function FirstStudyArea({ update, open }) {
+  const [area, setArea] = useState('');
+  const [firstStep, setFirstStep] = useState('');
+  const [error, setError] = useState('');
+  function submit(event) {
+    event.preventDefault();
+    const title = area.trim();
+    if (!title) { setError('Diga qual área você quer estudar.'); return; }
+    try {
+      update(previous => addMaterial(previous, {
+        title,
+        type: 'course',
+        firstActivity: firstStep.trim() || `Encontrar meu primeiro material de ${title}`,
+      }, 'manual'));
+      setError('');
+    } catch (exception) {
+      setError(exception.message);
+    }
+  }
+  return <section className="card-surface settings-panel first-area" aria-labelledby="first-area-title">
+    <span className="eyebrow">Seu primeiro passo</span>
+    <h2 id="first-area-title" className="title">Qual área você quer estudar?</h2>
+    <p className="muted-text">Digite a área de atuação. O Lume cria sua primeira trilha, sem conteúdo de exemplo e sem conceder XP.</p>
+    <form className="form-stack" onSubmit={submit}>
+      <label className="field">Área de atuação
+        <input name="study-area" maxLength={100} value={area} onChange={event => setArea(event.target.value)} placeholder="Ex.: Direito, Programação, Inglês" autoComplete="off"/>
+      </label>
+      <label className="field">Primeiro passo (opcional)
+        <input name="study-first-step" maxLength={180} value={firstStep} onChange={event => setFirstStep(event.target.value)} placeholder={area.trim() ? `Ex.: Encontrar um curso de ${area.trim()}` : 'Ex.: Encontrar meu primeiro material'}/>
+      </label>
+      {error && <p className="form-error" role="alert">{error}</p>}
+      <Button type="submit"><Icon name="plus"/>Criar minha trilha</Button>
+    </form>
+    <p className="quiet-note">Já tem um link? <button className="text-button accent" type="button" onClick={() => open({ type: 'new' })}>Detectar o curso pelo link<Icon name="arrow"/></button></p>
+  </section>;
 }
 
 export function Steps({ course, state }) {

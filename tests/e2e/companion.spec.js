@@ -21,8 +21,8 @@ test('conectar programa, ver presença local e revogar o acesso', async ({ page,
   const baseURL = testInfo.project.use.baseURL;
   const sameOrigin = { origin: baseURL };
   await register(page, testInfo, 'companion');
-  await page.getByRole('link', { name: 'Configurações' }).click();
-  await expect(page.getByRole('heading', { name: 'Lume Companion' })).toBeVisible();
+  await page.goto('/#aplicativo');
+  await expect(page.getByRole('heading', { name: 'Presença no desktop' })).toBeVisible();
   await expect(page.getByText('Nenhum programa conectado ainda.')).toBeVisible();
 
   await page.getByRole('button', { name: 'Conectar um programa' }).click();
@@ -82,8 +82,8 @@ test('presença exige token válido e painel explica a conta na prévia', async 
     localStorage.setItem(key, JSON.stringify(state));
     sessionStorage.setItem('lume.preview-session.v1', 'open');
   }, { key: STORAGE_KEY, state: { ...createInitialState(), onboarded: true } });
-  await page.goto('/#configuracoes');
-  await expect(page.getByRole('heading', { name: 'Lume Companion' })).toBeVisible();
+  await page.goto('/#aplicativo');
+  await expect(page.getByRole('heading', { name: 'Lume no desktop' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Entrar para conectar' })).toBeVisible();
   await expect(page.getByText(/exige uma conta/i)).toBeVisible();
 });

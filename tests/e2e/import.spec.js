@@ -146,10 +146,59 @@ test('duas contas não compartilham cursos importados', async ({ page }, testInf
   await page.getByRole('button', { name: /Adicionar 1 aula à biblioteca/ }).click();
   await page.getByRole('button', { name: 'Voltar à biblioteca' }).click();
   await expect(page.getByRole('button', { name: /^Curso da conta A,/ })).toBeVisible();
-  await page.getByRole('button', { name: 'Sair', exact: true }).click();
+  await page.getByRole('button', { name: /^Menu da conta/ }).click();
+  await page.getByRole('menuitem', { name: 'Sair', exact: true }).click();
 
   await register(emailB);
   await page.getByRole('link', { name: 'Biblioteca', exact: true }).click();
   await expect(page.getByRole('button', { name: /^Curso da conta A,/ })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: /^Design de interfaces,/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Qual área você quer estudar?' })).toBeVisible();
+});
+
+test('biblioteca vazia pergunta a área e cria a primeira trilha sem XP', async ({ page }) => {
+  await openLibrary(page);
+  await expect(page.getByRole('heading', { name: 'Qual área você quer estudar?' })).toBeVisible();
+  await page.getByLabel('Área de atuação').fill('Direito');
+  await page.getByLabel('Primeiro passo (opcional)').fill('Ler a introdução de processo penal');
+  await page.getByRole('button', { name: 'Criar minha trilha' }).click();
+
+  await expect(page.getByRole('button', { name: /^Direito,/ })).toBeVisible();
+  const state = await page.evaluate(key => JSON.parse(localStorage.getItem(key)), STORAGE_KEY);
+  expect(state.courses).toHaveLength(1);
+  expect(state.courses[0].title).toBe('Direito');
+  expect(state.courses[0].origin).toBe('manual');
+  expect(state.courses[0].steps[0].title).toBe('Ler a introdução de processo penal');
+  expect(state.history).toEqual([]);
+});
+
+test('link sem https é detectado e adicionado sem abrir a revisão', async ({ page }) => {
+  await openLibrary(page);
+  await page.getByRole('button', { name: 'Adicionar curso', exact: true }).click();
+  await page.route('**/api/import/analyze', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      payload: {
+        title: 'React Básico',
+        provider: { id: 'coursera' },
+        sourceUrl: 'https://www.coursera.org/learn/react-basics',
+        completeness: 'complete',
+        extraction: { kind: 'structured-data', confidence: 'high', notes: [] },
+        disciplines: [{ title: 'Semana 1', modules: [{ title: 'Fundamentos', lessons: [{ title: 'Componentes' }, { title: 'Estado' }] }] }],
+      },
+      ai: { used: false },
+    }),
+  }));
+  await page.getByLabel('Link do curso').fill('www.coursera.org/learn/react-basics');
+  await expect(page.getByText(/Coursera detectado/)).toBeVisible();
+  await page.getByRole('button', { name: 'Detectar e adicionar' }).click();
+  await expect(page.getByText('Importação concluída')).toBeVisible();
+  await expect(page.getByText(/Detectado e adicionado automaticamente/)).toBeVisible();
+  await page.getByRole('button', { name: 'Ver o curso' }).click();
+  await expect(page.locator('#dialog-title')).toHaveText('React Básico');
+  const state = await page.evaluate(key => JSON.parse(localStorage.getItem(key)), STORAGE_KEY);
+  expect(state.courses).toHaveLength(1);
+  expect(state.courses[0].steps).toHaveLength(2);
+  expect(state.history).toEqual([]);
+  await page.unroute('**/api/import/analyze');
 });

@@ -5,10 +5,14 @@ import { createInitialState, STORAGE_KEY } from '../../public/domain.js';
 // observação, não conclui aula e não gera XP.
 
 test('sessão declarada persiste ao recarregar, pausa, retoma e encerra sem XP', async ({ page }) => {
+  const seeded = createInitialState();
+  seeded.onboarded = true;
+  seeded.courses = [{ id: 'design', title: 'Design de interfaces', category: 'Design', art: 'design', url: '', example: false, paused: false, steps: [{ id: 'design-1', title: 'Abrir o material e conhecer o curso' }] }];
+  seeded.selectedCourseId = 'design';
   await page.addInitScript(({ key, state }) => {
     if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(state));
     sessionStorage.setItem('lume.preview-session.v1', 'open');
-  }, { key: STORAGE_KEY, state: { ...createInitialState(), onboarded: true } });
+  }, { key: STORAGE_KEY, state: seeded });
   await page.goto('/#hoje');
   await expect(page.getByRole('heading', { name: /Que bom ter você aqui/ })).toBeVisible();
 

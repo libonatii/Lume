@@ -9,6 +9,7 @@ import { Achievements, History, Missions, Preferences } from './Personal.jsx';
 import Friends from './Friends.jsx';
 import Profile from './Profile.jsx';
 import Companion from './Companion.jsx';
+import Tasks from './Tasks.jsx';
 import StudyDialog from './StudyDialog.jsx';
 import { Button, Dialog, enter, ease } from './ui.jsx';
 import Icon from './Icon.jsx';
@@ -18,7 +19,7 @@ import { markDesktop, syncTitleBar } from '../lib/desktop.js';
 // o topo; no navegador, nada muda.
 markDesktop();
 
-const titles = { login: 'Bem-vindo', inicio: 'Seu ritmo', hoje: 'Hoje', biblioteca: 'Biblioteca', missoes: 'Missões', conquistas: 'Conquistas', historico: 'Meu caminho', amigos: 'Amigos', configuracoes: 'Do seu jeito', perfil: 'Perfil', aplicativo: 'Instalar aplicativo', recuperar: 'Recuperar acesso', redefinir: 'Nova senha' };
+const titles = { login: 'Bem-vindo', inicio: 'Seu ritmo', hoje: 'Hoje', tarefas: 'Tarefas', biblioteca: 'Biblioteca', missoes: 'Missões', conquistas: 'Conquistas', historico: 'Meu caminho', amigos: 'Amigos', configuracoes: 'Do seu jeito', perfil: 'Perfil', aplicativo: 'Instalar aplicativo', recuperar: 'Recuperar acesso', redefinir: 'Nova senha' };
 // Enquanto a sessão é verificada, o formulário não aparece: evita a impressão de estar deslogada.
 function SessionCheck() {
   return <section className="recovery-card" aria-busy="true"><span className="dialog-emblem"><Icon name="cloud"/></span><h1 className="headline">Verificando sua sessão.</h1><p className="muted-text">Só um instante enquanto confirmamos se você já está conectada.</p></section>;
@@ -80,7 +81,8 @@ export default function App() {
     case 'inicio': page = <Onboarding key={model.account?.id || 'local'} state={state} update={update} go={go} notify={notify} account={model.account}/>; break;
     case 'recuperar': case 'redefinir': page = <Recovery key={route === 'redefinir' ? hash : route} reset={route === 'redefinir'} notify={notify} go={go}/>; break;
     case 'hoje': page = <Home state={state} open={open} go={go} update={update} notify={notify}/>; break;
-    case 'biblioteca': page = <Library state={state} open={open}/>; break;
+    case 'tarefas': page = <Tasks state={state} update={update} notify={notify}/>; break;
+    case 'biblioteca': page = <Library state={state} open={open} update={update}/>; break;
     case 'missoes': page = <Missions state={state} open={open}/>; break;
     case 'conquistas': page = <Achievements state={state}/>; break;
     case 'historico': page = <History state={state}/>; break;

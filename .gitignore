@@ -1,18 +1,42 @@
+# Dependências
 node_modules/
-coverage/
-data/
-.wrangler/
-.cloudflare/
-.env
-.env.*
-*.log
-.DS_Store
+
+# --- Site (Astro) ---
 dist/
 .astro/
+
+# --- API e testes locais ---
+data/
+coverage/
 test-results/
 playwright-report/
+blob-report/
+
+# --- Cloudflare / Wrangler ---
+.wrangler/
+.cloudflare/
+.dev.vars
+.dev.vars.*
+.env
+.env.*
+!.env.example
+
+# --- App desktop (Electron / electron-builder) ---
 companion/node_modules/
 companion/out/
+companion/dist/
 companion/release/
+companion/release-build/
+companion/builder-debug.yml
+companion/builder-effective-config.yaml
+companion/*.exe
+companion/*.blockmap
+companion/*.asar
 companion/smoke-*.json
 companion/package-smoke.json
+
+# Logs e arquivos do sistema
+*.log
+.DS_Store
+Thumbs.db
+desktop.ini

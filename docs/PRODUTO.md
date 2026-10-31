@@ -95,7 +95,7 @@ A pessoa informa que estuda programação e pode conectar o GitHub. Escolhe quai
 
 Uma entrega como **“Implementar e validar a autenticação do projeto”** pode ser um marco elegível. O simples número de commits ou linhas de código não representa aprendizado.
 
-### Importação por link (implementada no código local)
+### Importação por link (implementada)
 
 A pessoa cola o link do curso, o Lume identifica a plataforma e apresenta as áreas encontradas para seleção. O fluxo é descrito em [Importação](IMPORTACAO.md). Regras de produto que valem desde já:
 
@@ -106,13 +106,21 @@ A pessoa cola o link do curso, o Lume identifica a plataforma e apresenta as ár
 - O edital da prova é uma referência separada, com fonte e data. Sem edição e fase identificadas, o Lume pede apenas essas informações e não calcula cobertura.
 - Sugestões de IA são organização do texto fornecido, não conteúdo oficial, e aparecem identificadas.
 
-### Sessão declarada e Lume Companion (implementados no código local)
+### Tarefas de prova (implementadas)
+
+- A pessoa mantém uma lista de tarefas necessárias para estudar para uma prova, com vínculo opcional a um curso e prazo opcional.
+- Criar, editar, organizar ou remover tarefas é preparação e não gera XP.
+- Concluir uma tarefa de estudo definida concede XP uma vez; reabrir retira o XP até concluir de novo, sem acumular. A regra em execução é transitória e está detalhada em [Gamificação](GAMIFICACAO.md#tarefas-de-prova--regra-em-execução-no-protótipo).
+- O XP da tarefa é declarado no navegador no protótipo e não vale para ranking até existir validação no servidor.
+- Tarefas não concluem curso, não criam conquista por material e não substituem a sessão de estudo declarada.
+
+### Sessão declarada e Lume Companion (implementados)
 
 - A pessoa inicia, pausa e encerra uma sessão de estudo vinculada ao material. O tempo é declarado, sobrevive ao recarregamento e não é observação de atividade.
 - O Lume Companion é um programa de desktop opcional que informa qual aplicativo autorizado está aberto, mostra quantas aulas faltam e apresenta um roteiro por prioridade de continuidade.
 - Presença no programa não é estudo comprovado: não concede XP, não conclui aula e não entra no histórico de progresso.
 - O programa recebe um acesso próprio por dispositivo, revogável, que só relata presença e lê o roteiro.
-- Bandeja, janela imersiva e instalador fazem parte do destino do programa e ainda não existem.
+- Bandeja, janela com o site, painel de presença e instalador do programa Windows já existem. Assinatura de código, início com o Windows e recursos sociais dentro do programa continuam pendentes.
 
 ## 6. Integrações: objetivo e limites
 
@@ -171,7 +179,7 @@ A vitrine reúne marcos permanentes, vinculados ao material real, com título, d
 
 Cada conquista possui uma página ou detalhe que explica o que foi concluído. A pessoa escolhe quais exibir no perfil e compartilhar. Textos personalizados não exigem geração por IA: modelos com o título do material são suficientes.
 
-### Perfil entre amigos (implementado no código local)
+### Perfil entre amigos (implementado)
 
 - O perfil reúne o que a pessoa está estudando, o roteiro que aparece em Hoje, os projetos que ela marcou como públicos, os materiais concluídos e os números de progresso e XP.
 - Abrir o perfil exige amizade. Não existe perfil público por link, busca por e-mail nem página anônima.
@@ -204,14 +212,17 @@ As regras detalhadas estão em [Gamificação](GAMIFICACAO.md).
 | Entrada e conta | Cadastro, autenticação, recuperação por link e saída já disponíveis na API local; envio de e-mail ainda pendente |
 | Meu ritmo e interesses | Preferências e sugestões iniciais |
 | Hoje | Materiais em andamento, ponto de retomada e atividade de estudo |
+| Tarefas | Lista de estudo para uma prova, com prazo, vínculo opcional e conclusão com XP único |
 | Biblioteca | Cursos, aulas, leituras, exercícios e projetos |
 | Trilhas e projetos | Objetivos e entregas substanciais |
 | Amigos e grupos | Comunicação, compartilhamento e colaboração. Convites e lista de amigos já existem; grupos, feed e mensagens não |
+| Perfil entre amigos | Projeção da biblioteca, da fila, do progresso e do XP que cada pessoa escolheu compartilhar; exige amizade |
+| Instalar aplicativo | Página do programa de desktop: baixa o instalador da última release e gera o código de conexão |
 | Placares | Comparação opcional dentro de períodos e regras definidos |
 | Minhas conquistas | Vitrine personalizada de conclusões |
 | Meu caminho | Histórico de estudo e explicação do XP |
 | Integrações | GitHub e fontes compatíveis; permissões e estado de conexão |
-| Lume Companion | Programa de desktop: presença local, aulas restantes e roteiro por prioridade, sem XP |
+| Lume Companion | Programa de desktop com bandeja, janela do site completo e painel de presença: presença local, aulas restantes e roteiro por prioridade, sem XP |
 | Configurações e conforto | Acessibilidade, ritmo, privacidade e notificações |
 
 ## 10. Escopo que não deve ser confundido com a proposta
@@ -227,11 +238,12 @@ As regras detalhadas estão em [Gamificação](GAMIFICACAO.md).
 
 1. Preparar o material não altera XP, nível ou placar.
 2. Concluir uma aula elegível gera recompensa uma única vez e preserva a próxima ação da trilha.
-3. Um curso concluído gera uma conquista com seu nome e o bônus de curso definido na política.
-4. Um artigo incompleto permanece em andamento com marcador de retomada; sua conclusão gera uma conquista própria.
-5. A aula pode ser retomada automaticamente apenas nas fontes com essa capacidade; nas demais, a interface informa o registro manual.
-6. Tempo de estudo elegível pode gerar XP antes de concluir o material, sem premiar abas ociosas nem sessões sobrepostas.
-7. Pessoas podem compartilhar aprendizados e colaborar com amigos sem tornar toda a biblioteca pública.
-8. O ranking permite alternar entre nível, cursos concluídos e empenho no período, com regras visíveis e dados autorizados. A visão acumulada não desaparece na virada da semana.
-9. Mudar o ritmo ou precisar de uma pausa não retira conquistas.
-10. A experiência funciona com teclado, temas e texto ajustável; os recursos sociais podem ser ocultos quando a pessoa assim escolher. Modo essencial e tratamento de movimento reduzido foram retirados do escopo por decisão explícita da responsável.
+3. Concluir uma tarefa de prova definida gera XP uma única vez; criar ou organizar a lista não gera nada.
+4. Um curso concluído gera uma conquista com seu nome e o bônus de curso definido na política.
+5. Um artigo incompleto permanece em andamento com marcador de retomada; sua conclusão gera uma conquista própria.
+6. A aula pode ser retomada automaticamente apenas nas fontes com essa capacidade; nas demais, a interface informa o registro manual.
+7. Tempo de estudo elegível pode gerar XP antes de concluir o material, sem premiar abas ociosas nem sessões sobrepostas.
+8. Pessoas podem compartilhar aprendizados e colaborar com amigos sem tornar toda a biblioteca pública.
+9. O ranking permite alternar entre nível, cursos concluídos e empenho no período, com regras visíveis e dados autorizados. A visão acumulada não desaparece na virada da semana.
+10. Mudar o ritmo ou precisar de uma pausa não retira conquistas.
+11. A experiência funciona com teclado, temas e texto ajustável; os recursos sociais podem ser ocultos quando a pessoa assim escolher. Modo essencial e tratamento de movimento reduzido foram retirados do escopo por decisão explícita da responsável.

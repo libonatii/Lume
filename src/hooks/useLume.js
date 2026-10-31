@@ -4,11 +4,31 @@ import { reconcileSession } from '../../public/session-domain.js';
 import { api, apiError } from '../lib/api.js';
 
 export const PREVIEW_KEY = 'lume.preview-session.v1';
+function readLegacyBase64Profile(raw) {
+  try {
+    const parsed = JSON.parse(raw || '{}');
+    const found = {};
+    for (const slot of ['avatar', 'header']) {
+      const value = parsed?.profile?.[slot];
+      if (typeof value === 'string' && value.startsWith('data:image/')) {
+        found[slot] = value;
+      }
+    }
+    return found;
+  } catch {
+    return {};
+  }
+}
 function readLocal() {
   try { return reconcileSession(restoreState(localStorage.getItem(STORAGE_KEY))); }
   catch { return createInitialState(); }
 }
 export function useLume(notify) {
+  const legacyProfileMedia = useRef(null);
+  if (legacyProfileMedia.current === null) {
+    try { legacyProfileMedia.current = readLegacyBase64Profile(localStorage.getItem(STORAGE_KEY)); }
+    catch { legacyProfileMedia.current = {}; }
+  }
   const [state, setState] = useState(readLocal);
   const [account, setAccount] = useState(null);
   const [accountStatus, setAccountStatus] = useState('checking');
@@ -59,6 +79,8 @@ export function useLume(notify) {
       return;
     }
     if (result.data.state) {
+      const remoteLegacy = readLegacyBase64Profile(JSON.stringify(result.data.state));
+      legacyProfileMedia.current = { ...remoteLegacy, ...legacyProfileMedia.current };
       // Preserva a cópia anterior antes de carregar o estado remoto.
       try { localStorage.setItem(`${STORAGE_KEY}.before-account`, JSON.stringify(stateRef.current)); } catch { /* Cópia em memória permanece disponível. */ }
       setState(reconcileSession(restoreState(JSON.stringify(result.data.state))));
@@ -89,6 +111,23 @@ export function useLume(notify) {
         }
         if (data.authenticated) await loadAccountProgress(data.user, controller.signal);
         setAccountStatus('ready');
+        const pending = legacyProfileMedia.current || {};
+        legacyProfileMedia.current = {};
+        for (const [slot, dataUrl] of Object.entries(pending)) {
+          try {
+            const blob = await (await fetch(dataUrl)).blob();
+            const res = await fetch(`/api/profile/media/${encodeURIComponent(slot)}`, {
+              method: 'PUT',
+              credentials: 'same-origin',
+              headers: { 'Content-Type': blob.type || 'image/webp' },
+              body: blob,
+            });
+            const uploaded = await res.json();
+            if (res.ok && uploaded?.url) {
+              setState(prev => ({ ...prev, profile: { ...prev.profile, [slot]: uploaded.url } }));
+            }
+          } catch { /* Se falhar, a pessoa pode reenviar pelo perfil. */ }
+        }
       } catch (error) {
         if (error.name !== 'AbortError') setAccountStatus('offline');
       }

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   allLessonIds, applyCourseImport, canonicalUrl, completeLesson, courseSummary,
-  deliveryCandidates, detectProvider, editalCoverage, lessonOrigin, normalizePayload,
+  deliveryCandidates, detectProvider, editalCoverage, lessonOrigin, normalizeImportUrl, normalizePayload,
   providerCapabilities, revertLessonCompletion,
 } from './public/import-domain.js';
 import {
@@ -181,7 +181,7 @@ test('importar não concede XP e cria curso tipado com disciplinas', () => {
   });
   const state = applyCourseImport(createInitialState(), payload);
   const course = state.courses.at(-1);
-  assert.equal(state.courses.length, 4);
+  assert.equal(state.courses.length, 1);
   assert.equal(course.steps.length, 3);
   assert.equal(course.structure.length, 2);
   assert.equal(course.source.provider, 'grancursos');
@@ -286,7 +286,7 @@ test('o estado importado sobrevive à restauração e aceita dados legados sem s
   delete legacy.imports;
   const legacyRestored = restoreState(JSON.stringify(legacy));
   assert.deepEqual(legacyRestored.studyLog, []);
-  assert.equal(legacyRestored.courses.length, 3);
+  assert.equal(legacyRestored.courses.length, 0);
 
   const broken = { ...state, studyLog: [{ id: 'x' }, ...state.studyLog] };
   assert.equal(restoreState(JSON.stringify(broken)).studyLog.length, 1, 'registro inválido não derruba o progresso');
@@ -306,4 +306,15 @@ test('entregas do GitHub entram como sugestão que exige validação', () => {
   assert.equal(candidates.length, 1);
   assert.equal(candidates[0].requiresValidation, true);
   assert.match(candidates[0].note, /não significa projeto incompleto/i);
+});
+
+test('link colado é normalizado antes da detecção, sem inventar URL', () => {
+  assert.equal(normalizeImportUrl('https://www.coursera.org/learn/react'), 'https://www.coursera.org/learn/react');
+  assert.equal(normalizeImportUrl('www.coursera.org/learn/react'), 'https://www.coursera.org/learn/react');
+  assert.equal(normalizeImportUrl('coursera.org/learn/react'), 'https://coursera.org/learn/react');
+  assert.equal(normalizeImportUrl('  https://www.alura.com.br/formacao  '), 'https://www.alura.com.br/formacao');
+  assert.equal(normalizeImportUrl('nao-e-um-link'), null);
+  assert.equal(normalizeImportUrl('https://user:senha@exemplo.com/curso'), null);
+  assert.equal(normalizeImportUrl('javascript:alert(1)'), null);
+  assert.equal(normalizeImportUrl('cole aqui https://exemplo.com/curso'), null);
 });

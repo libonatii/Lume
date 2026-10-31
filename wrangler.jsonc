@@ -23,6 +23,13 @@
     }
   ],
 
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "lume-media"
+    }
+  ],
+
   "vars": {
     // Em produção o link de recuperação não volta na resposta da API: ele vai
     // para o log estruturado, acessível apenas ao dono da conta. Trocar por

@@ -30,15 +30,15 @@ Nenhum outro secret é necessário: o release usa o `GITHUB_TOKEN` automático.
 
 ```powershell
 # 1. Suba a versão do app
-#    companion/package.json -> "version": "0.5.0"
+#    companion/package.json -> "version": "0.6.0"
 
 # 2. Teste localmente (opcional, mas recomendado)
 npm --prefix companion run pack      # gera release/win-unpacked para conferir
 
 # 3. Commit e tag
 git add companion/package.json companion/package-lock.json
-git commit -m "lume: versão 0.5.0"
-git tag companion-v0.5.0
+git commit -m "lume: versão 0.6.0"
+git tag companion-v0.6.0
 git push origin main --tags
 ```
 

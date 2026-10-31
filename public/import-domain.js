@@ -108,6 +108,22 @@ export function providerCapabilities(provider, extraction) {
   ];
 }
 
+// Aceita o link como a pessoa costuma colar: com ou sem https://, com www ou
+// apenas o domínio. Não inventa URL para texto comum nem aceita credenciais.
+export function normalizeImportUrl(value) {
+  const text = String(value || '').trim();
+  if (!text || /[\s]/.test(text)) return null;
+  const candidate = /^https?:\/\//i.test(text) ? text : `https://${text}`;
+  try {
+    const url = new URL(candidate);
+    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) return null;
+    if (!url.hostname.includes('.') || url.hostname === 'localhost') return null;
+    return url.href;
+  } catch {
+    return null;
+  }
+}
+
 export function canonicalUrl(value) {
   let url;
   try { url = new URL(String(value || '').trim()); } catch { return ''; }

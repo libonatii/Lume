@@ -1,8 +1,8 @@
 # Lume — importação de cursos por link
 
-Status: **implementado no código local** e verificado com build, testes de domínio e testes de navegador.
-Não publicado nesta rodada. Consulte [Produto](PRODUTO.md), [Gamificação](GAMIFICACAO.md) e
-[Continuidade](CONTINUIDADE.md) para o contexto geral.
+Status: **implementado e publicado** no site de referência — o endpoint `/api/import/analyze` responde em
+produção. Verificado com build, testes de domínio e testes de navegador. Consulte [Produto](PRODUTO.md),
+[Gamificação](GAMIFICACAO.md) e [Continuidade](CONTINUIDADE.md) para o contexto geral.
 
 ## 1. O que a pessoa faz
 

@@ -1,11 +1,24 @@
 import { test, expect } from '@playwright/test';
 import { createInitialState, completeMission, STORAGE_KEY } from '../../public/domain.js';
 
+// A biblioteca real começa vazia. Estes cenários de dados antigos precisam de
+// trilhas próprias para conferir busca, pausa e restauração.
+function seededState() {
+  const steps = (prefix, count) => Array.from({ length: count }, (_, index) => ({ id: `${prefix}-${index + 1}`, title: `Etapa ${index + 1}` }));
+  const state = createInitialState();
+  state.courses = [
+    { id: 'design', title: 'Design de interfaces', category: 'Design & criatividade', art: 'design', url: '', example: false, paused: false, steps: steps('design', 4) },
+    { id: 'python', title: 'Primeiros passos em Python', category: 'Tecnologia & programação', art: 'code', url: '', example: false, paused: false, steps: steps('python', 4) },
+  ];
+  state.selectedCourseId = 'design';
+  return state;
+}
+
 test('prévia, dados legados, busca, filtros, teclado, curso e progresso', async ({ page }, testInfo) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
-  const oldState = completeMission(createInitialState(), 'design', 'design-1').state;
+  const oldState = completeMission(seededState(), 'design', 'design-1').state;
   oldState.onboarded = true;
   oldState.preferences.essential = true;
   oldState.supports = ['calm'];
@@ -58,6 +71,22 @@ test('prévia, dados legados, busca, filtros, teclado, curso e progresso', async
   expect(restored.studyLog[0].origin).toBe('manual');
   expect(restored.completed).toContain('design-1');
   expect(restored.preferences.essential).toBe(true); // Guardado como legado, sem efeito visual.
+  await page.getByRole('button', { name: /^Menu da conta/ }).click();
+  await page.getByRole('menuitem', { name: 'Meu Perfil', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Colecionador de estudos', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Atividade recente', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Conquistas', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Editar perfil' }).click();
+  await page.getByLabel('Selecionar foto de perfil do computador').setInputFiles('public/assets/stitch/calm.png');
+  await page.getByLabel('Selecionar imagem de capa (header) do computador').setInputFiles('public/assets/stitch/detail.png');
+  await page.getByLabel(/Apresentação e metas/).fill('Estudando React e Arquitetura\nMeta: 3 sessões por semana');
+  await page.getByRole('button', { name: 'Salvar apresentação' }).click();
+  await expect(page.getByText('Estudando React e Arquitetura')).toBeVisible();
+  await expect.poll(async () => {
+    const p = await page.evaluate(key => JSON.parse(localStorage.getItem(key)).profile, STORAGE_KEY);
+    return `${p?.avatar || ''}|${p?.header || ''}`;
+  }).toMatch(/^\/api\/media\/profiles\/preview\/avatar-\d+\.(webp|png|jpg)\|\/api\/media\/profiles\/preview\/header-\d+\.(webp|png|jpg)$/);
+  await page.screenshot({ path: `data/lume-${testInfo.project.name}-profile.png`, fullPage: true });
   await page.getByRole('link', { name: 'Configurações' }).click();
   await page.getByRole('combobox', { name: /^Tema/ }).selectOption('light');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
@@ -93,7 +122,8 @@ test('cadastro, saída, login, sincronização e recuperação na API local', as
   await page.getByRole('button', { name: 'Organizar grade' }).click();
   await page.getByRole('button', { name: /Adicionar 1 aula à biblioteca/ }).click();
   await page.getByRole('button', { name: 'Voltar à biblioteca' }).click();
-  await page.getByRole('button', { name: 'Sair', exact: true }).click();
+  await page.getByRole('button', { name: /^Menu da conta/ }).click();
+  await page.getByRole('menuitem', { name: 'Sair', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Bem-vindo de volta ao Lume.' })).toBeVisible();
   await page.getByLabel('E-mail', { exact: true }).fill(email);
   await page.getByLabel('Senha', { exact: true }).fill('senha-local-teste-123');
@@ -101,7 +131,8 @@ test('cadastro, saída, login, sincronização e recuperação na API local', as
   await expect(page.getByRole('heading', { name: /Que bom ter você aqui/ })).toBeVisible();
   await page.getByRole('link', { name: 'Biblioteca', exact: true }).click();
   await expect(page.getByRole('button', { name: /^Curso da minha conta,/ })).toBeVisible();
-  await page.getByRole('button', { name: 'Sair', exact: true }).click();
+  await page.getByRole('button', { name: /^Menu da conta/ }).click();
+  await page.getByRole('menuitem', { name: 'Sair', exact: true }).click();
   await page.getByRole('link', { name: 'Esqueci minha senha' }).click();
   await page.getByLabel('E-mail', { exact: true }).fill(email);
   await page.getByRole('button', { name: 'Solicitar recuperação' }).click();
@@ -151,7 +182,7 @@ test('jornada 3 preserva a rotina e não gera XP ao configurar', async ({ page }
 
   // Navegação das telas restantes continua funcionando
   await page.getByRole('link', { name: 'Biblioteca', exact: true }).click();
-  await page.getByRole('button', { name: /^Design de interfaces,/ }).click();
+  await page.getByRole('button', { name: /^curso de algoritmos,/ }).click();
   await page.getByRole('button', { name: 'Pausar curso' }).click();
   await expect(page.getByRole('button', { name: 'Retomar curso' })).toBeVisible();
   await page.getByRole('button', { name: 'Retomar curso' }).click();

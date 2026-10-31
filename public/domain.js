@@ -1,4 +1,5 @@
 import { normalizeActiveSession, normalizeStudySessions } from './session-domain.js';
+import { normalizeTasks, taskWeekCount, taskXP } from './tasks-domain.js';
 
 export const STORAGE_KEY = 'lume.prototype.v1';
 export const HABITS = [
@@ -134,13 +135,14 @@ export function journeyPlan(state) {
   return base;
 }
 
-export function addMaterial(state, { title, url = '', type = 'lesson', resumeAt = '', firstActivity = '', steps = [] }) {
+export function addMaterial(state, { title, url = '', type = 'lesson', resumeAt = '', firstActivity = '', steps = [] }, origin = 'onboarding') {
   const activities = steps.length ? steps : [firstActivity || 'Concluir a primeira atividade'];
   const next = addCourse(state, { title, url, steps: activities, art: 'nature' });
+  const cleanOrigin = origin === 'manual' ? 'manual' : 'onboarding';
   return {
     ...next,
     courses: next.courses.map((course) => course.id === next.selectedCourseId
-      ? { ...course, type, resumeAt, origin: 'onboarding' }
+      ? { ...course, type, resumeAt, origin: cleanOrigin }
       : course),
   };
 }
@@ -174,6 +176,32 @@ export function applyStudyRhythm(state, { habit, supports = [] }) {
   } };
 }
 
+export const MAX_PROFILE_IMAGE_LENGTH = 256;
+export const MAX_PROFILE_BIO_LENGTH = 240;
+
+export function emptyProfileCard() {
+  return { bio: '', avatar: '', header: '' };
+}
+
+export function sanitizeProfileImage(value) {
+  if (typeof value !== 'string') return '';
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.length > MAX_PROFILE_IMAGE_LENGTH) return '';
+  if (!/^\/api\/media\/profiles\/[A-Za-z0-9_-]{1,64}\/(?:avatar|header)-[0-9]{1,20}\.(?:webp|png|jpg|gif)$/.test(trimmed)) return '';
+  return trimmed;
+}
+
+export function normalizeProfileCard(value) {
+  const base = emptyProfileCard();
+  if (!value || typeof value !== 'object') return base;
+  const bio = typeof value.bio === 'string' ? value.bio.replace(/\r\n/g, '\n').trim().slice(0, MAX_PROFILE_BIO_LENGTH) : '';
+  return {
+    bio,
+    avatar: sanitizeProfileImage(value.avatar),
+    header: sanitizeProfileImage(value.header),
+  };
+}
+
 export function createInitialState() {
   return {
     version: 1,
@@ -181,28 +209,10 @@ export function createInitialState() {
     habit: null,
     challenges: [],
     supports: [],
+    profile: emptyProfileCard(),
     preferences: { essential: false, gamification: true, theme: 'dark', textSize: 'normal', weeklyGoal: 3, weeklyGoalSource: 'suggested', sharing: { library: true, queue: true, progress: true, xp: true } },
     onboarding: emptyOnboarding(),
-    courses: [
-      { id: 'design', title: 'Design de interfaces', category: 'Design & criatividade', art: 'design', url: '', example: true, paused: false, steps: [
-        { id: 'design-1', title: 'Abrir o material e conhecer o curso' },
-        { id: 'design-2', title: 'Assistir ao primeiro trecho da aula 01' },
-        { id: 'design-3', title: 'Desenhar uma ideia de interface no papel' },
-        { id: 'design-4', title: 'Revisar uma coisa que aprendi' },
-      ] },
-      { id: 'python', title: 'Primeiros passos em Python', category: 'Tecnologia & programação', art: 'code', url: '', example: true, paused: false, steps: [
-        { id: 'python-1', title: 'Abrir o material e conhecer o curso' },
-        { id: 'python-2', title: 'Assistir ao primeiro trecho da aula 01' },
-        { id: 'python-3', title: 'Escrever meu primeiro print' },
-        { id: 'python-4', title: 'Praticar com um pequeno exercício' },
-      ] },
-      { id: 'english', title: 'Inglês no dia a dia', category: 'Idiomas & descobertas', art: 'language', url: '', example: true, paused: false, steps: [
-        { id: 'english-1', title: 'Escolher um material de inglês' },
-        { id: 'english-2', title: 'Ouvir uma conversa curta' },
-        { id: 'english-3', title: 'Anotar três expressões novas' },
-        { id: 'english-4', title: 'Revisar as expressões que anotei' },
-      ] },
-    ],
+    courses: [],
     completed: [],
     history: [],
     // Registro de estudo sem XP: aulas importadas concluídas por declaração
@@ -212,7 +222,9 @@ export function createInitialState() {
     // Sessão declarada pela pessoa: tempo de continuidade, nunca XP.
     activeSession: null,
     studySessions: [],
-    selectedCourseId: 'design',
+    // Tarefas de estudo para provas. Concluir vale XP uma vez; criar não.
+    tasks: [],
+    selectedCourseId: null,
   };
 }
 
@@ -362,7 +374,7 @@ export function completeMission(state, courseId, stepId, { preparation = false, 
 }
 
 export function totalXP(state) {
-  return state.history.reduce((total, entry) => total + entry.xp, 0);
+  return state.history.reduce((total, entry) => total + entry.xp, 0) + taskXP(state);
 }
 
 export function levelInfo(state) {
@@ -383,7 +395,7 @@ export function weekCount(state, now = new Date()) {
   end.setDate(end.getDate() + 7);
   const inWeek = (entry) => new Date(entry.at) >= start && new Date(entry.at) < end;
   const lessons = (state.studyLog || []).filter((entry) => !entry.revertedAt && inWeek(entry)).length;
-  return state.history.filter(inWeek).length + lessons;
+  return state.history.filter(inWeek).length + lessons + taskWeekCount(state, start, end);
 }
 
 export function achievements(state) {
@@ -427,6 +439,18 @@ export function addCourse(state, { title, url = '', steps, art = 'design' }, id 
   return { ...state, courses: [...state.courses, course], selectedCourseId: id };
 }
 
+// Cursos de exemplo não são mais criados. Um exemplo antigo só permanece se a
+// pessoa tiver algum progresso nele; exemplos intocados são removidos na
+// restauração, sem tocar em cursos reais nem em histórico.
+function exampleHasProgress(course, value) {
+  const stepIds = new Set(course.steps.map((step) => step.id));
+  return value.completed.some((id) => stepIds.has(id))
+    || value.history.some((entry) => entry.courseId === course.id)
+    || (Array.isArray(value.studyLog) && value.studyLog.some((entry) => entry.courseId === course.id))
+    || (Array.isArray(value.studySessions) && value.studySessions.some((session) => session.courseId === course.id))
+    || value.activeSession?.courseId === course.id;
+}
+
 export function restoreState(raw) {
   const fallback = createInitialState();
   if (!raw) return fallback;
@@ -451,11 +475,16 @@ export function restoreState(raw) {
       return true;
     });
     if (!validCourses || !validHistory || value.completed.some((id) => !stepIds.has(id))) return fallback;
+    const keptCourses = value.courses.filter((course) => course.example !== true || exampleHasProgress(course, value));
+    const keptIds = new Set(keptCourses.map((course) => course.id));
+    const keptStepIds = new Set(keptCourses.flatMap((course) => course.steps.map((step) => step.id)));
+    const selectedCourseId = keptIds.has(value.selectedCourseId) ? value.selectedCourseId : keptCourses[0]?.id ?? null;
     const preferences = value.preferences || {};
     return {
       ...fallback, ...value,
-      courses: value.courses.map((course) => sanitizeImportedCourse(course)),
-      completed: value.completed.filter((id) => stepIds.has(id)),
+      courses: keptCourses.map((course) => sanitizeImportedCourse(course)),
+      completed: value.completed.filter((id) => keptStepIds.has(id)),
+      selectedCourseId,
       studyLog: sanitizeStudyLog(value.studyLog),
       imports: sanitizeImports(value.imports),
       activeSession: normalizeActiveSession(value.activeSession),
@@ -464,6 +493,8 @@ export function restoreState(raw) {
       habit: HABITS.some((habit) => habit.id === value.habit) ? value.habit : null,
       challenges: Array.isArray(value.challenges) ? value.challenges.filter((id) => CHALLENGES.some((item) => item.id === id)) : [],
       supports: Array.isArray(value.supports) ? [...new Set(value.supports.filter(id => STUDY_SUPPORTS.some(item => item.id === id)))] : [],
+      profile: normalizeProfileCard(value.profile),
+      tasks: normalizeTasks(value.tasks),
       preferences: {
         essential: preferences.essential === true,
         gamification: preferences.gamification !== false,

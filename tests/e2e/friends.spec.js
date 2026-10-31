@@ -46,10 +46,10 @@ test('convite cria amizade entre duas contas sem compartilhar progresso', async 
   const acceptedBody = await accepted.json();
   expect(acceptedBody.friend.name).toBe('Ana do teste');
 
-  // Reutilizar o código falha.
+  // Reutilizar o código pela mesma pessoa é idempotente (não duplica amizade).
   const replay = await guest.post('/api/friends/accept', { data: { code } });
-  expect(replay.status()).toBe(400);
-  expect((await replay.json()).code).toBe('used_code');
+  expect(replay.status()).toBe(200);
+  expect((await replay.json()).alreadyFriends).toBe(true);
 
   // A amizade não dá acesso ao estado da outra conta.
   const guestState = await guest.get('/api/state');
@@ -61,8 +61,8 @@ test('convite cria amizade entre duas contas sem compartilhar progresso', async 
   await page.reload();
   await expect(page.getByText('Bia do teste')).toBeVisible();
 
-  // Convite usado aparece como usado.
-  await expect(page.getByText('usado', { exact: true })).toBeVisible();
+  // Convite mostra quantas pessoas entraram.
+  await expect(page.getByText('1 pessoa entrou', { exact: true })).toBeVisible();
 
   // Remover encerra nos dois lados.
   await page.getByRole('button', { name: 'Remover Bia do teste da lista' }).click();

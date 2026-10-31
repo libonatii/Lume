@@ -15,6 +15,10 @@ import {
 import {
   FriendsError, acceptInvite, createInvite, listFriends, removeFriend,
 } from './friends.js';
+import {
+  MediaError, MAX_MEDIA_BYTES, deleteProfileObject, parseMediaKeyFromPath,
+  r2BucketAdapter, uploadProfileObject,
+} from './media.js';
 
 const MAX_BODY_BYTES = 16 * 1024;
 const MAX_STATE_BYTES = 256 * 1024;
@@ -440,8 +444,67 @@ async function handleFriends(request, env, url) {
   return json({ error: 'Rota não encontrada.' }, 404);
 }
 
+async function handleProfileMedia(request, env, url) {
+  const { pathname } = url;
+  const slot = decodeURIComponent(pathname.slice('/api/profile/media/'.length));
+  if (!['PUT', 'DELETE'].includes(request.method)) {
+    return json({ error: 'Método não permitido.' }, 405, { Allow: 'PUT, DELETE' });
+  }
+  if (!sameOrigin(request, url)) return json({ error: 'Origem não autorizada.' }, 403);
+  const user = await currentUser(request, env);
+  const isLocalHost = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+  if (!user && !isLocalHost) {
+    return json({ error: 'Entre na sua conta para enviar imagens do perfil.' }, 401);
+  }
+  const ownerId = user?.id || 'preview';
+  const bucket = r2BucketAdapter(env.MEDIA);
+
+  if (request.method === 'DELETE') {
+    return json(await deleteProfileObject(bucket, { ownerId, slot }));
+  }
+
+  const buffer = await request.arrayBuffer();
+  if (buffer.byteLength > MAX_MEDIA_BYTES) {
+    return json({ error: 'A imagem ultrapassa o limite de 2 MB.', code: 'image_too_large' }, 413);
+  }
+  const uploaded = await uploadProfileObject(bucket, {
+    ownerId,
+    slot,
+    bytes: new Uint8Array(buffer),
+  });
+  return json(uploaded, 201);
+}
+
+async function handleMediaGet(request, env, url) {
+  if (!['GET', 'HEAD'].includes(request.method)) {
+    return json({ error: 'Método não permitido.' }, 405, { Allow: 'GET, HEAD' });
+  }
+  const parsed = parseMediaKeyFromPath(url.pathname);
+  if (!parsed) return json({ error: 'Imagem não encontrada.' }, 404);
+  const bucket = r2BucketAdapter(env.MEDIA);
+  if (!bucket) return json({ error: 'Armazenamento de mídia R2 não configurado.' }, 503);
+  const object = await bucket.get(parsed.key);
+  if (!object) return json({ error: 'Imagem não encontrada.' }, 404);
+  const headers = {
+    'Content-Type': object.contentType || parsed.contentType,
+    'Cache-Control': 'public, max-age=31536000, immutable',
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'no-referrer',
+    ...(object.etag ? { ETag: object.etag } : {}),
+  };
+  return new Response(request.method === 'HEAD' ? null : object.body, { status: 200, headers });
+}
+
 async function handleApi(request, env, url) {
   const { pathname } = url;
+
+  if (pathname.startsWith('/api/media/')) {
+    return handleMediaGet(request, env, url);
+  }
+
+  if (pathname.startsWith('/api/profile/media/')) {
+    return handleProfileMedia(request, env, url);
+  }
 
   if (pathname.startsWith('/api/profile/')) {
     if (request.method !== 'GET') return json({ error: 'Método não permitido.' }, 405, { Allow: 'GET' });
@@ -521,6 +584,9 @@ export default {
         return json({ error: error.message, code: error.code }, error.status);
       }
       if (error instanceof FriendsError) {
+        return json({ error: error.message, code: error.code }, error.status);
+      }
+      if (error instanceof MediaError) {
         return json({ error: error.message, code: error.code }, error.status);
       }
       if (error?.status) {

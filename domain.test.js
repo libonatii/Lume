@@ -3,15 +3,28 @@ import assert from 'node:assert/strict';
 import { createInitialState, restoreState, completeMission, totalXP, courseProgress, courseStatus, nextMission, achievements, addCourse, safeCourseURL, weekCount } from './public/domain.js';
 import { applyStudyRhythm, studyRhythm, startJourney, saveOnboardingAnswer, completeJourney, normalizeOnboarding, addMaterial, journeyPlan } from './public/domain.js';
 
-test('comeÃ§a sem XP, com uma prÃ³xima aÃ§Ã£o concreta', () => {
+// Estado de teste com trilhas prÃ³prias. A biblioteca real comeÃ§a vazia.
+function seededState() {
+  const steps = (prefix, count) => Array.from({ length: count }, (_, index) => ({ id: `${prefix}-${index + 1}`, title: `Etapa ${index + 1}` }));
+  const state = createInitialState();
+  state.courses = [
+    { id: 'design', title: 'Design de interfaces', category: 'Design & criatividade', art: 'design', url: '', example: false, paused: false, steps: steps('design', 4) },
+    { id: 'python', title: 'Primeiros passos em Python', category: 'Tecnologia & programaÃ§Ã£o', art: 'code', url: '', example: false, paused: false, steps: steps('python', 4) },
+  ];
+  state.selectedCourseId = 'design';
+  return state;
+}
+
+test('comeÃ§a sem XP, sem cursos de exemplo e sem prÃ³xima aÃ§Ã£o inventada', () => {
   const state = createInitialState();
   assert.equal(totalXP(state), 0);
-  assert.equal(nextMission(state).step.id, 'design-1');
+  assert.equal(state.courses.length, 0);
+  assert.equal(nextMission(state), null);
   assert.equal(achievements(state).filter((item) => item.unlocked).length, 0);
 });
 
 test('ritmo inicial e apoios mudam sugestÃµes e plano, preservando cursos e XP', () => {
-  const previous = completeMission(createInitialState(), 'design', 'design-1').state;
+  const previous = completeMission(seededState(), 'design', 'design-1').state;
   const state = applyStudyRhythm(previous, { habit: 'starting', supports: ['calm', 'initiation'] });
   assert.equal(state.preferences.weeklyGoal, 2);
   assert.equal(state.preferences.essential, true);
@@ -49,7 +62,7 @@ test('apoios e ritmo sobrevivem Ã  restauraÃ§Ã£o sem duplicatas nem valores desc
 });
 
 test('conclusÃ£o dÃ¡ XP uma Ãºnica vez e avanÃ§a a prÃ³xima etapa', () => {
-  const { state } = completeMission(createInitialState(), 'design', 'design-1');
+  const { state } = completeMission(seededState(), 'design', 'design-1');
   assert.equal(totalXP(state), 10);
   assert.equal(nextMission(state).step.id, 'design-2');
   assert.equal(courseProgress(state, state.courses[0]).done, 1);
@@ -58,7 +71,7 @@ test('conclusÃ£o dÃ¡ XP uma Ãºnica vez e avanÃ§a a prÃ³xima etapa', () => {
 });
 
 test('tornar menor nÃ£o conclui a aula nem permite XP duplicado', () => {
-  const result = completeMission(createInitialState(), 'design', 'design-1', { preparation: true });
+  const result = completeMission(seededState(), 'design', 'design-1', { preparation: true });
   assert.equal(result.xp, 5);
   assert.equal(result.state.completed.length, 0);
   assert.equal(nextMission(result.state).step.id, 'design-1');
@@ -68,7 +81,7 @@ test('tornar menor nÃ£o conclui a aula nem permite XP duplicado', () => {
 });
 
 test('curso concluÃ­do nÃ£o volta Ã s sugestÃµes', () => {
-  let state = createInitialState();
+  let state = seededState();
   for (const step of state.courses[0].steps) state = completeMission(state, 'design', step.id).state;
   assert.equal(courseStatus(state, state.courses[0]), 'completed');
   assert.equal(nextMission(state).course.id, 'python');
@@ -76,7 +89,7 @@ test('curso concluÃ­do nÃ£o volta Ã s sugestÃµes', () => {
 });
 
 test('pausar um curso preserva progresso e muda a sugestÃ£o', () => {
-  const state = completeMission(createInitialState(), 'design', 'design-1').state;
+  const state = completeMission(seededState(), 'design', 'design-1').state;
   state.courses[0].paused = true;
   assert.equal(nextMission(state).course.id, 'python');
   assert.equal(courseProgress(state, state.courses[0]).done, 1);
@@ -97,7 +110,7 @@ test('cursos prÃ³prios validam links e ganham etapas Ãºnicas', () => {
 });
 
 test('histÃ³rico semanal usa a semana local e exclui datas futuras de outra semana', () => {
-  let state = createInitialState();
+  let state = seededState();
   state = completeMission(state, 'design', 'design-1', { now: new Date(2026, 9, 26, 10).toISOString() }).state;
   state = completeMission(state, 'design', 'design-2', { now: new Date(2026, 9, 25, 10).toISOString() }).state;
   state = completeMission(state, 'design', 'design-3', { now: new Date(2026, 10, 2, 10).toISOString() }).state;
@@ -105,7 +118,7 @@ test('histÃ³rico semanal usa a semana local e exclui datas futuras de outra sema
 });
 
 test('pausas nÃ£o reduzem XP nem apagam conquistas', () => {
-  let state = completeMission(createInitialState(), 'design', 'design-1', { now: '2026-01-01T12:00:00Z' }).state;
+  let state = completeMission(seededState(), 'design', 'design-1', { now: '2026-01-01T12:00:00Z' }).state;
   state = completeMission(state, 'design', 'design-2', { now: '2026-10-30T12:00:00Z' }).state;
   assert.equal(totalXP(state), 20);
   assert.equal(achievements(state)[0].unlocked, true);
@@ -114,7 +127,7 @@ test('pausas nÃ£o reduzem XP nem apagam conquistas', () => {
 test('armazenamento invÃ¡lido nÃ£o quebra o inÃ­cio e preferÃªncias sÃ£o normalizadas', () => {
   assert.equal(restoreState('{').version, 1);
   assert.equal(restoreState('null').history.length, 0);
-  const state = completeMission(createInitialState(), 'design', 'design-1').state;
+  const state = completeMission(seededState(), 'design', 'design-1').state;
   state.preferences.weeklyGoal = 999;
   const restored = restoreState(JSON.stringify(state));
   assert.equal(totalXP(restored), 10);
@@ -132,7 +145,7 @@ test('preferÃªncia antiga de reduzir movimentos Ã© descartada e nÃ£o volta ao es
   assert.equal(restored.preferences.theme, 'dark');
 });
 
-test('cada jornada inicia uma sequência própria e retoma de onde parou', () => {
+test('cada jornada inicia uma sequï¿½ncia prï¿½pria e retoma de onde parou', () => {
   const initial = createInitialState();
   const starting = startJourney(initial, 'starting');
   assert.equal(starting.habit, 'starting');
@@ -143,24 +156,24 @@ test('cada jornada inicia uma sequência própria e retoma de onde parou', () => {
   assert.equal(inProgress.onboarding.answers.subject, 'redes');
   assert.equal(inProgress.onboarding.step, 2);
 
-  // Mesma jornada retoma a etapa; trocar de jornada recomeça a sequência.
+  // Mesma jornada retoma a etapa; trocar de jornada recomeï¿½a a sequï¿½ncia.
   assert.equal(startJourney(inProgress, 'starting').onboarding.step, 2);
   assert.equal(startJourney(inProgress, 'often').onboarding.step, 1);
   assert.throws(() => startJourney(initial, 'inexistente'));
 });
 
-test('onboarding interrompido sobrevive à restauração do estado', () => {
-  const interrupted = saveOnboardingAnswer(startJourney(createInitialState(), 'sometimes'), { studying: 'estatística' }, 2);
+test('onboarding interrompido sobrevive ï¿½ restauraï¿½ï¿½o do estado', () => {
+  const interrupted = saveOnboardingAnswer(startJourney(createInitialState(), 'sometimes'), { studying: 'estatï¿½stica' }, 2);
   const restored = restoreState(JSON.stringify(interrupted));
   assert.equal(restored.onboarding.status, 'active');
   assert.equal(restored.onboarding.journey, 'sometimes');
   assert.equal(restored.onboarding.step, 2);
-  assert.equal(restored.onboarding.answers.studying, 'estatística');
+  assert.equal(restored.onboarding.answers.studying, 'estatï¿½stica');
   assert.equal(normalizeOnboarding({ journey: 'nada', step: 99 }).status, 'pending');
 });
 
-test('concluir a jornada não concede XP nem apaga materiais', () => {
-  const withMaterial = addMaterial(createInitialState(), { title: 'Curso de redes', type: 'lesson', firstActivity: 'Assistir à aula 1' });
+test('concluir a jornada nï¿½o concede XP nem apaga materiais', () => {
+  const withMaterial = addMaterial(createInitialState(), { title: 'Curso de redes', type: 'lesson', firstActivity: 'Assistir ï¿½ aula 1' });
   const done = completeJourney(saveOnboardingAnswer(startJourney(withMaterial, 'starting'), { subject: 'redes' }, 5));
   assert.equal(done.onboarded, true);
   assert.equal(done.onboarding.status, 'done');
@@ -170,7 +183,7 @@ test('concluir a jornada não concede XP nem apaga materiais', () => {
   assert.equal(done.preferences.weeklyGoalSource, 'suggested');
 });
 
-test('meta ajustada à mão não é substituída ao revisar o ritmo', () => {
+test('meta ajustada ï¿½ mï¿½o nï¿½o ï¿½ substituï¿½da ao revisar o ritmo', () => {
   const initial = createInitialState();
   initial.preferences.weeklyGoal = 6;
   initial.preferences.weeklyGoalSource = 'manual';
@@ -180,14 +193,29 @@ test('meta ajustada à mão não é substituída ao revisar o ritmo', () => {
   assert.equal(reviewed.preferences.weeklyGoal, 6);
 });
 
-test('material do onboarding guarda tipo e ponto de retomada sem gerar histórico', () => {
-  const next = addMaterial(createInitialState(), { title: 'Artigo de processo penal', type: 'article', resumeAt: 'página 12', firstActivity: 'Ler a seção 2' });
+test('material do onboarding guarda tipo e ponto de retomada sem gerar histï¿½rico', () => {
+  const next = addMaterial(createInitialState(), { title: 'Artigo de processo penal', type: 'article', resumeAt: 'pï¿½gina 12', firstActivity: 'Ler a seï¿½ï¿½o 2' });
   const created = next.courses.at(-1);
   assert.equal(created.title, 'Artigo de processo penal');
   assert.equal(created.type, 'article');
-  assert.equal(created.resumeAt, 'página 12');
+  assert.equal(created.resumeAt, 'pï¿½gina 12');
   assert.equal(created.origin, 'onboarding');
   assert.deepEqual(next.history, []);
   assert.equal(totalXP(next), 0);
   assert.equal(journeyPlan(next).firstActivity !== null, true);
+});
+
+test('exemplos antigos sem uso saem da biblioteca; com progresso permanecem', () => {
+  const untouched = seededState();
+  untouched.courses = untouched.courses.map((course) => ({ ...course, example: true }));
+  const restored = restoreState(JSON.stringify(untouched));
+  assert.equal(restored.courses.length, 0);
+  assert.equal(restored.selectedCourseId, null);
+
+  const used = completeMission(seededState(), 'design', 'design-1').state;
+  used.courses = used.courses.map((course) => ({ ...course, example: true }));
+  const kept = restoreState(JSON.stringify(used));
+  assert.deepEqual(kept.courses.map((course) => course.id), ['design']);
+  assert.equal(kept.completed.includes('design-1'), true);
+  assert.equal(kept.selectedCourseId, 'design');
 });

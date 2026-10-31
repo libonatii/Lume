@@ -2,12 +2,16 @@
 // estado que a própria pessoa sincronizou. XP e progresso são declarados pelo
 // navegador, não validados pelo servidor — por isso não alimentam ranking e a
 // interface precisa dizer isso.
-import { courseProgress, courseStatus, levelInfo, STUDY_TYPES } from './domain.js';
+import {
+  achievements, courseProgress, courseStatus, levelInfo, normalizeProfileCard, STUDY_TYPES,
+} from './domain.js';
 import { studyPlan } from './study-plan.js';
 
 export const STUDYING_LIMIT = 6;
 export const PROJECTS_LIMIT = 8;
 export const QUEUE_LIMIT = 5;
+export const RECENT_ACTIVITY_LIMIT = 4;
+export const RECENT_ACTIVITY_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
 
 // Ausência de escolha significa compartilhar: são os padrões decididos para o perfil.
 export function normalizeSharing(value) {
@@ -34,8 +38,95 @@ export function isPublicProject(course) {
   return Boolean(course && course.type === 'project' && course.shared === true);
 }
 
+function safeArt(art) {
+  return ['design', 'code', 'language', 'nature'].includes(art) ? art : 'nature';
+}
+
+function buildRecentActivity(state, courses, { sharing, now }) {
+  if (!sharing.library || !sharing.progress) {
+    return { items: [], recentStepsTwoWeeks: null, recentMinutesTwoWeeks: null };
+  }
+  const visibleIds = new Set(courses.map((course) => course.id));
+  const courseMap = new Map(courses.map((course) => [course.id, course]));
+  const cutoff = now - RECENT_ACTIVITY_WINDOW_MS;
+
+  const eventsByCourse = new Map();
+  let recentStepsTwoWeeks = 0;
+  let recentDurationMs = 0;
+
+  const touch = (courseId, at, label, isStep = false) => {
+    if (!visibleIds.has(courseId)) return;
+    const timestamp = Date.parse(at);
+    if (!Number.isFinite(timestamp)) return;
+    if (isStep && timestamp >= cutoff) recentStepsTwoWeeks += 1;
+    const current = eventsByCourse.get(courseId) || { lastAt: 0, lastLabel: '', stepsCount: 0, durationMs: 0 };
+    if (timestamp >= current.lastAt) {
+      current.lastAt = timestamp;
+      current.lastLabel = label || current.lastLabel;
+    }
+    if (isStep) current.stepsCount += 1;
+    eventsByCourse.set(courseId, current);
+  };
+
+  for (const entry of state?.history || []) {
+    touch(entry.courseId, entry.at, entry.title, !entry.preparation);
+  }
+  for (const entry of state?.studyLog || []) {
+    if (!entry.revertedAt) touch(entry.courseId, entry.at, entry.lessonTitle, true);
+  }
+  for (const session of state?.studySessions || []) {
+    if (!visibleIds.has(session.courseId)) continue;
+    const endedAt = Date.parse(session.endedAt || session.startedAt);
+    const duration = Number(session.durationMs) || 0;
+    if (Number.isFinite(endedAt) && endedAt >= cutoff) recentDurationMs += duration;
+    touch(session.courseId, session.endedAt || session.startedAt, session.label, false);
+    const current = eventsByCourse.get(session.courseId);
+    if (current) current.durationMs += duration;
+  }
+
+  // Se não houver eventos com data, usa os materiais com etapas já concluídas
+  for (const course of courses) {
+    if (eventsByCourse.has(course.id)) continue;
+    const progress = courseProgress(state, course);
+    if (progress.done > 0) {
+      eventsByCourse.set(course.id, {
+        lastAt: 0,
+        lastLabel: course.resumeAt || `${progress.done} de ${progress.total} concluídos`,
+        stepsCount: progress.done,
+        durationMs: 0,
+      });
+    }
+  }
+
+  const items = [...eventsByCourse.entries()]
+    .sort((a, b) => b[1].lastAt - a[1].lastAt || b[1].stepsCount - a[1].stepsCount)
+    .slice(0, RECENT_ACTIVITY_LIMIT)
+    .map(([courseId, info]) => {
+      const course = courseMap.get(courseId);
+      const progress = courseProgress(state, course);
+      return {
+        id: course.id,
+        title: course.title,
+        type: typeLabel(course),
+        art: safeArt(course.art),
+        status: courseStatus(state, course),
+        progress,
+        lastAt: info.lastAt ? new Date(info.lastAt).toISOString() : null,
+        lastLabel: info.lastLabel || course.resumeAt || '',
+        durationMinutes: info.durationMs > 0 ? Math.max(1, Math.round(info.durationMs / 60000)) : null,
+      };
+    });
+
+  return {
+    items,
+    recentStepsTwoWeeks,
+    recentMinutesTwoWeeks: recentDurationMs > 0 ? Math.max(1, Math.round(recentDurationMs / 60000)) : 0,
+  };
+}
+
 export function buildProfile(state, { now = Date.now() } = {}) {
   const sharing = normalizeSharing(state?.preferences?.sharing);
+  const customization = normalizeProfileCard(state?.profile);
   // Projeto privado não aparece em lugar nenhum do perfil: nem na biblioteca,
   // nem na fila, nem nas contagens — senão a própria existência vazaria.
   const courses = realCourses(state).filter((course) => course.type !== 'project' || course.shared === true);
@@ -47,6 +138,7 @@ export function buildProfile(state, { now = Date.now() } = {}) {
       id: course.id,
       title: course.title,
       type: typeLabel(course),
+      art: safeArt(course.art),
       status: courseStatus(state, course),
       progress: sharing.progress ? progress : null,
     };
@@ -61,9 +153,14 @@ export function buildProfile(state, { now = Date.now() } = {}) {
   }, { lessons: 0, done: 0, completedCourses: 0 });
 
   const level = sharing.xp ? levelInfo(state) : null;
+  const allAchievements = sharing.xp ? achievements(visibleState) : null;
+  const unlockedBadges = allAchievements ? allAchievements.filter((item) => item.unlocked) : [];
+  const featuredBadge = unlockedBadges[unlockedBadges.length - 1] || (allAchievements ? allAchievements[0] : null);
+  const recent = buildRecentActivity(state, courses, { sharing, now });
 
   return {
     sharing,
+    customization,
     studying: sharing.library ? entries.filter((entry) => entry.status !== 'completed').slice(0, STUDYING_LIMIT) : [],
     completed: sharing.library ? entries.filter((entry) => entry.status === 'completed').slice(0, STUDYING_LIMIT) : [],
     queue: sharing.queue
@@ -76,9 +173,19 @@ export function buildProfile(state, { now = Date.now() } = {}) {
     projects: courses.filter(isPublicProject).slice(0, PROJECTS_LIMIT).map((course) => ({
       id: course.id,
       title: course.title,
+      art: safeArt(course.art),
       status: courseStatus(state, course),
       progress: sharing.progress ? courseProgress(state, course) : null,
     })),
+    achievements: allAchievements
+      ? allAchievements.map(({ id, title, text, icon, unlocked, current, target }) => ({
+        id, title, text, icon, unlocked, current, target,
+      }))
+      : [],
+    featuredBadge: featuredBadge
+      ? { id: featuredBadge.id, title: featuredBadge.title, icon: featuredBadge.icon, unlocked: featuredBadge.unlocked }
+      : null,
+    recentActivity: recent.items,
     stats: {
       activeCourses: courses.length,
       lessons: sharing.progress ? totals.lessons : null,
@@ -86,6 +193,12 @@ export function buildProfile(state, { now = Date.now() } = {}) {
       completedCourses: sharing.progress ? totals.completedCourses : null,
       xp: level ? level.total : null,
       level: level ? level.level : null,
+      levelCurrent: level ? level.current : null,
+      levelNext: level ? level.next : null,
+      unlockedAchievements: allAchievements ? unlockedBadges.length : null,
+      totalAchievements: allAchievements ? allAchievements.length : null,
+      recentStepsTwoWeeks: recent.recentStepsTwoWeeks,
+      recentMinutesTwoWeeks: recent.recentMinutesTwoWeeks,
     },
   };
 }

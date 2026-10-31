@@ -1,9 +1,10 @@
 # Lume — programa de desktop
 
 Status: **em desenvolvimento**. O app de desktop abre o Lume completo em uma
-janela, mantém a bandeja com a presença local e atualiza a si mesmo. O agente de
-linha de comando continua disponível para diagnóstico. O instalador é publicado
-pelo GitHub Actions e ainda não tem assinatura digital (ver seção 8).
+janela, mantém a bandeja com a presença local e verifica/instala atualizações a
+pedido. O agente de linha de comando continua disponível para diagnóstico. O
+instalador é publicado pelo GitHub Actions e ainda não tem assinatura digital
+(ver seção 8).
 
 Este documento descreve o Companion como o **produto principal** de uso diário:
 o site continua sendo a conta, a biblioteca e o lugar de organizar; o programa
@@ -120,7 +121,8 @@ nem uma segunda conta.
 A janela principal abre links externos no navegador, mantém a sessão entre
 execuções (cookie do site), fecha para a bandeja em vez de encerrar e mostra uma
 página local de "sem conexão" com botão de nova tentativa quando o site não
-responde.
+responde. Ela usa barra de título própria, com a identidade do Lume, e um botão
+discreto de atualização no topo, além do botão da janela de presença.
 
 O painel de presença mostra:
 
@@ -157,7 +159,7 @@ O que ainda falta nessa camada:
 | Biblioteca local | Lista de cursos sem abrir o site |
 | Offline | Fila local de presença, sincronizada depois |
 | Início com o Windows | Opcional, explícito e reversível |
-| Instalador assinado | Empacotamento e assinatura para distribuição |
+| Assinatura do instalador | O pacote NSIS já é publicado; falta assinar o executável |
 
 Regras para todos eles: presença e roteiro nunca geram XP; compartilhamento é
 opt-in; pausa não é punida; nada de vigilância.
@@ -196,13 +198,15 @@ opt-in; pausa não é punida; nada de vigilância.
 | 2 | Roteiro e contagem de aulas no agente | Feito |
 | 3 | App Electron: bandeja, painel e **janela com o Lume completo** | Feito |
 | 4 | Instalador Windows via GitHub Actions | Feito; assinatura é opcional |
-| 5 | Início com o Windows e auto-update | Auto-update pelo botão da janela; início com o Windows pendente |
+| 5 | Início com o Windows e auto-update | Atualização pelo botão da janela (manual); início com o Windows pendente |
 | 6 | Sessão declarada dentro do programa + retomada | Substituído pela janela com o site: a sessão já funciona no app |
-| 7 | Presença social entre amigos (opt-in) | Depende de amigos e grupos |
+| 7 | Presença social entre amigos (opt-in) | Depende de grupos; amigos já existem |
 
-A publicação é feita por tag (`companion-v0.4.0`) e o workflow gera o instalador
-NSIS, sem precisar de máquina Windows local. Detalhes, secrets de assinatura e
-solução de problemas em [Publicação e CI](RELEASE.md).
+A publicação é feita por tag (`companion-v<versão>`), que precisa bater com
+`companion/package.json`; a última release publicada é a `companion-v0.5.0`, e o
+pacote local já está na 0.5.1. O workflow gera o instalador NSIS, sem precisar de
+máquina Windows local. Detalhes, secrets de assinatura e solução de problemas em
+[Publicação e CI](RELEASE.md).
 
 ### Como abrir agora
 
@@ -224,11 +228,11 @@ npm run companion:app            # abre a bandeja e a janela
 De qualquer pasta, ou com dois cliques:
 
 ```text
-D:\tabletop\lume-companion.cmd
+D:\tabletop\lume.cmd
 ```
 
 O iniciador entra sozinho na pasta certa e confere se o Electron está instalado.
-Use `D:\tabletop\lume-companion.cmd --debug` para abrir com o console visível e
+Use `D:\tabletop\lume.cmd --debug` para abrir com o console visível e
 ver mensagens de erro.
 
 Quem baixa pelo GitHub usa o instalador publicado em **Releases** (gerado pelo

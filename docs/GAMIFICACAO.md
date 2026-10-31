@@ -4,7 +4,7 @@ Versão da política: **proposta inicial v1**. O propósito e as proibições ab
 
 Referência de contexto: [Produto](PRODUTO.md). Divergências e migração: [Continuidade](CONTINUIDADE.md).
 
-A migração da interface para React + Astro não implementou esta política. Contas e sincronização básica de uma cópia do progresso já existem, mas o XP continua calculado no navegador pelo domínio legado, com 5 XP por preparação, 10 XP por etapa e nível a cada 100 XP. A cópia armazenada no servidor não torna esses registros elegíveis nem os valida para um placar compartilhado. Os valores e critérios das seções seguintes continuam sendo a proposta da nova política.
+A migração da interface para React + Astro não implementou esta política. Contas e sincronização básica de uma cópia do progresso já existem, mas o XP continua calculado no navegador pelo domínio legado, com 5 XP por preparação, 10 XP por etapa, 10 XP por tarefa de prova concluída e nível a cada 100 XP. A cópia armazenada no servidor não torna esses registros elegíveis nem os valida para um placar compartilhado. Os valores e critérios das seções seguintes continuam sendo a proposta da nova política.
 
 ## 1. O que XP representa
 
@@ -31,7 +31,7 @@ Uma animação ou mensagem positiva pode reconhecer esforço sem conceder XP. De
 - Pausar, descansar, mudar de tela ou retornar de uma pausa.
 - Enviar mensagens, comentar, receber curtidas ou simplesmente estar em uma sala.
 - Deixar um player, cronômetro ou página aberto sem estudo elegível.
-- Marcar genericamente uma microtarefa sem uma entrega de aprendizado definida.
+- Marcar genericamente uma microtarefa sem uma entrega de aprendizado definida. A lista de tarefas de prova tem a regra própria da seção 3 e não transforma qualquer item em recompensa.
 
 Esses eventos podem aparecer no histórico organizacional, mas não no livro de XP nem no placar.
 
@@ -57,6 +57,18 @@ Esses eventos podem aparecer no histórico organizacional, mas não no livro de 
 - Não atribuir XP por commit, linha de código, página rolada ou quantidade de mensagens.
 - O tamanho arbitrário de uma tarefa não determina recompensa. Dividir uma aula em dez microtarefas não cria dez aulas elegíveis.
 - Os tipos e valores podem evoluir, mas nunca de forma silenciosa no histórico já concedido.
+
+### Tarefas de prova — regra em execução no protótipo
+
+A lista de tarefas de prova foi pedida explicitamente e hoje usa uma regra transitória:
+
+- Criar, editar, organizar ou remover uma tarefa não gera XP.
+- Concluir uma tarefa com título concreto (por exemplo, "Resolver 20 questões de constitucional") concede **10 XP uma vez**.
+- Reabrir a tarefa retira o XP até ela ser concluída de novo; reabrir e concluir não acumula uma segunda recompensa.
+- O XP da tarefa é calculado no navegador, a partir de `state.tasks` (`public/tasks-domain.js`), e não entra em ranking.
+- A tarefa não conclui curso nem cria conquista por material; essas regras continuam dependendo da nova política.
+
+Essa exceção não deve ser copiada para tarefas genéricas de organização. Quando o livro de eventos do servidor existir, a conclusão de tarefa precisa virar um evento identificável, com chave de idempotência e revisão da política.
 
 ### Exemplos de cálculo
 
@@ -243,5 +255,6 @@ A migração e a interface do saldo legado precisam ser implementadas e verifica
 - Curso concluído gera título personalizado e pelo menos um nível pelo bônus proposto.
 - Material manual é identificado como tal; integração indisponível não é apresentada como automática.
 - Sessão declarada, presença do Companion, convite e amizade não criam XP nem histórico de recompensa.
+- Criar ou organizar tarefa de prova: 0 XP; concluir a mesma tarefa duas vezes: um único evento de 10 XP.
 - Descansar ou sair do placar não retira XP acumulado.
 - Mudança de política ou migração preserva o histórico e evita pontuação de legado no novo placar.

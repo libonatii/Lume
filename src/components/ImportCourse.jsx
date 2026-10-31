@@ -5,7 +5,7 @@ import { Button } from './ui.jsx';
 import { api, apiError } from '../lib/api.js';
 import {
   MAX_SYLLABUS_CHARS, allLessonIds, applyCourseImport, formatDuration,
-  looksLikeExamCourse, normalizePayload,
+  looksLikeExamCourse, normalizeImportUrl, normalizePayload, detectProvider,
 } from '../../public/import-domain.js';
 
 // Fluxo curto de importação: colar link → analisar → escolher áreas → adicionar.
@@ -51,8 +51,12 @@ export default function ImportCourse({ state, update, close, notify, go, open, m
   const total = payload ? allLessonIds(payload).length : 0;
   const chosen = payload ? allLessonIds(payload).filter((id) => selected.has(id)).length : 0;
   const examLike = useMemo(() => payload && looksLikeExamCourse(payload), [payload]);
+  const detectedProvider = useMemo(() => {
+    const normalized = normalizeImportUrl(url);
+    return normalized ? detectProvider(normalized) : null;
+  }, [url]);
 
-  async function runAnalysis(source) {
+  async function analyze(source) {
     setPhase('analyzing');
     setError(null);
     const request = source.kind === 'text'
@@ -60,33 +64,65 @@ export default function ImportCourse({ state, update, close, notify, go, open, m
       : api('/api/import/analyze', { method: 'POST', body: { url: source.url } });
     let result;
     try { result = await request; } catch { result = { ok: false, data: { error: 'Não foi possível falar com o Lume. Confira a conexão.', code: 'network_error' } }; }
-    if (!alive.current) return;
+    if (!alive.current) return null;
     if (!result.ok) {
       setError({ message: apiError(result), code: result.data?.code || 'import_failed' });
       setPhase('error');
-      return;
+      return null;
     }
     try {
       const normalized = normalizePayload(result.data.payload);
-      setPayload(normalized);
       setAi(result.data.ai || null);
-      setSelected(new Set(allLessonIds(normalized)));
-      setExpanded(new Set(normalized.disciplines.slice(0, 2).map((discipline) => discipline.id)));
-      setPhase('review');
+      return normalized;
     } catch (exception) {
       setError({ message: exception.message, code: 'unparsed_text' });
       setPhase('error');
+      return null;
     }
   }
 
-  function submitLink(event) {
-    event.preventDefault();
-    const value = url.trim();
-    if (!/^https?:\/\//i.test(value)) {
+  async function runAnalysis(source) {
+    const normalized = await analyze(source);
+    if (!normalized) return;
+    setPayload(normalized);
+    setSelected(new Set(allLessonIds(normalized)));
+    setExpanded(new Set(normalized.disciplines.slice(0, 2).map((discipline) => discipline.id)));
+    setPhase('review');
+  }
+
+  // Detecta e adiciona sem abrir a árvore de revisão. Usa todas as aulas
+  // encontradas; grades parciais continuam marcadas no curso e podem ser
+  // atualizadas depois.
+  async function detectAndAdd() {
+    const value = normalizeImportUrl(url);
+    if (!value) {
       setError({ message: 'Cole o endereço completo do curso, começando com https://', code: 'invalid_url' });
       setPhase('error');
       return;
     }
+    setUrl(value);
+    const normalized = await analyze({ kind: 'url', url: value });
+    if (normalized) importPayload(normalized, { auto: true });
+  }
+
+  function handleUrlPaste(event) {
+    const pasted = event.clipboardData?.getData('text') || '';
+    const value = normalizeImportUrl(pasted);
+    if (!value) return;
+    event.preventDefault();
+    setUrl(value);
+    runAnalysis({ kind: 'url', url: value });
+  }
+
+  function submitLink(event) {
+    event.preventDefault();
+    const value = normalizeImportUrl(url);
+    if (!value) {
+      setError({ message: 'Cole o endereço completo do curso, começando com https://', code: 'invalid_url' });
+      setPhase('error');
+      return;
+    }
+    setUrl(value);
     runAnalysis({ kind: 'url', url: value });
   }
 
@@ -145,23 +181,42 @@ export default function ImportCourse({ state, update, close, notify, go, open, m
     });
   }
 
-  function confirmImport() {
-    if (!payload || !chosen) return;
+  function importPayload(normalized, { auto = false, selectedIds = null } = {}) {
+    if (!normalized) return;
+    const ids = selectedIds || allLessonIds(normalized);
+    if (!ids.length) {
+      setError({ message: 'Nenhuma aula foi encontrada para adicionar.', code: 'import_failed' });
+      setPhase('error');
+      return;
+    }
     try {
-      const next = applyCourseImport(state, payload, {
-        selectedLessonIds: [...selected],
+      const next = applyCourseImport(state, normalized, {
+        selectedLessonIds: ids,
         mode: updating ? 'update' : 'create',
         courseId: updating ? modal.courseId : null,
-        edital: examLike && (edition || examPhase) ? { exam: 'OAB', edition: edition.trim(), phase: examPhase, checkedAt: new Date().toISOString() } : null,
+        edital: looksLikeExamCourse(normalized) && (edition || examPhase) ? { exam: 'OAB', edition: edition.trim(), phase: examPhase, checkedAt: new Date().toISOString() } : null,
       });
-      const course = next.courses.find((item) => item.source?.identity === payload.identity) || next.courses.at(-1);
+      const course = next.courses.find((item) => item.source?.identity === normalized.identity) || next.courses.at(-1);
       update(next);
-      setImported({ course, added: chosen, kept: (existing?.steps?.length || 0) });
+      setPayload(normalized);
+      setSelected(new Set(ids));
+      setImported({
+        course,
+        added: ids.length,
+        kept: (existing?.steps?.length || 0),
+        auto,
+        partial: normalized.completeness === 'partial',
+      });
       setPhase('done');
     } catch (exception) {
       setError({ message: exception.message, code: 'import_failed' });
       setPhase('error');
     }
+  }
+
+  function confirmImport() {
+    if (!payload || !chosen) return;
+    importPayload(payload, { selectedIds: [...selected] });
   }
 
   // ---------- Etapas de interface ----------
@@ -177,10 +232,13 @@ export default function ImportCourse({ state, update, close, notify, go, open, m
     {mode === 'link'
       ? <form className="form-stack" onSubmit={submitLink}>
         <label className="field">Link do curso
-          <input name="import-url" type="text" inputMode="url" maxLength={2000} value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://…" autoComplete="off" required/>
+          <input name="import-url" type="text" inputMode="url" maxLength={2000} value={url} onChange={(event) => setUrl(event.target.value)} onPaste={handleUrlPaste} placeholder="https://…" autoComplete="off" required/>
         </label>
+        {detectedProvider && detectedProvider.id !== 'unknown' && <p className="inline-note"><Icon name="check"/><span>{detectedProvider.label} detectado. Ao colar um link, a análise começa sozinha.</span></p>}
         <p className="quiet-note">Funciona com Gran Cursos, Estratégia, Alura, Rocketseat, Udemy, Coursera e outras fontes. O que for possível ler aparece na revisão; o resto pode ser colado.</p>
         <Button className="full-width" type="submit"><Icon name="search"/>Analisar link</Button>
+        <Button secondary className="full-width" type="button" onClick={detectAndAdd} disabled={!normalizeImportUrl(url)}><Icon name="spark"/>Detectar e adicionar</Button>
+        <p className="quiet-note">Detectar e adicionar usa todas as aulas encontradas, sem abrir a revisão. Grades parciais continuam marcadas e podem ser atualizadas depois.</p>
       </form>
       : <form className="form-stack" onSubmit={submitText}>
         <label className="field">Nome do curso (opcional)
@@ -308,6 +366,7 @@ export default function ImportCourse({ state, update, close, notify, go, open, m
     <span className="eyebrow">Importação concluída</span>
     <h2 id="dialog-title" className="headline" ref={heading}>{imported?.course.title || payload?.title}</h2>
     <p className="muted-text">{chosen} {chosen === 1 ? 'aula adicionada' : 'aulas adicionadas'} à sua biblioteca{updating ? '. Conclusões e marcadores anteriores foram preservados.' : '.'}</p>
+    {imported?.auto && <p className="inline-note"><Icon name="spark"/><span>Detectado e adicionado automaticamente. {imported.partial ? 'A grade é parcial: confira as aulas na Biblioteca.' : 'Confira o curso na Biblioteca quando quiser.'}</span></p>}
     <ul className="import-summary">
       <li><Icon name="book"/><span>{payload?.provider.id === 'unknown' ? `Origem: ${EXTRACTION_LABEL[payload?.extraction.kind] || 'conteúdo enviado'}` : `Plataforma: ${payload?.provider.label}`}</span></li>
       <li><Icon name="spark"/><span>Conteúdo identificado: {payload?.provider.id === 'unknown' ? 'grade fornecida por você' : EXTRACTION_LABEL[payload?.extraction.kind]}{payload?.completeness === 'partial' ? ' (grade parcial)' : ''}</span></li>

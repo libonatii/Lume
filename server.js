@@ -1,9 +1,9 @@
 import http from 'node:http';
 import dns from 'node:dns/promises';
-import { readFile } from 'node:fs/promises';
+import { readFile, rm, writeFile } from 'node:fs/promises';
 import { existsSync, mkdirSync, readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import {
   ValidationError, SESSION_TTL_MS, RESET_TTL_MS, bcryptRounds,
@@ -20,6 +20,10 @@ import {
 import {
   FriendsError, acceptInvite, createInvite, listFriends, removeFriend,
 } from './friends.js';
+import {
+  MediaError, MAX_MEDIA_BYTES, deleteProfileObject, parseMediaKeyFromPath,
+  uploadProfileObject,
+} from './media.js';
 import { buildProfile } from './public/profile-domain.js';
 import { createInitialState, restoreState } from './public/domain.js';
 
@@ -104,6 +108,24 @@ function send(response, status, body, extraHeaders = {}) {
     ...extraHeaders,
   });
   response.end(payload ?? undefined);
+}
+
+function readRawBytes(request, limit = MAX_MEDIA_BYTES) {
+  return new Promise((resolve, reject) => {
+    let size = 0;
+    const chunks = [];
+    request.on('data', (chunk) => {
+      size += chunk.length;
+      if (size > limit) {
+        reject(Object.assign(new Error('Corpo grande demais.'), { status: 413 }));
+        request.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+    request.on('end', () => resolve(new Uint8Array(Buffer.concat(chunks))));
+    request.on('error', reject);
+  });
 }
 
 function readRawBody(request, limit = MAX_BODY_BYTES) {
@@ -492,6 +514,72 @@ async function handleProfileRoute(request, response, pathname) {
   });
 }
 
+const mediaRoot = join(dataDirectory, 'media');
+mkdirSync(mediaRoot, { recursive: true });
+
+const localMediaBucket = {
+  async put(key, bytes) {
+    const targetPath = join(mediaRoot, ...key.split('/'));
+    mkdirSync(dirname(targetPath), { recursive: true });
+    await writeFile(targetPath, bytes);
+  },
+  async get(key) {
+    const targetPath = join(mediaRoot, ...key.split('/'));
+    if (!existsSync(targetPath)) return null;
+    const body = await readFile(targetPath);
+    return { body, contentType: null, etag: null };
+  },
+  async delete(key) {
+    const targetPath = join(mediaRoot, ...key.split('/'));
+    await rm(targetPath, { force: true });
+  },
+  async listKeys(prefix) {
+    const parts = prefix.split('/');
+    const filenamePrefix = parts.pop() || '';
+    const folderPath = join(mediaRoot, ...parts);
+    if (!existsSync(folderPath)) return [];
+    const folderKey = parts.join('/');
+    return readdirSync(folderPath, { withFileTypes: true })
+      .filter(entry => entry.isFile() && entry.name.startsWith(filenamePrefix))
+      .map(entry => `${folderKey}/${entry.name}`);
+  },
+};
+
+async function handleProfileMediaRoute(request, response, pathname) {
+  const slot = decodeURIComponent(pathname.slice('/api/profile/media/'.length));
+  if (!['PUT', 'DELETE'].includes(request.method)) {
+    return send(response, 405, { error: 'Método não permitido.' }, { Allow: 'PUT, DELETE' });
+  }
+  if (!sameOrigin(request)) return send(response, 403, { error: 'Origem não autorizada.' });
+  const user = await currentUser(request);
+  const ownerId = user?.id || 'preview';
+
+  if (request.method === 'DELETE') {
+    const result = await deleteProfileObject(localMediaBucket, { ownerId, slot });
+    return send(response, 200, result);
+  }
+
+  const bytes = await readRawBytes(request, MAX_MEDIA_BYTES);
+  const uploaded = await uploadProfileObject(localMediaBucket, { ownerId, slot, bytes });
+  return send(response, 201, uploaded);
+}
+
+async function handleMediaGetRoute(request, response, pathname) {
+  if (!['GET', 'HEAD'].includes(request.method)) {
+    return send(response, 405, { error: 'Método não permitido.' }, { Allow: 'GET, HEAD' });
+  }
+  const parsed = parseMediaKeyFromPath(pathname);
+  if (!parsed) return send(response, 404, { error: 'Imagem não encontrada.' });
+  const object = await localMediaBucket.get(parsed.key);
+  if (!object) return send(response, 404, { error: 'Imagem não encontrada.' });
+  response.writeHead(200, {
+    ...baseHeaders,
+    'Content-Type': object.contentType || parsed.contentType,
+    'Cache-Control': 'public, max-age=31536000, immutable',
+  });
+  response.end(request.method === 'HEAD' ? undefined : object.body);
+}
+
 const server = http.createServer(async (request, response) => {
   const { pathname } = new URL(request.url, 'http://localhost');
 
@@ -510,6 +598,14 @@ const server = http.createServer(async (request, response) => {
       }
       if (!sameOrigin(request)) return send(response, 403, { error: 'Origem não autorizada.' });
       return request.method === 'GET' ? await handleStateGet(request, response) : await handleStatePut(request, response);
+    }
+
+    if (pathname.startsWith('/api/media/')) {
+      return await handleMediaGetRoute(request, response, pathname);
+    }
+
+    if (pathname.startsWith('/api/profile/media/')) {
+      return await handleProfileMediaRoute(request, response, pathname);
     }
 
     if (pathname.startsWith('/api/profile/')) {
@@ -549,18 +645,7 @@ const server = http.createServer(async (request, response) => {
       response.end();
       return;
     }
-    let entry = staticFiles.get(pathname);
-    if (!entry && existsSync(dist)) {
-      for (const file of readdirSync(dist, { recursive: true, withFileTypes: true })) {
-        if (!file.isFile() || file.name.startsWith('_') || file.name.startsWith('.')) continue;
-        const absolute = join(file.parentPath, file.name);
-        const relative = absolute.slice(dist.length).replaceAll('\\', '/');
-        const extension = file.name.split('.').pop();
-        staticFiles.set(`/${relative}`, [absolute, mime[extension] || 'application/octet-stream']);
-      }
-      if (staticFiles.has('/index.html')) staticFiles.set('/', staticFiles.get('/index.html'));
-      entry = staticFiles.get(pathname);
-    }
+    const entry = staticFiles.get(pathname);
     if (!entry) {
       response.writeHead(404, { ...baseHeaders, 'Content-Type': 'text/plain; charset=utf-8' });
       response.end('Página não encontrada.');
@@ -574,6 +659,7 @@ const server = http.createServer(async (request, response) => {
     if (error instanceof ImportError) return send(response, error.status, { error: error.message, code: error.code });
     if (error instanceof CompanionError) return send(response, error.status, { error: error.message, code: error.code });
     if (error instanceof FriendsError) return send(response, error.status, { error: error.message, code: error.code });
+    if (error instanceof MediaError) return send(response, error.status, { error: error.message, code: error.code });
     if (error?.status) return send(response, error.status, { error: error.message });
     console.error(error);
     if (!response.headersSent) send(response, 500, { error: 'Não foi possível concluir a operação.' });
