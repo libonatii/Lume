@@ -67,6 +67,67 @@ export function resumePlaceholder(type) {
   return 'Ex.: aula 3';
 }
 
+export function parseVideoTime(value) {
+  const text = String(value ?? '').trim();
+  if (/^\d+$/.test(text)) return Math.max(0, Number(text));
+  const parts = text.split(':').map(Number);
+  if (parts.some((part) => !Number.isFinite(part) || part < 0)) return null;
+  if (parts.length === 2) return Math.round(parts[0] * 60 + parts[1]);
+  if (parts.length === 3) return Math.round(parts[0] * 3600 + parts[1] * 60 + parts[2]);
+  return null;
+}
+
+export function formatVideoTime(seconds) {
+  const value = Math.max(0, Math.round(Number(seconds) || 0));
+  const hours = Math.floor(value / 3600);
+  const minutes = Math.floor((value % 3600) / 60);
+  const rest = value % 60;
+  return hours
+    ? `${hours}:${String(minutes).padStart(2, '0')}:${String(rest).padStart(2, '0')}`
+    : `${minutes}:${String(rest).padStart(2, '0')}`;
+}
+
+// Posição estruturada por tipo. `resumeAt` continua existindo como rótulo
+// legível e para dados antigos; novos materiais guardam também o campo tipado.
+export function normalizePosition(value, type = 'lesson') {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  if (type === 'video') {
+    const seconds = Number.isFinite(value.seconds) ? Math.max(0, Math.round(value.seconds)) : parseVideoTime(value.value);
+    return seconds === null ? null : { kind: 'video', seconds };
+  }
+  const text = (field) => String(value[field] ?? '').replace(/\s+/g, ' ').trim().slice(0, 120);
+  if (type === 'article') {
+    const page = text('page');
+    const section = text('section');
+    return page || section ? { kind: 'page', page, section } : null;
+  }
+  if (type === 'book') {
+    const chapter = text('chapter');
+    return chapter ? { kind: 'chapter', chapter } : null;
+  }
+  if (type === 'exercise') {
+    const current = text('current');
+    const attempts = Number.isInteger(value.attempts) && value.attempts > 0 ? Math.min(value.attempts, 999) : 0;
+    return current || attempts ? { kind: 'exercise', current, attempts } : null;
+  }
+  if (type === 'project') {
+    const next = text('next');
+    return next ? { kind: 'delivery', next } : null;
+  }
+  const next = text('next');
+  return next ? { kind: 'lesson', next } : null;
+}
+
+export function positionLabel(type, position) {
+  const value = normalizePosition(position, type);
+  if (!value) return '';
+  if (value.kind === 'video') return formatVideoTime(value.seconds);
+  if (value.kind === 'page') return [value.section, value.page && `p. ${value.page}`].filter(Boolean).join(' · ');
+  if (value.kind === 'chapter') return /^cap[ií]tulo\b/i.test(value.chapter) ? value.chapter : `capítulo ${value.chapter}`;
+  if (value.kind === 'exercise') return [value.current, value.attempts ? `${value.attempts}ª tentativa` : ''].filter(Boolean).join(' · ');
+  return value.next;
+}
+
 export const SESSION_MINUTES = [10, 20, 30, 45];
 
 export const CONTINUITY_OBSTACLES = [
@@ -295,11 +356,13 @@ function sanitizeStructure(value) {
 function sanitizeCourse(course) {
   if (!course || typeof course !== 'object') return course;
   const slides = normalizeSlides(course.slides);
+  const type = STUDY_TYPES.some((item) => item.id === course.type) ? course.type : 'lesson';
   const base = {
     ...course,
-    type: STUDY_TYPES.some((item) => item.id === course.type) ? course.type : 'lesson',
+    type,
     planning: course.planning === true,
     resumeAt: typeof course.resumeAt === 'string' ? course.resumeAt.slice(0, 120) : '',
+    position: normalizePosition(course.position, type),
     slides,
     slideProgress: normalizeSlideProgress(course.slideProgress, slides),
     slidesUpdatedAt: Number.isFinite(Date.parse(course.slidesUpdatedAt)) ? course.slidesUpdatedAt : null,
@@ -481,6 +544,7 @@ export function addCourse(state, { title, url = '', steps, art = 'design' }, id 
     id, title: cleanTitle, url: cleanURL, category: 'Minha trilha de estudos',
     art: ['design', 'code', 'language', 'nature'].includes(art) ? art : 'nature',
     example: false, paused: false, type: 'course', planning: false, resumeAt: '',
+    position: null,
     slides: [], slideProgress: { seen: [], lastId: '', completedAt: null },
     steps: cleanSteps.map((step, index) => ({ id: `${id}-${index}`, title: step })),
   };
@@ -497,13 +561,18 @@ export function updateCourse(state, courseId, patch = {}) {
   const cleanURL = patch.url === undefined ? course.url : safeCourseURL(String(patch.url || ''));
   if (cleanURL === null) throw new Error('Confira o link do material.');
   const type = patch.type === undefined ? course.type : (STUDY_TYPES.some((item) => item.id === patch.type) ? patch.type : course.type);
-  const resumeAt = patch.resumeAt === undefined ? course.resumeAt : String(patch.resumeAt || '').slice(0, 120);
+  const position = patch.position === undefined ? normalizePosition(course.position, type) : normalizePosition(patch.position, type);
+  const resumeAt = patch.resumeAt === undefined
+    ? (patch.position !== undefined ? positionLabel(type, position) : course.resumeAt)
+    : String(patch.resumeAt || '').slice(0, 120);
   const next = {
     ...course,
     title: cleanTitle,
     url: cleanURL || '',
     type,
     resumeAt,
+    position,
+    planning: patch.planning === undefined ? course.planning === true : patch.planning === true,
     category: typeof patch.category === 'string' ? patch.category.trim().slice(0, 100) || course.category : course.category,
     art: patch.art === undefined ? course.art : (['design', 'code', 'language', 'nature'].includes(patch.art) ? patch.art : course.art),
   };

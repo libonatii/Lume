@@ -1,9 +1,9 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import Atropos from 'atropos/react';
-import { STORAGE_KEY, achievements, courseProgress, courseStatus, levelInfo, localDay, nextMission, studyRhythm, totalXP } from '../../public/domain.js';
+import { STORAGE_KEY, STUDY_TYPES, achievements, courseProgress, courseStatus, levelInfo, localDay, nextMission, studyRhythm, totalXP, updateCourse } from '../../public/domain.js';
 import { formatSessionDuration } from '../../public/session-domain.js';
-import { XP_KIND_LABELS, levelProgress } from '../../public/xp-policy.js';
+import { XP_KIND_LABELS, completionKindForCourse, levelProgress, stepEventKey } from '../../public/xp-policy.js';
 import { mergeBackup, previewBackup, readBackup } from '../../public/backup-domain.js';
 import { api, apiError } from '../lib/api.js';
 import Icon from './Icon.jsx';
@@ -107,13 +107,31 @@ export function Achievements({ state, account, xp }) {
   </div>;
 }
 
-export function History({ state, account, xp }) {
+export function History({ state, account, xp, refreshXP, notify }) {
+  const [adjusting, setAdjusting] = useState('');
+  const [adjustReason, setAdjustReason] = useState('');
+  const [adjustError, setAdjustError] = useState('');
   const completedCourses = state.courses.filter(course => courseStatus(state, course) === 'completed').length;
   const summary = account ? xp?.summary : null;
   const events = account ? (xp?.events || []) : [];
   const legacy = totalXP(state);
   const level = summary ? levelProgress(summary.totalXP) : levelInfo(state);
   const originLabel = { manual: 'registro manual', integration: 'integração', import: 'progresso importado' };
+  async function submitAdjustment(event) {
+    event.preventDefault();
+    if (!adjusting) return;
+    setAdjustError('');
+    try {
+      const result = await api('/api/xp/adjust', { method: 'POST', body: { eventId: adjusting, reason: adjustReason } });
+      if (!result.ok) throw new Error(apiError(result));
+      notify(result.data.duplicate ? 'Esta correção já tinha sido registrada.' : 'Correção registrada no extrato e conquista vinculada revista.');
+      setAdjusting('');
+      setAdjustReason('');
+      await refreshXP?.();
+    } catch (error) {
+      setAdjustError(error.message);
+    }
+  }
   return <div className="personal-root">
     <Heading eyebrow="Memória de estudo" title="Meu caminho">
       Seu histórico é uma memória de progresso, não uma lista de cobranças.
@@ -139,13 +157,27 @@ export function History({ state, account, xp }) {
         </div>}
       </div>
       {events.length
-        ? <ul className="xp-event-list">{[...events].reverse().map((event) => <li key={event.id} className="xp-event">
-          <span className={`xp-event-icon kind-${event.kind}`}><Icon name={event.kind === 'time_block' ? 'clock' : event.kind === 'course_bonus' ? 'trophy' : event.kind === 'project_bonus' || event.kind === 'delivery' ? 'flag' : event.kind === 'slide' ? 'book' : event.kind === 'exercise' ? 'steps' : 'check'}/></span>
-          <span className="xp-event-copy">
-            <strong>{event.materialTitle || XP_KIND_LABELS[event.kind] || 'Evento de XP'}</strong>
-            <small>{XP_KIND_LABELS[event.kind] || event.kind}{event.stepTitle ? ` · ${event.stepTitle}` : ''} · {originLabel[event.origin] || event.origin}</small>
-          </span>
-          <span className="xp-event-value"><strong>+{event.xp} XP</strong><small>{new Date(event.at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</small></span>
+        ? <ul className="xp-event-list">{[...events].reverse().map((event) => <li key={event.id} className={`xp-event ${event.kind === 'adjustment' ? 'is-adjustment' : ''}`}>
+          <div className="xp-event-main">
+            <span className={`xp-event-icon kind-${event.kind}`}><Icon name={event.kind === 'adjustment' ? 'return' : event.kind === 'time_block' ? 'clock' : event.kind === 'course_bonus' ? 'trophy' : event.kind === 'project_bonus' || event.kind === 'delivery' ? 'flag' : event.kind === 'slide' ? 'book' : event.kind === 'exercise' ? 'steps' : 'check'}/></span>
+            <span className="xp-event-copy">
+              <strong>{event.kind === 'adjustment' ? `Correção de ${event.materialTitle || 'evento'}` : event.materialTitle || XP_KIND_LABELS[event.kind] || 'Evento de XP'}</strong>
+              <small>{event.kind === 'adjustment' ? `Motivo: ${event.reason}` : `${XP_KIND_LABELS[event.kind] || event.kind}${event.stepTitle ? ` · ${event.stepTitle}` : ''} · ${originLabel[event.origin] || event.origin}`}</small>
+            </span>
+            <span className="xp-event-value"><strong>{event.xp > 0 ? '+' : ''}{event.xp} XP</strong><small>{new Date(event.at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</small></span>
+            {event.xp > 0 && event.kind !== 'adjustment' && <button className="text-button" onClick={() => { setAdjusting(event.id); setAdjustReason(''); setAdjustError(''); }}>Corrigir</button>}
+          </div>
+          {adjusting === event.id && <form className="xp-adjust-form" onSubmit={submitAdjustment}>
+            <label className="field">Motivo da correção
+              <textarea value={adjustReason} rows={2} maxLength={240} onChange={(event) => setAdjustReason(event.target.value)} placeholder="Ex.: evento registrado em duplicidade por engano" required/>
+            </label>
+            {adjustError && <p className="form-error" role="alert">{adjustError}</p>}
+            <div className="dialog-actions inline-actions">
+              <Button type="submit" disabled={adjustReason.trim().length < 3}><Icon name="check"/>Registrar correção</Button>
+              <Button secondary type="button" onClick={() => setAdjusting('')}>Cancelar</Button>
+            </div>
+            <p className="quiet-note">A correção não apaga o evento original: cria um ajuste negativo com motivo no extrato e revoga a conquista vinculada. O bônus de um curso não é revogado automaticamente ao corrigir uma aula.</p>
+          </form>}
         </li>)}</ul>
         : <Empty title={xp ? 'Nenhum evento elegível ainda.' : 'Sincronizando seu XP…'}>Concluir uma aula, uma leitura, uma lista de exercícios, uma apresentação ou uma entrega cria o primeiro evento. Abrir ou preparar o material não concede XP.</Empty>}
     </section>}
@@ -192,7 +224,18 @@ export function Preferences({ state, update, notify, onPersonalize, account, go,
   const [backup, setBackup] = useState(null);
   const [backupName, setBackupName] = useState('');
   const [backupError, setBackupError] = useState('');
+  const [messageNotifications, setMessageNotifications] = useState(true);
+  const [messagesBusy, setMessagesBusy] = useState(false);
   const backupInput = useRef(null);
+  useEffect(() => {
+    if (!account) return undefined;
+    let alive = true;
+    (async () => {
+      const result = await api('/api/messages/settings');
+      if (alive && result.ok) setMessageNotifications(result.data.notifications !== false);
+    })();
+    return () => { alive = false; };
+  }, [account]);
   function preference(key, value) {
     update(previous => ({ ...previous, preferences: { ...previous.preferences, [key]: value, ...(key === 'weeklyGoal' ? { weeklyGoalSource: 'manual' } : {}) } }));
     notify('Preferência salva. Seu espaço, do seu jeito.');
@@ -211,6 +254,21 @@ export function Preferences({ state, update, notify, onPersonalize, account, go,
       setRankingBusy(false);
     }
   }
+  async function toggleMessageNotifications(value) {
+    if (!account || messagesBusy) return;
+    setMessagesBusy(true);
+    setMessageNotifications(value);
+    try {
+      const result = await api('/api/messages/settings', { method: 'PATCH', body: { notifications: value } });
+      if (!result.ok) throw new Error(apiError(result));
+      notify(value ? 'Notificações de mensagens ativadas.' : 'Notificações de mensagens silenciadas. As conversas continuam guardadas.');
+    } catch (error) {
+      setMessageNotifications(!value);
+      notify(error.message || 'Não foi possível atualizar as notificações agora.');
+    } finally {
+      setMessagesBusy(false);
+    }
+  }
   function sharingPreference(key, value) {
     update(previous => ({ ...previous, preferences: { ...previous.preferences, sharing: { ...previous.preferences.sharing, [key]: value } } }));
     notify('Privacidade do perfil atualizada.');
@@ -222,6 +280,14 @@ export function Preferences({ state, update, notify, onPersonalize, account, go,
   }
   const sharing = state.preferences.sharing ?? {};
   const projects = state.courses.filter(course => course.type === 'project');
+  const eventKeys = new Set((xp?.events || []).map((event) => event.eventKey));
+  const legacyCourses = state.courses.filter((course) => !course.example
+    && (course.planning === true || course.steps.some((step) => state.completed.includes(step.id)
+      && !eventKeys.has(stepEventKey(completionKindForCourse(course), course.id, step.id))))).slice(0, 8);
+  function classifyCourse(courseId, patch) {
+    update(previous => updateCourse(previous, courseId, patch));
+    notify('Classificação atualizada. Nenhum XP antigo foi recriado.');
+  }
   function download() {
     const url = URL.createObjectURL(new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' }));
     const anchor = document.createElement('a');
@@ -294,6 +360,27 @@ export function Preferences({ state, update, notify, onPersonalize, account, go,
           </label>
         </section>
 
+        {account && legacyCourses.length > 0 && <section className="card-surface settings-panel" aria-labelledby="legacy-review-title">
+          <div className="panel-title"><span className="pace-icon"><Icon name="history"/></span><div><h2 className="title" id="legacy-review-title">Revisar materiais antigos</h2><p className="muted-text">Classifique o que veio do protótipo. O XP antigo não é recriado; a escolha vale para as próximas conclusões.</p></div></div>
+          <ul className="legacy-review-list">
+            {legacyCourses.map((course) => <li key={course.id}>
+              <strong>{course.title}</strong>
+              <div className="field-row">
+                <label className="field">Tipo
+                  <select value={course.type || 'lesson'} onChange={(event) => classifyCourse(course.id, { type: event.target.value })}>
+                    {STUDY_TYPES.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
+                  </select>
+                </label>
+                <label className="setting-row compact">
+                  <span><strong>Planejamento</strong><span>Não é unidade de estudo</span></span>
+                  <input className="switch" type="checkbox" checked={course.planning === true} onChange={(event) => classifyCourse(course.id, { planning: event.target.checked })} aria-label={`Marcar ${course.title} como planejamento`}/>
+                </label>
+              </div>
+            </li>)}
+          </ul>
+          <p className="quiet-note">A lista usa os eventos recentes do servidor. Conclusões antigas continuam no saldo legado e fora do ranking, mesmo depois da classificação.</p>
+        </section>}
+
         <section className="card-surface settings-panel" aria-labelledby="ranking-settings-title">
           <div className="panel-title"><span className="pace-icon"><Icon name="podium"/></span><div><h2 className="title" id="ranking-settings-title">Ranking de amigos</h2><p className="muted-text">Participação opcional. Só amizades veem; sair não apaga XP, nível ou conquistas.</p></div></div>
           {account
@@ -307,9 +394,22 @@ export function Preferences({ state, update, notify, onPersonalize, account, go,
             : <p className="inline-note"><Icon name="lock"/><span>O ranking exige conta e amizades. Na prévia, ele não é calculado.</span></p>}
         </section>
 
+        <section className="card-surface settings-panel" aria-labelledby="messages-settings-title">
+          <div className="panel-title"><span className="pace-icon"><Icon name="mail"/></span><div><h2 className="title" id="messages-settings-title">Mensagens diretas</h2><p className="muted-text">Conversas individuais entre amizades aceitas. Não há grupos, canais ou desconhecidos.</p></div></div>
+          {account
+            ? <>
+              <label className="setting-row">
+                <span><strong>Notificações de mensagens</strong><span>{messageNotifications ? 'O contador de não lidas aparece no menu.' : 'O contador fica oculto; as mensagens continuam guardadas.'}</span></span>
+                <input className="switch" type="checkbox" checked={messageNotifications} disabled={messagesBusy} onChange={event => toggleMessageNotifications(event.target.checked)} aria-label="Receber notificações de mensagens"/>
+              </label>
+              <Button secondary onClick={() => go('mensagens')}>Abrir mensagens<Icon name="arrow"/></Button>
+            </>
+            : <p className="inline-note"><Icon name="lock"/><span>Mensagens exigem conta e amizade aceita.</span></p>}
+        </section>
+
         <section className="card-surface settings-panel" aria-labelledby="notifications-title">
-          <div className="panel-title"><span className="pace-icon"><Icon name="mail"/></span><div><h2 className="title" id="notifications-title">Notificações e lembretes</h2><p className="muted-text">Ainda não disponíveis. Não há envio por e-mail, notificação nativa nem lembrete de pausa configurável.</p></div></div>
-          <p className="quiet-note">Quando existirem, os lembretes serão opcionais e não concederão XP. Até lá, esta tela não finge um controle que ainda não funciona.</p>
+          <div className="panel-title"><span className="pace-icon"><Icon name="mail"/></span><div><h2 className="title" id="notifications-title">Outros lembretes</h2><p className="muted-text">Lembretes de pausa, e-mail e notificações nativas ainda não existem. Não há um controle que finja um envio que não acontece.</p></div></div>
+          <p className="quiet-note">Quando existirem, os lembretes serão opcionais e não concederão XP.</p>
         </section>
 
         <section className="card-surface settings-panel" aria-labelledby="sharing-title">

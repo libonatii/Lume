@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
-  STUDY_TYPES, addMaterial, deleteCourse, replaceCourseSteps, resumeLabel,
-  resumePlaceholder, updateCourse,
+  STUDY_TYPES, addMaterial, deleteCourse, formatVideoTime, normalizePosition,
+  replaceCourseSteps, resumeLabel, updateCourse,
 } from '../../public/domain.js';
 import { isImportedCourse } from '../../public/import-domain.js';
 import Icon from './Icon.jsx';
@@ -69,7 +69,7 @@ export default function CourseEditor({ course, state, update, close, notify }) {
   const [title, setTitle] = useState(course.title);
   const [url, setUrl] = useState(course.url || '');
   const [type, setType] = useState(course.type || 'course');
-  const [resumeAt, setResumeAt] = useState(course.resumeAt || '');
+  const [position, setPosition] = useState(() => normalizePosition(course.position, course.type) || {});
   const [steps, setSteps] = useState(() => course.steps.map((step) => step.title));
   const [error, setError] = useState('');
   const [confirming, setConfirming] = useState(false);
@@ -93,7 +93,7 @@ export default function CourseEditor({ course, state, update, close, notify }) {
     event.preventDefault();
     setError('');
     try {
-      let next = updateCourse(state, course.id, { title, url, type, resumeAt });
+      let next = updateCourse(state, course.id, { title, url, type, position });
       if (!imported) next = replaceCourseSteps(next, course.id, steps);
       update(next);
       notify('Material atualizado.');
@@ -123,9 +123,32 @@ export default function CourseEditor({ course, state, update, close, notify }) {
           {STUDY_TYPES.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
         </select>
       </label>
-      <label className="field">{resumeLabel(type)}
-        <input value={resumeAt} maxLength={120} onChange={(event) => setResumeAt(event.target.value)} placeholder={resumePlaceholder(type)}/>
-      </label>
+      {type === 'video' && <label className="field">{resumeLabel(type)}
+        <input value={position.value ?? (Number.isFinite(position.seconds) ? formatVideoTime(position.seconds) : '')} onChange={(event) => setPosition({ kind: 'video', value: event.target.value })} placeholder="Ex.: 12:30" inputMode="numeric"/>
+      </label>}
+      {type === 'article' && <div className="field-row">
+        <label className="field">Página
+          <input value={position.page || ''} onChange={(event) => setPosition((previous) => ({ ...previous, page: event.target.value }))} placeholder="Ex.: 12" maxLength={40}/>
+        </label>
+        <label className="field">Seção
+          <input value={position.section || ''} onChange={(event) => setPosition((previous) => ({ ...previous, section: event.target.value }))} placeholder="Ex.: seção 3" maxLength={80}/>
+        </label>
+      </div>}
+      {type === 'book' && <label className="field">{resumeLabel(type)}
+        <input value={position.chapter || ''} onChange={(event) => setPosition({ chapter: event.target.value })} placeholder="Ex.: capítulo 4" maxLength={120}/>
+      </label>}
+      {type === 'exercise' && <div className="field-row">
+        <label className="field">Exercício atual
+          <input value={position.current || ''} onChange={(event) => setPosition((previous) => ({ ...previous, current: event.target.value }))} placeholder="Ex.: questão 8" maxLength={120}/>
+        </label>
+        <label className="field">Tentativas
+          <input type="number" min="0" max="999" value={position.attempts || ''} onChange={(event) => setPosition((previous) => ({ ...previous, attempts: Number(event.target.value) || 0 }))}/>
+        </label>
+      </div>}
+      {(type === 'project' || type === 'lesson' || type === 'course') && <label className="field">{resumeLabel(type)}
+        <input value={position.next || ''} onChange={(event) => setPosition({ next: event.target.value })} placeholder={type === 'project' ? 'Ex.: implementar a autenticação' : 'Ex.: aula 3'} maxLength={120}/>
+      </label>}
+      <p className="quiet-note">A posição é declarada por você; o Lume não observa a reprodução ou a leitura de outro site.</p>
 
       {imported
         ? <p className="inline-note"><Icon name="lock"/><span>As etapas deste curso vêm da fonte. Para mudar a grade, use <strong>Atualizar grade</strong> no detalhe do curso.</span></p>

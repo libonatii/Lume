@@ -11,6 +11,7 @@ import { Steps } from './Study.jsx';
 import ImportCourse from './ImportCourse.jsx';
 import CourseEditor, { ManualCourseForm } from './CourseEditor.jsx';
 import { SlidesEditor, SlidesViewer } from './Slides.jsx';
+import { CollaborationPanel } from './Collaboration.jsx';
 
 const ORIGIN_LABEL = { manual: 'registro manual', integration: 'integração', import: 'progresso importado da fonte' };
 const EXTRACTION_LABEL = {
@@ -91,6 +92,7 @@ export default function StudyDialog({ modal, state, update, open, close, notify,
           <summary>Apresentação e slides</summary>
           <SlidesEditor course={course} update={update} notify={notify}/>
         </details>
+        <CollaborationPanel course={course} account={account} notify={notify}/>
         <p className="quiet-note">Editar o material não apaga o XP já confirmado. Excluir remove o progresso registrado neste material, com confirmação.</p>
       </div>
     </>;

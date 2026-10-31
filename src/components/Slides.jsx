@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import {
   MAX_SLIDE_BODY, MAX_SLIDE_TITLE, SLIDE_COMPLETION_RATIO, SLIDE_XP,
   addSlide, completeDeck, markSlideSeen, moveSlide, normalizeSlides,
-  removeSlide, slidePositionLabel, slidesSummary, updateSlide,
+  removeSlide, setSlideImage, slidePositionLabel, slidesSummary, updateSlide,
 } from '../../public/slides-domain.js';
 import Icon from './Icon.jsx';
 import { Button, Progress } from './ui.jsx';
@@ -34,6 +34,54 @@ function SlideForm({ initial = { title: '', body: '' }, onSubmit, onCancel, subm
       {onCancel && <Button secondary type="button" onClick={onCancel}>Cancelar</Button>}
     </div>
   </form>;
+}
+
+function SlideImageControl({ courseId, slide, update, notify }) {
+  const input = useRef(null);
+  const [busy, setBusy] = useState(false);
+  async function upload(event) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { notify('Escolha uma imagem PNG, JPG, WebP ou GIF.'); return; }
+    if (file.size > 12 * 1024 * 1024) { notify('A imagem é grande demais (máximo 12 MB).'); return; }
+    setBusy(true);
+    try {
+      const response = await fetch(`/api/slides/media/${encodeURIComponent(courseId)}/${encodeURIComponent(slide.id)}`, {
+        method: 'PUT',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': file.type || 'application/octet-stream' },
+        body: file,
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.url) throw new Error(data?.error || 'Não foi possível enviar a imagem.');
+      update((previous) => setSlideImage(previous, courseId, slide.id, data.url));
+      notify('Imagem do slide enviada.');
+    } catch (exception) {
+      notify(exception.message || 'Não foi possível enviar a imagem do slide.');
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function remove() {
+    setBusy(true);
+    try {
+      await fetch(`/api/slides/media/${encodeURIComponent(courseId)}/${encodeURIComponent(slide.id)}`, {
+        method: 'DELETE',
+        credentials: 'same-origin',
+      });
+      update((previous) => setSlideImage(previous, courseId, slide.id, ''));
+      notify('Imagem removida do slide.');
+    } finally {
+      setBusy(false);
+    }
+  }
+  return <div className="slide-image-control">
+    {slide.image ? <img src={slide.image} alt={`Imagem do slide ${slide.title}`}/> : <span className="slide-image-empty"><Icon name="image"/></span>}
+    <input ref={input} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="sr-only" onChange={upload} aria-label={`Escolher imagem para o slide ${slide.title}`}/>
+    <button type="button" className="text-button" onClick={() => input.current?.click()} disabled={busy}>{busy ? 'Enviando…' : slide.image ? 'Trocar imagem' : 'Adicionar imagem'}</button>
+    {slide.image && <button type="button" className="text-button" onClick={remove} disabled={busy}>Remover imagem</button>}
+  </div>;
 }
 
 export function SlidesEditor({ course, update, notify }) {
@@ -88,6 +136,7 @@ export function SlidesEditor({ course, update, notify }) {
             <div className="slide-editor-copy">
               <strong>{slide.title}</strong>
               {slide.body && <p className="muted-text">{slide.body.length > 160 ? `${slide.body.slice(0, 160)}…` : slide.body}</p>}
+              <SlideImageControl courseId={course.id} slide={slide} update={update} notify={notify}/>
             </div>
             <div className="slide-editor-actions">
               <button className="icon-button" onClick={() => move(slide.id, 'up')} disabled={index === 0} aria-label={`Mover o slide ${slide.title} para cima`}><Icon name="chevron-up"/></button>
@@ -167,6 +216,7 @@ export function SlidesViewer({ course, state, update, close, notify, account }) 
     <motion.article key={slide.id} className="slide-canvas" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: .24, ease: [.22, 1, .36, 1] }} aria-live="polite">
       <span className="slide-counter">{index + 1} / {slides.length}</span>
       <h3 className="slide-title">{slide.title}</h3>
+      {slide.image && <img className="slide-image" src={slide.image} alt={`Imagem do slide ${slide.title}`}/>}
       {slide.body ? <p className="slide-body">{slide.body}</p> : <p className="muted-text">Este slide só tem título.</p>}
       {completed && <span className="slide-completed"><Icon name="check"/>Apresentação concluída</span>}
     </motion.article>

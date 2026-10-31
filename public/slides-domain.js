@@ -6,6 +6,7 @@
 // confirmação explícita. O servidor revalida tudo em xp.js.
 
 import { XP_VALUES, slideProgressSnapshot } from './xp-policy.js';
+import { sanitizeSlideImage } from '../media.js';
 
 export const MAX_SLIDES = 60;
 export const MAX_SLIDE_TITLE = 120;
@@ -33,7 +34,7 @@ export function normalizeSlides(value) {
     let id = cleanId(raw?.id) || `slide_${index + 1}`;
     if (seen.has(id)) id = `slide_${index + 1}_${slides.length + 1}`;
     seen.add(id);
-    slides.push({ id, title: title || `Slide ${slides.length + 1}`, body });
+    slides.push({ id, title: title || `Slide ${slides.length + 1}`, body, image: sanitizeSlideImage(raw?.image) });
   }
   return slides;
 }
@@ -127,6 +128,24 @@ export function moveSlide(state, courseId, slideId, direction) {
   return {
     ...state,
     courses: state.courses.map((item) => item.id === courseId ? { ...item, slides: reordered } : item),
+  };
+}
+
+export function setSlideImage(state, courseId, slideId, image, now = new Date().toISOString()) {
+  const course = (state.courses || []).find((item) => item.id === courseId);
+  if (!course) return state;
+  const slides = normalizeSlides(course.slides);
+  if (!slides.some((slide) => slide.id === slideId)) return state;
+  const safe = sanitizeSlideImage(image);
+  return {
+    ...state,
+    courses: state.courses.map((item) => item.id === courseId
+      ? {
+        ...item,
+        slides: slides.map((slide) => slide.id === slideId ? { ...slide, image: safe } : slide),
+        slidesUpdatedAt: now,
+      }
+      : item),
   };
 }
 

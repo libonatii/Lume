@@ -16,13 +16,25 @@ import {
   FriendsError, acceptInvite, createInvite, listFriends, removeFriend,
 } from './friends.js';
 import {
-  MediaError, MAX_MEDIA_BYTES, deleteProfileObject, parseMediaKeyFromPath,
-  r2BucketAdapter, uploadProfileObject,
+  MediaError, MAX_MEDIA_BYTES, deleteProfileObject, deleteSlideObject, parseMediaKeyFromPath,
+  r2BucketAdapter, uploadProfileObject, uploadSlideObject,
 } from './media.js';
 import {
-  XpError, getRanking, getXpSnapshot, grantBonus, grantSlide, grantStep,
+  XpError, adjustEvent, getRanking, getXpSnapshot, grantBonus, grantSlide, grantStep,
   recordTimeSession, updateXpSettings,
 } from './xp.js';
+import { StateError, parseStateBody, readState, writeState } from './state.js';
+import {
+  MessagesError, blockContact, getThread, listBlocks, listConversations, markThreadRead,
+  messagePreferences, sendMessage, unblockContact, unreadSummary, updateMessagePreferences,
+  MESSAGE_WINDOW_LIMIT,
+} from './messages.js';
+import { EmailError, sendPasswordResetEmail } from './email.js';
+import { GitHubError, analyzeRepository } from './github.js';
+import {
+  CollaborationError, cancelCollaborationInvite, createCollaborationInvite,
+  listCollaborationInvites, respondCollaborationInvite,
+} from './collaboration.js';
 
 const MAX_BODY_BYTES = 16 * 1024;
 const MAX_STATE_BYTES = 256 * 1024;
@@ -77,7 +89,7 @@ function secureCookies(url) {
   return url.protocol === 'https:';
 }
 
-async function rateLimited(env, key) {
+async function rateLimited(env, key, limit = ATTEMPT_LIMIT) {
   const now = Date.now();
   await env.DB.prepare(
     `INSERT INTO rate_limits (key, count, started_at) VALUES (?1, 1, ?2)
@@ -90,7 +102,7 @@ async function rateLimited(env, key) {
   if (Math.random() < 0.05) {
     await env.DB.prepare('DELETE FROM rate_limits WHERE started_at < ?1').bind(now - CLEANUP_AFTER_MS).run();
   }
-  return (row?.count ?? 0) > ATTEMPT_LIMIT;
+  return (row?.count ?? 0) > limit;
 }
 
 async function startSession(env, userId) {
@@ -184,7 +196,7 @@ async function handlePasswordRequest(request, env, url) {
   if (!email) return json({ error: 'Escreva o e-mail da sua conta.', field: 'email' }, 400);
 
   const answer = { message: 'Se este e-mail tiver uma conta no Lume, um link de recuperação foi gerado. Ele vale por 30 minutos.' };
-  const row = await env.DB.prepare('SELECT id, email FROM users WHERE email = ?1').bind(email).first();
+  const row = await env.DB.prepare('SELECT id, name, email FROM users WHERE email = ?1').bind(email).first();
   if (!row) return json(answer);
 
   const { token, tokenHash } = await createSessionToken();
@@ -195,14 +207,21 @@ async function handlePasswordRequest(request, env, url) {
     .run();
 
   const link = `${url.origin}/#redefinir?token=${token}`;
+  let emailResult = { sent: false, reason: 'not_configured' };
+  try {
+    emailResult = await sendPasswordResetEmail({ to: row.email, link, name: row.name }, { env });
+  } catch (error) {
+    log('password_reset_email_failed', { userId: row.id, error: error.message });
+  }
   // Sem transporte de e-mail, o link é a única forma de recuperar o acesso.
-  // Em produção ele vai para o log (visível só para o dono da conta na Cloudflare),
-  // nunca para a resposta da API.
-  if (env.SHOW_RESET_LINK === 'false') {
+  // Em produção ele vai para o log (visível só para o dono da conta na
+  // Cloudflare), nunca para a resposta da API. Com e-mail configurado, o link
+  // não é gravado no log.
+  if (!emailResult.sent && env.SHOW_RESET_LINK === 'false') {
     console.log(JSON.stringify({ event: 'password_reset_link', userId: row.id, link }));
   }
-  log('password_reset_requested', { userId: row.id });
-  if (env.SHOW_RESET_LINK !== 'false') answer.resetUrl = link;
+  log('password_reset_requested', { userId: row.id, emailSent: emailResult.sent });
+  if (!emailResult.sent && env.SHOW_RESET_LINK !== 'false') answer.resetUrl = link;
   return json(answer);
 }
 
@@ -230,15 +249,7 @@ async function handlePasswordReset(request, env) {
 async function handleStateGet(request, env) {
   const user = await currentUser(request, env);
   if (!user) return json({ error: 'Entre na sua conta para ver seu progresso.' }, 401);
-  const row = await env.DB.prepare('SELECT state, updated_at FROM user_state WHERE user_id = ?1').bind(user.id).first();
-  if (!row) return json({ state: null, updatedAt: null });
-  let parsed;
-  try {
-    parsed = JSON.parse(row.state);
-  } catch {
-    return json({ state: null, updatedAt: row.updated_at });
-  }
-  return json({ state: parsed, updatedAt: row.updated_at });
+  return json(await readState(companionDb(env), user.id));
 }
 
 async function handleStatePut(request, env) {
@@ -246,27 +257,17 @@ async function handleStatePut(request, env) {
   if (!user) return json({ error: 'Entre na sua conta para salvar seu progresso.' }, 401);
 
   const text = await request.text();
-  if (text.length > MAX_STATE_BYTES) {
-    return json({ error: 'O progresso enviado é grande demais.' }, 413);
+  const body = parseStateBody(text);
+  const result = await writeState(companionDb(env), user.id, body);
+  if (result.conflict) {
+    return json({
+      error: 'Outro dispositivo salvou uma versão mais nova. O Lume vai mesclar as duas cópias.',
+      code: 'state_conflict',
+      ...result.current,
+    }, 409);
   }
-  let parsed;
-  try {
-    parsed = JSON.parse(text);
-  } catch {
-    return json({ error: 'Progresso em formato inválido.' }, 400);
-  }
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    return json({ error: 'Progresso em formato inválido.' }, 400);
-  }
-
-  const updatedAt = new Date().toISOString();
-  await env.DB.prepare(
-    `INSERT INTO user_state (user_id, state, updated_at) VALUES (?1, ?2, ?3)
-     ON CONFLICT(user_id) DO UPDATE SET state = ?2, updated_at = ?3`,
-  ).bind(user.id, text, updatedAt).run();
-
-  log('state_saved', { userId: user.id, bytes: text.length });
-  return json({ saved: true, updatedAt });
+  log('state_saved', { userId: user.id, bytes: body.text.length, revision: result.revision });
+  return json({ saved: true, updatedAt: result.updatedAt, revision: result.revision });
 }
 
 const routes = new Map([
@@ -319,7 +320,19 @@ async function handleImportOrganize(request, env) {
 const importRoutes = new Map([
   ['/api/import/analyze', handleImportAnalyze],
   ['/api/import/organize', handleImportOrganize],
+  ['/api/github/analyze', handleGithubAnalyze],
 ]);
+
+async function handleGithubAnalyze(request, env) {
+  const user = await currentUser(request, env);
+  if (!user) return json({ error: 'Entre na sua conta para analisar um repositório.' }, 401);
+  const body = await readImportBody(request);
+  const url = typeof body.url === 'string' ? body.url.trim() : '';
+  if (!url) return json({ error: 'Cole o link de um repositório público do GitHub.', code: 'missing_url' }, 400);
+  const analysis = await analyzeRepository(url, { token: env.GITHUB_TOKEN || '' });
+  log('github_analyzed', { userId: user.id, repository: analysis.repository.fullName });
+  return json(analysis);
+}
 
 // ---------- Lume Companion ----------
 
@@ -501,6 +514,12 @@ async function handleMediaGet(request, env, url) {
   }
   const parsed = parseMediaKeyFromPath(url.pathname);
   if (!parsed) return json({ error: 'Imagem não encontrada.' }, 404);
+  const isLocalHost = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+  if (parsed.kind === 'slide' && !isLocalHost) {
+    const user = await currentUser(request, env);
+    if (!user) return json({ error: 'Entre na sua conta para ver esta imagem.' }, 401);
+    if (parsed.ownerId !== user.id) return json({ error: 'Esta imagem não está disponível para você.' }, 403);
+  }
   const bucket = r2BucketAdapter(env.MEDIA);
   if (!bucket) return json({ error: 'Armazenamento de mídia R2 não configurado.' }, 503);
   const object = await bucket.get(parsed.key);
@@ -513,6 +532,28 @@ async function handleMediaGet(request, env, url) {
     ...(object.etag ? { ETag: object.etag } : {}),
   };
   return new Response(request.method === 'HEAD' ? null : object.body, { status: 200, headers });
+}
+
+async function handleSlideMedia(request, env, url) {
+  const match = /^\/api\/slides\/media\/([^/]+)\/([^/]+)$/.exec(url.pathname);
+  if (!match) return json({ error: 'Slide não encontrado.' }, 404);
+  if (!['PUT', 'DELETE'].includes(request.method)) return json({ error: 'Método não permitido.' }, 405, { Allow: 'PUT, DELETE' });
+  if (!sameOrigin(request, url)) return json({ error: 'Origem não autorizada.' }, 403);
+  const user = await currentUser(request, env);
+  const isLocalHost = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+  if (!user && !isLocalHost) return json({ error: 'Entre na sua conta para enviar imagens de slides.' }, 401);
+  const ownerId = user?.id || 'preview';
+  const courseId = decodeURIComponent(match[1]);
+  const slideId = decodeURIComponent(match[2]);
+  const bucket = r2BucketAdapter(env.MEDIA);
+  if (request.method === 'DELETE') {
+    return json(await deleteSlideObject(bucket, { ownerId, courseId, slideId }));
+  }
+  const buffer = await request.arrayBuffer();
+  if (buffer.byteLength > MAX_MEDIA_BYTES) {
+    return json({ error: 'A imagem ultrapassa o limite de 2 MB.', code: 'image_too_large' }, 413);
+  }
+  return json(await uploadSlideObject(bucket, { ownerId, courseId, slideId, bytes: new Uint8Array(buffer) }), 201);
 }
 
 async function handleXp(request, env, url) {
@@ -534,6 +575,9 @@ async function handleXp(request, env, url) {
   if (url.pathname === '/api/xp/slides' && method === 'POST') {
     return json(await grantSlide(db, user.id, await readJson(request)));
   }
+  if (url.pathname === '/api/xp/adjust' && method === 'POST') {
+    return json(await adjustEvent(db, user.id, await readJson(request)));
+  }
   if (url.pathname === '/api/xp/time' && method === 'POST') {
     return json(await recordTimeSession(db, user.id, await readJson(request)));
   }
@@ -550,6 +594,73 @@ async function handleXp(request, env, url) {
   return json({ error: 'Rota não encontrada.' }, 404);
 }
 
+async function handleCollaboration(request, env, url) {
+  const method = request.method;
+  const user = await currentUser(request, env);
+  if (!user) return json({ error: 'Entre na sua conta para convidar alguém para colaborar.' }, 401);
+  if (!sameOrigin(request, url)) return json({ error: 'Origem não autorizada.' }, 403);
+  const db = companionDb(env);
+
+  if (url.pathname === '/api/collaboration/invites' && method === 'GET') {
+    return json(await listCollaborationInvites(db, user.id));
+  }
+  if (url.pathname === '/api/collaboration/invites' && method === 'POST') {
+    if (await rateLimited(env, `collaboration|${user.id}`, 30)) {
+      return json({ error: 'Muitos convites em pouco tempo. Aguarde um instante.', code: 'rate_limited' }, 429);
+    }
+    return json(await createCollaborationInvite(db, user.id, await readJson(request)), 201);
+  }
+  const respondMatch = /^\/api\/collaboration\/invites\/([^/]+)\/respond$/.exec(url.pathname);
+  if (respondMatch && method === 'POST') {
+    return json(await respondCollaborationInvite(db, user.id, decodeURIComponent(respondMatch[1]), await readJson(request)));
+  }
+  const inviteMatch = /^\/api\/collaboration\/invites\/([^/]+)$/.exec(url.pathname);
+  if (inviteMatch && method === 'DELETE') {
+    return json(await cancelCollaborationInvite(db, user.id, decodeURIComponent(inviteMatch[1])));
+  }
+  return json({ error: 'Rota não encontrada.' }, 404);
+}
+
+async function handleMessages(request, env, url) {
+  const method = request.method;
+  const user = await currentUser(request, env);
+  if (!user) return json({ error: 'Entre na sua conta para conversar com amigos.' }, 401);
+  if (!sameOrigin(request, url)) return json({ error: 'Origem não autorizada.' }, 403);
+  const db = companionDb(env);
+
+  if (url.pathname === '/api/messages' && method === 'GET') return json(await listConversations(db, user.id));
+  if (url.pathname === '/api/messages/unread' && method === 'GET') return json(await unreadSummary(db, user.id));
+  if (url.pathname === '/api/messages/settings' && method === 'GET') return json(await messagePreferences(db, user.id));
+  if (url.pathname === '/api/messages/settings' && ['PATCH', 'POST'].includes(method)) {
+    return json(await updateMessagePreferences(db, user.id, await readJson(request)));
+  }
+  const readMatch = /^\/api\/messages\/([^/]+)\/read$/.exec(url.pathname);
+  if (readMatch && method === 'POST') {
+    return json(await markThreadRead(db, user.id, decodeURIComponent(readMatch[1])));
+  }
+  const threadMatch = /^\/api\/messages\/([^/]+)$/.exec(url.pathname);
+  if (threadMatch) {
+    const friendId = decodeURIComponent(threadMatch[1]);
+    if (method === 'GET') return json(await getThread(db, user.id, friendId));
+    if (method === 'POST') {
+      if (await rateLimited(env, `messages|${user.id}`, MESSAGE_WINDOW_LIMIT)) {
+        return json({ error: 'Muitas mensagens em pouco tempo. Aguarde um instante.', code: 'rate_limited' }, 429);
+      }
+      return json(await sendMessage(db, user.id, friendId, await readJson(request)), 201);
+    }
+    return json({ error: 'Método não permitido.' }, 405, { Allow: 'GET, POST' });
+  }
+  if (url.pathname === '/api/blocks' && method === 'GET') return json(await listBlocks(db, user.id));
+  const blockMatch = /^\/api\/blocks\/([^/]+)$/.exec(url.pathname);
+  if (blockMatch) {
+    const targetId = decodeURIComponent(blockMatch[1]);
+    if (method === 'POST') return json(await blockContact(db, user.id, targetId));
+    if (method === 'DELETE') return json(await unblockContact(db, user.id, targetId));
+    return json({ error: 'Método não permitido.' }, 405, { Allow: 'POST, DELETE' });
+  }
+  return json({ error: 'Rota não encontrada.' }, 404);
+}
+
 async function handleApi(request, env, url) {
   const { pathname } = url;
 
@@ -561,6 +672,10 @@ async function handleApi(request, env, url) {
     return handleProfileMedia(request, env, url);
   }
 
+  if (pathname.startsWith('/api/slides/media/')) {
+    return handleSlideMedia(request, env, url);
+  }
+
   if (pathname.startsWith('/api/profile/')) {
     if (request.method !== 'GET') return json({ error: 'Método não permitido.' }, 405, { Allow: 'GET' });
     return handleProfile(request, env, url);
@@ -568,6 +683,12 @@ async function handleApi(request, env, url) {
 
   if (pathname === '/api/companion' || pathname.startsWith('/api/companion/')) {
     return handleCompanion(request, env, url);
+  }
+  if (pathname.startsWith('/api/messages') || pathname.startsWith('/api/blocks')) {
+    return handleMessages(request, env, url);
+  }
+  if (pathname.startsWith('/api/collaboration')) {
+    return handleCollaboration(request, env, url);
   }
   if (pathname === '/api/friends' || pathname.startsWith('/api/friends/')) {
     return handleFriends(request, env, url);
@@ -649,6 +770,18 @@ export default {
         return json({ error: error.message, code: error.code }, error.status);
       }
       if (error instanceof XpError) {
+        return json({ error: error.message, code: error.code }, error.status);
+      }
+      if (error instanceof StateError) {
+        return json({ error: error.message, code: error.code }, error.status);
+      }
+      if (error instanceof MessagesError) {
+        return json({ error: error.message, code: error.code }, error.status);
+      }
+      if (error instanceof GitHubError) {
+        return json({ error: error.message, code: error.code }, error.status);
+      }
+      if (error instanceof CollaborationError) {
         return json({ error: error.message, code: error.code }, error.status);
       }
       if (error?.status) {

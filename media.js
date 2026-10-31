@@ -4,6 +4,37 @@
 
 export const MAX_MEDIA_BYTES = 2 * 1024 * 1024;
 export const VALID_MEDIA_SLOTS = new Set(['avatar', 'header']);
+export const MAX_SLIDE_IMAGE_LENGTH = 256;
+
+export function validateSlideId(value) {
+  if (typeof value !== 'string' || !/^[A-Za-z0-9_-]{1,80}$/.test(value)) {
+    throw new MediaError('Identificador de slide inválido.', 400, 'invalid_slide');
+  }
+  return value;
+}
+
+export function validateCourseId(value) {
+  if (typeof value !== 'string' || !/^[A-Za-z0-9_-]{1,120}$/.test(value)) {
+    throw new MediaError('Identificador de material inválido.', 400, 'invalid_course');
+  }
+  return value;
+}
+
+export function sanitizeSlideImage(value) {
+  if (typeof value !== 'string' || value.length > MAX_SLIDE_IMAGE_LENGTH) return '';
+  return /^\/api\/media\/slides\/[A-Za-z0-9_-]{1,64}\/[A-Za-z0-9_-]{1,120}\/[A-Za-z0-9_-]{1,80}-[0-9]{1,20}\.(?:webp|png|jpg|gif)$/.test(value) ? value : '';
+}
+
+export function buildSlideKey(ownerId, courseId, slideId, ext, now = Date.now()) {
+  const cleanOwner = validateOwnerId(ownerId);
+  const cleanCourse = validateCourseId(courseId);
+  const cleanSlide = validateSlideId(slideId);
+  if (!['webp', 'png', 'jpg', 'gif'].includes(ext)) {
+    throw new MediaError('Extensão de imagem inválida.', 400, 'invalid_ext');
+  }
+  const stamp = Math.max(1, Math.trunc(Number(now) || Date.now()));
+  return `slides/${cleanOwner}/${cleanCourse}/${cleanSlide}-${stamp}.${ext}`;
+}
 
 export class MediaError extends Error {
   constructor(message, status = 400, code = 'media_error') {
@@ -77,6 +108,15 @@ export function buildMediaKey(ownerId, slot, ext, now = Date.now()) {
 export function parseMediaKeyFromPath(pathname) {
   if (typeof pathname !== 'string' || !pathname.startsWith('/api/media/')) return null;
   const key = pathname.slice('/api/media/'.length);
+  const slide = /^slides\/([A-Za-z0-9_-]{1,64})\/([A-Za-z0-9_-]{1,120})\/([A-Za-z0-9_-]{1,80})-([0-9]{1,20})\.(webp|png|jpg|gif)$/.exec(key);
+  if (slide) {
+    const ext = slide[5];
+    return {
+      key, ownerId: slide[1], courseId: slide[2], slideId: slide[3], ext,
+      contentType: ext === 'webp' ? 'image/webp' : ext === 'png' ? 'image/png' : ext === 'jpg' ? 'image/jpeg' : 'image/gif',
+      kind: 'slide',
+    };
+  }
   const match = /^profiles\/([A-Za-z0-9_-]{1,64})\/(avatar|header)-([0-9]{1,20})\.(webp|png|jpg|gif)$/.exec(key);
   if (!match) return null;
   const ext = match[4];
@@ -131,6 +171,47 @@ export async function deleteProfileObject(bucket, { ownerId, slot }) {
     await bucket.delete(oldKey).catch(() => {});
   }
   return { deleted: existingKeys.length, slot: cleanSlot };
+}
+
+export async function uploadSlideObject(bucket, { ownerId, courseId, slideId, bytes, now = Date.now() }) {
+  if (!bucket) {
+    throw new MediaError('Armazenamento de mídia R2 não configurado.', 503, 'r2_unavailable');
+  }
+  const cleanOwner = validateOwnerId(ownerId);
+  const cleanCourse = validateCourseId(courseId);
+  const cleanSlide = validateSlideId(slideId);
+  const view = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
+  const { contentType, ext } = detectImageType(view);
+  const key = buildSlideKey(cleanOwner, cleanCourse, cleanSlide, ext, now);
+  const prefix = `slides/${cleanOwner}/${cleanCourse}/${cleanSlide}-`;
+  const existingKeys = await bucket.listKeys(prefix);
+  await bucket.put(key, view, contentType);
+  for (const oldKey of existingKeys) {
+    if (oldKey !== key) await bucket.delete(oldKey).catch(() => {});
+  }
+  return {
+    key,
+    courseId: cleanCourse,
+    slideId: cleanSlide,
+    url: `/api/media/${key}`,
+    contentType,
+    size: view.byteLength,
+  };
+}
+
+export async function deleteSlideObject(bucket, { ownerId, courseId, slideId }) {
+  if (!bucket) {
+    throw new MediaError('Armazenamento de mídia R2 não configurado.', 503, 'r2_unavailable');
+  }
+  const cleanOwner = validateOwnerId(ownerId);
+  const cleanCourse = validateCourseId(courseId);
+  const cleanSlide = validateSlideId(slideId);
+  const prefix = `slides/${cleanOwner}/${cleanCourse}/${cleanSlide}-`;
+  const existingKeys = await bucket.listKeys(prefix);
+  for (const oldKey of existingKeys) {
+    await bucket.delete(oldKey).catch(() => {});
+  }
+  return { deleted: existingKeys.length, courseId: cleanCourse, slideId: cleanSlide };
 }
 
 export function r2BucketAdapter(r2) {

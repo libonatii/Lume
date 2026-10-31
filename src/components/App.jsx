@@ -11,6 +11,8 @@ import Profile from './Profile.jsx';
 import Companion from './Companion.jsx';
 import Tasks from './Tasks.jsx';
 import Ranking from './Ranking.jsx';
+import Messages from './Messages.jsx';
+import GitHub from './GitHub.jsx';
 import StudyDialog from './StudyDialog.jsx';
 import { Button, Dialog, enter, ease } from './ui.jsx';
 import Icon from './Icon.jsx';
@@ -20,7 +22,7 @@ import { markDesktop, syncTitleBar } from '../lib/desktop.js';
 // o topo; no navegador, nada muda.
 markDesktop();
 
-const titles = { login: 'Bem-vindo', inicio: 'Seu ritmo', hoje: 'Hoje', tarefas: 'Tarefas', biblioteca: 'Biblioteca', missoes: 'Missões', conquistas: 'Conquistas', historico: 'Meu caminho', amigos: 'Amigos', ranking: 'Ranking', configuracoes: 'Do seu jeito', perfil: 'Perfil', aplicativo: 'Instalar aplicativo', recuperar: 'Recuperar acesso', redefinir: 'Nova senha' };
+const titles = { login: 'Bem-vindo', inicio: 'Seu ritmo', hoje: 'Hoje', tarefas: 'Tarefas', biblioteca: 'Biblioteca', missoes: 'Missões', conquistas: 'Conquistas', historico: 'Meu caminho', amigos: 'Amigos', mensagens: 'Mensagens', ranking: 'Ranking', github: 'GitHub', configuracoes: 'Do seu jeito', perfil: 'Perfil', aplicativo: 'Instalar aplicativo', recuperar: 'Recuperar acesso', redefinir: 'Nova senha' };
 // Enquanto a sessão é verificada, o formulário não aparece: evita a impressão de estar deslogada.
 function SessionCheck() {
   return <section className="recovery-card" aria-busy="true"><span className="dialog-emblem"><Icon name="cloud"/></span><h1 className="headline">Verificando sua sessão.</h1><p className="muted-text">Só um instante enquanto confirmamos se você já está conectada.</p></section>;
@@ -86,9 +88,11 @@ export default function App() {
     case 'biblioteca': page = <Library state={state} open={open} update={update}/>; break;
     case 'missoes': page = <Missions state={state} open={open}/>; break;
     case 'conquistas': page = <Achievements state={state} account={model.account} xp={model.xp}/>; break;
-    case 'historico': page = <History state={state} account={model.account} xp={model.xp}/>; break;
+    case 'historico': page = <History state={state} account={model.account} xp={model.xp} refreshXP={model.refreshXP} notify={notify}/>; break;
     case 'amigos': page = <Friends account={model.account} notify={notify} go={go}/>; break;
+    case 'mensagens': page = <Messages account={model.account} state={state} notify={notify} go={go} contactId={new URLSearchParams(hash.split('?')[1] || '').get('com') || ''}/>; break;
     case 'ranking': page = <Ranking account={model.account} xp={model.xp} refreshXP={model.refreshXP} notify={notify} go={go}/>; break;
+    case 'github': page = <GitHub state={state} update={update} account={model.account} notify={notify} go={go}/>; break;
     case 'configuracoes': page = <Preferences state={state} update={update} account={model.account} notify={notify} go={go} xp={model.xp} refreshXP={model.refreshXP} onPersonalize={() => go('inicio')}/>; break;
     case 'perfil': page = <Profile id={new URLSearchParams(hash.split('?')[1] || '').get('id') || ''} state={state} update={update} account={model.account} notify={notify} go={go} xp={model.xp}/>; break;
     case 'aplicativo': page = <Companion account={model.account} notify={notify} go={go}/>; break;

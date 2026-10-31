@@ -1,11 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  addCourse, addMaterial, createInitialState, deleteCourse, updateCourse, replaceCourseSteps, restoreState,
+  addCourse, addMaterial, createInitialState, deleteCourse, formatVideoTime, normalizePosition,
+  positionLabel, parseVideoTime, updateCourse, replaceCourseSteps, restoreState,
 } from './public/domain.js';
 import {
   addSlide, completeDeck, markSlideSeen, moveSlide, normalizeSlides, removeSlide, slidesSummary, updateSlide,
 } from './public/slides-domain.js';
+import { deleteSlideObject, parseMediaKeyFromPath, sanitizeSlideImage, uploadSlideObject } from './media.js';
 
 function courseState() {
   const state = addCourse(createInitialState(), { title: 'Direito Constitucional', steps: ['Ler a introdução', 'Resolver exercícios', 'Revisar'] });
@@ -95,4 +97,50 @@ test('slides inválidos e estados antigos não quebram a restauração', () => {
   const old = addCourse(createInitialState(), { title: 'Antigo', steps: ['Aula'] });
   delete old.courses[0].slides;
   assert.deepEqual(restoreState(JSON.stringify(old)).courses[0].slides, []);
+});
+
+test('posição é estruturada por tipo e continua legível na restauração', () => {
+  const { state, course } = courseState();
+  assert.equal(parseVideoTime('1:02:03'), 3723);
+  assert.equal(parseVideoTime('12:30'), 750);
+  assert.equal(formatVideoTime(750), '12:30');
+  const video = updateCourse(state, course.id, { type: 'video', position: { kind: 'video', value: '12:30' } });
+  assert.equal(video.courses[0].position.seconds, 750);
+  assert.equal(video.courses[0].resumeAt, '12:30');
+  assert.equal(positionLabel('video', video.courses[0].position), '12:30');
+
+  const article = updateCourse(video, course.id, { type: 'article', position: { page: '12', section: 'seção 3' } });
+  assert.deepEqual(article.courses[0].position, { kind: 'page', page: '12', section: 'seção 3' });
+  assert.equal(article.courses[0].resumeAt, 'seção 3 · p. 12');
+
+  const exercise = updateCourse(article, course.id, { type: 'exercise', position: { current: 'questão 8', attempts: 2 } });
+  assert.deepEqual(exercise.courses[0].position, { kind: 'exercise', current: 'questão 8', attempts: 2 });
+  assert.match(exercise.courses[0].resumeAt, /questão 8/);
+
+  const restored = restoreState(JSON.stringify(exercise));
+  assert.deepEqual(restored.courses[0].position, { kind: 'exercise', current: 'questão 8', attempts: 2 });
+  assert.equal(normalizePosition({ page: '12' }, 'video'), null, 'posição incompatível com o tipo não é inventada');
+});
+
+test('imagem de slide é validada, substituída no bucket e removida', async () => {
+  const objects = new Map();
+  const bucket = {
+    async put(key, bytes, contentType) { objects.set(key, { bytes, contentType }); },
+    async delete(key) { objects.delete(key); },
+    async listKeys(prefix) { return [...objects.keys()].filter((key) => key.startsWith(prefix)); },
+  };
+  const png = new Uint8Array([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 13, 73, 72, 68, 82]);
+  const first = await uploadSlideObject(bucket, { ownerId: 'u1', courseId: 'c1', slideId: 's1', bytes: png, now: 1000 });
+  assert.match(first.url, /^\/api\/media\/slides\/u1\/c1\/s1-1000\.png$/);
+  assert.equal(sanitizeSlideImage(first.url), first.url);
+  assert.equal(parseMediaKeyFromPath(first.url)?.kind, 'slide');
+  assert.equal(sanitizeSlideImage('/api/media/slides/../../secret.png'), '');
+  const second = await uploadSlideObject(bucket, { ownerId: 'u1', courseId: 'c1', slideId: 's1', bytes: png, now: 2000 });
+  assert.equal(objects.size, 1);
+  assert.notEqual(second.url, first.url);
+  await deleteSlideObject(bucket, { ownerId: 'u1', courseId: 'c1', slideId: 's1' });
+  assert.equal(objects.size, 0);
+  const state = addCourse(createInitialState(), { title: 'Curso', steps: ['Aula'] });
+  state.courses[0].slides = [{ id: 's1', title: 'Slide', body: '', image: second.url }];
+  assert.equal(normalizeSlides(restoreState(JSON.stringify(state)).courses[0].slides)[0].image, second.url);
 });

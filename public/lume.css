@@ -4666,3 +4666,410 @@ html[data-desktop="true"] .entry-header button {
   color: var(--text-muted);
   font-size: 0.85rem;
 }
+
+/* --- Mensagens diretas --- */
+.nav-badge {
+  margin-left: auto;
+  min-width: 1.25rem;
+  padding: 0.05rem 0.35rem;
+  border-radius: var(--radius-pill);
+  background: var(--lume);
+  color: var(--lume-ink);
+  font-size: 0.68rem;
+  font-weight: 750;
+  text-align: center;
+}
+.messages-layout {
+  display: grid;
+  grid-template-columns: minmax(15rem, 20rem) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: stretch;
+  min-height: 32rem;
+}
+.messages-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.9rem;
+  min-width: 0;
+}
+.messages-list-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.conversation-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+  overflow-y: auto;
+}
+.conversation-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.conversation-item:hover,
+.conversation-item.active {
+  background: var(--surface-2);
+  border-color: var(--border);
+}
+.conversation-avatar {
+  width: 2.2rem;
+  height: 2.2rem;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--surface-3);
+  color: var(--lume);
+  font-weight: 750;
+}
+.conversation-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  gap: 0.1rem;
+}
+.conversation-copy small {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.conversation-meta {
+  display: grid;
+  justify-items: end;
+  gap: 0.2rem;
+  flex: 0 0 auto;
+}
+.conversation-meta time {
+  color: var(--text-subtle);
+  font-size: 0.7rem;
+}
+.unread-badge {
+  min-width: 1.15rem;
+  padding: 0.05rem 0.3rem;
+  border-radius: var(--radius-pill);
+  background: var(--lume);
+  color: var(--lume-ink);
+  font-size: 0.68rem;
+  font-weight: 750;
+  text-align: center;
+}
+.message-thread {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 32rem;
+  padding: 1rem;
+}
+.message-thread-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid var(--border);
+}
+.message-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.9rem 0.1rem;
+  min-height: 16rem;
+}
+.message-bubble {
+  max-width: min(34rem, 86%);
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.message-bubble.from-me {
+  align-self: flex-end;
+  background: var(--lume-soft);
+  border-color: var(--border-strong);
+}
+.message-bubble p {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.message-bubble small {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--text-subtle);
+  font-size: 0.7rem;
+}
+.message-reference {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.35rem;
+  padding: 0.2rem 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--lume);
+  font-size: 0.78rem;
+}
+.message-composer {
+  display: grid;
+  gap: 0.6rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--border);
+}
+.message-composer-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+.message-reference-field {
+  flex: 1 1 16rem;
+}
+.message-reference-field select {
+  width: 100%;
+}
+.messages-placeholder {
+  flex: 1 1 auto;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.5rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+.messages-placeholder .icon {
+  width: 2rem;
+  height: 2rem;
+  color: var(--lume);
+}
+.messages-placeholder-copy {
+  color: var(--text-muted);
+  text-align: center;
+}
+@media (max-width: 820px) {
+  .messages-layout {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+  .messages-list {
+    max-height: 18rem;
+  }
+  .message-thread {
+    min-height: 26rem;
+  }
+}
+
+/* --- Imagens de slides --- */
+.slide-image-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.35rem;
+}
+.slide-image-control img {
+  width: 4.5rem;
+  height: 3rem;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.slide-image-empty {
+  width: 4.5rem;
+  height: 3rem;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px dashed var(--border);
+  color: var(--text-subtle);
+}
+.slide-image {
+  max-width: 100%;
+  max-height: 18rem;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  align-self: center;
+}
+
+/* --- Correção de XP --- */
+.xp-event {
+  display: grid;
+  gap: 0.6rem;
+}
+.xp-event-main {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+.xp-event.is-adjustment {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 7%, var(--surface));
+}
+.xp-event.is-adjustment .xp-event-value {
+  color: var(--danger);
+}
+.xp-adjust-form {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+
+/* --- Revisão de materiais antigos --- */
+.legacy-review-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+.legacy-review-list > li {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.setting-row.compact {
+  padding-top: 0;
+  border-top: 0;
+  align-items: flex-end;
+}
+
+/* --- GitHub e sugestões de entrega --- */
+.github-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  margin: 1rem 0;
+}
+.github-form .field {
+  flex: 1 1 20rem;
+}
+.github-result {
+  display: grid;
+  gap: 1rem;
+}
+.github-repo-card {
+  display: grid;
+  gap: 0.35rem;
+}
+.github-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+.github-meta > span,
+.github-meta > a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.github-suggestion-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+.github-suggestion {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  cursor: pointer;
+}
+.github-suggestion input {
+  margin-top: 0.2rem;
+}
+.github-suggestion span {
+  display: grid;
+  gap: 0.1rem;
+}
+.github-suggestion small {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+/* --- Colaboração em entregas --- */
+.collab-panel {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 1rem;
+  padding: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+}
+.collab-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+.collab-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.collab-icon {
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--lume-soft);
+  color: var(--lume);
+}
+.collab-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  gap: 0.1rem;
+}
+.collab-copy small {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+.collab-actions {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}

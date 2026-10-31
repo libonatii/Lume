@@ -210,7 +210,7 @@ export default function Onboarding({ state, update, go, notify, account }) {
                 </>}
             {inviteError && <p role="alert" className="form-error">{inviteError}</p>}
           </div>
-          <div className="card-surface"><div className="card-head"><span className="pace-icon"><Icon name="mail"/></span><span className="soon-badge">Em breve</span></div><strong className="title">Mensagens diretas</strong><p className="muted-text">Conversas entre amizades aceitas são o próximo passo social. O Lume não terá grupos ou comunidades nesta etapa.</p><Button secondary disabled><Icon name="mail"/>Abrir mensagens</Button></div>
+          <div className="card-surface"><div className="card-head"><span className="pace-icon"><Icon name="mail"/></span><span className="soon-badge">Amigos</span></div><strong className="title">Mensagens diretas</strong><p className="muted-text">Conversas individuais entre amizades aceitas. O Lume não tem grupos, comunidades ou canais.</p><a className="text-link" href="#mensagens">Abrir mensagens<Icon name="arrow"/></a></div>
           <div className="card-surface"><div className="card-head"><span className="pace-icon"><Icon name="podium"/></span><span className="soon-badge">Opcional</span></div><strong className="title">Ranking de amigos</strong><p className="muted-text">Compare nível, cursos concluídos e empenho no período. Só entram XP confirmado pelo servidor e quem escolher participar.</p><a className="text-link" href="#ranking">Conhecer o ranking<Icon name="arrow"/></a></div>
         </div>
         <div className="step-actions"><Button secondary onClick={() => { go('hoje'); }}>Pular esta etapa</Button><Button onClick={finish}>Concluir e ir para Hoje<Icon name="arrow"/></Button></div>

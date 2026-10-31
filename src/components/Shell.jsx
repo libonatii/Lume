@@ -4,17 +4,19 @@ import Icon from './Icon.jsx';
 import { AnimatedNumber, Logo, Progress, Ring } from './ui.jsx';
 import { levelInfo } from '../../public/domain.js';
 import { levelProgress } from '../../public/xp-policy.js';
+import { api } from '../lib/api.js';
 import { isDesktopApp } from '../lib/desktop.js';
 import DesktopUpdate from './DesktopUpdate.jsx';
 
 const desktop = isDesktopApp();
 
-const links = [['hoje', 'home', 'Hoje', 'Hoje'], ['tarefas', 'list', 'Tarefas', 'Tarefas'], ['biblioteca', 'book', 'Biblioteca', 'Biblioteca'], ['missoes', 'flag', 'Missões', 'Missões'], ['conquistas', 'trophy', 'Conquistas', 'Conquistas'], ['historico', 'history', 'Meu Caminho', 'Caminho'], ['amigos', 'users', 'Amigos', 'Amigos'], ['ranking', 'podium', 'Ranking', 'Ranking'], ['configuracoes', 'settings', 'Configurações', 'Ajustes']];
-const planned = [['mail', 'Mensagens']];
+const links = [['hoje', 'home', 'Hoje', 'Hoje'], ['tarefas', 'list', 'Tarefas', 'Tarefas'], ['biblioteca', 'book', 'Biblioteca', 'Biblioteca'], ['missoes', 'flag', 'Missões', 'Missões'], ['conquistas', 'trophy', 'Conquistas', 'Conquistas'], ['historico', 'history', 'Meu Caminho', 'Caminho'], ['amigos', 'users', 'Amigos', 'Amigos'], ['mensagens', 'mail', 'Mensagens', 'Mensagens'], ['ranking', 'podium', 'Ranking', 'Ranking'], ['configuracoes', 'settings', 'Configurações', 'Ajustes']];
+const planned = [];
 const syncLabels = { saving: 'Salvando na conta…', saved: 'Progresso salvo na conta', error: 'Sem sincronização · cópia local preservada' };
 
 export default function Shell({ route, model, children, onComfort, onHelp, onRegister, onExit }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [unread, setUnread] = useState(0);
   const menuRef = useRef(null);
   const entry = ['login', 'inicio', 'recuperar', 'redefinir'].includes(route);
   const summary = model.xp?.summary;
@@ -29,6 +31,20 @@ export default function Shell({ route, model, children, onComfort, onHelp, onReg
   useEffect(() => {
     setMenuOpen(false);
   }, [route]);
+
+  useEffect(() => {
+    if (!model.account) { setUnread(0); return undefined; }
+    let alive = true;
+    const load = async () => {
+      const result = await api('/api/messages/unread');
+      if (!alive) return;
+      if (result.ok && result.data.notifications !== false) setUnread(Number(result.data.unread) || 0);
+      else setUnread(0);
+    };
+    load();
+    const timer = setInterval(load, 45000);
+    return () => { alive = false; clearInterval(timer); };
+  }, [model.account, route]);
 
   useEffect(() => {
     if (!menuOpen) return undefined;
@@ -56,8 +72,8 @@ export default function Shell({ route, model, children, onComfort, onHelp, onReg
   return <div className="app-shell">
     <aside className="sidebar" aria-label="Menu principal">
       <a href="#hoje" className="brand" aria-label="Lume — página inicial"><Logo size={38}/><span className="brand-copy"><span className="brand-name">Lume</span><small>Seu ritmo, seu caminho</small></span></a>
-      <nav className="nav" aria-label="Navegação">{links.map(([path, icon, label, short]) => <a key={path} href={`#${path}`} className={`nav-link ${route === path ? 'active' : ''}`} aria-current={route === path ? 'page' : undefined} aria-label={label}>{route === path && <motion.span className="nav-highlight" layoutId="active-navigation" transition={{ duration: .3, ease: [.22, 1, .36, 1] }}/>}<Icon name={icon}/><span className="nav-label">{label}</span><span className="nav-short" aria-hidden="true">{short}</span></a>)}</nav>
-      <div className="nav-planned"><span className="nav-section">Em breve</span>{planned.map(([icon, label]) => <span key={label} className="nav-link planned"><Icon name={icon}/><span className="nav-label">{label}</span><span className="soon-badge">Planejado</span></span>)}</div>
+      <nav className="nav" aria-label="Navegação">{links.map(([path, icon, label, short]) => <a key={path} href={`#${path}`} className={`nav-link ${route === path ? 'active' : ''}`} aria-current={route === path ? 'page' : undefined} aria-label={path === 'mensagens' && unread > 0 ? `${label} (${unread} não lidas)` : label}>{route === path && <motion.span className="nav-highlight" layoutId="active-navigation" transition={{ duration: .3, ease: [.22, 1, .36, 1] }}/>}<Icon name={icon}/><span className="nav-label">{label}</span><span className="nav-short" aria-hidden="true">{short}</span>{path === 'mensagens' && unread > 0 && <span className="nav-badge" aria-hidden="true">{unread > 99 ? '99+' : unread}</span>}</a>)}</nav>
+      {planned.length > 0 && <div className="nav-planned"><span className="nav-section">Em breve</span>{planned.map(([icon, label]) => <span key={label} className="nav-link planned"><Icon name={icon}/><span className="nav-label">{label}</span><span className="soon-badge">Planejado</span></span>)}</div>}
       {!desktop && <a className="install-app" href="#aplicativo"><Icon name="cloud"/><span>Instalar aplicativo</span></a>}
       <a className="player-card" href="#perfil" aria-label="Abrir meu perfil">
         {model.state.profile?.avatar

@@ -32,6 +32,8 @@ function integer(value) {
 }
 
 function serializeEvent(row) {
+  let meta = null;
+  try { meta = row.meta ? JSON.parse(row.meta) : null; } catch { meta = null; }
   return {
     id: row.id,
     eventKey: row.event_key,
@@ -46,6 +48,8 @@ function serializeEvent(row) {
     policyVersion: row.policy_version,
     day: row.local_day || null,
     at: row.granted_at,
+    correctsId: meta?.corrects || '',
+    reason: meta?.reason || '',
   };
 }
 
@@ -229,7 +233,7 @@ export async function xpSummary(db, userId, settings = null) {
       WHERE user_id = ? AND kind = 'time_block' AND local_day = ?`,
     [userId, day],
   );
-  const badges = await db.first('SELECT COUNT(*) AS total FROM user_achievements WHERE user_id = ?', [userId]);
+  const badges = await db.first('SELECT COUNT(*) AS total FROM user_achievements WHERE user_id = ? AND revoked_at IS NULL', [userId]);
   const total = Number(totals?.total || 0);
   const level = levelProgress(total);
   return {
@@ -268,7 +272,7 @@ export async function getXpSnapshot(db, userId, { now = Date.now(), timeZone = '
     [userId],
   );
   const achievements = await db.all(
-    `SELECT * FROM user_achievements WHERE user_id = ? ORDER BY earned_at DESC LIMIT 50`,
+    `SELECT * FROM user_achievements WHERE user_id = ? AND revoked_at IS NULL ORDER BY earned_at DESC LIMIT 50`,
     [userId],
   );
   return {
@@ -395,6 +399,43 @@ export async function grantSlide(db, userId, { courseId }, { now = Date.now() } 
     event, kind: 'slide', title: course.title, criterion: 'Apresentação concluída com cobertura do deck',
   });
   return { added: true, duplicate: false, event: serializeEvent(event) };
+}
+
+// Correção assistida: um evento negativo vinculado ao original, com motivo.
+// O original não é apagado; conquistas ligadas a ele são revogadas e o extrato
+// mostra a correção. Repetir a correção não duplica o ajuste.
+export async function adjustEvent(db, userId, { eventId, reason }, { now = Date.now() } = {}) {
+  if (typeof eventId !== 'string' || !eventId) throw new XpError('Evento inválido.', 'invalid_event', 400);
+  const cleanReason = String(reason ?? '').replace(/\s+/g, ' ').trim().slice(0, 240);
+  if (cleanReason.length < 3) throw new XpError('Explique o motivo da correção (pelo menos 3 caracteres).', 'reason_required', 400);
+  const event = await db.first('SELECT * FROM xp_events WHERE id = ? AND user_id = ?', [eventId, userId]);
+  if (!event) throw new XpError('Evento não encontrado.', 'event_not_found', 404);
+  if (event.kind === 'adjustment' || Number(event.xp) <= 0) {
+    throw new XpError('Este evento não pode ser corrigido por esta ação.', 'event_not_adjustable', 400);
+  }
+  const key = `adjust|${event.id}`;
+  const existing = await findEvent(db, userId, key);
+  if (existing) return { added: false, duplicate: true, event: serializeEvent(existing) };
+  const settings = await ensureXpSettings(db, userId, { now });
+  const adjustment = await insertEvent(db, userId, {
+    key,
+    kind: 'adjustment',
+    xp: -Number(event.xp),
+    materialId: event.material_id || '',
+    materialTitle: event.material_title || '',
+    stepId: event.step_id || '',
+    stepTitle: event.step_title || '',
+    sessionId: event.session_id || '',
+    origin: 'manual',
+    day: localDay(settings.time_zone, new Date(now)),
+    at: iso(now),
+    meta: JSON.stringify({ corrects: event.id, reason: cleanReason }),
+  });
+  await db.run(
+    'UPDATE user_achievements SET revoked_at = ? WHERE user_id = ? AND event_id = ? AND revoked_at IS NULL',
+    [iso(now), userId, event.id],
+  );
+  return { added: true, duplicate: false, event: serializeEvent(adjustment) };
 }
 
 // Sessão declarada: o servidor desconta sobreposição com outras sessões já

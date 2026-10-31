@@ -212,7 +212,7 @@ export function Library({ state, open, update }) {
   const selectedDeck = selected ? slidesSummary(selected) : null;
 
   return <div className="library-root">
-    <Heading eyebrow="Estante viva & continuidade" title="Biblioteca" actions={<><Button secondary onClick={() => open({ type: 'manual' })}><Icon name="edit"/>Criar manualmente</Button><Button onClick={() => open({ type: 'new' })}><Icon name="plus"/>Adicionar curso</Button></>}>
+    <Heading eyebrow="Estante viva & continuidade" title="Biblioteca" actions={<><a className="button secondary" href="#github"><Icon name="external"/>GitHub</a><Button secondary onClick={() => open({ type: 'manual' })}><Icon name="edit"/>Criar manualmente</Button><Button onClick={() => open({ type: 'new' })}><Icon name="plus"/>Adicionar curso</Button></>}>
       Guarde seus cursos e tópicos de estudo. Continue de onde parou, no seu ritmo.
     </Heading>
 

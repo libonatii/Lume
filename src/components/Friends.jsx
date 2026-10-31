@@ -3,6 +3,7 @@ import Icon from './Icon.jsx';
 import { Button, Heading } from './ui.jsx';
 import { api, apiError } from '../lib/api.js';
 import { copyText, selectText } from '../lib/clipboard.js';
+import { CollaborationInbox } from './Collaboration.jsx';
 
 // Amizades por convite. O convite é um código reaproveitável, válido por 7 dias;
 // não existe busca por e-mail. Ser amigo não compartilha biblioteca, progresso
@@ -117,6 +118,7 @@ export default function Friends({ account, notify, go }) {
         </div>
 
         <div className="friends-column">
+          <CollaborationInbox account={account} notify={notify}/>
           <section className="card-surface settings-panel">
             <div className="panel-title"><span className="pace-icon"><Icon name="heart"/></span><div><h2 className="title">Sua lista</h2><p className="muted-text">{data ? `${data.friends.length} ${data.friends.length === 1 ? 'amizade' : 'amizades'}` : 'Carregando…'}</p></div></div>
             {data && data.friends.length === 0 && <p className="inline-note"><Icon name="help"/><span>Ninguém por aqui ainda. Um convite já começa a lista.</span></p>}
@@ -128,6 +130,7 @@ export default function Friends({ account, notify, go }) {
                   <small>Amigos desde {new Date(friend.since).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</small>
                 </span>
                 <button className="text-button" onClick={() => go(`perfil?id=${encodeURIComponent(friend.id)}`)}>Ver perfil</button>
+                <button className="text-button accent" onClick={() => go(`mensagens?com=${encodeURIComponent(friend.id)}`)} aria-label={`Conversar com ${friend.name}`}>Mensagem</button>
                 <button className="text-button" onClick={() => remove(friend)} disabled={busy} aria-label={`Remover ${friend.name} da lista`}>Remover</button>
               </li>)}
             </ul>}
@@ -152,6 +155,6 @@ export default function Friends({ account, notify, go }) {
       </div>}
 
     {error && <p className="form-error" role="alert">{error}</p>}
-    <p className="quiet-note">Convites, amizades e remoções não geram XP. O perfil mostra só o que cada pessoa autorizou: biblioteca, fila, progresso e XP confirmado pelo servidor. Mensagens diretas entre amizades aceitas, compartilhamento de aprendizados e colaboração continuam planejados; grupos e comunidades estão fora do escopo desta etapa. O ranking de amigos é opcional e fica em sua própria página.</p>
+    <p className="quiet-note">Convites, amizades, mensagens e remoções não geram XP. O perfil mostra só o que cada pessoa autorizou: biblioteca, fila, progresso e XP confirmado pelo servidor. Mensagens diretas entre amizades aceitas já funcionam; compartilhamento de aprendizados e colaboração em projetos continuam pendentes. Grupos, comunidades e canais estão fora do escopo desta etapa. O ranking de amigos é opcional e fica em sua própria página.</p>
   </div>;
 }

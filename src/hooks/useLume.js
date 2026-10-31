@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { STORAGE_KEY, createInitialState, restoreState } from '../../public/domain.js';
 import { reconcileSession } from '../../public/session-domain.js';
 import { collectCompletionCandidates } from '../../public/xp-policy.js';
+import { mergeStates } from '../../public/merge-domain.js';
 import { api, apiError } from '../lib/api.js';
 
 export const PREVIEW_KEY = 'lume.preview-session.v1';
@@ -51,6 +52,7 @@ export function useLume(notify) {
   const timer = useRef(null);
   const syncGeneration = useRef(0);
   const pendingSave = useRef(Promise.resolve());
+  const revisionRef = useRef(0);
   const xpBusy = useRef(false);
   const xpSent = useRef(readSent());
   stateRef.current = state;
@@ -60,9 +62,28 @@ export function useLume(notify) {
     setSyncStatus('saving');
     // Serializa gravações: uma resposta lenta não pode sobrescrever a mais nova.
     const save = pendingSave.current.catch(() => {}).then(async () => {
-      if (generation !== syncGeneration.current) return;
-      const result = await api('/api/state', { method: 'PUT', body: snapshot });
-      if (!result.ok) throw new Error(apiError(result));
+      if (generation !== syncGeneration.current) return false;
+      let outgoing = snapshot;
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const result = await api('/api/state', {
+          method: 'PUT',
+          body: { state: outgoing, baseRevision: revisionRef.current },
+        });
+        if (result.ok) {
+          revisionRef.current = Number(result.data?.revision) || revisionRef.current;
+          return true;
+        }
+        if (result.status !== 409 || !result.data?.state) throw new Error(apiError(result));
+        // Outro dispositivo salvou primeiro. Mescla o progresso das duas
+        // cópias e tenta de novo com a revisão devolvida pelo servidor.
+        const remote = restoreState(JSON.stringify(result.data.state));
+        const merged = mergeStates(outgoing, remote);
+        revisionRef.current = Number(result.data.revision) || revisionRef.current;
+        setState((current) => mergeStates(current, merged));
+        notify('Alterações de outro dispositivo foram mescladas. Suas preferências desta sessão foram mantidas.');
+        outgoing = merged;
+      }
+      throw new Error('Não foi possível reconciliar as cópias agora. Tente novamente.');
     });
     pendingSave.current = save;
     return save.then(() => { if (generation === syncGeneration.current) setSyncStatus('saved'); return true; })
@@ -73,7 +94,7 @@ export function useLume(notify) {
         }
         return false;
       });
-  }, [notify]);
+  }, [notify, setState]);
 
   const loadAccountProgress = useCallback(async (user, signal) => {
     ready.current = false;
@@ -98,7 +119,10 @@ export function useLume(notify) {
       legacyProfileMedia.current = { ...remoteLegacy, ...legacyProfileMedia.current };
       // Preserva a cópia anterior antes de carregar o estado remoto.
       try { localStorage.setItem(`${STORAGE_KEY}.before-account`, JSON.stringify(stateRef.current)); } catch { /* Cópia em memória permanece disponível. */ }
+      revisionRef.current = Number(result.data.revision) || 0;
       setState(reconcileSession(restoreState(JSON.stringify(result.data.state))));
+    } else {
+      revisionRef.current = 0;
     }
     setAccount(user);
     ready.current = true;
@@ -258,6 +282,7 @@ export function useLume(notify) {
       try { localStorage.setItem(`${STORAGE_KEY}.account-backup`, JSON.stringify(stateRef.current)); } catch { /* Estado ainda em memória. */ }
       ready.current = false;
       syncGeneration.current += 1;
+      revisionRef.current = 0;
       setAccount(null);
       setState(createInitialState());
       setSyncStatus('local');

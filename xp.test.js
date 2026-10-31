@@ -5,7 +5,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { createInitialState } from './public/domain.js';
 import {
   ensureXpSettings, getRanking, getXpSnapshot, grantBonus, grantSlide, grantStep,
-  recordTimeSession, updateXpSettings, XpError,
+  recordTimeSession, updateXpSettings, adjustEvent, XpError,
 } from './xp.js';
 import { collectCompletionCandidates, levelProgress } from './public/xp-policy.js';
 
@@ -14,7 +14,7 @@ const DAY = '2026-10-31';
 
 function makeDb() {
   const sqlite = new DatabaseSync(':memory:');
-  for (const file of readdirSync(new URL('./migrations/', import.meta.url)).filter((name) => /^000[1246]_.*\.sql$/.test(name)).sort()) {
+  for (const file of readdirSync(new URL('./migrations/', import.meta.url)).filter((name) => /^000[12469]_.*\.sql$/.test(name)).sort()) {
     sqlite.exec(readFileSync(new URL(`./migrations/${file}`, import.meta.url), 'utf8'));
   }
   const db = {
@@ -183,6 +183,32 @@ test('apresentação concede XP uma vez com cobertura de 80% e último slide', a
   assert.equal(again.duplicate, true);
   const overview = await getXpSnapshot(db, 'slides', { now: NOW + 4000 });
   assert.equal(overview.achievements[0].kind, 'slide');
+});
+
+test('correção cria ajuste negativo idempotente e revoga a conquista vinculada', async () => {
+  const { db } = makeDb();
+  await addUser(db, 'fix');
+  await ensureXpSettings(db, 'fix', { now: NOW });
+  const state = materialState({ type: 'article', steps: ['Ler'], courseId: 'deck' });
+  state.courses[0].slides = [{ id: 's1', title: 'Um', body: '' }, { id: 's2', title: 'Dois', body: '' }];
+  state.courses[0].slideProgress = { seen: ['s1', 's2'], lastId: 's2', completedAt: new Date(NOW + 1000).toISOString() };
+  await saveState(db, 'fix', state);
+  const granted = await grantSlide(db, 'fix', { courseId: 'deck' }, { now: NOW + 2000 });
+  assert.equal(granted.added, true);
+  const adjustment = await adjustEvent(db, 'fix', { eventId: granted.event.id, reason: 'Registro feito por engano' }, { now: NOW + 3000 });
+  assert.equal(adjustment.added, true);
+  assert.equal(adjustment.event.kind, 'adjustment');
+  assert.equal(adjustment.event.xp, -100);
+  assert.equal(adjustment.event.reason, 'Registro feito por engano');
+  const again = await adjustEvent(db, 'fix', { eventId: granted.event.id, reason: 'Outro motivo' }, { now: NOW + 4000 });
+  assert.equal(again.duplicate, true);
+  const overview = await getXpSnapshot(db, 'fix', { now: NOW + 5000 });
+  assert.equal(overview.summary.totalXP, 0);
+  assert.equal(overview.achievements.length, 0);
+  await assert.rejects(
+    () => adjustEvent(db, 'fix', { eventId: granted.event.id, reason: '' }, { now: NOW + 6000 }),
+    (error) => error instanceof XpError && error.code === 'reason_required',
+  );
 });
 
 test('blocos de tempo são idempotentes, acumulam sobras e respeitam o teto diário', async () => {
