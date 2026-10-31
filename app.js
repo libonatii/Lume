@@ -93,13 +93,7 @@ function landscape(extraClass = '') {
 
 function cover(course) {
   const art = ['design', 'code', 'language', 'nature'].includes(course.art) ? course.art : 'nature';
-  const content = {
-    design: '<span class="cover-small">A ARTE DE SIMPLIFICAR</span><span class="design-type">make it<br><i>simple.</i></span><span class="design-shape"></span><span class="cover-number">01 / CRIAR</span>',
-    code: '<span class="cover-small">UMA IDEIA. INFINITAS POSSIBILIDADES.</span><span class="code-orbit"></span><span class="code-glyph">&lt;<i>/</i>&gt;</span><span class="code-caption">hello, possibilities.</span><span class="cover-number">02 / EXPLORAR</span>',
-    language: '<span class="cover-small">UM MUNDO DE NOVAS CONVERSAS</span><span class="language-type">hello,<br><i>world.</i></span><span class="language-spark">✳</span><span class="cover-number">03 / CONECTAR</span>',
-    nature: '<span class="cover-small">O PRÓXIMO PASSO É SEU</span><span class="nature-type">novos<br><i>caminhos.</i></span><span class="nature-rings"></span><span class="cover-number">SUA TRILHA / DESCOBRIR</span>',
-  };
-  return `<div class="course-cover art-${art}" aria-hidden="true">${content[art]}</div>`;
+  return `<div class="course-cover art-${art}" aria-hidden="true"><img src="./assets/stitch/${art}.png" alt="" loading="lazy" /></div>`;
 }
 
 function route() {
@@ -118,25 +112,18 @@ function applyPreferences() {
   document.documentElement.dataset.theme = state.preferences.theme;
   document.documentElement.dataset.motion = state.preferences.reducedMotion ? 'reduced' : 'full';
   document.documentElement.dataset.text = state.preferences.textSize;
-  document.querySelector('meta[name="theme-color"]').content = state.preferences.theme === 'light' ? '#f4f5ef' : '#111815';
+  document.querySelector('meta[name="theme-color"]').content = state.preferences.theme === 'light' ? '#f4f5ef' : '#0c1322';
 }
 
 function shell(content, currentRoute) {
-  const links = [
-    ['hoje', 'home', 'Hoje'], ['biblioteca', 'book', 'Biblioteca'], ['missoes', 'flag', 'Missões'],
-    ['conquistas', 'trophy', 'Conquistas'], ['historico', 'history', 'Meu caminho'],
-  ];
+  const links = [['hoje', 'home', 'Hoje'], ['biblioteca', 'book', 'Biblioteca'], ['missoes', 'flag', 'Missões'], ['conquistas', 'trophy', 'Conquistas'], ['historico', 'history', 'Meu Caminho'], ['configuracoes', 'settings', 'Configurações & Conforto']];
   const level = levelInfo(state);
   return `<aside class="sidebar" aria-label="Menu principal">
-    <a href="#hoje" class="brand" aria-label="Lume — página inicial"><span class="brand-mark">${brandMark}</span><span>lume<span class="brand-dot">.</span></span></a>
-    <span class="sidebar-caption">SEU RITMO. SEU CAMINHO.</span>
-    <nav aria-label="Navegação"><span class="nav-caption">SEU ESPAÇO</span>${links.map(([path, symbol, label]) => `<a href="#${path}" aria-label="${label}" class="nav-link ${(currentRoute === path || (path === 'hoje' && currentRoute === 'inicio')) ? 'active' : ''}" ${(currentRoute === path || (path === 'hoje' && currentRoute === 'inicio')) ? 'aria-current="page"' : ''}>${icon(symbol)}<span>${label}</span>${path === 'conquistas' && state.preferences.gamification && achievements(state).some((item) => item.unlocked) ? `<span class="nav-count">${achievements(state).filter((item) => item.unlocked).length}</span>` : ''}</a>`).join('')}</nav>
-    <div class="sidebar-bottom"><div class="gentle-note">${icon('sprout')}<p>Não é uma corrida.<br><strong>É o seu caminho.</strong></p><span class="note-line"></span></div>
-    <a href="#configuracoes" aria-label="Configurações" class="nav-link ${currentRoute === 'configuracoes' ? 'active' : ''}" ${currentRoute === 'configuracoes' ? 'aria-current="page"' : ''}>${icon('settings')}<span>Configurações</span></a>
-    <div class="profile"><div class="avatar">${icon('spark')}</div><div><strong>Seu espaço pessoal</strong><span>${state.preferences.gamification ? `Nível ${level.level} · ${level.total} XP` : 'Um passo de cada vez'}</span></div><span class="profile-dot" aria-hidden="true"></span></div></div>
-  </aside>
-  <div class="workspace"><header class="topbar"><div class="topbar-left"><span class="mobile-brand">${brandMark}</span><span>Um espaço para <strong>florescer.</strong></span></div><span class="local-badge">${icon(storageAvailable ? 'shield' : 'help')}<span>${storageAvailable ? 'Prévia local' : 'Sem salvamento'}</span></span><button class="top-avatar icon-button" data-action="navigate" data-route="configuracoes" aria-label="Abrir minhas preferências">${icon('sun')}</button></header>
-  <main id="main" tabindex="-1">${content}</main><footer class="page-footer"><span><span class="footer-spark">✳</span> Feito para o seu ritmo, não o contrário.</span><span>Protótipo · ${storageAvailable ? 'dados só neste navegador' : 'dados temporários nesta aba'}</span></footer></div>`;
+    <a href="#hoje" class="brand" aria-label="Lume — página inicial"><img class="lume-logo" src="./assets/stitch/logo.png" alt="" /><span class="brand-copy">Lume<small>Ritmo Serena</small></span></a>
+    <nav aria-label="Navegação">${links.map(([path, symbol, label]) => `<a href="#${path}" aria-label="${label}" class="nav-link ${(currentRoute === path || (path === 'hoje' && currentRoute === 'inicio')) ? 'active' : ''}" ${currentRoute === path ? 'aria-current="page"' : ''}>${icon(symbol)}<span>${label}</span></a>`).join('')}</nav>
+    <div class="sidebar-bottom"><label class="essential-toggle" for="sidebar-essential"><span>Modo Essencial</span><input id="sidebar-essential" class="switch" type="checkbox" data-preference="essential" ${state.preferences.essential ? 'checked' : ''}/><small>Foco calmo e sem distrações visuais</small></label><p class="sidebar-mantra">Não é uma corrida.<br>É o seu caminho.</p></div>
+  </aside><div class="workspace"><header class="topbar"><span class="calm-badge"><span class="live-dot"></span> Foco Calmo · Sem Pressa</span><div class="topbar-right">${state.preferences.gamification ? `<div class="header-level">${icon('sprout')}<div><span>Nível ${level.level} <span class="muted">·</span> <strong>${level.current} / ${level.next} XP</strong></span><progress max="100" value="${level.current}" aria-label="Experiência até o próximo nível"></progress></div></div>` : '<span class="local-badge">Seu ritmo, sem pontuação</span>'}<button class="top-avatar icon-button" data-action="navigate" data-route="configuracoes" aria-label="Abrir minhas preferências">${icon('settings')}</button></div></header>
+  <main id="main" tabindex="-1">${content}</main><footer class="page-footer"><span>Feito para o seu ritmo, não o contrário.</span><span>Protótipo · ${storageAvailable ? 'dados só neste navegador' : 'dados temporários nesta aba'}</span></footer></div>`;
 }
 
 function onboarding() {
@@ -161,10 +148,9 @@ function pageHeading(eyebrow, title, subtitle, action = '') {
 function courseCard(course) {
   const progress = courseProgress(state, course);
   const status = courseStatus(state, course);
-  const labels = { new: 'Para começar', active: 'Em andamento', paused: 'Em pausa', completed: 'Concluído' };
-  return `<button class="course-card" data-action="open-course" data-id="${esc(course.id)}" aria-label="${esc(course.title)}, ${labels[status]}, ${progress.done} de ${progress.total} etapas">
-    ${cover(course)}<div class="course-card-body"><div class="course-meta"><span>${esc(course.category)}</span>${course.example ? '<span class="example-label">EXEMPLO</span>' : ''}</div><h3>${esc(course.title)}</h3><div class="course-progress-label"><span>${labels[status]}</span><span>${progress.done}<span class="muted"> / ${progress.total} etapas</span></span></div><progress max="100" value="${progress.percent}" aria-hidden="true"></progress></div>
-  </button>`;
+  const labels = { new: 'Para começar', active: 'Em andamento', paused: 'Em pausa para descansar', completed: 'Concluído' };
+  return `<button class="course-card ${course.id === state.selectedCourseId ? 'selected-course' : ''}" data-action="open-course" data-id="${esc(course.id)}" aria-label="${esc(course.title)}, ${labels[status]}, ${progress.done} de ${progress.total} etapas">
+    <div class="course-image">${cover(course)}<span class="course-status status-${status}"><span class="live-dot"></span>${labels[status]}</span></div><div class="course-card-body"><h3>${esc(course.title)}</h3><p class="course-description">${esc(course.category)}${course.example ? ' · Exemplo' : ''}</p><div class="course-progress-label"><span>${progress.done} de ${progress.total} etapas</span><strong>${progress.percent}%</strong></div><progress max="100" value="${progress.percent}" aria-hidden="true"></progress></div></button>`;
 }
 
 function progressCard() {
@@ -180,14 +166,17 @@ function progressCard() {
 function home() {
   const mission = nextMission(state);
   const essential = state.preferences.essential;
-  return `${pageHeading('UM NOVO DIA, NOVAS POSSIBILIDADES', 'Um pouco hoje.<br><span class="soft-heading">Um caminho inteiro pela frente.</span>', 'Sem pressa de chegar. Vamos encontrar seu próximo passo?', `<button class="button secondary small" data-action="add-course">${icon('plus')} Adicionar curso</button>`)}
-    ${!state.onboarded ? `<div class="notice">${icon('sprout')}<span>Quer um começo mais seu? Responda duas perguntas rápidas.</span><button class="text-button" data-action="personalize">Personalizar ${icon('arrow')}</button></div>` : ''}
-    <div class="home-overview ${essential ? 'essential' : ''}"><section class="next-mission-card" aria-labelledby="next-title"><div class="mission-copy"><div class="card-eyebrow"><span class="live-dot"></span> SEU PRÓXIMO PASSO</div>
-      <h2 id="next-title">${mission ? 'O começo pode<br>ser <em>pequeno.</em>' : 'Um caminho de<br><em>descobertas.</em>'}</h2>
-      ${mission ? `<span class="mission-course">${icon('book')} ${esc(mission.course.title)}${mission.course.example ? '<span class="example-label">EXEMPLO</span>' : ''}</span><p class="next-action">${esc(mission.step.title)}</p><div class="mission-buttons"><button class="button primary" data-action="start-mission" data-id="${esc(mission.course.id)}">${icon('play')} Começar missão</button><button class="text-button" data-action="smaller-mission" data-id="${esc(mission.course.id)}">Tornar menor ${icon('chevron')}</button></div><span class="mission-reassurance">Sem cronômetro. Sem pressa.${state.preferences.gamification ? ' +10 XP por esse passo.' : ''}</span>` : `<p class="next-action">${state.courses.some((course) => course.paused) ? 'Seus cursos estão em pausa ou concluídos. Escolha quando retomar.' : 'Você concluiu as etapas da sua biblioteca. Que tal escolher uma nova descoberta?'}</p><button class="button primary" data-action="navigate" data-route="biblioteca">Explorar biblioteca ${icon('arrow')}</button>`}
-      </div><div class="mission-art">${landscape('mission')}</div></section>${!essential ? progressCard() : ''}</div>
-    ${!essential ? `<section class="section"><div class="section-heading"><div><div class="eyebrow">CADA CURSO, UMA NOVA DESCOBERTA</div><h2>Sua biblioteca</h2></div><a href="#biblioteca" class="text-link">Ver todos ${icon('arrow')}</a></div><div class="course-grid">${state.courses.slice(0, 3).map(courseCard).join('')}</div><div class="library-help">${icon('help')} Os cursos de exemplo servem para explorar o Lume. Adicione os seus quando quiser.</div></section>
-    <section class="bottom-note"><span class="bottom-note-icon">${icon('leaf')}</span><div><strong>Seu progresso não tem data de validade.</strong><p>Precisou pausar? Tudo o que você fez continua aqui, esperando seu retorno.</p></div><span class="bottom-note-art" aria-hidden="true">✳</span></section>` : `<section class="essential-note">${icon('leaf')} Só o próximo passo. O restante está no menu, quando você precisar.</section>`}`;
+  const count = weekCount(state);
+  const goal = state.preferences.weeklyGoal;
+  const progress = mission ? courseProgress(state, mission.course) : null;
+  return `<section class="welcome-heading"><span class="welcome-badge">${icon('sprout')} ESPAÇO SEU · SEM URGÊNCIA</span><h1>Olá. <span>Que bom ter você aqui.</span></h1><p>Seu ritmo é a medida que importa hoje. Seu progresso fica guardado, sem prazos punitivos por aqui.</p></section>
+  ${!state.onboarded ? `<div class="notice">${icon('sprout')}<span>Um começo mais seu: responda duas perguntas rápidas.</span><button class="text-button" data-action="personalize">Personalizar ${icon('arrow')}</button></div>` : ''}
+  <section class="focus-card ${essential ? 'focus-essential' : ''}" aria-labelledby="next-title"><div class="focus-main"><div class="focus-meta"><span class="focus-pill">Ação Focal Única</span><span>·</span><span>${mission ? esc(mission.course.title) : 'Seu caminho de descobertas'}</span></div><h2 id="next-title">${mission ? 'O começo pode ser pequeno.' : 'Cada passo já faz parte do seu caminho.'}</h2><p class="focus-description">${mission ? 'Você não precisa fazer tudo agora. Escolha um movimento pequeno, no seu tempo e sem compromisso de perfeição.' : 'Você pode adicionar um curso ou retomar uma trilha quando fizer sentido.'}</p>
+  ${mission ? `<div class="focal-task">${icon('focus')}<div><strong>${esc(mission.step.title)}</strong><small>Sem tempo mínimo · Sem pressão de entrega${mission.course.example ? ' · Curso de exemplo' : ''}</small></div><span class="free-rhythm">${icon('history')} Ritmo livre</span></div><div class="focus-actions"><button class="button primary" data-action="start-mission" data-id="${esc(mission.course.id)}">${icon('play')} Começar este passo</button><button class="button secondary" data-action="smaller-mission" data-id="${esc(mission.course.id)}">${icon('sprout')} Tornar ainda menor</button></div>` : `<button class="button primary" data-action="navigate" data-route="biblioteca">Explorar biblioteca ${icon('arrow')}</button>`}</div>
+  ${!essential ? `<aside class="rest-card"><span class="overline">CUIDADO COM SEU RITMO</span><h3>Pausa consciente</h3><p>Se hoje não der, você pode descansar. Seu progresso continua aqui para quando quiser voltar.</p><div class="rest-image"><img src="./assets/stitch/calm.png" alt=""/><div>${icon('leaf')}<span>Um respiro por vez</span><button class="button secondary" data-action="take-break">Fazer uma pausa</button></div></div><span class="rest-caption">Pausar sem culpa ${icon('pause')}</span></aside>` : ''}</section>
+  ${!essential ? `<div class="home-insights"><section class="insight-card"><div class="insight-label"><span>RITMO DA SEMANA</span><span class="green-pill">No seu tempo</span></div><h2>${count} de ${goal} passos dados</h2><p>Sem cobrança: descanse se precisar, seu progresso não expira.</p><div class="week-dots">${Array.from({length: goal}, (_,i) => `<span class="${i<count ? 'done' : ''}">${i<count ? icon('check') : ''}</span>`).join('')}</div><progress max="${Math.max(goal,count)}" value="${count}" aria-label="${count} de ${goal} missões nesta semana"></progress></section>
+  <section class="insight-card"><div class="insight-label"><span>TRILHA ATUAL</span><span>${progress ? progress.percent : 100}%</span></div><h2>${mission ? esc(mission.course.title) : 'Um caminho percorrido'}</h2><p>${mission ? 'Um pequeno passo de cada vez. Continue de onde parou.' : 'Explore um assunto novo quando quiser.'}</p><div class="insight-bottom"><span>Progresso contínuo ${progress ? `· ${progress.done} de ${progress.total} etapas` : ''}</span><progress max="100" value="${progress ? progress.percent : 100}" aria-label="Progresso da trilha atual"></progress><button class="text-button" data-action="${mission ? 'open-course' : 'navigate'}" ${mission ? `data-id="${esc(mission.course.id)}"` : 'data-route="biblioteca"'}>Ver detalhes da trilha ${icon('arrow')}</button></div></section>
+  <section class="insight-card"><div class="insight-label">ADAPTAÇÃO DE FOCO</div><h2>Mudar de jornada</h2><p>Não está fluindo hoje? Alterne para outro interesse sem perder seu progresso.</p><div class="insight-bottom"><a class="library-shortcut" href="#biblioteca">${icon('book')} Explorar toda a biblioteca ${icon('arrow')}</a><button class="text-button" data-action="add-course">${icon('plus')} Adicionar um novo interesse</button></div></section></div><section class="comfort-note">${icon('shield')}<div><h2>Lembrete de conforto</h2><p>Você pode parar e voltar depois. Seu caminho não precisa seguir o ritmo de ninguém.</p></div><a class="button secondary" href="#configuracoes">Ajustar meu espaço</a></section>` : '<p class="essential-note">Só o próximo passo. O restante está no menu, quando você precisar.</p>'}`;
 }
 
 const statusLabels = { all: 'Todos', active: 'Em andamento', new: 'Para começar', paused: 'Em pausa', completed: 'Concluídos' };
@@ -200,10 +189,15 @@ function libraryResults() {
   return courses.length ? courses.map(courseCard).join('') : `<div class="empty-state">${icon('book')}<h2>Nenhum curso por aqui. Ainda.</h2><p>Tente outro filtro ou adicione algo que você quer aprender.</p><button class="button secondary" data-action="add-course">${icon('plus')} Adicionar curso</button></div>`;
 }
 
+function libraryDetail() {
+  const course = state.courses.find(item => item.id === state.selectedCourseId) || state.courses[0];
+  if (!course) return '';
+  const progress = courseProgress(state, course);
+  const next = course.steps.find(step => !state.completed.includes(step.id));
+  return `<aside class="library-detail"><div class="detail-image"><img src="./assets/stitch/${course.art === 'design' ? 'detail' : ['code','language','nature'].includes(course.art) ? course.art : 'nature'}.png" alt=""/><div><span class="green-pill">Sua trilha atual</span><h2>${esc(course.title)}</h2></div></div><button class="button primary full-width" data-action="${next && !course.paused ? 'start-mission' : 'open-course'}" data-id="${esc(course.id)}">${icon(next ? 'play' : 'check')} ${course.paused ? 'Ver curso em pausa' : next ? 'Continuar meu próximo passo' : 'Ver caminho concluído'}</button><span class="detail-rhythm">Ritmo livre · Sem pressa</span><div class="detail-section-heading">PRÓXIMOS PASSOS CLAROS</div><ol class="detail-steps">${course.steps.map((step,i) => `<li class="${state.completed.includes(step.id) ? 'detail-done' : step.id === next?.id ? 'detail-next' : ''}"><span>${state.completed.includes(step.id) ? icon('check') : i+1}</span><div>${esc(step.title)}<small>${state.completed.includes(step.id) ? 'Passo registrado' : step.id === next?.id ? 'Uma próxima ação possível' : 'Quando chegar o seu momento'}</small></div></li>`).join('')}</ol><div class="detail-progress"><span>${progress.done} de ${progress.total} etapas concluídas</span><progress max="100" value="${progress.percent}" aria-label="Progresso de ${esc(course.title)}"></progress></div><p class="detail-note">${icon('sprout')} Seu progresso é salvo neste navegador. Não há penalidades por pausas.</p></aside>`;
+}
 function library() {
-  return `${pageHeading('SUA COLEÇÃO DE POSSIBILIDADES', 'Biblioteca', 'Guarde o que quer aprender. Continue de onde parou.', `<button class="button primary small" data-action="add-course">${icon('plus')} Adicionar curso</button>`)}
-    <div class="library-toolbar"><div class="filter-list" role="group" aria-label="Filtrar cursos por situação">${Object.entries(statusLabels).map(([id, label]) => `<button class="filter-button ${libraryFilter === id ? 'selected' : ''}" aria-pressed="${libraryFilter === id}" data-action="filter" data-filter="${id}">${label}${id === 'all' ? `<span>${state.courses.length}</span>` : ''}</button>`).join('')}</div><label class="search-field">${icon('search')}<input id="course-search" type="search" placeholder="Buscar um curso" aria-label="Buscar um curso pelo nome" value="${esc(searchTerm)}" /></label></div>
-    <div class="course-grid library-grid" id="library-results">${libraryResults()}</div><div id="search-status" class="sr-only" role="status"></div><div class="library-help">${icon('help')} Capas são ilustrativas. O Lume organiza seus estudos; o conteúdo fica na plataforma de cada curso.</div>`;
+  return `<div class="library-page-heading"><h1>Biblioteca</h1><p>Guarde seus cursos e tópicos de estudo. Continue de onde parou, no seu ritmo.</p></div><div class="library-toolbar"><label class="search-field">${icon('search')}<input id="course-search" type="search" placeholder="Buscar nas minhas trilhas…" aria-label="Buscar um curso pelo nome" value="${esc(searchTerm)}" /></label><div class="filter-list" role="group" aria-label="Filtrar cursos por situação">${Object.entries(statusLabels).map(([id,label]) => `<button class="filter-button ${libraryFilter===id ? 'selected' : ''}" aria-pressed="${libraryFilter===id}" data-action="filter" data-filter="${id}">${label} <span>(${id==='all' ? state.courses.length : state.courses.filter(c=>courseStatus(state,c)===id).length})</span></button>`).join('')}</div><button class="button primary" data-action="add-course">${icon('plus')} Adicionar curso</button></div><div class="library-layout"><section><div class="section-heading"><h2>Minha Estante <span class="shelf-count">${state.courses.length} trilhas</span></h2><span class="muted">Um interesse de cada vez</span></div><div class="course-grid library-grid" id="library-results">${libraryResults()}</div><div id="search-status" class="sr-only" role="status"></div><p class="library-help">${icon('help')} Capas ilustrativas. Os cursos de exemplo não incluem aulas.</p></section>${libraryDetail()}</div>`;
 }
 
 function missions() {
@@ -317,6 +311,7 @@ document.addEventListener('click', (event) => {
   if (!button || button.disabled) return;
   const { action, id } = button.dataset;
   switch (action) {
+    case 'take-break': openDialog(`<div class="session-content"><div class="session-emblem">${icon('leaf')}</div><h2 id="dialog-title">Pode pausar.</h2><p class="session-instruction">Descanse pelo tempo que precisar. Nenhuma etapa foi concluída e seu progresso continua guardado.</p><button class="button primary full-width" data-action="close-dialog">Voltar quando quiser</button></div>`); break;
     case 'navigate': go(button.dataset.route); break;
     case 'onboarding-next': if (state.habit) { onboardingStep = 2; render(true); } break;
     case 'onboarding-back': onboardingStep = 1; render(true); break;

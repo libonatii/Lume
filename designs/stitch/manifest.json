@@ -1,0 +1,42 @@
+{
+  "projectId": "10906855451665474274",
+  "projectTitle": "NeuroFocus Learning Hub",
+  "files": [
+    {
+      "screenId": "4e99f03786c745ab916a0c5f9699e698",
+      "title": "Lume — Hoje (Foco Tranquilo)",
+      "file": "hoje/index.html",
+      "bytes": 25166,
+      "sha256": "5979ff52f406f7fe79f614002623fc25b1009bf58293b549c1a6211efc1ab953"
+    },
+    {
+      "screenId": "4e99f03786c745ab916a0c5f9699e698",
+      "title": "Lume — Hoje (Foco Tranquilo)",
+      "file": "hoje/screenshot.png",
+      "bytes": 699810,
+      "sha256": "dda7aa1e89f0d2df746bf4915cd151cab5a5eb5ead3b4d21ce9d8e15fbda3c1e",
+      "dimensions": [
+        2560,
+        2472
+      ]
+    },
+    {
+      "screenId": "66c23a96337643ce980d70cf516c74b6",
+      "title": "Lume — Biblioteca de Cursos",
+      "file": "biblioteca/index.html",
+      "bytes": 30965,
+      "sha256": "966730a10601cc9801aba349bfaea3c80a7d5ce6bfb3c6212beb20355e777988"
+    },
+    {
+      "screenId": "66c23a96337643ce980d70cf516c74b6",
+      "title": "Lume — Biblioteca de Cursos",
+      "file": "biblioteca/screenshot.png",
+      "bytes": 1723665,
+      "sha256": "f6701332384d210f6054d6db960db100216577c953c91763f7951393be561895",
+      "dimensions": [
+        2560,
+        2508
+      ]
+    }
+  ]
+}

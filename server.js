@@ -6,6 +6,8 @@ const files = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
   ['/index.html', ['index.html', 'text/html; charset=utf-8']],
   ['/styles.css', ['styles.css', 'text/css; charset=utf-8']],
+  ['/neurofocus.css', ['neurofocus.css', 'text/css; charset=utf-8']],
+  ...['logo','calm','design','code','language','nature','detail'].map(name => [`/assets/stitch/${name}.png`, [`assets/stitch/${name}.png`, 'image/png']]),
   ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
   ['/domain.js', ['domain.js', 'text/javascript; charset=utf-8']],
   ['/favicon.svg', ['favicon.svg', 'image/svg+xml']],

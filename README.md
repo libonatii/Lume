@@ -22,6 +22,14 @@ Protótipo navegável em português, feito em HTML, CSS e JavaScript, sem depend
 
 ## Experimentar no computador
 
+### Pelo VS Code
+
+Abra a pasta `D:\tabletop` e use **Open with Live Server** no arquivo `index.html` da raiz. Esse é o aplicativo funcional, agora com o design NeuroFocus do Stitch integrado às telas Hoje e Biblioteca. Os arquivos dentro de `designs/stitch` são as exportações originais de referência.
+
+Se já estiver com uma prévia aberta, recarregue com `Ctrl+Shift+R`.
+
+### Pelo terminal
+
 Instale o Node.js 22 ou superior. Abra um terminal na pasta do projeto e execute:
 
 ```sh
@@ -62,6 +70,8 @@ Os dados permanecem no navegador e na origem em que o site foi aberto. Limpar os
 | --- | --- |
 | `index.html` | Estrutura e entrada da aplicação |
 | `styles.css` | Identidade visual, temas e adaptação para telas menores |
+| `neurofocus.css` | Visual NeuroFocus integrado, com telas Hoje e Biblioteca e temas acessíveis |
+| `assets/stitch/` | Imagens do Stitch armazenadas localmente para o aplicativo |
 | `app.js` | Telas, navegação e interações |
 | `domain.js` | Cursos, missões, XP, conquistas e restauração dos dados |
 | `domain.test.js` | Testes das regras do protótipo |
