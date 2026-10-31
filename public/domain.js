@@ -1,3 +1,5 @@
+import { normalizeActiveSession, normalizeStudySessions } from './session-domain.js';
+
 export const STORAGE_KEY = 'lume.prototype.v1';
 export const HABITS = [
   { id: 'starting', icon: 'sprout', title: 'Quero começar', text: 'Ainda não tenho uma rotina de estudos.' },
@@ -203,8 +205,111 @@ export function createInitialState() {
     ],
     completed: [],
     history: [],
+    // Registro de estudo sem XP: aulas importadas concluídas por declaração
+    // manual. A atribuição de XP da nova política exige validação no servidor.
+    studyLog: [],
+    imports: [],
+    // Sessão declarada pela pessoa: tempo de continuidade, nunca XP.
+    activeSession: null,
+    studySessions: [],
     selectedCourseId: 'design',
   };
+}
+
+function sanitizeCapabilities(value) {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item) => item && typeof item.id === 'string' && typeof item.label === 'string').slice(0, 8).map((item) => ({
+    id: item.id,
+    label: item.label,
+    value: typeof item.value === 'string' ? item.value : '',
+    available: item.available === true,
+  }));
+}
+
+function sanitizeStructure(value) {
+  if (!Array.isArray(value)) return [];
+  return value.filter((discipline) => discipline && typeof discipline.id === 'string' && typeof discipline.title === 'string' && Array.isArray(discipline.modules)).map((discipline) => ({
+    id: discipline.id,
+    title: discipline.title,
+    removedFromSource: discipline.removedFromSource === true,
+    modules: discipline.modules.filter((module) => module && typeof module.id === 'string' && Array.isArray(module.lessons)).map((module) => ({
+      id: module.id,
+      title: typeof module.title === 'string' ? module.title : 'Conteúdo',
+      removedFromSource: module.removedFromSource === true,
+      lessons: module.lessons.filter((lesson) => lesson && typeof lesson.id === 'string' && typeof lesson.title === 'string').map((lesson) => ({
+        id: lesson.id,
+        title: lesson.title,
+        url: typeof lesson.url === 'string' ? lesson.url : '',
+        duration: Number.isFinite(lesson.duration) ? lesson.duration : null,
+        removedFromSource: lesson.removedFromSource === true,
+      })),
+    })),
+  }));
+}
+
+// Campos de importação são extensões opcionais. Quando não são válidos, o
+// curso e suas etapas continuam intactos: nenhum progresso é descartado.
+function sanitizeImportedCourse(course) {
+  if (!course || !course.source || typeof course.source !== 'object' || !Array.isArray(course.structure)) return course;
+  const source = course.source;
+  const extraction = source.extraction && typeof source.extraction === 'object' ? source.extraction : {};
+  return {
+    ...course,
+    structure: sanitizeStructure(course.structure),
+    source: {
+      provider: typeof source.provider === 'string' ? source.provider : 'unknown',
+      providerLabel: typeof source.providerLabel === 'string' ? source.providerLabel : 'Fonte não reconhecida',
+      identity: typeof source.identity === 'string' ? source.identity : '',
+      canonicalUrl: typeof source.canonicalUrl === 'string' ? source.canonicalUrl : '',
+      externalId: typeof source.externalId === 'string' ? source.externalId : '',
+      fetchedAt: Number.isFinite(Date.parse(source.fetchedAt)) ? source.fetchedAt : null,
+      extraction: {
+        kind: typeof extraction.kind === 'string' ? extraction.kind : 'pasted-text',
+        confidence: typeof extraction.confidence === 'string' ? extraction.confidence : 'low',
+        notes: Array.isArray(extraction.notes) ? extraction.notes.filter((note) => typeof note === 'string').slice(0, 8) : [],
+      },
+      completeness: ['complete', 'partial', 'unknown'].includes(source.completeness) ? source.completeness : 'unknown',
+      capabilities: sanitizeCapabilities(source.capabilities),
+      warnings: Array.isArray(source.warnings) ? source.warnings.filter((item) => typeof item === 'string').slice(0, 10) : [],
+      demo: source.demo === true,
+      importedAt: Number.isFinite(Date.parse(source.importedAt)) ? source.importedAt : null,
+      lastUpdatedAt: Number.isFinite(Date.parse(source.lastUpdatedAt)) ? source.lastUpdatedAt : null,
+    },
+    selection: { lessonIds: Array.isArray(course.selection?.lessonIds) ? course.selection.lessonIds.filter((id) => typeof id === 'string') : [] },
+    edital: course.edital && typeof course.edital === 'object' ? course.edital : null,
+  };
+}
+
+function sanitizeStudyLog(value) {
+  if (!Array.isArray(value)) return [];
+  return value.filter((entry) => entry && typeof entry.id === 'string' && typeof entry.courseId === 'string' && typeof entry.stepId === 'string'
+    && ['manual', 'integration'].includes(entry.origin) && Number.isFinite(Date.parse(entry.at)))
+    .slice(-500)
+    .map((entry) => ({
+      id: entry.id,
+      courseId: entry.courseId,
+      stepId: entry.stepId,
+      courseTitle: typeof entry.courseTitle === 'string' ? entry.courseTitle : '',
+      lessonTitle: typeof entry.lessonTitle === 'string' ? entry.lessonTitle : '',
+      origin: entry.origin,
+      at: entry.at,
+      ...(Number.isFinite(Date.parse(entry.revertedAt)) ? { revertedAt: entry.revertedAt } : {}),
+    }));
+}
+
+function sanitizeImports(value) {
+  if (!Array.isArray(value)) return [];
+  return value.filter((entry) => entry && typeof entry.courseId === 'string' && Number.isFinite(Date.parse(entry.at))).slice(-50).map((entry) => ({
+    id: typeof entry.id === 'string' ? entry.id : `imp_${entry.courseId}`,
+    courseId: entry.courseId,
+    at: entry.at,
+    provider: typeof entry.provider === 'string' ? entry.provider : 'unknown',
+    extraction: typeof entry.extraction === 'string' ? entry.extraction : 'pasted-text',
+    lessonCount: Number.isInteger(entry.lessonCount) ? entry.lessonCount : 0,
+    added: Number.isInteger(entry.added) ? entry.added : 0,
+    removed: Number.isInteger(entry.removed) ? entry.removed : 0,
+    mode: entry.mode === 'update' ? 'update' : 'create',
+  }));
 }
 
 export function courseProgress(state, course) {
@@ -276,7 +381,9 @@ export function weekCount(state, now = new Date()) {
   start.setDate(start.getDate() - (start.getDay() + 6) % 7);
   const end = new Date(start);
   end.setDate(end.getDate() + 7);
-  return state.history.filter((entry) => new Date(entry.at) >= start && new Date(entry.at) < end).length;
+  const inWeek = (entry) => new Date(entry.at) >= start && new Date(entry.at) < end;
+  const lessons = (state.studyLog || []).filter((entry) => !entry.revertedAt && inWeek(entry)).length;
+  return state.history.filter(inWeek).length + lessons;
 }
 
 export function achievements(state) {
@@ -347,6 +454,12 @@ export function restoreState(raw) {
     const preferences = value.preferences || {};
     return {
       ...fallback, ...value,
+      courses: value.courses.map((course) => sanitizeImportedCourse(course)),
+      completed: value.completed.filter((id) => stepIds.has(id)),
+      studyLog: sanitizeStudyLog(value.studyLog),
+      imports: sanitizeImports(value.imports),
+      activeSession: normalizeActiveSession(value.activeSession),
+      studySessions: normalizeStudySessions(value.studySessions),
       onboarded: value.onboarded === true,
       habit: HABITS.some((habit) => habit.id === value.habit) ? value.habit : null,
       challenges: Array.isArray(value.challenges) ? value.challenges.filter((id) => CHALLENGES.some((item) => item.id === id)) : [],

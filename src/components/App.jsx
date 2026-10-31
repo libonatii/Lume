@@ -6,11 +6,12 @@ import { Login, Recovery } from './Auth.jsx';
 import { Home, Library } from './Study.jsx';
 import Onboarding from './Onboarding.jsx';
 import { Achievements, History, Missions, Preferences } from './Personal.jsx';
+import Friends from './Friends.jsx';
 import StudyDialog from './StudyDialog.jsx';
 import { Button, Dialog, enter, ease } from './ui.jsx';
 import Icon from './Icon.jsx';
 
-const titles = { login: 'Bem-vindo', inicio: 'Seu ritmo', hoje: 'Hoje', biblioteca: 'Biblioteca', missoes: 'Missões', conquistas: 'Conquistas', historico: 'Meu caminho', configuracoes: 'Do seu jeito', recuperar: 'Recuperar acesso', redefinir: 'Nova senha' };
+const titles = { login: 'Bem-vindo', inicio: 'Seu ritmo', hoje: 'Hoje', biblioteca: 'Biblioteca', missoes: 'Missões', conquistas: 'Conquistas', historico: 'Meu caminho', amigos: 'Amigos', configuracoes: 'Do seu jeito', recuperar: 'Recuperar acesso', redefinir: 'Nova senha' };
 export default function App() {
   const [hash, setHash] = useState(() => location.hash);
   const [toast, setToast] = useState(null);
@@ -34,7 +35,7 @@ export default function App() {
     document.documentElement.dataset.text = state.preferences.textSize;
     document.documentElement.dataset.page = route;
     document.documentElement.removeAttribute('data-essential');
-    document.querySelector('meta[name="theme-color"]').content = state.preferences.theme === 'light' ? '#f7f3ea' : '#0e0d14';
+    document.querySelector('meta[name="theme-color"]').content = state.preferences.theme === 'light' ? '#f1f6fd' : '#080d17';
     document.title = `${titles[route]} · Lume`;
     if (previousRoute.current && previousRoute.current !== route) {
       document.querySelector('#main')?.focus({ preventScroll: true });
@@ -51,14 +52,15 @@ export default function App() {
   let page;
   switch (route) {
     case 'login': page = <Login model={model} mode={authMode} setMode={setAuthMode} go={go} notify={notify}/>; break;
-    case 'inicio': page = <Onboarding state={state} update={update} go={go} notify={notify}/>; break;
+    case 'inicio': page = <Onboarding key={model.account?.id || 'local'} state={state} update={update} go={go} notify={notify}/>; break;
     case 'recuperar': case 'redefinir': page = <Recovery key={route === 'redefinir' ? hash : route} reset={route === 'redefinir'} notify={notify} go={go}/>; break;
-    case 'hoje': page = <Home state={state} open={open} go={go}/>; break;
+    case 'hoje': page = <Home state={state} open={open} go={go} update={update} notify={notify}/>; break;
     case 'biblioteca': page = <Library state={state} open={open}/>; break;
     case 'missoes': page = <Missions state={state} open={open}/>; break;
     case 'conquistas': page = <Achievements state={state}/>; break;
     case 'historico': page = <History state={state}/>; break;
-    case 'configuracoes': page = <Preferences state={state} update={update} account={model.account} notify={notify} onPersonalize={() => go('inicio')}/>; break;
+    case 'amigos': page = <Friends account={model.account} notify={notify} go={go}/>; break;
+    case 'configuracoes': page = <Preferences state={state} update={update} account={model.account} notify={notify} go={go} onPersonalize={() => go('inicio')}/>; break;
   }
   return <><Shell route={route} model={model} onComfort={() => open({ type: 'comfort' })} onHelp={() => open({ type: 'help' })} onRegister={() => setAuthMode('register')} onExit={exit}><motion.div className={`page page-${route}`} key={route} {...enter}>{page}</motion.div></Shell>
     <div className="toast-region" role="status" aria-live="polite" aria-atomic="true"><AnimatePresence>{toast && <motion.div key="feedback" className="toast" initial={{ opacity: 0, y: 16, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8 }} transition={{ duration: .28, ease }}><span className="toast-icon"><Icon name="check"/></span><span>{toast.message}</span><button aria-label="Fechar aviso" className="icon-button" onClick={() => setToast(null)}><Icon name="close"/></button></motion.div>}</AnimatePresence></div>

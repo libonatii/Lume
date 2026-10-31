@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { STORAGE_KEY, createInitialState, restoreState } from '../../public/domain.js';
+import { reconcileSession } from '../../public/session-domain.js';
 import { api, apiError } from '../lib/api.js';
 
 export const PREVIEW_KEY = 'lume.preview-session.v1';
 function readLocal() {
-  try { return restoreState(localStorage.getItem(STORAGE_KEY)); }
+  try { return reconcileSession(restoreState(localStorage.getItem(STORAGE_KEY))); }
   catch { return createInitialState(); }
 }
 export function useLume(notify) {
@@ -48,7 +49,7 @@ export function useLume(notify) {
     if (result.data.state) {
       // Preserva a cópia anterior antes de carregar o estado remoto.
       try { localStorage.setItem(`${STORAGE_KEY}.before-account`, JSON.stringify(stateRef.current)); } catch { /* Cópia em memória permanece disponível. */ }
-      setState(restoreState(JSON.stringify(result.data.state)));
+      setState(reconcileSession(restoreState(JSON.stringify(result.data.state))));
     }
     setAccount(user);
     ready.current = true;

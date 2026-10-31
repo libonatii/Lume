@@ -95,9 +95,28 @@ A pessoa informa que estuda programação e pode conectar o GitHub. Escolhe quai
 
 Uma entrega como **“Implementar e validar a autenticação do projeto”** pode ser um marco elegível. O simples número de commits ou linhas de código não representa aprendizado.
 
+### Importação por link (implementada no código local)
+
+A pessoa cola o link do curso, o Lume identifica a plataforma e apresenta as áreas encontradas para seleção. O fluxo é descrito em [Importação](IMPORTACAO.md). Regras de produto que valem desde já:
+
+- O conteúdo importado é o que a fonte realmente publica; grade parcial aparece marcada e nunca é apresentada como o curso inteiro.
+- Aulas mantêm referência da fonte e a identidade do curso evita duplicação ao reimportar.
+- Importar, selecionar disciplinas, atualizar a grade e conectar integrações não geram XP.
+- Conclusão de aula importada é registro manual identificado enquanto não houver integração compatível; ela não reutiliza as recompensas legadas.
+- O edital da prova é uma referência separada, com fonte e data. Sem edição e fase identificadas, o Lume pede apenas essas informações e não calcula cobertura.
+- Sugestões de IA são organização do texto fornecido, não conteúdo oficial, e aparecem identificadas.
+
+### Sessão declarada e Lume Companion (implementados no código local)
+
+- A pessoa inicia, pausa e encerra uma sessão de estudo vinculada ao material. O tempo é declarado, sobrevive ao recarregamento e não é observação de atividade.
+- O Lume Companion é um programa de desktop opcional que informa qual aplicativo autorizado está aberto, mostra quantas aulas faltam e apresenta um roteiro por prioridade de continuidade.
+- Presença no programa não é estudo comprovado: não concede XP, não conclui aula e não entra no histórico de progresso.
+- O programa recebe um acesso próprio por dispositivo, revogável, que só relata presença e lê o roteiro.
+- Bandeja, janela imersiva e instalador fazem parte do destino do programa e ainda não existem.
+
 ## 6. Integrações: objetivo e limites
 
-O objetivo é reduzir registros repetitivos e facilitar a retomada. As integrações ainda precisam ser implementadas e verificadas individualmente.
+O objetivo é reduzir registros repetitivos e facilitar a retomada. As integrações ainda precisam ser implementadas e verificadas individualmente. A importação de grade por link é a primeira entrega dessa linha: ela declara, por plataforma, o que consegue ler e nunca promete progresso automático; ver [Importação](IMPORTACAO.md).
 
 Para cada fonte, registrar as capacidades disponíveis: ler posição, salvar posição, retomar posição, consultar progresso, observar conclusão e sincronizar entregas. Nunca tratar essas capacidades como universais.
 
@@ -179,11 +198,12 @@ As regras detalhadas estão em [Gamificação](GAMIFICACAO.md).
 | Hoje | Materiais em andamento, ponto de retomada e atividade de estudo |
 | Biblioteca | Cursos, aulas, leituras, exercícios e projetos |
 | Trilhas e projetos | Objetivos e entregas substanciais |
-| Amigos e grupos | Comunicação, compartilhamento e colaboração |
+| Amigos e grupos | Comunicação, compartilhamento e colaboração. Convites e lista de amigos já existem; grupos, feed e mensagens não |
 | Placares | Comparação opcional dentro de períodos e regras definidos |
 | Minhas conquistas | Vitrine personalizada de conclusões |
 | Meu caminho | Histórico de estudo e explicação do XP |
 | Integrações | GitHub e fontes compatíveis; permissões e estado de conexão |
+| Lume Companion | Programa de desktop: presença local, aulas restantes e roteiro por prioridade, sem XP |
 | Configurações e conforto | Acessibilidade, ritmo, privacidade e notificações |
 
 ## 10. Escopo que não deve ser confundido com a proposta

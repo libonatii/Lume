@@ -25,6 +25,9 @@ Uma animação ou mensagem positiva pode reconhecer esforço sem conceder XP. De
 - Preparar o material, organizar a mesa ou clicar em “começar”.
 - Adicionar, dividir, editar ou reorganizar tarefas e materiais.
 - Conectar uma integração, cadastrar um curso ou convidar amigos.
+- Importar, colar ou organizar a grade de um curso, escolher disciplinas e atualizar a importação.
+- Iniciar, pausar ou encerrar a sessão declarada e exibir presença local pelo Companion.
+- Convidar amigos, aceitar convites, listar amizades ou remover contatos.
 - Pausar, descansar, mudar de tela ou retornar de uma pausa.
 - Enviar mensagens, comentar, receber curtidas ou simplesmente estar em uma sala.
 - Deixar um player, cronômetro ou página aberto sem estudo elegível.
@@ -106,6 +109,8 @@ Posição salva e tempo elegível são campos diferentes. A posição deve poder
 
 Oferecer sessões de estudo com início e pausa e registros manuais para atividades externas ou offline. Marcar a origem desses registros. Um cronômetro sozinho não demonstra estudo: o produto precisa explicar seu uso e distinguir declaração de atividade observada.
 
+A sessão declarada existe como marcador de continuidade: ela conta o tempo que a pessoa escolheu, sobrevive ao recarregamento e aparece em Meu caminho. Esse tempo **não é** automaticamente um bloco elegível de XP. A presença do Lume Companion também não é: ela informa um aplicativo aberto, não estudo observado. Blocos de 30 minutos continuam exigindo evento identificável, validação no servidor e proteção contra repetição.
+
 Não exigir movimento de mouse contínuo para reconhecer leitura e não usar vigilância por câmera ou captura de tela como requisito. Pessoas usando leitor de tela ou estudando fora da aba também precisam de um caminho de registro adequado.
 
 ## 6. Critérios de conclusão
@@ -129,6 +134,9 @@ Não exigir movimento de mouse contínuo para reconhecer leitura e não usar vig
 - Registrar unidades ou entregas obrigatórias, fonte e critério de conclusão.
 - O bônus final exige conclusão do conjunto obrigatório e gera uma conquista personalizada.
 - Cursos reais devem preservar a identidade e a estrutura da fonte. Um conjunto de microtarefas não vira vários cursos apenas para produzir bônus.
+- Concluir uma aula importada é, em princípio, elegível como aula concluída. Enquanto a atribuição no servidor não existir, o registro é manual, identificado e **não concede XP**: o navegador não é autoridade de pontuação. O mesmo vale para o bônus de curso.
+- Uma grade parcial (apenas algumas disciplinas escolhidas ou conteúdo não publicado pela fonte) não conclui o curso inteiro e não libera o bônus de curso. Progresso e bônus só consideram unidades obrigatórias efetivamente registradas.
+- Reimportar ou atualizar a grade não repete bônus nem apaga conclusões; conteúdo removido da fonte permanece no histórico.
 - Uma entrega de projeto precisa de resultado substancial descrito. “Abrir o editor” e “fazer um commit” não são entregas elegíveis por si só.
 - Um novo escopo, edição ou versão de conteúdo requer decisão explícita sobre elegibilidade; não reiniciar automaticamente os bônus antigos ao editar um título.
 
@@ -232,5 +240,6 @@ A migração e a interface do saldo legado precisam ser implementadas e verifica
 - Repetir o envio por falha de rede não duplica XP nem conquista.
 - Curso concluído gera título personalizado e pelo menos um nível pelo bônus proposto.
 - Material manual é identificado como tal; integração indisponível não é apresentada como automática.
+- Sessão declarada, presença do Companion, convite e amizade não criam XP nem histórico de recompensa.
 - Descansar ou sair do placar não retira XP acumulado.
 - Mudança de política ou migração preserva o histórico e evita pontuação de legado no novo placar.

@@ -5,6 +5,8 @@ Antes de propor ou alterar comportamento do produto, leia nesta ordem:
 1. [Visão e requisitos do produto](docs/PRODUTO.md).
 2. [Gamificação e conquistas](docs/GAMIFICACAO.md).
 3. [Estado atual e plano de evolução](docs/CONTINUIDADE.md).
+4. [Importação de cursos por link](docs/IMPORTACAO.md), antes de mexer em fontes, extração ou progresso de aulas importadas.
+5. [Lume Companion](docs/COMPANHEIRO.md), antes de mexer no programa de desktop, presença ou roteiro por prioridade.
 
 Esses documentos descrevem o destino do Lume. O código atual é um protótipo e contém regras antigas que não representam mais o produto desejado. Instruções explícitas da pessoa responsável pelo projeto prevalecem; mantenha a documentação coerente com novas decisões.
 

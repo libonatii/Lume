@@ -4,9 +4,19 @@ import {
   hashPassword, verifyPassword, createSessionToken, hashSessionToken,
   sessionCookie, clearedSessionCookie, parseCookies,
 } from './auth.js';
+import { ImportError, analyzeUrl, analyzeText } from './import-server.js';
+import { normalizePayload, detectProvider } from './public/import-domain.js';
+import {
+  CompanionError, authenticateDevice, clearPresence, companionSelf, createPairCode,
+  listCompanion, redeemPairCode, reportPresence, revokeDevice, studySnapshot,
+} from './companion.js';
+import {
+  FriendsError, acceptInvite, createInvite, listFriends, removeFriend,
+} from './friends.js';
 
 const MAX_BODY_BYTES = 16 * 1024;
 const MAX_STATE_BYTES = 256 * 1024;
+const MAX_IMPORT_BYTES = 96 * 1024;
 const ATTEMPT_LIMIT = 10;
 const ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
 const CLEANUP_AFTER_MS = 24 * 60 * 60 * 1000;
@@ -256,8 +266,153 @@ const routes = new Map([
   ['/api/password/reset', handlePasswordReset],
 ]);
 
+// ---------- Importação de cursos ----------
+// O Worker não tem resolvedor DNS: a validação de endereço acontece na URL e em
+// cada redirecionamento. O servidor local também resolve o domínio antes de
+// conectar. O limite de saída do Worker continua sendo o da conta Cloudflare.
+
+async function readImportBody(request) {
+  const text = await request.text();
+  if (text.length > MAX_IMPORT_BYTES) throw new ImportError('O conteúdo enviado é grande demais.', 'too_large', 413);
+  if (!text) return {};
+  try { return JSON.parse(text); } catch { throw new ImportError('JSON inválido.', 'invalid_json', 400); }
+}
+
+async function handleImportAnalyze(request, env) {
+  const body = await readImportBody(request);
+  const url = typeof body.url === 'string' ? body.url.trim() : '';
+  if (!url) return json({ error: 'Cole o link do curso para analisar.', code: 'missing_url' }, 400);
+  const analysis = await analyzeUrl(url);
+  const payload = normalizePayload(analysis, { sourceUrl: analysis.sourceUrl || url });
+  log('course_analyzed', { provider: payload.provider.id, lessons: payload.lessonCount });
+  return json({ status: 'ok', payload, ai: { used: false, reason: 'not_requested' } });
+}
+
+async function handleImportOrganize(request, env) {
+  const body = await readImportBody(request);
+  const text = typeof body.text === 'string' ? body.text : '';
+  const title = typeof body.title === 'string' ? body.title : '';
+  const url = typeof body.url === 'string' ? body.url.trim() : '';
+  if (!text.trim()) return json({ error: 'Cole a grade do curso para organizar.', code: 'empty_text' }, 400);
+  const { payload: raw, ai } = await analyzeText(text, { title, env });
+  const payload = normalizePayload(
+    { ...raw, provider: { id: url ? detectProvider(url).id : 'unknown' }, sourceUrl: url },
+    { sourceUrl: url },
+  );
+  log('course_organized', { provider: payload.provider.id, lessons: payload.lessonCount, ai: ai.used });
+  return json({ status: 'ok', payload, ai: { used: ai.used, reason: ai.reason || null } });
+}
+
+const importRoutes = new Map([
+  ['/api/import/analyze', handleImportAnalyze],
+  ['/api/import/organize', handleImportOrganize],
+]);
+
+// ---------- Lume Companion ----------
+
+function companionDb(env) {
+  return {
+    run: async (sql, params = []) => {
+      const result = await env.DB.prepare(sql).bind(...params).run();
+      return Number(result?.meta?.changes ?? 0);
+    },
+    first: async (sql, params = []) => env.DB.prepare(sql).bind(...params).first(),
+    all: async (sql, params = []) => (await env.DB.prepare(sql).bind(...params).all()).results ?? [],
+  };
+}
+
+function bearerToken(request) {
+  const header = request.headers.get('Authorization') || '';
+  return header.startsWith('Bearer ') ? header.slice(7).trim() : '';
+}
+
+async function handleCompanion(request, env, url) {
+  const { pathname } = url;
+  const method = request.method;
+  const dbAdapter = companionDb(env);
+
+  if (pathname === '/api/companion/redeem') {
+    if (method !== 'POST') return json({ error: 'Método não permitido.' }, 405, { Allow: 'POST' });
+    const clientKey = request.headers.get('CF-Connecting-IP') ?? 'desconhecido';
+    if (await rateLimited(env, `companion-redeem|${clientKey}`)) {
+      return json({ error: 'Muitas tentativas de conexão. Aguarde alguns minutos.', code: 'rate_limited' }, 429);
+    }
+    const body = await readJson(request);
+    return json(await redeemPairCode(dbAdapter, { code: body.code, deviceName: body.deviceName }), 201);
+  }
+
+  if (pathname === '/api/companion/presence' || pathname === '/api/companion/me' || pathname === '/api/companion/study') {
+    const device = await authenticateDevice(dbAdapter, bearerToken(request));
+    if (!device) {
+      return json({ error: 'Este programa não está mais conectado. Gere um novo código no Lume.', code: 'device_unauthorized' }, 401);
+    }
+    if (pathname === '/api/companion/me') {
+      if (method !== 'GET') return json({ error: 'Método não permitido.' }, 405, { Allow: 'GET' });
+      return json(await companionSelf(dbAdapter, device));
+    }
+    if (pathname === '/api/companion/study') {
+      if (method !== 'GET') return json({ error: 'Método não permitido.' }, 405, { Allow: 'GET' });
+      return json(await studySnapshot(dbAdapter, device));
+    }
+    if (method === 'PUT') {
+      const body = await readJson(request);
+      return json(await reportPresence(dbAdapter, device, { app: body.app, category: body.category, since: body.since }));
+    }
+    if (method === 'DELETE') {
+      await clearPresence(dbAdapter, device.id);
+      return new Response(null, { status: 204, headers: { 'Cache-Control': 'no-store' } });
+    }
+    return json({ error: 'Método não permitido.' }, 405, { Allow: 'PUT, DELETE' });
+  }
+
+  const user = await currentUser(request, env);
+  if (!user) return json({ error: 'Entre na sua conta para gerenciar o Companion.' }, 401);
+  if (!sameOrigin(request, url)) return json({ error: 'Origem não autorizada.' }, 403);
+
+  if (pathname === '/api/companion' && method === 'GET') return json(await listCompanion(dbAdapter, user.id));
+  if (pathname === '/api/companion/pair' && method === 'POST') return json(await createPairCode(dbAdapter, user.id), 201);
+  if (pathname.startsWith('/api/companion/devices/') && method === 'DELETE') {
+    const deviceId = decodeURIComponent(pathname.slice('/api/companion/devices/'.length));
+    return json(await revokeDevice(dbAdapter, user.id, deviceId));
+  }
+  return json({ error: 'Rota não encontrada.' }, 404);
+}
+
+// ---------- Amigos ----------
+
+async function handleFriends(request, env, url) {
+  const { pathname } = url;
+  const method = request.method;
+  const user = await currentUser(request, env);
+  if (!user) return json({ error: 'Entre na sua conta para convidar amigos.' }, 401);
+  if (!sameOrigin(request, url)) return json({ error: 'Origem não autorizada.' }, 403);
+  const dbAdapter = companionDb(env);
+
+  if (pathname === '/api/friends' && method === 'GET') return json(await listFriends(dbAdapter, user.id));
+  if (pathname === '/api/friends/invite' && method === 'POST') return json(await createInvite(dbAdapter, user.id), 201);
+  if (pathname === '/api/friends/accept' && method === 'POST') {
+    if (await rateLimited(env, `friends-accept|${user.id}`)) {
+      return json({ error: 'Muitas tentativas de convite. Aguarde alguns minutos.', code: 'rate_limited' }, 429);
+    }
+    const body = await readJson(request);
+    return json(await acceptInvite(dbAdapter, user.id, body.code));
+  }
+  if (pathname.startsWith('/api/friends/') && method === 'DELETE') {
+    const friendId = decodeURIComponent(pathname.slice('/api/friends/'.length));
+    return json(await removeFriend(dbAdapter, user.id, friendId));
+  }
+  return json({ error: 'Rota não encontrada.' }, 404);
+}
+
 async function handleApi(request, env, url) {
   const { pathname } = url;
+
+  if (pathname === '/api/companion' || pathname.startsWith('/api/companion/')) {
+    return handleCompanion(request, env, url);
+  }
+  if (pathname === '/api/friends' || pathname.startsWith('/api/friends/')) {
+    return handleFriends(request, env, url);
+  }
 
   if (pathname === '/api/me') {
     if (request.method !== 'GET') return json({ error: 'Método não permitido.' }, 405, { Allow: 'GET' });
@@ -279,11 +434,24 @@ async function handleApi(request, env, url) {
   }
 
   const handler = routes.get(pathname);
-  if (!handler) return json({ error: 'Rota não encontrada.' }, 404);
+  const importHandler = importRoutes.get(pathname);
+  if (!handler && !importHandler) return json({ error: 'Rota não encontrada.' }, 404);
   if (request.method !== 'POST') return json({ error: 'Método não permitido.' }, 405, { Allow: 'POST' });
   if (!sameOrigin(request, url)) return json({ error: 'Origem não autorizada.' }, 403);
 
   const clientKey = request.headers.get('CF-Connecting-IP') ?? 'desconhecido';
+  // Análise de link é mais cara que login: limite próprio, sem tocar no de autenticação.
+  if (importHandler) {
+    if (await rateLimited(env, `import|${clientKey}|${pathname}`)) {
+      return json({ error: 'Muitas análises em pouco tempo. Aguarde alguns minutos.', code: 'rate_limited' }, 429);
+    }
+    try {
+      return await importHandler(request, env);
+    } catch (error) {
+      if (error instanceof ImportError) return json({ error: error.message, code: error.code }, error.status);
+      throw error;
+    }
+  }
   if (await rateLimited(env, `${clientKey}|${pathname}`)) {
     return json({ error: 'Muitas tentativas. Aguarde alguns minutos e tente de novo.' }, 429);
   }
@@ -304,6 +472,15 @@ export default {
     } catch (error) {
       if (error instanceof ValidationError) {
         return json({ error: error.message, field: error.field }, 400);
+      }
+      if (error instanceof ImportError) {
+        return json({ error: error.message, code: error.code }, error.status);
+      }
+      if (error instanceof CompanionError) {
+        return json({ error: error.message, code: error.code }, error.status);
+      }
+      if (error instanceof FriendsError) {
+        return json({ error: error.message, code: error.code }, error.status);
       }
       if (error?.status) {
         return json({ error: error.message }, error.status);

@@ -3,8 +3,8 @@ import Icon from './Icon.jsx';
 import { AnimatedNumber, Logo, Progress, Ring } from './ui.jsx';
 import { levelInfo } from '../../public/domain.js';
 
-const links = [['hoje', 'home', 'Hoje', 'Hoje'], ['biblioteca', 'book', 'Biblioteca', 'Biblioteca'], ['missoes', 'flag', 'Missões', 'Missões'], ['conquistas', 'trophy', 'Conquistas', 'Conquistas'], ['historico', 'history', 'Meu Caminho', 'Caminho'], ['configuracoes', 'settings', 'Configurações & Conforto', 'Ajustes']];
-const planned = [['users', 'Amigos e grupos'], ['podium', 'Ranking']];
+const links = [['hoje', 'home', 'Hoje', 'Hoje'], ['biblioteca', 'book', 'Biblioteca', 'Biblioteca'], ['missoes', 'flag', 'Missões', 'Missões'], ['conquistas', 'trophy', 'Conquistas', 'Conquistas'], ['historico', 'history', 'Meu Caminho', 'Caminho'], ['amigos', 'users', 'Amigos', 'Amigos'], ['configuracoes', 'settings', 'Configurações & Conforto', 'Ajustes']];
+const planned = [['podium', 'Ranking']];
 const syncLabels = { saving: 'Salvando na conta…', saved: 'Progresso salvo na conta', error: 'Sem sincronização · cópia local preservada' };
 
 export default function Shell({ route, model, children, onComfort, onHelp, onRegister, onExit }) {

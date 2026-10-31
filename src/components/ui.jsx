@@ -57,11 +57,11 @@ function supportsWebGL() {
 
 // Luz ambiente com o MeshGradient da Paper Shaders (FGLibs). Sem WebGL, fica o gradiente em CSS.
 const glowPalettes = {
-  lume: ['#1b1426', '#f6b94a', '#ff8f5e', '#5a3d8a'],
-  dusk: ['#120f1c', '#6b4fd1', '#f6b94a', '#2b9c7a'],
-  mint: ['#0f1a18', '#5fe0b4', '#f6b94a', '#3a2f6b'],
+  lume: ['#0b162a', '#5ea8ff', '#3882f6', '#3148a3'],
+  dusk: ['#0a1222', '#4f46e5', '#5ea8ff', '#24947e'],
+  mint: ['#0b1a22', '#4de0b8', '#5ea8ff', '#274482'],
 };
-export function Glow({ palette = 'lume', speed = .18, className = '' }) {
+export function Glow({ palette = 'lume', speed = 0, className = '' }) {
   const enabled = typeof document !== 'undefined' && supportsWebGL();
   return <div className={`glow glow-${palette} ${className}`} aria-hidden="true">{enabled && <MeshGradient className="glow-canvas" colors={glowPalettes[palette]} distortion={.85} swirl={.2} speed={speed} maxPixelCount={640 * 640} minPixelRatio={1}/>}</div>;
 }
@@ -69,12 +69,12 @@ export function Glow({ palette = 'lume', speed = .18, className = '' }) {
 export function Logo({ size = 36 }) {
   return <svg className="logo-mark" width={size} height={size} viewBox="0 0 48 48" aria-hidden="true" focusable="false">
     <defs>
-      <radialGradient id="logo-light" cx="50%" cy="28%" r="40%"><stop offset="0%" stopColor="#fff4d6"/><stop offset="55%" stopColor="#f6b94a"/><stop offset="100%" stopColor="#f6b94a" stopOpacity="0"/></radialGradient>
+      <radialGradient id="logo-light" cx="50%" cy="28%" r="40%"><stop offset="0%" stopColor="#d8ecff"/><stop offset="55%" stopColor="#5ea8ff"/><stop offset="100%" stopColor="#5ea8ff" stopOpacity="0"/></radialGradient>
       <linearGradient id="logo-leaf" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#7ff0c6"/><stop offset="100%" stopColor="#2fae86"/></linearGradient>
     </defs>
-    <rect width="48" height="48" rx="14" fill="var(--logo-bg, #1a1724)"/>
-    <circle cx="24" cy="14" r="10" fill="url(#logo-light)" opacity=".55"/>
-    <path d="m24 7 2 4.6 4.6 2-4.6 2L24 20.2l-2-4.6-4.6-2 4.6-2Z" fill="#ffd584"/>
+    <rect width="48" height="48" rx="14" fill="var(--logo-bg, #101b30)"/>
+    <circle cx="24" cy="14" r="10" fill="url(#logo-light)" opacity=".58"/>
+    <path d="m24 7 2 4.6 4.6 2-4.6 2L24 20.2l-2-4.6-4.6-2 4.6-2Z" fill="#8cc2ff"/>
     <path d="M24 39V26m0 6c-7.5.8-10-5.6-10-9.6 6.4 0 10 3.6 10 9.6Zm0-2c0-6 3.6-9.6 10-9.6 0 4-2.5 10.4-10 9.6Z" fill="url(#logo-leaf)" stroke="url(#logo-leaf)" strokeWidth="1.4" strokeLinejoin="round"/>
   </svg>;
 }

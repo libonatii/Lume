@@ -1,8 +1,10 @@
 import { motion } from 'motion/react';
 import Atropos from 'atropos/react';
 import { achievements, courseProgress, courseStatus, levelInfo, localDay, nextMission, studyRhythm } from '../../public/domain.js';
+import { formatSessionDuration } from '../../public/session-domain.js';
 import Icon from './Icon.jsx';
 import { AnimatedNumber, Button, Cover, Empty, Glow, Heading, Progress, Ring, stagger } from './ui.jsx';
+import Companion from './Companion.jsx';
 
 export function Missions({ state, open }) {
   const available = state.courses.flatMap(course => {
@@ -44,7 +46,7 @@ export function Achievements({ state }) {
     <p className="inline-note"><Icon name="spark"/><span>Esta vitrine e o XP ainda usam o modelo legado do protótipo. Conquistas personalizadas por material e a nova política de estudo estão planejadas.</span></p>
     {state.preferences.gamification ? <>
       <section className="achievement-summary">
-        <Glow palette="lume" speed={.12}/>
+        <Glow palette="lume"/>
         <div className="achievement-summary-body">
           <div className="trophy-emblem"><Icon name="trophy"/></div>
           <div className="achievement-summary-copy">
@@ -92,6 +94,20 @@ export function History({ state }) {
       <div className="card-surface stat-card"><span className="eyebrow">Dias com descobertas</span><strong className="stat-value"><AnimatedNumber value={days}/></strong><small className="muted-text">Sem exigir dias seguidos</small></div>
       <div className="card-surface stat-card"><span className="eyebrow">Cursos concluídos</span><strong className="stat-value"><AnimatedNumber value={completedCourses}/></strong><small className="muted-text">Trilhas percorridas até o fim</small></div>
     </div>
+    {(state.studySessions || []).length > 0 && <section className="session-history" aria-labelledby="session-history-title">
+      <h2 id="session-history-title" className="title">Sessões declaradas</h2>
+      <p className="quiet-note">Tempo que você iniciou e encerrou. Não é observação de atividade e não gera XP.</p>
+      <ul>
+        {[...state.studySessions].reverse().slice(0, 8).map(session => <li key={session.id}>
+          <span className="session-history-dot"><Icon name="clock"/></span>
+          <span className="session-history-copy">
+            <strong>{session.label}</strong>
+            <small>{new Date(session.startedAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })} · tempo declarado</small>
+          </span>
+          <span className="session-history-time">{formatSessionDuration(session.durationMs)}</span>
+        </li>)}
+      </ul>
+    </section>}
     {state.history.length ? <section className="history-list" aria-label="Histórico de passos">
       {[...state.history].reverse().map((entry, index) => <motion.article className="history-entry" key={entry.id} {...stagger(index)}>
         <span className={`history-dot ${entry.preparation ? 'prep' : 'done'}`}><Icon name={entry.preparation ? 'sprout' : 'check'}/></span>
@@ -108,7 +124,7 @@ export function History({ state }) {
   </div>;
 }
 
-export function Preferences({ state, update, notify, onPersonalize, account }) {
+export function Preferences({ state, update, notify, onPersonalize, account, go }) {
   function preference(key, value) {
     update(previous => ({ ...previous, preferences: { ...previous.preferences, [key]: value, ...(key === 'weeklyGoal' ? { weeklyGoalSource: 'manual' } : {}) } }));
     notify('Preferência salva. Seu espaço, do seu jeito.');
@@ -165,6 +181,8 @@ export function Preferences({ state, update, notify, onPersonalize, account }) {
           <p className="quiet-note">Não inclua senhas ou informações sensíveis nas suas etapas.</p>
           <button className="text-button accent" onClick={download}>Baixar cópia dos meus dados<Icon name="arrow"/></button>
         </section>
+
+        <Companion account={account} notify={notify} go={go}/>
       </div>
     </div>
   </div>;

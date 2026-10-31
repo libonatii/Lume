@@ -1,4 +1,5 @@
 import http from 'node:http';
+import dns from 'node:dns/promises';
 import { readFile } from 'node:fs/promises';
 import { existsSync, mkdirSync, readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -10,6 +11,15 @@ import {
   hashPassword, verifyPassword, createSessionToken, hashSessionToken,
   sessionCookie, clearedSessionCookie, parseCookies,
 } from './auth.js';
+import { ImportError, analyzeUrl, analyzeText } from './import-server.js';
+import { normalizePayload, detectProvider } from './public/import-domain.js';
+import {
+  CompanionError, authenticateDevice, clearPresence, companionSelf, createPairCode,
+  listCompanion, redeemPairCode, reportPresence, revokeDevice, studySnapshot,
+} from './companion.js';
+import {
+  FriendsError, acceptInvite, createInvite, listFriends, removeFriend,
+} from './friends.js';
 
 // Servidor local (Node) com o mesmo contrato de API do Worker em worker.js.
 // Serve o build estático do Astro e guarda contas em data/lume.db.
@@ -17,7 +27,8 @@ import {
 const port = Number(process.env.PORT || 4173);
 const MAX_BODY_BYTES = 16 * 1024;
 const MAX_STATE_BYTES = 256 * 1024;
-const ATTEMPT_LIMIT = 10;
+const MAX_IMPORT_BYTES = 96 * 1024;
+const ATTEMPT_LIMIT = Math.max(1, Math.min(Number(process.env.LUME_ATTEMPT_LIMIT) || 10, 1000));
 const ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
 const BCRYPT_ROUNDS = bcryptRounds(process.env.BCRYPT_ROUNDS);
 
@@ -111,8 +122,8 @@ function readRawBody(request, limit = MAX_BODY_BYTES) {
   });
 }
 
-async function readJsonBody(request) {
-  const text = await readRawBody(request);
+async function readJsonBody(request, limit = MAX_BODY_BYTES) {
+  const text = await readRawBody(request, limit);
   if (!text) return {};
   try {
     return JSON.parse(text);
@@ -135,12 +146,12 @@ function secureCookies(request) {
   return request.headers['x-forwarded-proto'] === 'https';
 }
 
-function tooManyAttempts(key) {
+function tooManyAttempts(key, limit = ATTEMPT_LIMIT) {
   const now = Date.now();
   insertAttempt.run(key, now, now - ATTEMPT_WINDOW_MS, now - ATTEMPT_WINDOW_MS, now);
   const row = findAttempt.get(key);
   clearOldAttempts.run(now - 24 * 60 * 60 * 1000);
-  return (row?.count ?? 0) > ATTEMPT_LIMIT;
+  return (row?.count ?? 0) > limit;
 }
 
 async function currentUser(request) {
@@ -290,6 +301,165 @@ const apiRoutes = new Map([
   ['/api/password/reset', handlePasswordReset],
 ]);
 
+// ---------- Importação de cursos ----------
+
+// Resolve o domínio antes de conectar: impede apontar para a rede interna.
+async function lookupPublicHost(hostname) {
+  const records = await dns.lookup(hostname, { all: true, verbatim: true });
+  return records.map((record) => record.address);
+}
+
+function importFailure(response, error) {
+  const status = error instanceof ImportError ? error.status : 422;
+  return send(response, status, { error: error.message, code: error.code || 'import_failed' });
+}
+
+async function handleImportAnalyze(request, response) {
+  const body = await readJsonBody(request, MAX_IMPORT_BYTES);
+  const url = typeof body.url === 'string' ? body.url.trim() : '';
+  if (!url) return send(response, 400, { error: 'Cole o link do curso para analisar.', code: 'missing_url' });
+  try {
+    const analysis = await analyzeUrl(url, { lookup: lookupPublicHost });
+    const payload = normalizePayload(analysis, { sourceUrl: analysis.sourceUrl || url });
+    return send(response, 200, { status: 'ok', payload, ai: { used: false, reason: 'not_requested' } });
+  } catch (error) {
+    if (error instanceof ImportError) return importFailure(response, error);
+    throw error;
+  }
+}
+
+async function handleImportOrganize(request, response) {
+  const body = await readJsonBody(request, MAX_IMPORT_BYTES);
+  const text = typeof body.text === 'string' ? body.text : '';
+  const title = typeof body.title === 'string' ? body.title : '';
+  const url = typeof body.url === 'string' ? body.url.trim() : '';
+  if (!text.trim()) return send(response, 400, { error: 'Cole a grade do curso para organizar.', code: 'empty_text' });
+  try {
+    const { payload: raw, ai } = await analyzeText(text, { title, env: process.env });
+    const payload = normalizePayload(
+      { ...raw, provider: { id: url ? detectProvider(url).id : 'unknown' }, sourceUrl: url },
+      { sourceUrl: url },
+    );
+    return send(response, 200, { status: 'ok', payload, ai: { used: ai.used, reason: ai.reason || null } });
+  } catch (error) {
+    if (error instanceof ImportError) return importFailure(response, error);
+    throw error;
+  }
+}
+
+const importRoutes = new Map([
+  ['/api/import/analyze', handleImportAnalyze],
+  ['/api/import/organize', handleImportOrganize],
+]);
+
+// ---------- Lume Companion ----------
+
+function companionDb() {
+  return {
+    run: async (sql, params = []) => Number(db.prepare(sql).run(...params).changes ?? 0),
+    first: async (sql, params = []) => db.prepare(sql).get(...params) ?? null,
+    all: async (sql, params = []) => db.prepare(sql).all(...params),
+  };
+}
+
+function bearerToken(request) {
+  const header = request.headers.authorization || '';
+  return header.startsWith('Bearer ') ? header.slice(7).trim() : '';
+}
+
+async function requireCompanionDevice(request, response) {
+  const device = await authenticateDevice(companionDb(), bearerToken(request));
+  if (!device) {
+    send(response, 401, { error: 'Este programa não está mais conectado. Gere um novo código no Lume.', code: 'device_unauthorized' });
+    return null;
+  }
+  return device;
+}
+
+// Sempre responde: quem chama só precisa saber que a rota é do Companion.
+async function handleCompanionRoute(request, response, pathname) {
+  const method = request.method;
+  const dbAdapter = companionDb();
+
+  if (pathname === '/api/companion/redeem') {
+    if (method !== 'POST') return send(response, 405, { error: 'Método não permitido.' }, { Allow: 'POST' });
+    if (tooManyAttempts(`companion-redeem|${request.socket.remoteAddress}`, 20)) {
+      return send(response, 429, { error: 'Muitas tentativas de conexão. Aguarde alguns minutos.', code: 'rate_limited' });
+    }
+    const body = await readJsonBody(request, 8 * 1024);
+    return send(response, 201, await redeemPairCode(dbAdapter, { code: body.code, deviceName: body.deviceName }));
+  }
+
+  if (pathname === '/api/companion/presence' || pathname === '/api/companion/me' || pathname === '/api/companion/study') {
+    const device = await requireCompanionDevice(request, response);
+    if (!device) return true;
+    if (pathname === '/api/companion/me') {
+      if (method !== 'GET') return send(response, 405, { error: 'Método não permitido.' }, { Allow: 'GET' });
+      return send(response, 200, await companionSelf(dbAdapter, device));
+    }
+    if (pathname === '/api/companion/study') {
+      if (method !== 'GET') return send(response, 405, { error: 'Método não permitido.' }, { Allow: 'GET' });
+      return send(response, 200, await studySnapshot(dbAdapter, device));
+    }
+    if (method === 'PUT') {
+      const body = await readJsonBody(request, 8 * 1024);
+      return send(response, 200, await reportPresence(dbAdapter, device, {
+        app: body.app, category: body.category, since: body.since,
+      }));
+    }
+    if (method === 'DELETE') {
+      await clearPresence(dbAdapter, device.id);
+      return send(response, 204, undefined);
+    }
+    return send(response, 405, { error: 'Método não permitido.' }, { Allow: 'PUT, DELETE' });
+  }
+
+  // Daqui para baixo, a autoridade é a sessão do navegador.
+  const user = await currentUser(request);
+  if (!user) return send(response, 401, { error: 'Entre na sua conta para gerenciar o Companion.' });
+  if (!sameOrigin(request)) return send(response, 403, { error: 'Origem não autorizada.' });
+
+  if (pathname === '/api/companion' && method === 'GET') {
+    return send(response, 200, await listCompanion(dbAdapter, user.id));
+  }
+  if (pathname === '/api/companion/pair' && method === 'POST') {
+    return send(response, 201, await createPairCode(dbAdapter, user.id));
+  }
+  if (pathname.startsWith('/api/companion/devices/') && method === 'DELETE') {
+    const deviceId = decodeURIComponent(pathname.slice('/api/companion/devices/'.length));
+    return send(response, 200, await revokeDevice(dbAdapter, user.id, deviceId));
+  }
+  return send(response, 404, { error: 'Rota não encontrada.' });
+}
+
+// ---------- Amigos ----------
+
+async function handleFriendsRoute(request, response, pathname) {
+  const method = request.method;
+  const user = await currentUser(request);
+  if (!user) return send(response, 401, { error: 'Entre na sua conta para convidar amigos.' });
+  if (!sameOrigin(request)) return send(response, 403, { error: 'Origem não autorizada.' });
+
+  if (pathname === '/api/friends' && method === 'GET') {
+    return send(response, 200, await listFriends(companionDb(), user.id));
+  }
+  if (pathname === '/api/friends/invite' && method === 'POST') {
+    return send(response, 201, await createInvite(companionDb(), user.id));
+  }
+  if (pathname === '/api/friends/accept' && method === 'POST') {
+    if (tooManyAttempts(`friends-accept|${user.id}`, 20)) {
+      return send(response, 429, { error: 'Muitas tentativas de convite. Aguarde alguns minutos.', code: 'rate_limited' });
+    }
+    const body = await readJsonBody(request, 4 * 1024);
+    return send(response, 200, await acceptInvite(companionDb(), user.id, body.code));
+  }
+  if (pathname.startsWith('/api/friends/') && method === 'DELETE') {
+    const friendId = decodeURIComponent(pathname.slice('/api/friends/'.length));
+    return send(response, 200, await removeFriend(companionDb(), user.id, friendId));
+  }
+  return send(response, 404, { error: 'Rota não encontrada.' });
+}
+
 const server = http.createServer(async (request, response) => {
   const { pathname } = new URL(request.url, 'http://localhost');
 
@@ -310,7 +480,24 @@ const server = http.createServer(async (request, response) => {
       return request.method === 'GET' ? await handleStateGet(request, response) : await handleStatePut(request, response);
     }
 
+    if (pathname.startsWith('/api/companion')) {
+      return await handleCompanionRoute(request, response, pathname);
+    }
+    if (pathname.startsWith('/api/friends')) {
+      return await handleFriendsRoute(request, response, pathname);
+    }
+
     if (pathname.startsWith('/api/')) {
+      const importHandler = importRoutes.get(pathname);
+      if (importHandler) {
+        if (request.method !== 'POST') return send(response, 405, { error: 'Método não permitido.' }, { Allow: 'POST' });
+        if (!sameOrigin(request)) return send(response, 403, { error: 'Origem não autorizada.' });
+        const importKey = `import|${request.socket.remoteAddress}|${pathname}`;
+        if (tooManyAttempts(importKey, 30)) {
+          return send(response, 429, { error: 'Muitas análises em pouco tempo. Aguarde alguns minutos.', code: 'rate_limited' });
+        }
+        return await importHandler(request, response);
+      }
       const handler = apiRoutes.get(pathname);
       if (!handler) return send(response, 404, { error: 'Rota não encontrada.' });
       if (request.method !== 'POST') return send(response, 405, { error: 'Método não permitido.' }, { Allow: 'POST' });
@@ -327,7 +514,18 @@ const server = http.createServer(async (request, response) => {
       response.end();
       return;
     }
-    const entry = staticFiles.get(pathname);
+    let entry = staticFiles.get(pathname);
+    if (!entry && existsSync(dist)) {
+      for (const file of readdirSync(dist, { recursive: true, withFileTypes: true })) {
+        if (!file.isFile() || file.name.startsWith('_') || file.name.startsWith('.')) continue;
+        const absolute = join(file.parentPath, file.name);
+        const relative = absolute.slice(dist.length).replaceAll('\\', '/');
+        const extension = file.name.split('.').pop();
+        staticFiles.set(`/${relative}`, [absolute, mime[extension] || 'application/octet-stream']);
+      }
+      if (staticFiles.has('/index.html')) staticFiles.set('/', staticFiles.get('/index.html'));
+      entry = staticFiles.get(pathname);
+    }
     if (!entry) {
       response.writeHead(404, { ...baseHeaders, 'Content-Type': 'text/plain; charset=utf-8' });
       response.end('Página não encontrada.');
@@ -338,6 +536,9 @@ const server = http.createServer(async (request, response) => {
     response.end(request.method === 'HEAD' ? undefined : data);
   } catch (error) {
     if (error instanceof ValidationError) return send(response, 400, { error: error.message, field: error.field });
+    if (error instanceof ImportError) return send(response, error.status, { error: error.message, code: error.code });
+    if (error instanceof CompanionError) return send(response, error.status, { error: error.message, code: error.code });
+    if (error instanceof FriendsError) return send(response, error.status, { error: error.message, code: error.code });
     if (error?.status) return send(response, error.status, { error: error.message });
     console.error(error);
     if (!response.headersSent) send(response, 500, { error: 'Não foi possível concluir a operação.' });

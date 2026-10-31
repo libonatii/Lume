@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
+import { motion } from 'motion/react';
 import Icon from './Icon.jsx';
 import { Button, Glow, enter, stagger } from './ui.jsx';
 import { api, apiError } from '../lib/api.js';
@@ -49,7 +49,7 @@ export function Login({ model, mode, setMode, go, notify }) {
     <section className="auth-card" aria-labelledby="login-title">
       <div className="auth-card-top"><span className="eyebrow">{registering ? 'Um novo começo' : 'Que bom te ver'}</span><span className={`session-state state-${model.accountStatus}`}><span className="dot"/>{model.accountStatus === 'checking' ? 'Verificando sessão…' : model.accountStatus === 'offline' ? 'Servidor indisponível' : 'Sessão protegida'}</span></div>
       <div className="segmented" role="group" aria-label="Entrar ou criar conta">{[['login', 'Entrar'], ['register', 'Criar conta']].map(([id, label]) => <button key={id} type="button" aria-pressed={mode === id} onClick={() => { setMode(id); setError(''); }}>{mode === id && <motion.span layoutId="auth-selection" className="segmented-highlight" transition={{ duration: .3, ease: [.22, 1, .36, 1] }}/>}<span>{label}</span></button>)}</div>
-      <AnimatePresence mode="wait" initial={false}><motion.div key={mode} {...enter}>
+      <motion.div key={mode} {...enter}>
         <div className="auth-title"><h2 id="login-title" className="headline">{registering ? 'Vamos criar seu espaço.' : 'Bem-vindo de volta ao Lume.'}</h2><p>{registering ? 'Seu nome, um e-mail e uma senha.' : 'Seu próximo aprendizado está esperando por você.'}</p></div>
         <form id="auth-form" className="form-stack" onSubmit={submit} aria-busy={busy}>
           {registering && <label className="field">Seu nome<input name="name" autoComplete="name" required minLength={2} maxLength={60} placeholder="Como você quer ser chamada"/></label>}
@@ -58,7 +58,7 @@ export function Login({ model, mode, setMode, go, notify }) {
           {error && <p className="form-error" role="alert">{error}</p>}
           <Button type="submit" className="full-width large" disabled={busy || model.accountStatus === 'checking'}>{busy ? 'Um instante…' : registering ? 'Criar minha conta' : 'Entrar e ir além'}<Icon name="arrow"/></Button>
         </form>
-      </motion.div></AnimatePresence>
+      </motion.div>
       <div className="auth-preview"><span className="divider-label">ou</span><p>Prefere olhar primeiro? <button className="text-button accent" onClick={() => { model.enterPreview(); go('inicio'); }}>Explorar a prévia<Icon name="arrow"/></button></p><small>A prévia guarda o progresso só neste navegador.</small></div>
     </section>
   </div>;

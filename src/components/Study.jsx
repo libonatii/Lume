@@ -1,15 +1,21 @@
-import { useState } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
+import { useEffect, useState } from 'react';
+import { motion } from 'motion/react';
 import Atropos from 'atropos/react';
 import { studyRhythm, nextMission, hasPreparation, courseProgress, courseStatus, weekCount, journeyPlan } from '../../public/domain.js';
+import { courseSummary, isImportedCourse, sourceLabel } from '../../public/import-domain.js';
+import {
+  endSession, formatSessionDuration, pauseSession, resumeSession, sessionElapsed,
+  startSession, touchSession,
+} from '../../public/session-domain.js';
 import Icon from './Icon.jsx';
 import { AnimatedNumber, Button, Cover, Empty, Glow, Heading, Progress, Ring, ease, enter } from './ui.jsx';
 
-export function Home({ state, open, go }) {
+export function Home({ state, open, go, update, notify }) {
   const mission = nextMission(state);
   const plan = studyRhythm(state);
   const journey = journeyPlan(state);
-  const prepare = mission && plan.prepareFirst && !hasPreparation(state, mission.step.id);
+  const importedMission = mission ? isImportedCourse(mission.course) : false;
+  const prepare = mission && !importedMission && plan.prepareFirst && !hasPreparation(state, mission.step.id);
   const progress = mission ? courseProgress(state, mission.course) : null;
   const count = weekCount(state);
   return <div className="study-root">
@@ -21,7 +27,7 @@ export function Home({ state, open, go }) {
 
     <section className="hero-bento" aria-labelledby="next-title">
       <div className="study-focus">
-        <Glow palette="lume" speed={.14}/>
+        <Glow palette="lume"/>
         <div className="study-focus-body">
           <div className="study-focus-head">
             <span className="eyebrow on-glow">Ação focal única · {mission?.course.title || 'Seu caminho de descobertas'}</span>
@@ -34,13 +40,17 @@ export function Home({ state, open, go }) {
               <span className="spotlight-icon"><Icon name="focus"/></span>
               <div className="spotlight-copy">
                 <strong>{prepare ? `Preparar o material: ${mission.course.title}` : mission.step.title}</strong>
-                <small>Sem tempo mínimo · {mission.course.example ? 'Curso de exemplo' : 'Registro manual'}</small>
+                <small>Sem tempo mínimo · {mission.course.example ? 'Curso de exemplo' : importedMission ? 'Registro manual da aula' : 'Registro manual'}</small>
               </div>
               {progress && <span className="spotlight-badge">{progress.done}/{progress.total}</span>}
             </div>
             <div className="action-row">
-              <Button onClick={() => open({ type: 'session', id: mission.course.id, preparation: !!prepare })}><Icon name="play"/>{prepare ? 'Preparar meu material' : 'Começar este passo'}</Button>
-              <Button secondary onClick={() => open({ type: 'session', id: mission.course.id, preparation: !prepare })}><Icon name="sprout"/>{prepare ? 'Fazer a etapa completa' : 'Tornar ainda menor'}</Button>
+              {importedMission
+                ? <Button onClick={() => open({ type: 'session', id: mission.course.id, stepId: mission.step.id })}><Icon name="play"/>Abrir próxima aula</Button>
+                : <>
+                  <Button onClick={() => open({ type: 'session', id: mission.course.id, preparation: !!prepare })}><Icon name="play"/>{prepare ? 'Preparar meu material' : 'Começar este passo'}</Button>
+                  <Button secondary onClick={() => open({ type: 'session', id: mission.course.id, preparation: !prepare })}><Icon name="sprout"/>{prepare ? 'Fazer a etapa completa' : 'Tornar ainda menor'}</Button>
+                </>}
             </div>
           </> : <Button onClick={() => go('biblioteca')}>Explorar biblioteca<Icon name="arrow"/></Button>}
         </div>
@@ -61,6 +71,8 @@ export function Home({ state, open, go }) {
         </div>
       </aside>
     </section>
+
+    <StudySession state={state} update={update} mission={mission} notify={notify}/>
 
     <div className="metrics-bento">
       <section className="card-surface metric-card">
@@ -117,22 +129,69 @@ export function Home({ state, open, go }) {
   </div>;
 }
 
+// Sessão declarada: a pessoa inicia e encerra. O relógio é informativo e não
+// concede XP; o batimento de 60 s evita contar dias de aba esquecida.
+function StudySession({ state, update, mission, notify }) {
+  const active = state.activeSession;
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!active) return undefined;
+    setNow(Date.now());
+    const clock = setInterval(() => setNow(Date.now()), 1000);
+    const beat = setInterval(() => update((previous) => touchSession(previous)), 60000);
+    return () => { clearInterval(clock); clearInterval(beat); };
+  }, [active?.id, active?.status, update]);
+
+  const elapsed = active ? sessionElapsed(active, now) : 0;
+  const begin = () => update((previous) => startSession(previous, {
+    courseId: mission?.course?.id || '',
+    stepId: mission?.step?.id || '',
+    label: mission ? mission.step.title : 'Estudo livre',
+  }));
+  const finish = () => {
+    const result = endSession(state);
+    update(result.state);
+    if (result.session) notify(`Sessão registrada: ${formatSessionDuration(result.session.durationMs)}. Tempo declarado, sem XP.`);
+  };
+
+  return <section className={`card-surface session-bar ${active ? 'is-active' : ''}`} aria-labelledby="session-title">
+    <span className={`session-dot ${active?.status === 'paused' ? 'is-paused' : ''}`} aria-hidden="true"/>
+    <div className="session-copy">
+      <span className="eyebrow">{active ? (active.status === 'active' ? 'Em sessão' : 'Sessão pausada') : 'Sessão de estudo'}</span>
+      <h2 id="session-title" className="title">{active ? active.label : 'Estou estudando agora'}</h2>
+      <p className="muted-text">{active
+        ? <>Tempo declarado: <strong className="session-clock" role="timer" aria-label="Tempo da sessão">{formatSessionDuration(elapsed)}</strong> · {active.courseId ? 'vinculado ao seu material' : 'sem material vinculado'}</>
+        : 'Um tempo que você inicia, pausa e encerra. Não é observação de atividade e não gera XP.'}</p>
+    </div>
+    <div className="session-controls">
+      {!active && <Button onClick={begin}><Icon name="play"/>Começar sessão</Button>}
+      {active && <Button secondary onClick={() => update((previous) => active.status === 'active' ? pauseSession(previous) : resumeSession(previous))}><Icon name={active.status === 'active' ? 'pause' : 'play'}/>{active.status === 'active' ? 'Pausar' : 'Retomar'}</Button>}
+      {active && <Button onClick={finish}><Icon name="check"/>Encerrar sessão</Button>}
+    </div>
+  </section>;
+}
+
 const statuses = { all: 'Todos', active: 'Em andamento', new: 'Para começar', paused: 'Em pausa', completed: 'Concluídos' };
 
 export function CourseCard({ course, state, open }) {
   const progress = courseProgress(state, course);
   const status = courseStatus(state, course);
   const art = ['design', 'code', 'language', 'nature'].includes(course.art) ? course.art : 'nature';
-  return <motion.button layout="position" {...enter} whileHover={{ y: -4 }} whileTap={{ scale: .99 }} className={`course-card ${state.selectedCourseId === course.id ? 'selected-course' : ''}`} onClick={() => open({ type: 'course', id: course.id })} aria-label={`${course.title}, ${statuses[status]}, ${progress.done} de ${progress.total} etapas`}>
+  const imported = isImportedCourse(course);
+  const summary = imported ? courseSummary(state, course) : null;
+  const scope = imported ? `${summary.done} de ${summary.total} aulas` : `${progress.done} de ${progress.total} etapas`;
+  return <motion.button {...enter} whileHover={{ y: -4 }} whileTap={{ scale: .99 }} className={`course-card ${state.selectedCourseId === course.id ? 'selected-course' : ''}`} onClick={() => open({ type: 'course', id: course.id })} aria-label={`${course.title}, ${statuses[status]}, ${scope}`}>
     <div className="course-image">
       <Cover art={art}/>
       <span className={`course-status status-${status}`}>{statuses[status]}</span>
+      {imported && <span className="course-source-chip">{sourceLabel(course.source)}</span>}
       {course.resumeAt && <span className="course-resume-chip"><Icon name="return"/>{course.resumeAt}</span>}
     </div>
     <div className="course-card-body">
       <h3 className="title">{course.title}</h3>
-      <p className="course-description">{course.category}{course.example ? ' · Exemplo' : ''}</p>
-      <div className="course-progress-label"><span>{progress.done} de {progress.total} etapas</span><strong>{progress.percent}%</strong></div>
+      <p className="course-description">{imported ? sourceLabel(course.source) : course.category}{course.example ? ' · Exemplo' : ''}{imported && summary.partial ? ' · grade parcial' : ''}</p>
+      <div className="course-progress-label"><span>{scope}</span><strong>{progress.percent}%</strong></div>
       <Progress value={progress.percent} tone={status === 'completed' ? 'mint' : 'lume'} label={`Progresso de ${course.title}`}/>
     </div>
   </motion.button>;
@@ -171,10 +230,10 @@ export function Library({ state, open }) {
           <h2 className="headline">Minha estante <span className="shelf-count">{state.courses.length} trilhas</span></h2>
           <div role="status" className="search-result-count">{courses.length} {courses.length === 1 ? 'trilha encontrada' : 'trilhas encontradas'}</div>
         </div>
-        <motion.div layout className="course-grid" id="library-results">
-          <AnimatePresence initial={false} mode="sync">{courses.map(course => <CourseCard key={course.id} course={course} state={state} open={open}/>)}</AnimatePresence>
+        <div className="course-grid" id="library-results">
+          {courses.map(course => <CourseCard key={course.id} course={course} state={state} open={open}/>)}
           {!courses.length && <Empty title="Nenhum curso por aqui. Ainda." onAdd={() => open({ type: 'new' })}>Tente outro filtro ou adicione algo que você quer aprender.</Empty>}
-        </motion.div>
+        </div>
         <p className="quiet-note">Capas ilustrativas. Os cursos de exemplo não incluem aulas.</p>
       </section>
 
@@ -190,7 +249,9 @@ export function Library({ state, open }) {
           </div>
         </Atropos>
         <Button className="full-width" onClick={() => open({ type: next ? 'session' : 'course', id: selected.id })}><Icon name={next ? 'play' : 'book'}/>{next ? 'Continuar meu próximo passo' : 'Ver detalhes da trilha'}</Button>
-        <Steps course={selected} state={state}/>
+        {isImportedCourse(selected)
+          ? <ImportedInspector course={selected} state={state}/>
+          : <Steps course={selected} state={state}/>}
         <Progress value={courseProgress(state, selected).percent} tone="lume" label={`Progresso de ${selected.title}`}/>
         <p className="quiet-note">Ritmo livre · sem pressa. Não há penalidades por pausas.</p>
       </aside>}
@@ -207,4 +268,21 @@ export function Steps({ course, state }) {
       <span className="step-copy">{step.title}{prepared && <small className="preparation-label">Material preparado</small>}</span>
     </li>;
   })}</ol>;
+}
+
+// Resumo compacto no painel da biblioteca. A lista completa fica no diálogo do
+// curso, para o painel continuar curto no celular.
+function ImportedInspector({ course, state }) {
+  const summary = courseSummary(state, course);
+  return <div className="import-inspector">
+    <p className="quiet-note">{sourceLabel(course.source)} · {summary.disciplines.length} {summary.disciplines.length === 1 ? 'área' : 'áreas'} · {summary.total} aulas selecionadas</p>
+    {summary.next
+      ? <p className="import-inspector-next"><Icon name="play"/><span>Próxima aula: <strong>{summary.next.title}</strong></span></p>
+      : <p className="import-inspector-next"><Icon name="check"/><span>Áreas selecionadas concluídas. O curso inteiro pode ter mais conteúdo.</span></p>}
+    <ul className="import-inspector-areas">
+      {summary.disciplines.slice(0, 4).map((discipline) => <li key={discipline.id}><span>{discipline.title}</span><strong>{discipline.done}/{discipline.total}</strong></li>)}
+    </ul>
+    {summary.disciplines.length > 4 && <p className="quiet-note">+ {summary.disciplines.length - 4} áreas no detalhe do curso.</p>}
+    {summary.partial && <p className="inline-note"><Icon name="help"/><span>Grade parcial: o curso pode ter mais conteúdo do que o encontrado.</span></p>}
+  </div>;
 }

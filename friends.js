@@ -1,0 +1,142 @@
+// Amizades por convite.
+//
+// Decisões de privacidade:
+// - não existe busca por e-mail: criar conta no Lume não fica descobrível;
+// - o convite é um código de uso único que a pessoa compartilha como quiser;
+// - a amizade não libera biblioteca, progresso, XP nem histórico;
+// - convidar, aceitar ou remover não concedem XP.
+
+import { hashSessionToken } from './auth.js';
+
+export const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+export const INVITE_CODE_LENGTH = 12;
+export const MAX_FRIENDS = 200;
+const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+export class FriendsError extends Error {
+  constructor(message, code = 'friends_error', status = 400) {
+    super(message);
+    this.name = 'FriendsError';
+    this.code = code;
+    this.status = status;
+  }
+}
+
+function iso(now) {
+  return new Date(now).toISOString();
+}
+
+export function generateInviteCode(randomValues = crypto.getRandomValues(new Uint8Array(INVITE_CODE_LENGTH))) {
+  let code = '';
+  for (const byte of randomValues) code += CODE_ALPHABET[byte % CODE_ALPHABET.length];
+  return code;
+}
+
+export function normalizeInviteCode(value) {
+  return String(value ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+export function formatInviteCode(code) {
+  return normalizeInviteCode(code).match(/.{1,4}/g)?.join('-') || '';
+}
+
+export async function createInvite(db, userId, now = Date.now()) {
+  if (!userId) throw new FriendsError('Entre na sua conta para convidar alguém.', 'unauthenticated', 401);
+  const code = generateInviteCode();
+  const codeHash = await hashSessionToken(normalizeInviteCode(code));
+  // Um convite por vez: o último gerado é o que vale, para não deixar códigos
+  // esquecidos circulando.
+  await db.run('DELETE FROM friend_invites WHERE user_id = ? AND used_at IS NULL', [userId]);
+  await db.run(
+    'INSERT INTO friend_invites (code_hash, user_id, created_at, expires_at, used_at, used_by) VALUES (?, ?, ?, ?, NULL, NULL)',
+    [codeHash, userId, iso(now), iso(now + INVITE_TTL_MS)],
+  );
+  return { code: formatInviteCode(code), expiresAt: iso(now + INVITE_TTL_MS), ttlSeconds: Math.round(INVITE_TTL_MS / 1000) };
+}
+
+export async function acceptInvite(db, userId, rawCode, now = Date.now()) {
+  if (!userId) throw new FriendsError('Entre na sua conta para aceitar o convite.', 'unauthenticated', 401);
+  const code = normalizeInviteCode(rawCode);
+  if (code.length !== INVITE_CODE_LENGTH) {
+    throw new FriendsError('O convite tem 12 caracteres. Confira e tente de novo.', 'invalid_code', 400);
+  }
+  const codeHash = await hashSessionToken(code);
+  const invite = await db.first('SELECT user_id, expires_at, used_at FROM friend_invites WHERE code_hash = ?', [codeHash]);
+  if (!invite) throw new FriendsError('Convite não encontrado. Peça um novo link a quem convidou.', 'invalid_code', 400);
+  if (invite.used_at) throw new FriendsError('Este convite já foi usado. Peça outro.', 'used_code', 400);
+  if (Date.parse(invite.expires_at) <= now) throw new FriendsError('Este convite expirou. Peça outro.', 'expired_code', 400);
+  if (invite.user_id === userId) throw new FriendsError('Você não pode aceitar o seu próprio convite.', 'self_invite', 400);
+
+  const count = await db.first('SELECT COUNT(*) AS total FROM friendships WHERE user_id = ?', [userId]);
+  if (Number(count?.total ?? 0) >= MAX_FRIENDS) {
+    throw new FriendsError(`Sua lista já tem ${MAX_FRIENDS} amigos.`, 'friend_limit', 409);
+  }
+
+  const existing = await db.first('SELECT 1 AS ok FROM friendships WHERE user_id = ? AND friend_id = ?', [userId, invite.user_id]);
+  if (existing) {
+    return { alreadyFriends: true, friend: await publicFriend(db, invite.user_id), friendId: invite.user_id };
+  }
+
+  // Uso único garantido pela condição no UPDATE.
+  const consumed = await db.run(
+    'UPDATE friend_invites SET used_at = ?, used_by = ? WHERE code_hash = ? AND used_at IS NULL',
+    [iso(now), userId, codeHash],
+  );
+  if (consumed !== 1) throw new FriendsError('Este convite já foi usado. Peça outro.', 'used_code', 400);
+
+  await db.run('INSERT INTO friendships (user_id, friend_id, created_at) VALUES (?, ?, ?)', [userId, invite.user_id, iso(now)]);
+  await db.run('INSERT INTO friendships (user_id, friend_id, created_at) VALUES (?, ?, ?)', [invite.user_id, userId, iso(now)]);
+
+  return { alreadyFriends: false, friend: await publicFriend(db, invite.user_id), friendId: invite.user_id };
+}
+
+async function publicFriend(db, userId) {
+  const row = await db.first('SELECT id, name FROM users WHERE id = ?', [userId]);
+  return row ? { id: row.id, name: row.name } : { id: userId, name: 'Pessoa do Lume' };
+}
+
+export async function listFriends(db, userId, now = Date.now()) {
+  if (!userId) throw new FriendsError('Entre na sua conta para ver seus amigos.', 'unauthenticated', 401);
+  const friends = await db.all(
+    `SELECT u.id, u.name, f.created_at AS since
+       FROM friendships f JOIN users u ON u.id = f.friend_id
+      WHERE f.user_id = ?
+      ORDER BY u.name COLLATE NOCASE`,
+    [userId],
+  );
+  const invites = await db.all(
+    `SELECT created_at, expires_at, used_at FROM friend_invites
+      WHERE user_id = ? ORDER BY created_at DESC LIMIT 10`,
+    [userId],
+  );
+  return {
+    friends: friends.map((row) => ({ id: row.id, name: row.name, since: row.since })),
+    invites: invites.map((row) => ({
+      createdAt: row.created_at,
+      expiresAt: row.expires_at,
+      used: Boolean(row.used_at),
+      expired: Date.parse(row.expires_at) <= now,
+    })),
+    maxFriends: MAX_FRIENDS,
+  };
+}
+
+export async function removeFriend(db, userId, friendId) {
+  if (!userId) throw new FriendsError('Entre na sua conta.', 'unauthenticated', 401);
+  if (!friendId || typeof friendId !== 'string') throw new FriendsError('Amizade inválida.', 'invalid_friend', 400);
+  const exists = await db.first('SELECT 1 AS ok FROM friendships WHERE user_id = ? AND friend_id = ?', [userId, friendId]);
+  if (!exists) throw new FriendsError('Essa pessoa não está na sua lista.', 'not_found', 404);
+  await db.run('DELETE FROM friendships WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)', [userId, friendId, friendId, userId]);
+  return { removed: true, friendId };
+}
+
+// Amizade não é compartilhamento: nada da biblioteca é exposto por aqui.
+export function friendshipPolicy() {
+  return {
+    sharesLibrary: false,
+    sharesProgress: false,
+    grantsXp: false,
+    invitesAreSingleUse: true,
+    inviteTtlDays: Math.round(INVITE_TTL_MS / 86400000),
+  };
+}

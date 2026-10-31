@@ -6,11 +6,15 @@
 
 ## Referências do produto
 
-Leia nesta ordem: [Produto](docs/PRODUTO.md), [Gamificação](docs/GAMIFICACAO.md) e [Continuidade](docs/CONTINUIDADE.md). As [instruções para colaboradores](AGENTS.md) descrevem os cuidados com dados, integrações e verificação.
+Leia nesta ordem: [Produto](docs/PRODUTO.md), [Gamificação](docs/GAMIFICACAO.md) e [Continuidade](docs/CONTINUIDADE.md). A [importação de cursos](docs/IMPORTACAO.md) descreve o fluxo por link, as fontes verificadas e suas limitações; o [Lume Companion](docs/COMPANHEIRO.md) descreve o programa de desktop, a presença local e o roteiro por prioridade. As [instruções para colaboradores](AGENTS.md) descrevem os cuidados com dados, integrações e verificação.
 
 A gamificação desejada reconhece estudo efetivo e conclusões. O código ainda preserva o **modelo legado de 5 XP por preparação e 10 XP por etapa**, sem migrar nem reinterpretar os registros antigos. Esses valores não são uma implementação da nova política nem podem alimentar um ranking compartilhado.
 
 O onboarding tem três jornadas com sequências próprias: **Quero começar** (assunto, resultado, material e tempo de sessão), **Estudo de vez em quando** (materiais em andamento, prioridade e ponto de retomada) e **Estudo com frequência** (áreas, rotina, o que está em andamento e o que acompanhar). Cada uma cria um primeiro material concreto e um plano sugerido. Concluir o onboarding não concede XP.
+
+A biblioteca aceita **importação por link** em uma entrada única: o servidor lê a página pública, identifica disciplinas, módulos e aulas e a pessoa escolhe as áreas antes de adicionar. Quando a fonte exige login, publica só contagens ou bloqueia acesso automatizado, o caminho é colar a grade ou enviar um arquivo — nunca digitar aula por aula. Importar e atualizar a grade não gera XP; a conclusão das aulas importadas é registro manual identificado. Detalhes e limitações por plataforma em [Importação](docs/IMPORTACAO.md).
+
+A página Hoje tem uma **sessão de estudo declarada**: a pessoa inicia, pausa e encerra um relógio vinculado ao material, com histórico em Meu caminho. Não é observação de atividade e não gera XP. **Amigos** funcionam por convite de uso único, sem busca por e-mail e sem compartilhar biblioteca ou progresso. O **Lume Companion** é um programa de desktop opcional que informa qual aplicativo autorizado está aberto, quantas aulas faltam e o próximo passo por prioridade — também sem XP. Bandeja e instalador do programa ainda não existem; ver [Companion](docs/COMPANHEIRO.md).
 
 ## Stack e interações
 
@@ -20,7 +24,7 @@ O onboarding tem três jornadas com sequências próprias: **Quero começar** (a
 - **Motion** anima seleção de ritmo, destaque do menu e dos filtros, reorganização dos cartões, contadores com mola (`AnimatedNumber`), progresso, diálogos, avisos e respostas dos botões.
 - **Paper Shaders (`@paper-design/shaders-react`)**, listada na [FGLibs](https://fglibs.com/), projeta campos de luz ambiente em WebGL2 (`MeshGradient`) no painel de entrada, na ação focal do estudo, no resumo do plano e nas celebrações, com fallback estático em CSS.
 - **Atropos (`atropos`)**, listada na [FGLibs](https://fglibs.com/), adiciona profundidade e inclinação tátil suave à capa da trilha em foco na Biblioteca e aos selos conquistados na vitrine.
-- O sistema visual unificado (`public/lume.css`) aplica a direção editorial **"Luz Quente sobre Ardósia"** (temas escuro *Noite Acolhedora* e claro *Papel Quente*) em todas as 9 rotas, combinando títulos na serifada variável **Fraunces** (`@fontsource-variable/fraunces`) com interface em **Plus Jakarta Sans** local.
+- O sistema visual unificado (`public/lume.css`) aplica a paleta em tons de azul-safira e índigo profundo no tema escuro (`#080d17`, superfícies `#111c30`, acentos em azul luminoso `#5ea8ff` e menta `#4de0b8`) e gelo azulado no tema claro (`#f1f6fd`, acento `#2563eb`) em todas as 9 rotas, combinando títulos na serifada variável **Fraunces** (`@fontsource-variable/fraunces`) com interface em **Plus Jakarta Sans** local.
 - Por decisão explícita da responsável, **não há modo essencial nem tratamento de movimento reduzido**. Preferências antigas permanecem nos dados apenas para compatibilidade.
 - A API existente continua no **Cloudflare Worker com D1**, ou no servidor Node local. O frontend não exige renderização no servidor.
 
@@ -61,21 +65,23 @@ npm run build
 npm run test:e2e
 ```
 
-Os testes de navegador usam Chrome instalado, em modo headless, com desktop e viewport móvel. Uma base SQLite separada em `data/e2e-*` impede alterações nas contas locais existentes. Os cenários verificam dados legados, prévia, teclado, busca, filtros, criação de curso, progresso, preferências, cadastro, entrada, saída, sincronização e recuperação de senha. Os rastros de falhas ficam em `test-results/`, ignorado no Git.
+Os testes de navegador usam Chrome instalado, em modo headless, com desktop e viewport móvel. Uma base SQLite separada em `data/e2e-*` impede alterações nas contas locais existentes. Os cenários verificam dados legados, prévia, teclado, busca, filtros, importação por texto, análise de link simulada por interceptação de rota, seleção parcial, reimportação, progresso manual, sessão declarada, importação de conta isolada, convite entre duas contas, Companion (pareamento, presença e revogação), preferências, cadastro, entrada, saída, sincronização e recuperação de senha. Os rastros de falhas ficam em `test-results/`, ignorado no Git. O servidor de teste sobe com `LUME_ATTEMPT_LIMIT=200` para não esbarrar no limite de tentativas compartilhado pelo endereço local; o padrão continua 10.
 
-Na migração, passaram o build, os **23 testes de domínio/autenticação** e os **seis cenários de navegador**. A revisão posterior de README e Continuidade foi apenas documental, com conferência de coerência, caminhos e links.
+Nesta rodada passaram o build, os **74 testes de domínio/autenticação/importação/Companion/sessão/amigos** e os **26 cenários de navegador** (13 por projeto, desktop e celular). A extração real de páginas foi conferida com acessos à Coursera, Alura, Rocketseat, DIO e Udemy; o resultado está documentado em [Importação](docs/IMPORTACAO.md#4-o-que-foi-realmente-verificado-nesta-rodada).
 
 ## Dados e limites atuais
 
-O formato e a chave `lume.prototype.v1` são preservados, assim como cursos, histórico, XP e conquistas legadas. As contas usam cookies HttpOnly e a sincronização básica envia uma cópia do progresso por `/api/state`. Há cópia local, exportação JSON e cópias anteriores ao carregamento da conta/saída. **Não existe reconciliação de conflitos entre dispositivos nem validação de XP no servidor.** O armazenamento do protótipo continua inadequado como autoridade de placares.
+O formato e a chave `lume.prototype.v1` são preservados, assim como cursos, histórico, XP e conquistas legadas. As contas usam cookies HttpOnly e a sincronização básica envia uma cópia do progresso por `/api/state`. Há cópia local, exportação JSON e cópias anteriores ao carregamento da conta/saída. **Não existe reconciliação de conflitos entre dispositivos nem validação de XP no servidor.** O armazenamento do protótipo continua inadequado como autoridade de placares. Cursos importados acrescentam `structure`, `source`, `studyLog` e `imports` ao mesmo documento, sem alterar a versão; sessões declaradas usam `activeSession` e `studySessions`. Dados antigos sem esses campos continuam válidos.
 
-Cadastro, login, saída e recuperação por link funcionam na API local. O envio de e-mail ainda não está implementado. No ambiente público, o link de recuperação não é mostrado na resposta quando `SHOW_RESET_LINK` é `false`; o transporte precisa evoluir. A prévia continua disponível sem conta. Os cursos iniciais são exemplos, sem aulas hospedadas. A importação de dados pela interface ainda não existe.
+O banco ganhou `companion_devices`, `companion_pair_codes`, `companion_presence`, `friendships` e `friend_invites`. Tokens de dispositivo, códigos de convite e códigos de pareamento são guardados apenas como hash. Presença expira em 90 segundos sem batimento e amizade não compartilha biblioteca nem progresso.
 
-Amigos, grupos, colaboração, ranking com suas três classificações, integrações, retomada automática e conquistas personalizadas continuam planejados. A migração da stack não implementa esses recursos nem altera a política de pontuação em execução.
+Cadastro, login, saída e recuperação por link funcionam na API local. O envio de e-mail ainda não está implementado. No ambiente público, o link de recuperação não é mostrado na resposta quando `SHOW_RESET_LINK` é `false`; o transporte precisa evoluir. A prévia continua disponível sem conta. Os cursos iniciais são exemplos, sem aulas hospedadas. A importação de cursos por link existe e é documentada em [Importação](docs/IMPORTACAO.md); a análise depende do que cada plataforma publica e não contorna login.
+
+Amigos, grupos, colaboração, ranking com suas três classificações, progresso automático das plataformas, retomada de posição e conquistas personalizadas continuam planejados. A conexão com o GitHub também não existe: há apenas o formato de sugestões de entrega que exige validação. A migração da stack não implementa esses recursos nem altera a política de pontuação em execução.
 
 ## Hospedagem
 
-O endereço de referência é [lume.lume-prototype.workers.dev](https://lume.lume-prototype.workers.dev), que responde com o build React/Astro e mantém o backend e os vínculos com D1. A configuração de Wrangler gera o build antes de publicar e envia `dist/`. Alterações feitas depois de uma publicação só aparecem no site público com um novo `npx wrangler deploy`. Nenhum plano pago foi ativado.
+O endereço de referência é [lume.lume-prototype.workers.dev](https://lume.lume-prototype.workers.dev), que responde com o build React/Astro e mantém o backend e os vínculos com D1. A configuração de Wrangler gera o build antes de publicar e envia `dist/`. A publicação atual inclui o sistema visual novo de `public/lume.css`; alterações feitas depois dela só aparecem no site público com um novo `npx wrangler deploy`. Nenhum plano pago foi ativado.
 
 O build gera hashes CSP dos scripts e estilos inline exatos do Astro e grava `dist/_headers`, utilizado também pelo servidor Node. Não libera execução genérica de scripts inline.
 
@@ -98,6 +104,13 @@ Verificação desta troca: testes de autenticação/domínio, build estático, b
 | `src/hooks/useLume.js` | Estado persistente, sessão e sincronização básica |
 | `src/lib/api.js` | Cliente das APIs existentes |
 | `public/domain.js` | Domínio legado e restauração dos dados, preservados |
+| `public/import-domain.js` | Regras de importação: provedores, normalização, mesclagem, progresso de aulas |
+| `public/session-domain.js` | Sessão declarada: início, pausa, expiração e histórico |
+| `public/study-plan.js` | Roteiro por prioridade e contagem de aulas restantes |
+| `public/companion-domain.js` | Regras do Companion: allowlist, presença e categorias |
+| `import-server.js` | Análise de fontes no servidor: validação de URL, limites, extração e organizador por IA |
+| `companion.js` / `companion/` | Pareamento, presença e roteiro; agente local do Windows |
+| `friends.js` | Convites, amizades e remoção |
 | `public/*.css` | Estilos, sistema visual do Stitch e interações |
 | `public/assets/` | Fontes e imagens locais |
 | `auth.js` | Validação, derivação de senha, tokens e cookies |
@@ -106,3 +119,4 @@ Verificação desta troca: testes de autenticação/domínio, build estático, b
 | `migrations/` | Esquema do banco existente |
 | `scripts/` | Desenvolvimento e geração de cabeçalhos CSP |
 | `tests/e2e/` | Verificação dos fluxos no navegador |
+| `docs/` | Produto, gamificação, continuidade e importação |

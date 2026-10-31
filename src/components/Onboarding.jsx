@@ -51,7 +51,7 @@ export default function Onboarding({ state, update, go, notify }) {
   function persist(patch, nextStep) {
     const merged = { ...answers, ...patch };
     setAnswers(merged);
-    update(previous => saveOnboardingAnswer(previous, patch, nextStep));
+    update(previous => saveOnboardingAnswer(previous, merged, nextStep));
   }
 
   function choose(id) {
@@ -171,7 +171,7 @@ export default function Onboarding({ state, update, go, notify }) {
           <p className="muted-text">Este é o começo sugerido para o seu momento. Nada aqui é obrigatório e você pode ajustar depois.</p>
         </header>
         <div className="plan-summary-card">
-          <Glow palette="mint" speed={.12}/>
+          <Glow palette="mint"/>
           <div className="plan-summary-body">
             <span className="eyebrow on-glow">Resumo da sua jornada</span>
             <strong className="title">{studyRhythm({ ...state, habit: journey }).title}</strong>

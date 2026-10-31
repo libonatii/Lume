@@ -14,23 +14,27 @@ A aplicação usa Astro, React e Motion. O Astro gera arquivos estáticos em `di
 | --- | --- |
 | Entrada | Cadastro, login e saída com e-mail e senha; prévia local mantida como caminho alternativo, sem conta |
 | Ritmo de estudo | Três jornadas de onboarding com sequências próprias (Quero começar, Estudo de vez em quando, Estudo com frequência), apoios opcionais, etapa social dispensável e retomada de onde parou. O estado fica em `onboarding` no documento da conta |
-| Biblioteca | Cursos/assuntos com etapas, busca, filtros, pausa e links |
-| Progresso | Registro local de conclusão de etapas e preparação; o documento de estudo é sincronizado por conta no D1 |
-| Gamificação | Modelo legado: 5 XP por preparação, 10 XP por etapa, nível a cada 100 XP |
+| Biblioteca | Cursos/assuntos com etapas, busca, filtros, pausa e links; cursos importados por link têm disciplinas, módulos, aulas, progresso por área, próxima aula e origem do registro |
+| Progresso | Registro local de conclusão de etapas e preparação; o documento de estudo é sincronizado por conta no D1. Aulas importadas usam registro manual em `studyLog`, sem XP |
+| Gamificação | Modelo legado: 5 XP por preparação, 10 XP por etapa, nível a cada 100 XP. Aulas importadas não reutilizam essas recompensas |
 | Conquistas | Selos genéricos do protótipo, incluindo ações que não serão elegíveis na nova política |
-| Histórico | Dados no navegador e exportação JSON |
-| Visual | Sistema visual unificado (`public/lume.css`) com direção editorial "Luz Quente sobre Ardósia" (temas escuro e claro) em todas as 9 rotas, tipografia Fraunces Variable + Plus Jakarta Sans e bibliotecas do catálogo FGLibs (`motion`, `@paper-design/shaders-react` e `atropos`). Por decisão explícita da responsável, não há modo essencial nem tratamento de movimento reduzido |
+| Histórico | Dados no navegador e exportação JSON; histórico de importações em `imports` |
+| Visual | Sistema visual unificado (`public/lume.css`) com paleta azul-safira e índigo (temas escuro e claro) em todas as 9 rotas, tipografia Fraunces Variable + Plus Jakarta Sans e bibliotecas do catálogo FGLibs (`motion`, `@paper-design/shaders-react` e `atropos`). Por decisão explícita da responsável, não há modo essencial nem tratamento de movimento reduzido |
 | Contas e sincronização | Cadastro, login, saída e recuperação de senha implementados em `auth.js`, com sessão em cookie `HttpOnly` e limite de tentativas no banco. Há sincronização básica de uma cópia do progresso por `/api/state`, com persistência local e em D1; conflitos entre dispositivos e validação de XP no servidor permanecem pendentes |
+| Importação de cursos | Entrada única por link com adaptadores por plataforma, revisão por áreas e fallback por texto/arquivo. Extração depende do que a fonte publica; ver [Importação](IMPORTACAO.md) |
+| Sessão de estudo declarada | Início, pausa, retomada e encerramento com relógio e histórico de sessões. Não é observação e não gera XP |
+| Lume Companion | Agente Windows que lê apenas processos da allowlist, pareia por código e envia presença com expiração. Expõe contagem de aulas e roteiro por prioridade, somente leitura; ver [Companion](COMPANHEIRO.md) |
 | Hospedagem | Ambiente público de referência em `lume.lume-prototype.workers.dev`, com Cloudflare Workers e D1. A migração React + Astro e a troca para bcrypt com custo 6 estão no código local; sua publicação e medição de CPU em produção continuam pendentes. Hashes PBKDF2 antigos mantêm seu custo original até redefinir a senha. Não há domínio próprio registrado |
 | Envio de e-mail | Não implementado. No servidor local, o link de recuperação pode voltar na resposta e aparece no console; no Worker configurado com `SHOW_RESET_LINK=false`, não volta na resposta e fica no log do servidor |
-| Amigos, grupos e comunicação | Não implementados |
+| Amigos | Convite por código de uso único, aceite, lista e remoção implementados. Não há busca por e-mail nem compartilhamento de biblioteca |
+| Grupos, feed e comunicação | Não implementados |
 | Placares compartilhados | Não implementados |
 | Ranking | Não implementado |
-| GitHub e outras integrações | Não implementadas |
-| Captura de posição de vídeo/leitura | Não implementada |
+| GitHub e outras integrações | Modelo de sugestões de entrega e capacidades declaradas no código; conexão, leitura de repositórios e colaboração não implementadas |
+| Captura de posição de vídeo/leitura e progresso automático | Não implementadas. Nenhuma fonte importada permite consultar aulas assistidas; a conclusão é manual e identificada |
 | Conquistas personalizadas por material | Não implementadas como sistema da nova política |
 
-O nome “curso” no protótipo pode representar um assunto com tarefas arbitrárias. Isso ainda não é o modelo de curso com aulas e critérios de conclusão definido para o produto.
+O nome “curso” no protótipo pode representar um assunto com tarefas arbitrárias. Isso ainda não é o modelo de curso com aulas e critérios de conclusão definido para o produto. A importação introduziu um formato tipado (`structure` com disciplinas, módulos e aulas) sem substituir os cursos antigos: os dois formatos convivem, e as telas reconhecem cada um.
 
 ### Execução local e retomada
 
@@ -56,7 +60,7 @@ O CSS do Stitch não foi reescrito à mão: `public/stitch.css` é gerado a part
 
 As telas de Entrada, Ritmo de Estudo, Hoje e Biblioteca usam essa marcação dentro do escopo `[data-stitch]`, para que os utilitários não colidam com o CSS anterior das telas ainda não convertidas. Modo essencial e tratamento de movimento reduzido foram removidos por solicitação explícita da responsável.
 
-O design foi redesenhado e unificado em `public/lume.css` sob a direção **"Luz Quente sobre Ardósia"**, eliminando a divisão anterior entre telas com utilitários do Stitch e telas no CSS legado. Todas as 9 rotas (`login`, `inicio`, `hoje`, `biblioteca`, `missoes`, `conquistas`, `historico`, `configuracoes` e `recuperar`/`redefinir`) compartilham a mesma hierarquia tipográfica (**Fraunces Variable** + **Plus Jakarta Sans**), paleta de alto conforto visual (tema escuro *Noite Acolhedora* `#0e0d14` com acentos âmbar `#f6b94a` e menta `#5fe0b4`, e tema claro *Papel Quente* `#f7f3ea`), cartões Bento táteis, anéis de progresso e navegação responsiva (barra lateral no desktop e barra inferior no celular). As bibliotecas compatíveis com React e Astro selecionadas no catálogo da [FGLibs](https://fglibs.com/) são **Motion** (`motion`, incluindo contadores `AnimatedNumber` no padrão da **Motion-Primitives**), **Paper Shaders** (`@paper-design/shaders-react`, com `MeshGradient` WebGL2 e fallback CSS compatível com CSP) e **Atropos** (`atropos`, para profundidade tátil na Biblioteca e nas Conquistas), além das curvas finitas inspiradas na [Arc Library](https://uiarc.dev/docs/motion).
+O design foi redesenhado e unificado em `public/lume.css`, eliminando a divisão anterior entre telas com utilitários do Stitch e telas no CSS legado. Todas as 9 rotas (`login`, `inicio`, `hoje`, `biblioteca`, `missoes`, `conquistas`, `historico`, `configuracoes` e `recuperar`/`redefinir`) compartilham a mesma hierarquia tipográfica (**Fraunces Variable** + **Plus Jakarta Sans**), paleta em tons de azul-safira e índigo de alto conforto visual (tema escuro `#080d17` com acentos em azul luminoso `#5ea8ff` e menta `#4de0b8`, e tema claro gelo azulado `#f1f6fd` com acento `#2563eb`), cartões Bento táteis, anéis de progresso e navegação responsiva (barra lateral no desktop e barra inferior no celular). As bibliotecas compatíveis com React e Astro selecionadas no catálogo da [FGLibs](https://fglibs.com/) são **Motion** (`motion`, incluindo contadores `AnimatedNumber` no padrão da **Motion-Primitives**), **Paper Shaders** (`@paper-design/shaders-react`, com `MeshGradient` WebGL2 estático e fallback CSS compatível com CSP) e **Atropos** (`atropos`, para profundidade tátil na Biblioteca e nas Conquistas), além das curvas finitas inspiradas na [Arc Library](https://uiarc.dev/docs/motion).
 
 ### Jornadas de onboarding
 
@@ -69,6 +73,24 @@ A escolha do ritmo não é só um título: cada jornada tem perguntas, configura
 O estado do onboarding é versionado em `onboarding` (status, jornada, etapa, respostas, datas) e salvo no documento da conta, então interromper não obriga a recomeçar. Concluir não concede XP, e o histórico continua vazio. A meta semanal só é sugerida quando nunca foi ajustada à mão (`preferences.weeklyGoalSource`). A etapa social é opcional e não altera XP, plano ou ranking.
 
 Ainda não implementados: convites de amigos, grupos por convite e ranking. A tela informa isso em vez de simular números. As integrações por área também não existem; o acompanhamento é por registro manual.
+
+### Importação de cursos por link
+
+O formulário antigo de "nome + etapas por linha" foi substituído pela entrada única **“Cole o link do que você quer estudar”**. O fluxo tem cinco estados (link/texto, analisando, revisão, erro recuperável e concluído) e permite escolher disciplinas, módulos e aulas antes de adicionar. O fallback é colar a grade ou enviar um arquivo `.txt`/`.md`; o organizador determinístico entende `Disciplina:`, `Módulo:`, `Aula:`, markdown, numeração e indentação. A IA é opcional, roda só no servidor e depende de `LUME_AI_API_KEY`; sem chave, o organizador determinístico responde.
+
+Extração e segurança ficam em `import-server.js` (compartilhado por `server.js` e `worker.js`) e as regras de domínio em `public/import-domain.js`. Só http/https, sem credenciais, portas 80/443, bloqueio de endereços internos, DNS validado no Node, redirecionamentos manuais revalidados, limite de 2 MB e 9 s, e limite de tentativas por rota. O HTML é dado, nunca instrução.
+
+Cursos importados guardam `structure`, `source`, `selection` e `edital`; o progresso continua em `completed`, com origem em `studyLog` e histórico em `imports`. A identidade é provedor + URL canônica (ou título, quando a origem é texto), então reimportar atualiza em vez de duplicar e preserva conclusões; aulas que sumiram da fonte ficam marcadas. Importar, selecionar áreas, atualizar grade e conectar fonte não concedem XP, e a conclusão de aula importada não reutiliza a recompensa legada de 10 XP: é registro manual identificado, sem pontuação da nova política, que ainda exige validação no servidor.
+
+Verificação real desta rodada (31/10/2026): Coursera e Alura responderam com estrutura aproveitável (Coursera com currículo e durações; Alura parcial), a Udemy devolveu 403 e a Rocketseat/DIO não publicam títulos de aula no HTML. Nesses casos a interface oferece o caminho assistido. O link real do Gran/OAB ainda não foi fornecido; a página pública deve render disciplinas, e a grade detalhada continua exigindo login. O registro de editais verificados está vazio de propósito: sem edital conferido, a comparação de cobertura não é calculada e o Lume pede apenas edição e fase. Detalhes em [Importação](IMPORTACAO.md).
+
+### Sessão declarada, amigos e Companion
+
+**Sessão declarada.** A página Hoje tem um relógio que a pessoa inicia, pausa e encerra, vinculado à próxima aula quando existe. O estado fica em `activeSession` (status, início, último batimento, acumulado) e `studySessions` (histórico das sessões encerradas). Um batimento de 60 s mantém o tempo entre recarregamentos; ao carregar, uma sessão ativa sem batimento por 5 minutos é pausada, para que uma aba esquecida não vire horas de estudo. Sessão declarada não é observação, não conclui aula e não gera XP. O relógio aparece em Hoje e as sessões encerradas em Meu caminho.
+
+**Amigos.** Implementados por convite: `POST /api/friends/invite` gera um código de 12 caracteres, uso único e validade de 7 dias; `POST /api/friends/accept` cria a amizade nos dois sentidos; `GET /api/friends` lista amigos e o histórico de convites; `DELETE /api/friends/:id` remove. Não existe busca por e-mail (ninguém descobre quem tem conta), o convite é guardado apenas como hash e a amizade não compartilha biblioteca, progresso ou XP. O link `#amigos?convite=...` preenche o código. Grupos, feed, mensagens e ranking continuam pendentes.
+
+**Companion.** O agente local (`companion/agent.mjs`, Windows, sem dependências), o pareamento por código, a presença com expiração e o painel em Configurações foram implementados. O agente lê só nomes de processo da allowlist e envia aplicativo, categoria e desde quando; o dispositivo recebe um token próprio, guardado como hash, que só relata presença e lê o roteiro (`/api/companion/study`). O roteiro usa `public/study-plan.js` com critério explícito (continuidade, primeiro passo, proximidade do fim, ordem da biblioteca) e informa quantas aulas faltam por curso, marcando grade parcial. Bandeja, janela imersiva e instalador ainda não existem: hoje é linha de comando. Ver [Companion](COMPANHEIRO.md).
 
 ### Contas e recuperação de acesso
 
@@ -146,6 +168,8 @@ Situação: autenticação, recuperação de acesso, sessão e persistência bá
 - GitHub opcional com repositórios escolhidos e entregas definidas.
 - Expandir para fontes de leitura e outras plataformas conforme suporte real.
 
+Situação: a importação de grade por link e por texto foi implementada com adaptadores que declaram capacidades. Progresso automático, retomada de posição e conexão com GitHub continuam pendentes. O registro de editais verificados precisa ser preenchido com fonte e data antes de qualquer comparação de cobertura.
+
 A visão social deve orientar o modelo desde a Etapa A; não é um extra a ser esquecido. A ordem acima é uma proposta para reduzir dependências e evitar placares baseados em pontuação arbitrária de navegador.
 
 ## 6. Parâmetros iniciais e decisões futuras
@@ -174,3 +198,4 @@ A atualização posterior de README e deste documento consolida a execução loc
 - Envie `AGENTS.md` e os três documentos da pasta `docs` para uma IA que não tenha acesso ao repositório.
 - Não use apenas screenshots ou o README antigo como especificação de produto.
 - Esta rodada migrou a interface para React + Astro, atualizou interações e verificação e retirou os modos solicitados; não publicou o Worker, não migrou o histórico e não alterou a pontuação em execução.
+- Rodada posterior: importação de cursos por link/texto com adaptadores por plataforma, revisão por áreas, mesclagem preservando progresso e edital como referência separada. Não publicou, não ativou IA (depende de chave) e não alterou a pontuação em execução.
