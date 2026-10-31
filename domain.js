@@ -59,7 +59,7 @@ export function createInitialState() {
     habit: null,
     challenges: [],
     supports: [],
-    preferences: { essential: false, gamification: true, reducedMotion: false, theme: 'dark', textSize: 'normal', weeklyGoal: 3 },
+    preferences: { essential: false, gamification: true, theme: 'dark', textSize: 'normal', weeklyGoal: 3 },
     courses: [
       { id: 'design', title: 'Design de interfaces', category: 'Design & criatividade', art: 'design', url: '', example: true, paused: false, steps: [
         { id: 'design-1', title: 'Abrir o material e conhecer o curso' },
@@ -233,7 +233,6 @@ export function restoreState(raw) {
       preferences: {
         essential: preferences.essential === true,
         gamification: preferences.gamification !== false,
-        reducedMotion: preferences.reducedMotion === true,
         theme: preferences.theme === 'light' ? 'light' : 'dark',
         textSize: preferences.textSize === 'large' ? 'large' : 'normal',
         weeklyGoal: Number.isInteger(preferences.weeklyGoal) && preferences.weeklyGoal >= 1 && preferences.weeklyGoal <= 7 ? preferences.weeklyGoal : 3,

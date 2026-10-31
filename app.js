@@ -99,7 +99,6 @@ function go(destination) {
 
 function applyPreferences() {
   document.documentElement.dataset.theme = state.preferences.theme;
-  document.documentElement.dataset.motion = state.preferences.reducedMotion ? 'reduced' : 'full';
   document.documentElement.dataset.text = state.preferences.textSize;
   document.querySelector('meta[name="theme-color"]').content = state.preferences.theme === 'light' ? '#f4f5ef' : '#0c1322';
 }
@@ -227,7 +226,6 @@ function settings() {
     <div class="settings-layout"><section class="panel settings-panel"><h2>${icon('sun')} Aparência e conforto</h2>
       ${toggleSetting('essential', 'Modo essencial', 'Na página Hoje, mostrar só a próxima missão. Biblioteca e histórico continuam no menu.')}
       ${toggleSetting('gamification', 'Mostrar XP e conquistas', 'Desligar oculta os indicadores, sem apagar o histórico ou o progresso acumulado.')}
-      ${toggleSetting('reducedMotion', 'Reduzir movimentos', 'Evitar transições na interface. A preferência de movimento reduzido do sistema também é respeitada.')}
       <label class="setting-row" for="pref-theme"><span><strong>Tema</strong><span>Um ambiente que seja confortável para você.</span></span><select id="pref-theme" data-preference="theme"><option value="dark" ${state.preferences.theme === 'dark' ? 'selected' : ''}>Escuro</option><option value="light" ${state.preferences.theme === 'light' ? 'selected' : ''}>Claro</option></select></label>
       <label class="setting-row" for="pref-textSize"><span><strong>Tamanho do texto</strong><span>Mais espaço para ler com tranquilidade.</span></span><select id="pref-textSize" data-preference="textSize"><option value="normal" ${state.preferences.textSize === 'normal' ? 'selected' : ''}>Padrão</option><option value="large" ${state.preferences.textSize === 'large' ? 'selected' : ''}>Ampliado</option></select></label>
     </section><div><section class="panel settings-panel"><h2>${icon('sprout')} Seu momento</h2><p class="settings-description">${HABITS.find((item) => item.id === state.habit)?.title || 'Você ainda não escolheu uma rotina.'} Nada aqui é uma definição sobre você.</p><button class="button secondary full-width" data-action="personalize">Revisar perguntas iniciais ${icon('arrow')}</button><label class="setting-row weekly-setting" for="pref-weeklyGoal"><span><strong>Plano semanal</strong><span>Missões sugeridas, sem obrigação.</span></span><select id="pref-weeklyGoal" data-preference="weeklyGoal">${Array.from({ length: 7 }, (_, index) => `<option value="${index + 1}" ${state.preferences.weeklyGoal === index + 1 ? 'selected' : ''}>${index + 1}</option>`).join('')}</select></label></section>
@@ -235,7 +233,7 @@ function settings() {
 }
 
 function motionEnabled() {
-  return !state.preferences.reducedMotion && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
 function render(focusMain = false) {
@@ -337,7 +335,7 @@ document.addEventListener('click', (event) => {
       try { sessionStorage.removeItem(PREVIEW_SESSION_KEY); } catch { /* Progresso local preservado. */ }
       go('login'); break;
     case 'toggle-theme':
-      openDialog(`<div class="dialog-content"><h2 id="dialog-title">Conforto visual</h2>${toggleSetting('reducedMotion', 'Reduzir movimentos', 'Desativar animações e transições. A preferência do sistema também é respeitada.')}<label class="setting-row" for="entry-theme"><span><strong>Tema</strong><span>Escolha um ambiente confortável.</span></span><select id="entry-theme" data-preference="theme"><option value="dark" ${state.preferences.theme === 'dark' ? 'selected' : ''}>Escuro</option><option value="light" ${state.preferences.theme === 'light' ? 'selected' : ''}>Claro</option></select></label><button class="button primary full-width" data-action="close-dialog">Pronto</button></div>`); break;
+      openDialog(`<div class="dialog-content"><h2 id="dialog-title">Conforto visual</h2><label class="setting-row" for="entry-theme"><span><strong>Tema</strong><span>Escolha um ambiente confortável.</span></span><select id="entry-theme" data-preference="theme"><option value="dark" ${state.preferences.theme === 'dark' ? 'selected' : ''}>Escuro</option><option value="light" ${state.preferences.theme === 'light' ? 'selected' : ''}>Claro</option></select></label><button class="button primary full-width" data-action="close-dialog">Pronto</button></div>`); break;
     case 'account-info': openDialog(`<div class="dialog-content"><h2 id="dialog-title">Contas em preparação</h2><p class="session-instruction">Cadastro, Google e recuperação de senha ainda não estão disponíveis. Você pode explorar o Lume sem fornecer e-mail ou senha; os dados ficam neste navegador.</p><button class="button primary full-width" data-action="close-dialog">Entendi</button></div>`); break;
     case 'entry-help': openDialog(`<div class="dialog-content"><h2 id="dialog-title">Um começo simples</h2><p class="session-instruction">Entre na prévia, escolha seu ritmo e selecione os apoios que ajudam. Depois, comece uma missão ou adicione seu próprio curso. Você pode revisar tudo nas configurações.</p><button class="button primary full-width" data-action="close-dialog">Entendi</button></div>`); break;
     case 'navigate': go(button.dataset.route); break;

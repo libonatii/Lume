@@ -1891,8 +1891,10 @@ dialog::backdrop {
   font-size:.88rem
 }
 
-[data-motion=full] .button,[data-motion=full] .course-card {
-  transition:background .15s,border-color .15s
+@media (prefers-reduced-motion:no-preference) {
+  .button,.course-card {
+    transition:background .15s,border-color .15s
+  }
 }
 
 

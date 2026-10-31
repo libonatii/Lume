@@ -122,3 +122,12 @@ test('armazenamento inválido não quebra o início e preferências são normali
   state.history.push(state.history[0]);
   assert.equal(restoreState(JSON.stringify(state)).history.length, 0);
 });
+
+test('preferência antiga de reduzir movimentos é descartada e não volta ao estado', () => {
+  const legacy = createInitialState();
+  legacy.preferences.reducedMotion = true;
+  const restored = restoreState(JSON.stringify(legacy));
+  assert.equal('reducedMotion' in restored.preferences, false);
+  assert.equal('reducedMotion' in createInitialState().preferences, false);
+  assert.equal(restored.preferences.theme, 'dark');
+});

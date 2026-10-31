@@ -1,8 +1,21 @@
 # Lume ✳
 
-**Seu ritmo, seu caminho.** Um espaço de estudos com pequenas missões, biblioteca pessoal e conquistas — pensado para ajudar a começar e retomar sem punições por pausas.
+**Seu ritmo, seu caminho.** Uma plataforma social de estudos para organizar e retomar aprendizados, colaborar com amigos, compartilhar descobertas, conquistar marcos personalizados e participar de placares de estudo.
 
-O Lume nasceu da vontade de tornar a organização dos estudos mais acolhedora para pessoas neurodivergentes. A proposta é transformar objetivos grandes em próximas ações possíveis, com uma experiência visual inspirada em bibliotecas de jogos e autonomia para escolher o que ajuda.
+O Lume nasceu da vontade de tornar os estudos mais acessíveis, especialmente para pessoas neurodivergentes. Sua gamificação deve reconhecer estudo efetivo e avanços significativos: aulas, leituras, cursos, exercícios e projetos concluídos. Preparar o material ou abrir uma janela não é um evento de recompensa na visão atual do produto.
+
+## Documentação que orienta o projeto
+
+Antes de desenvolver ou pedir alterações a uma IA, leia:
+
+| Documento | Conteúdo |
+| --- | --- |
+| [AGENTS.md](AGENTS.md) | Instruções de continuidade para IAs e colaboradores |
+| [Visão do produto](docs/PRODUTO.md) | Propósito, público, biblioteca, retomada, amigos, grupos, colaboração, integrações e telas |
+| [Gamificação](docs/GAMIFICACAO.md) | Critérios de XP, níveis, tempo de estudo, conquistas personalizadas, placares e migração |
+| [Estado e continuidade](docs/CONTINUIDADE.md) | O que existe, divergências do protótipo e plano de evolução |
+
+**A documentação de produto prevalece como direção de desenvolvimento sobre o comportamento antigo do protótipo.** Os valores de XP da especificação são uma proposta inicial de balanceamento, ainda a implementar. O código atual mantém a regra legada de 5 XP por preparação e 10 XP por etapa; ela precisa ser substituída com migração explícita, preservando o histórico. Amigos, grupos, placares e integrações ainda são recursos planejados.
 
 ## Estado do projeto
 
@@ -13,13 +26,13 @@ Protótipo navegável em português, feito em HTML, CSS e JavaScript, sem depend
 - Tela de entrada com o visual do Stitch e acesso à prévia sem fornecer e-mail ou senha.
 - Personalização após entrar: três ritmos de estudo e quatro apoios opcionais, com opção de pular e revisar depois.
 - Ritmo ajusta a sugestão semanal (2, 3 ou 5 passos); apoios permitem sugerir a preparação do material e ativar o modo essencial.
-- Transições suaves entre telas e animações discretas em cartões e diálogos, respeitando a preferência de movimento reduzido do aplicativo e do sistema.
+- Transições suaves entre telas e animações discretas em cartões e diálogos, respeitando a preferência de movimento reduzido do sistema.
 - Página Hoje com uma próxima ação concreta e modo essencial.
 - Biblioteca com busca, filtros, cursos próprios, links e etapas personalizadas.
 - Missões por etapa e opção **Tornar menor**, para registrar a preparação sem concluir a aula.
-- XP, níveis, conquistas e histórico; pausas não retiram progresso.
+- XP, níveis, conquistas genéricas e histórico no modelo legado do protótipo; pausas não retiram progresso.
 - Pausa e retomada de cursos e plano semanal ajustável.
-- Temas claro e escuro, texto ampliado, movimento reduzido e opção de ocultar gamificação.
+- Temas claro e escuro, texto ampliado, respeito ao movimento reduzido do sistema e opção de ocultar gamificação.
 - Navegação por teclado, rótulos de formulário, diálogos e avisos acessíveis.
 - Exportação de dados em JSON (a importação ainda não foi implementada).
 
@@ -54,14 +67,14 @@ npm test
 3. Na página Hoje, comece uma missão de exemplo ou prepare o material. Uma preparação não conclui a aula original.
 4. Registre a conclusão e acompanhe seu histórico e suas conquistas.
 5. Na Biblioteca, adicione seu curso com uma etapa por linha.
-6. Nas Configurações, ajuste o ambiente ao seu conforto. Na entrada, **Conforto visual** também permite alterar o tema e reduzir movimentos.
+6. Nas Configurações, ajuste o ambiente ao seu conforto. Na entrada, **Conforto visual** também permite alterar o tema. Movimentos seguem a preferência do sistema operacional.
 
 **Sair da prévia** retorna à entrada sem apagar cursos, preferências ou XP. A navegação da prévia usa uma marca de sessão na aba, sem autenticar identidade nem separar dados entre pessoas. Ao entrar novamente, você pode confirmar outro ritmo ou manter suas preferências salvas. Revisar o mesmo ritmo preserva uma meta semanal já ajustada manualmente.
 
 ## Princípios
 
 - Descansar não apaga conquistas; não há penalidade por dias sem estudo.
-- XP registra ações, não inteligência nem aprendizado comprovado.
+- Na visão do produto, XP reconhece estudo efetivo e conclusões, não inteligência nem aprendizado comprovado. A pontuação legada do protótipo ainda precisa ser migrada.
 - A gamificação é opcional e não exige diagnóstico.
 - As preferências são editáveis; as perguntas iniciais não classificam a pessoa.
 - A proposta precisa ser validada com quem vai utilizá-la. O Lume não promete benefícios clínicos nem substitui acompanhamento profissional.
@@ -78,7 +91,7 @@ Os dados permanecem no navegador e na origem em que o site foi aberto. Limpar os
 | `styles.css` | Identidade visual, temas e adaptação para telas menores |
 | `neurofocus.css` | Visual NeuroFocus integrado, com telas Hoje e Biblioteca e temas acessíveis |
 | `entry.css` | Telas de entrada e personalização do ritmo de estudo |
-| `motion.css` | Transições de navegação, animações e respeito ao movimento reduzido |
+| `motion.css` | Transições de navegação e animações, seguindo a preferência de movimento do sistema |
 | `assets/stitch/` | Imagens do Stitch armazenadas localmente para o aplicativo |
 | `app.js` | Telas, navegação e interações |
 | `domain.js` | Cursos, missões, XP, conquistas e restauração dos dados |
@@ -87,6 +100,9 @@ Os dados permanecem no navegador e na origem em que o site foi aberto. Limpar os
 
 ## Próximos passos
 
+- Evoluir o modelo de materiais, XP e conquistas conforme [Gamificação](docs/GAMIFICACAO.md), com migração do legado.
+- Acrescentar continuidade de vídeos e leituras, começando por registros manuais e fontes efetivamente compatíveis.
+- Implementar amigos, grupos, compartilhamento, colaboração e placares opcionais após a base de contas e integridade de XP.
 - Validar a experiência com usuários e fazer uma revisão de acessibilidade.
 - Permitir edição de cursos e importação de cópias exportadas.
 - Implementar contas, recuperação de acesso e dados privados no servidor.
