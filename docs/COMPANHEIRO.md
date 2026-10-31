@@ -38,8 +38,9 @@ retoma o que já está na conta.
 | Instalador assinado | Pendente; a atualização pela janela já baixa e abre o instalador |
 
 A página Hoje do site usa o mesmo critério (`nextAction`, derivado de
-`studyPlan`), então o programa e o site indicam a mesma próxima aula. Missões
-ainda lista a próxima etapa por curso, na ordem da biblioteca.
+`studyPlan`), então o programa e o site indicam a mesma próxima aula. A aba
+Roteiro do Plano (antiga Missões) lista a próxima aula de cada curso com o
+mesmo critério.
 
 ## 3. Presença rica (rich presence)
 
@@ -116,7 +117,7 @@ nem uma segunda conta.
 
 | Janela | O que mostra |
 | --- | --- |
-| Principal | O site do Lume inteiro: login, Hoje, Biblioteca, Missões, Conquistas, Meu caminho, Amigos, Perfil, Configurações e a página Instalar aplicativo |
+| Principal | O site do Lume inteiro: login, Hoje, Biblioteca, Plano (cronograma, tarefas e roteiro), Amigos (contatos, mensagens e ranking), Perfil (conquistas, Meu caminho e configurações) e a página Instalar aplicativo |
 | Presença | Painel local de 400×640: dispositivo, aplicativo em uso, roteiro, pausa, pareamento e versão |
 
 A janela principal abre links externos no navegador, mantém a sessão entre

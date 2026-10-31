@@ -9,35 +9,6 @@ import { api, apiError } from '../lib/api.js';
 import Icon from './Icon.jsx';
 import { AnimatedNumber, Button, Cover, Empty, Glow, Heading, Progress, Ring, stagger } from './ui.jsx';
 
-export function Missions({ state, open }) {
-  const available = state.courses.flatMap(course => {
-    const mission = nextMission({ ...state, courses: [course] }, course.id);
-    return mission ? [mission] : [];
-  });
-  return <div className="personal-root">
-    <Heading eyebrow="Próximos movimentos possíveis" title="Missões">
-      Escolha uma. Você não precisa fazer tudo nesta lista.
-    </Heading>
-    {available.length ? <div className="mission-list">
-      {available.map(({ course, step }, index) => {
-        const progress = courseProgress(state, course);
-        return <motion.article className="task-card" key={step.id} {...stagger(index)}>
-          <Cover art={course.art} className="task-cover"/>
-          <div className="task-body">
-            <div className="task-meta">
-              <span className="eyebrow">{course.title}</span>
-              <span className="task-step-pill">Etapa {progress.done + 1} de {progress.total}</span>
-            </div>
-            <h2 className="title">{step.title}</h2>
-            <span className="muted-text">{course.example ? 'Curso de exemplo' : 'Registro manual'} · Sem prazo</span>
-          </div>
-          <Button secondary onClick={() => open({ type: 'session', id: course.id })}>Começar<Icon name="arrow"/></Button>
-        </motion.article>;
-      })}
-    </div> : <Empty title="Sem próximas etapas por enquanto." onAdd={() => open({ type: 'new' })}>Adicione um curso ou retome um que está em pausa.</Empty>}
-  </div>;
-}
-
 export function Achievements({ state, account, xp }) {
   const legacy = achievements(state);
   const summary = account ? xp?.summary : null;

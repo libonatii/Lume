@@ -29,6 +29,7 @@ Uma animação ou mensagem positiva pode reconhecer esforço sem conceder XP. De
 - Conectar uma integração, cadastrar um curso ou convidar amigos.
 - Importar, colar ou organizar a grade de um curso, escolher disciplinas e atualizar a importação.
 - Iniciar, pausar ou encerrar a sessão declarada e exibir presença local pelo Companion.
+- Definir disponibilidade, prazos e prioridades, adiar aulas ou recalcular o cronograma.
 - Convidar amigos, aceitar convites, listar amizades ou remover contatos.
 - Pausar, descansar, mudar de tela ou retornar de uma pausa.
 - Enviar mensagens, comentar, receber curtidas ou simplesmente estar em uma sala.
@@ -70,6 +71,7 @@ A lista de tarefas de prova foi pedida explicitamente e hoje usa uma regra trans
 - O XP da tarefa é calculado no navegador, a partir de `state.tasks` (`public/tasks-domain.js`), e não entra no ranking. A conclusão de tarefa ainda não virou evento do livro do servidor; é a exceção transitória preservada.
 - A tarefa não conclui curso nem cria conquista por material; essas regras dependem dos eventos de conclusão do servidor.
 - Prioridade (alta, média, baixa ou sem prioridade) e atraso só ordenam a lista e a página Hoje. Definir, mudar ou ordenar não gera XP.
+- Vincular a tarefa a uma aula e marcar subtarefas também não geram XP e não concluem a aula.
 
 A proposta de migração desta regra está em [Evolução §4.6](EVOLUCAO.md#46-transição-sem-apagar-histórico) e só deve ser aplicada com aprovação explícita. Essa exceção não deve ser copiada para tarefas genéricas de organização. Quando a conclusão de tarefa for migrada para o livro de eventos, ela precisará de chave de idempotência, origem, versão da política e revisão do valor.
 

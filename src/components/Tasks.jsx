@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
 import {
-  MAX_TASKS, TASK_PRIORITIES, TASK_XP, addTask, completeTask, isOverdue, localDate, priorityLabel,
-  removeTask, reopenTask, setTaskPriority, sortTasks,
+  MAX_SUBTASKS, MAX_TASKS, TASK_PRIORITIES, TASK_XP, addSubtask, addTask, completeTask, isOverdue, localDate,
+  priorityLabel, removeSubtask, removeTask, reopenTask, setTaskPriority, sortTasks, toggleSubtask,
 } from '../../public/tasks-domain.js';
 import Icon from './Icon.jsx';
 import { Button, Empty, Heading, stagger } from './ui.jsx';
@@ -23,9 +23,40 @@ function dateLabel(value) {
   return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
 }
 
+// Subtarefas: aparecem só quando a pessoa decide dividir a tarefa.
+function Subtasks({ task, update }) {
+  const [draft, setDraft] = useState('');
+  const [error, setError] = useState('');
+  const items = task.subtasks || [];
+  const done = items.filter((item) => item.done).length;
+  function add(event) {
+    event.preventDefault();
+    try {
+      update((previous) => addSubtask(previous, task.id, draft));
+      setDraft('');
+      setError('');
+    } catch (exception) {
+      setError(exception.message);
+    }
+  }
+  return <details className="todo-subtasks" open={items.length > 0 && done < items.length ? true : undefined}>
+    <summary>{items.length ? `Subtarefas ${done}/${items.length}` : 'Dividir em subtarefas'}</summary>
+    {items.length > 0 && <ul className="subtask-list">{items.map((item) => <li key={item.id}>
+      <label className="subtask"><input type="checkbox" checked={item.done} onChange={() => update((previous) => toggleSubtask(previous, task.id, item.id))}/><span className={item.done ? 'is-done' : ''}>{item.title}</span></label>
+      <button type="button" className="text-button" aria-label={`Remover subtarefa ${item.title}`} onClick={() => update((previous) => removeSubtask(previous, task.id, item.id))}>Remover</button>
+    </li>)}</ul>}
+    {!task.done && items.length < MAX_SUBTASKS && <form className="subtask-form" onSubmit={add}>
+      <input aria-label={`Nova subtarefa de ${task.title}`} maxLength={140} value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Ex.: Ler os artigos 5º a 7º"/>
+      <Button secondary type="submit">Adicionar</Button>
+    </form>}
+    {error && <p className="form-error" role="alert">{error}</p>}
+  </details>;
+}
+
 export default function Tasks({ state, update, notify }) {
   const [title, setTitle] = useState('');
   const [courseId, setCourseId] = useState('');
+  const [lessonId, setLessonId] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [priority, setPriority] = useState('0');
   const [error, setError] = useState('');
@@ -36,6 +67,8 @@ export default function Tasks({ state, update, notify }) {
   const done = tasks.filter((task) => task.done);
   const gamified = state.preferences.gamification;
   const courses = new Map(state.courses.map((course) => [course.id, course.title]));
+  const lessons = new Map(state.courses.flatMap((course) => course.steps.map((step) => [step.id, step.title])));
+  const chosenCourse = state.courses.find((course) => course.id === courseId);
 
   function submit(event) {
     event.preventDefault();
@@ -44,8 +77,9 @@ export default function Tasks({ state, update, notify }) {
       return;
     }
     try {
-      update((previous) => addTask(previous, { title, courseId, dueDate, priority }));
+      update((previous) => addTask(previous, { title, courseId, lessonId, dueDate, priority }));
       setTitle('');
+      setLessonId('');
       setDueDate('');
       setPriority('0');
       setError('');
@@ -96,6 +130,7 @@ export default function Tasks({ state, update, notify }) {
           {!task.done && task.priority > 0 && <span className="todo-priority">Prioridade {priorityLabel(task.priority).toLowerCase()} · </span>}
           {late && <span className="todo-late">Atrasada · </span>}
           {course || 'Sem curso vinculado'}
+          {task.lessonId && lessons.get(task.lessonId) ? ` · ${lessons.get(task.lessonId)}` : ''}
           {task.dueDate ? ` · ${late ? 'venceu' : 'vence'} em ${dateLabel(task.dueDate)}` : ''}
           {task.done && gamified ? ` · +${TASK_XP} XP de legado` : ''}
         </small>
@@ -104,6 +139,7 @@ export default function Tasks({ state, update, notify }) {
         {TASK_PRIORITIES.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
       </select>}
       <button type="button" className="text-button" aria-label={`Remover tarefa ${task.title}`} onClick={() => remove(task)}>Remover</button>
+      <Subtasks task={task} update={update}/>
     </motion.li>;
   }
 
@@ -120,11 +156,17 @@ export default function Tasks({ state, update, notify }) {
         </label>
         <div className="field-row">
           <label className="field">Curso ou prova (opcional)
-            <select name="task-course" value={courseId} onChange={(event) => setCourseId(event.target.value)}>
+            <select name="task-course" value={courseId} onChange={(event) => { setCourseId(event.target.value); setLessonId(''); }}>
               <option value="">Sem vínculo</option>
               {state.courses.map((course) => <option key={course.id} value={course.id}>{course.title}</option>)}
             </select>
           </label>
+          {chosenCourse && <label className="field">Aula ou etapa (opcional)
+            <select name="task-lesson" value={lessonId} onChange={(event) => setLessonId(event.target.value)}>
+              <option value="">Curso inteiro</option>
+              {chosenCourse.steps.map((step) => <option key={step.id} value={step.id}>{step.title}</option>)}
+            </select>
+          </label>}
           <label className="field">Prazo (opcional)
             <input name="task-due" type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)}/>
           </label>

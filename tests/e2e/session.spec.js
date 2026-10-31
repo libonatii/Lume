@@ -36,7 +36,8 @@ test('sessão declarada persiste ao recarregar, pausa, retoma e encerra sem conc
   await page.getByRole('button', { name: 'Encerrar sessão' }).click();
   await expect(page.getByRole('button', { name: 'Começar sessão' })).toBeVisible();
 
-  await page.getByRole('link', { name: 'Meu Caminho' }).click();
+  await page.getByRole('link', { name: 'Perfil', exact: true }).click();
+  await page.getByRole('link', { name: 'Meu caminho' }).click();
   await expect(page.getByRole('heading', { name: 'Sessões declaradas' })).toBeVisible();
   await expect(page.getByText(/tempo declarado/).first()).toBeVisible();
 

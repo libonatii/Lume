@@ -66,6 +66,8 @@ export function mergeStates(local, remote) {
     history,
     studyLog,
     tasks,
+    // O plano é configuração, como as preferências: vale o desta sessão.
+    plan: left.plan || right.plan,
     selectedCourseId: selected,
     // Preferências e perfil são escolhas desta sessão. O progresso do outro
     // dispositivo entra, mas não sobrescreve privacidade ou conforto.

@@ -57,9 +57,9 @@ function supportsWebGL() {
 
 // Luz ambiente com o MeshGradient da Paper Shaders (FGLibs). Sem WebGL, fica o gradiente em CSS.
 const glowPalettes = {
-  lume: ['#0b162a', '#5ea8ff', '#3882f6', '#3148a3'],
-  dusk: ['#0a1222', '#4f46e5', '#5ea8ff', '#24947e'],
-  mint: ['#0b1a22', '#4de0b8', '#5ea8ff', '#274482'],
+  lume: ['#101417', '#63a0ff', '#2ed3a2', '#1c3d70'],
+  dusk: ['#101417', '#3f80f2', '#2ed3a2', '#1f5a4a'],
+  mint: ['#101417', '#2ed3a2', '#63a0ff', '#21503f'],
 };
 export function Glow({ palette = 'lume', speed = 0, className = '' }) {
   const enabled = typeof document !== 'undefined' && supportsWebGL();

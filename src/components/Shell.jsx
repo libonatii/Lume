@@ -7,14 +7,16 @@ import { levelProgress } from '../../public/xp-policy.js';
 import { api } from '../lib/api.js';
 import { isDesktopApp } from '../lib/desktop.js';
 import DesktopUpdate from './DesktopUpdate.jsx';
+import SectionTabs, { SECTIONS, sectionOf } from './SectionTabs.jsx';
 
 const desktop = isDesktopApp();
 
-const links = [['hoje', 'home', 'Hoje', 'Hoje'], ['tarefas', 'list', 'Tarefas', 'Tarefas'], ['biblioteca', 'book', 'Biblioteca', 'Biblioteca'], ['missoes', 'flag', 'Missões', 'Missões'], ['conquistas', 'trophy', 'Conquistas', 'Conquistas'], ['historico', 'history', 'Meu Caminho', 'Caminho'], ['amigos', 'users', 'Amigos', 'Amigos'], ['mensagens', 'mail', 'Mensagens', 'Mensagens'], ['ranking', 'podium', 'Ranking', 'Ranking'], ['configuracoes', 'settings', 'Configurações', 'Ajustes']];
-const planned = [];
+// Cinco destinos; as telas secundárias ficam nas abas de cada seção.
+const links = Object.entries(SECTIONS).map(([key, section]) => [key, section.home, section.icon, section.label]);
 const syncLabels = { saving: 'Salvando na conta…', saved: 'Progresso salvo na conta', error: 'Sem sincronização · cópia local preservada' };
 
-export default function Shell({ route, model, children, onComfort, onHelp, onRegister, onExit }) {
+export default function Shell({ route, model, children, hideTabs = false, onComfort, onHelp, onRegister, onExit }) {
+  const section = sectionOf(route);
   const [menuOpen, setMenuOpen] = useState(false);
   const [unread, setUnread] = useState(0);
   const menuRef = useRef(null);
@@ -72,8 +74,7 @@ export default function Shell({ route, model, children, onComfort, onHelp, onReg
   return <div className="app-shell">
     <aside className="sidebar" aria-label="Menu principal">
       <a href="#hoje" className="brand" aria-label="Lume — página inicial"><Logo size={38}/><span className="brand-copy"><span className="brand-name">Lume</span><small>Seu ritmo, seu caminho</small></span></a>
-      <nav className="nav" aria-label="Navegação">{links.map(([path, icon, label, short]) => <a key={path} href={`#${path}`} className={`nav-link ${route === path ? 'active' : ''}`} aria-current={route === path ? 'page' : undefined} aria-label={path === 'mensagens' && unread > 0 ? `${label} (${unread} não lidas)` : label}>{route === path && <motion.span className="nav-highlight" layoutId="active-navigation" transition={{ duration: .3, ease: [.22, 1, .36, 1] }}/>}<Icon name={icon}/><span className="nav-label">{label}</span><span className="nav-short" aria-hidden="true">{short}</span>{path === 'mensagens' && unread > 0 && <span className="nav-badge" aria-hidden="true">{unread > 99 ? '99+' : unread}</span>}</a>)}</nav>
-      {planned.length > 0 && <div className="nav-planned"><span className="nav-section">Em breve</span>{planned.map(([icon, label]) => <span key={label} className="nav-link planned"><Icon name={icon}/><span className="nav-label">{label}</span><span className="soon-badge">Planejado</span></span>)}</div>}
+      <nav className="nav" aria-label="Navegação">{links.map(([key, path, icon, label]) => <a key={key} href={`#${path}`} className={`nav-link ${section === key ? 'active' : ''}`} aria-current={section === key ? 'page' : undefined} aria-label={key === 'amigos' && unread > 0 ? `${label} (${unread} mensagens não lidas)` : label}>{section === key && <motion.span className="nav-highlight" layoutId="active-navigation" transition={{ duration: .3, ease: [.22, 1, .36, 1] }}/>}<Icon name={icon}/><span className="nav-label">{label}</span><span className="nav-short" aria-hidden="true">{label}</span>{key === 'amigos' && unread > 0 && <span className="nav-badge" aria-hidden="true">{unread > 99 ? '99+' : unread}</span>}</a>)}</nav>
       {!desktop && <a className="install-app" href="#aplicativo"><Icon name="cloud"/><span>Instalar aplicativo</span></a>}
       <a className="player-card" href="#perfil" aria-label="Abrir meu perfil">
         {model.state.profile?.avatar
@@ -87,7 +88,7 @@ export default function Shell({ route, model, children, onComfort, onHelp, onReg
         <div className="topbar-left"><span className="today">{today}</span></div>
         <div className="topbar-right">
           {gamified && <div className="level-chip" title={model.account ? 'XP confirmado pelo servidor; o saldo legado fica fora do nível.' : 'Prévia local: este XP não vale para ranking.'}><Icon name="spark"/><span>Nível {level.level} · <strong>{level.current} / {level.next} XP</strong> {model.account ? 'elegível' : 'na prévia'}</span><Progress value={level.current} max={level.next} tone="lume" label="Experiência até o próximo nível"/></div>}
-          <span className={`sync-chip sync-${model.account ? model.syncStatus : 'local'}`}><Icon name="cloud"/>{model.account ? syncLabels[model.syncStatus] || 'Conta conectada' : 'Prévia · progresso neste navegador'}</span>
+          {(!model.account || model.syncStatus !== 'saved') && <span className={`sync-chip sync-${model.account ? model.syncStatus : 'local'}`} role="status"><Icon name="cloud"/>{model.account ? syncLabels[model.syncStatus] || 'Conta conectada' : 'Prévia · progresso neste navegador'}</span>}
           {desktop && <DesktopUpdate/>}
           <a className="icon-button" href="#configuracoes" aria-label="Abrir minhas preferências"><Icon name="settings"/></a>
           <div className="user-menu-wrap" ref={menuRef}>
@@ -143,7 +144,7 @@ export default function Shell({ route, model, children, onComfort, onHelp, onReg
           </div>
         </div>
       </header>
-      <main id="main" tabIndex={-1}>{children}</main>
+      <main id="main" tabIndex={-1}>{!hideTabs && <SectionTabs route={route} unread={unread}/>}{children}</main>
       
     </div>
   </div>;

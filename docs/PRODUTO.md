@@ -220,7 +220,8 @@ As regras detalhadas estão em [Gamificação](GAMIFICACAO.md).
 | Entrada e conta | Cadastro, autenticação, recuperação por link e saída já disponíveis na API local; envio de e-mail ainda pendente |
 | Meu ritmo e interesses | Preferências e sugestões iniciais |
 | Hoje | Próxima ação única (mesmo critério do roteiro do Companion), com motivo, tempo a reservar — duração conhecida ou estimada —, link do material e o que falta; sessão; tarefas relevantes com atraso; evolução com a última recompensa |
-| Tarefas | Lista de estudo para uma prova, com prioridade (alta, média, baixa ou sem prioridade), prazo, atraso, vínculo opcional e conclusão com XP único |
+| Plano | Cronograma pela disponibilidade semanal, prazos e prioridades, com duração conhecida ou estimada, conflito de prazo explicado com ajustes e adiamento; abas Tarefas e Roteiro (próxima aula de cada curso) |
+| Tarefas | Lista de estudo para uma prova, com prioridade (alta, média, baixa ou sem prioridade), prazo, atraso, vínculo opcional a curso e aula, subtarefas e conclusão com XP único |
 | Biblioteca | Cursos, aulas, leituras, exercícios e projetos, com capas, filtros, favoritos e retomada |
 | Trilhas e projetos | Objetivos e entregas substanciais |
 | Organização | Anotações, listas de aulas e entregas, quadro de projetos e modelos básicos |

@@ -1,5 +1,6 @@
 import { normalizeActiveSession, normalizeStudySessions } from './session-domain.js';
 import { normalizeTasks, taskWeekCount, taskXP } from './tasks-domain.js';
+import { emptyPlan, normalizePlan } from './schedule-domain.js';
 import { levelProgress } from './xp-policy.js';
 import { normalizeSlideProgress, normalizeSlides } from './slides-domain.js';
 
@@ -313,6 +314,9 @@ export function createInitialState() {
     studySessions: [],
     // Tarefas de estudo para provas. Concluir vale XP uma vez; criar não.
     tasks: [],
+    // Plano: disponibilidade semanal, prazos e prioridades por curso e aulas
+    // adiadas. O cronograma é derivado daqui e do progresso; não gera XP.
+    plan: emptyPlan(),
     selectedCourseId: null,
   };
 }
@@ -690,6 +694,7 @@ export function restoreState(raw) {
       supports: Array.isArray(value.supports) ? [...new Set(value.supports.filter(id => STUDY_SUPPORTS.some(item => item.id === id)))] : [],
       profile: normalizeProfileCard(value.profile),
       tasks: normalizeTasks(value.tasks),
+      plan: normalizePlan(value.plan, keptIds),
       preferences: {
         essential: preferences.essential === true,
         gamification: preferences.gamification !== false,

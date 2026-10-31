@@ -6,6 +6,8 @@
 
 export const TASK_XP = 10;
 export const MAX_TASKS = 200;
+// Subtarefas dividem uma tarefa quando ajuda; marcá-las nunca gera XP.
+export const MAX_SUBTASKS = 10;
 // Prioridade explícita: 1 alta, 2 média, 3 baixa, 0 sem prioridade (padrão).
 // Definir ou mudar a prioridade é organização e nunca altera XP.
 export const TASK_PRIORITIES = Object.freeze([
@@ -35,6 +37,15 @@ export function isOverdue(task, today = localDate()) {
   return !task.done && Boolean(task.dueDate) && task.dueDate < today;
 }
 
+function normalizeSubtasks(value) {
+  if (!Array.isArray(value)) return [];
+  const ids = new Set();
+  return value
+    .filter((item) => item && typeof item.id === 'string' && item.id && !ids.has(item.id) && typeof item.title === 'string' && item.title.trim() && ids.add(item.id))
+    .slice(0, MAX_SUBTASKS)
+    .map((item) => ({ id: item.id, title: item.title.trim().slice(0, 140), done: item.done === true }));
+}
+
 function cleanDate(value) {
   return typeof value === 'string' && DATE.test(value) ? value : '';
 }
@@ -58,6 +69,8 @@ export function normalizeTasks(value) {
       id: task.id,
       title: task.title.trim().slice(0, 180),
       courseId: typeof task.courseId === 'string' ? task.courseId : '',
+      lessonId: typeof task.lessonId === 'string' && task.lessonId.length <= 160 ? task.lessonId : '',
+      subtasks: normalizeSubtasks(task.subtasks),
       dueDate: cleanDate(task.dueDate),
       priority: cleanPriority(task.priority),
       done: task.done === true,
@@ -66,13 +79,15 @@ export function normalizeTasks(value) {
     }));
 }
 
-export function addTask(state, { title, courseId = '', dueDate = '', priority = 0 }, now = new Date().toISOString()) {
+export function addTask(state, { title, courseId = '', lessonId = '', dueDate = '', priority = 0 }, now = new Date().toISOString()) {
   const cleanTitle = String(title || '').trim().slice(0, 180);
   if (!cleanTitle) throw new Error('Dê um nome para a tarefa.');
   const task = {
     id: crypto.randomUUID(),
     title: cleanTitle,
     courseId: state.courses.some((course) => course.id === courseId) ? courseId : '',
+    lessonId: state.courses.some((course) => course.id === courseId && course.steps.some((step) => step.id === lessonId)) ? lessonId : '',
+    subtasks: [],
     dueDate: cleanDate(dueDate),
     priority: cleanPriority(priority),
     done: false,
@@ -111,6 +126,27 @@ export function setTaskPriority(state, id, priority) {
     ...state,
     tasks: (state.tasks || []).map((task) => task.id === id ? { ...task, priority: cleanPriority(priority) } : task),
   };
+}
+
+function updateTask(state, id, change) {
+  return { ...state, tasks: (state.tasks || []).map((task) => task.id === id ? change(task) : task) };
+}
+
+export function addSubtask(state, id, title) {
+  const clean = String(title || '').trim().slice(0, 140);
+  if (!clean) throw new Error('Dê um nome para a subtarefa.');
+  const task = (state.tasks || []).find((item) => item.id === id);
+  if (!task) return state;
+  if ((task.subtasks || []).length >= MAX_SUBTASKS) throw new Error(`Uma tarefa aceita até ${MAX_SUBTASKS} subtarefas.`);
+  return updateTask(state, id, (item) => ({ ...item, subtasks: [...(item.subtasks || []), { id: crypto.randomUUID(), title: clean, done: false }] }));
+}
+
+export function toggleSubtask(state, id, subtaskId) {
+  return updateTask(state, id, (task) => ({ ...task, subtasks: (task.subtasks || []).map((item) => item.id === subtaskId ? { ...item, done: !item.done } : item) }));
+}
+
+export function removeSubtask(state, id, subtaskId) {
+  return updateTask(state, id, (task) => ({ ...task, subtasks: (task.subtasks || []).filter((item) => item.id !== subtaskId) }));
 }
 
 export function removeTask(state, id) {
