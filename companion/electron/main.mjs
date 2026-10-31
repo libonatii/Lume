@@ -260,7 +260,7 @@ async function disconnect() {
 ipcMain.handle('action', async (_event, name, payload = {}) => {
   switch (name) {
     case 'state':
-      return state;
+      return snapshot();
     case 'pair': {
       const code = String(payload.code || '').trim();
       if (!code) throw new Error('Informe o código mostrado no Lume.');
