@@ -15,6 +15,15 @@ import App from '../components/App.jsx';
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/lume.css" />
     <style is:inline data-paper-shader></style>
+    <script>
+      // Service worker: casca do app em cache para abrir sem internet.
+      // A API nunca é cacheada, então dados de conta continuam vindo da rede.
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(() => { /* segue sem offline. */ });
+        });
+      }
+    </script>
   </head>
   <body>
     <a class="skip-link" href="#main">Pular para o conteúdo</a>

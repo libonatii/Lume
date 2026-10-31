@@ -9,7 +9,7 @@
     "dev": "node scripts/dev.mjs",
     "build": "astro build && node scripts/headers.mjs",
     "preview": "node server.js",
-    "test": "node --test auth.test.js domain.test.js import.test.js companion.test.js session.test.js study-plan.test.js friends.test.js profile.test.js companion/update.test.js",
+    "test": "node --test auth.test.js domain.test.js import.test.js companion.test.js session.test.js study-plan.test.js friends.test.js profile.test.js desktop.test.js companion/update.test.js",
     "test:e2e": "playwright test",
     "companion": "node companion/agent.mjs run",
     "companion:pair": "node companion/agent.mjs pair",

@@ -3,6 +3,7 @@ import Icon from './Icon.jsx';
 import { Button, Heading } from './ui.jsx';
 import { api, apiError } from '../lib/api.js';
 import { copyText, selectText } from '../lib/clipboard.js';
+import { isDesktopApp } from '../lib/desktop.js';
 import { formatPairCode, presenceState } from '../../public/companion-domain.js';
 
 // Página do app de desktop: baixar o programa e conectar a presença local.
@@ -10,11 +11,21 @@ import { formatPairCode, presenceState } from '../../public/companion-domain.js'
 // instalação e do pareamento do dispositivo.
 
 const RELEASES_URL = 'https://github.com/libonatii/Lume/releases/latest';
-// Enquanto não houver uma release com o nome novo, o botão leva à lista de
-// releases em vez de apontar para um arquivo que ainda não existe.
-const DOWNLOAD_URL = RELEASES_URL;
+// Release 0.5.0 em diante publica o instalador com o nome novo.
+const DOWNLOAD_URL = `${RELEASES_URL}/download/Lume-setup.exe`;
+
+const desktop = isDesktopApp();
 
 function InstallApp() {
+  // Dentro do programa não faz sentido oferecer o download do próprio programa.
+  if (desktop) {
+    return <div className="companion-install">
+      <div>
+        <strong>Você já está no Lume para Windows</strong>
+        <p className="muted-text small">Esta janela é o próprio programa. A atualização é feita pelo painel de presença, na bandeja.</p>
+      </div>
+    </div>;
+  }
   return <div className="companion-install">
     <div>
       <strong>Lume para Windows</strong>
@@ -23,7 +34,7 @@ function InstallApp() {
     <a className="button primary full-width" href={DOWNLOAD_URL} target="_blank" rel="noopener noreferrer">
       <Icon name="cloud"/>Instalar aplicativo
     </a>
-    <p className="quiet-note">Windows 10/11 · baixe o <code>Lume-setup.exe</code> da última release. O instalador ainda não tem assinatura digital, então o Windows pode pedir confirmação. Versões e notas em <a className="text-link" href={RELEASES_URL} target="_blank" rel="noopener noreferrer">Releases<Icon name="external"/></a>.</p>
+    <p className="quiet-note">Windows 10/11 · o instalador ainda não tem assinatura digital, então o Windows pode pedir confirmação. Versões e notas em <a className="text-link" href={RELEASES_URL} target="_blank" rel="noopener noreferrer">Releases<Icon name="external"/></a>.</p>
   </div>;
 }
 
