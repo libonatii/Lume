@@ -1,14 +1,15 @@
-// Lume Companion — processo principal do app de bandeja.
+// Lume — processo principal do app de desktop.
 //
-// O app não lê a tela: só nomes de processo da allowlist, via o mesmo núcleo
-// do agente de linha de comando.
+// A janela principal carrega o próprio Lume publicado (mesma conta, mesmos
+// amigos, mesmo perfil). O núcleo local cuida só de presença, roteiro e
+// atualização: o app não lê a tela, apenas nomes de processo da allowlist.
 
 import { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage, shell } from 'electron';
 import { writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  createCompanion, pairDevice, readConfig, setPaused, unpairDevice,
+  DEFAULT_API, createCompanion, pairDevice, readConfig, setPaused, unpairDevice,
 } from '../core.mjs';
 import { checkForUpdate, downloadInstaller, RELEASES_PAGE } from '../update.mjs';
 
@@ -17,7 +18,8 @@ const assets = app.isPackaged ? join(process.resourcesPath, 'assets') : join(her
 const smoke = process.argv.includes('--smoke') || process.env.LUME_COMPANION_SMOKE === '1';
 
 let tray = null;
-let window = null;
+let mainWindow = null;
+let panelWindow = null;
 let companion = null;
 let quitting = false;
 let state = {
@@ -28,12 +30,12 @@ let updateInfo = {
   status: 'idle', currentVersion: '', latest: null, progress: 0, error: null, file: null, page: RELEASES_PAGE,
 };
 
-app.setAppUserModelId('com.lume.companion');
+app.setAppUserModelId('com.lume.app');
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
-  app.on('second-instance', () => showWindow());
+  app.on('second-instance', () => showMain());
 
   app.whenReady().then(async () => {
     companion = createCompanion({
@@ -45,30 +47,40 @@ if (!app.requestSingleInstanceLock()) {
     state = companion.getState();
 
     tray = new Tray(trayImage(state));
-    tray.on('click', () => showWindow());
-    tray.on('double-click', () => showWindow());
+    tray.on('click', () => showMain());
+    tray.on('double-click', () => showMain());
     buildMenu();
 
     if (smoke) {
-      // Verificação automática: grava o resultado e encerra sem abrir janela.
+      // Verificação automática: abre a janela principal escondida, espera o site
+      // carregar, grava o resultado e encerra.
       const file = process.env.LUME_COMPANION_SMOKE_FILE || join(here, '..', 'smoke-result.json');
+      const result = { ok: true, electron: process.versions.electron, tray: Boolean(tray), paired: state.paired, appUrl: appUrl() };
       try {
-        writeFileSync(file, `${JSON.stringify({
-          ok: true,
-          electron: process.versions.electron,
-          tray: Boolean(tray),
-          paired: state.paired,
-          menu: tray?.getToolTip?.() || null,
-        }, null, 2)}\n`);
+        createMainWindow();
+        result.window = await new Promise((resolve) => {
+          const timer = setTimeout(() => resolve({ loaded: false, reason: 'timeout' }), 20000);
+          mainWindow.webContents.once('did-finish-load', () => {
+            clearTimeout(timer);
+            resolve({ loaded: true, title: mainWindow.webContents.getTitle(), url: mainWindow.webContents.getURL() });
+          });
+          mainWindow.webContents.once('did-fail-load', (_event, code, description) => {
+            clearTimeout(timer);
+            resolve({ loaded: false, code, reason: description });
+          });
+        });
+        writeFileSync(file, `${JSON.stringify(result, null, 2)}\n`);
       } catch (error) {
         console.error(`companion-smoke:write-failed ${error.message}`);
+        try { writeFileSync(file, `${JSON.stringify({ ...result, ok: false, error: String(error.message) }, null, 2)}\n`); } catch { /* sem marcador. */ }
       }
       quitting = true;
       app.quit();
       return;
     }
 
-    createWindow();
+    createMainWindow();
+    mainWindow.once('ready-to-show', () => mainWindow.show());
     if (state.paired) await companion.start();
   }).catch((error) => {
     console.error(`companion:startup-failed ${error?.stack || error}`);
@@ -105,10 +117,10 @@ function trayImage(value) {
 }
 
 function trayLabel(value) {
-  if (!value.paired) return 'Lume Companion · desconectado';
-  if (value.paused) return 'Lume Companion · presença pausada';
+  if (!value.paired) return 'Lume — presença desconectada';
+  if (value.paused) return 'Lume — presença pausada';
   if (value.detected) return `Lume · ${value.detected.label} · ${value.detected.category}`;
-  return 'Lume Companion · aguardando um aplicativo da lista';
+  return 'Lume — aguardando um aplicativo da lista';
 }
 
 function buildMenu() {
@@ -116,8 +128,10 @@ function buildMenu() {
   const items = [
     { label: trayLabel(state), enabled: false },
     { type: 'separator' },
-    { label: 'Abrir painel', click: () => showWindow() },
-    { label: 'Abrir o Lume no navegador', click: () => shell.openExternal(state.apiUrl || readConfig().apiUrl) },
+    { label: 'Abrir o Lume', click: () => showMain() },
+    { label: 'Presença e pareamento', click: () => showPanel() },
+    { label: 'Verificar atualização', click: () => { showPanel(); checkUpdate().catch(() => {}); } },
+    { label: 'Abrir no navegador', click: () => shell.openExternal(state.apiUrl || readConfig().apiUrl) },
   ];
   if (state.paired) {
     items.push({ type: 'separator' });
@@ -128,7 +142,7 @@ function buildMenu() {
     items.push({ type: 'separator' });
     items.push({ label: `Faltam ${state.plan.totals.remaining} aulas`, enabled: false });
     const next = state.plan.steps?.[0];
-    if (next) items.push({ label: `Próxima: ${truncate(next.title, 42)}`, enabled: false, click: () => showWindow() });
+    if (next) items.push({ label: `Próxima: ${truncate(next.title, 42)}`, enabled: false, click: () => showMain() });
   }
   items.push({ type: 'separator' }, { label: 'Sair', click: () => app.quit() });
   tray.setContextMenu(Menu.buildFromTemplate(items));
@@ -149,7 +163,7 @@ function broadcast() {
     tray.setImage(trayImage(state));
     buildMenu();
   }
-  if (window && !window.isDestroyed()) window.webContents.send('state', snapshot());
+  if (panelWindow && !panelWindow.isDestroyed()) panelWindow.webContents.send('state', snapshot());
 }
 
 // ---------- Atualização ----------
@@ -207,14 +221,63 @@ async function installUpdate() {
   return snapshot();
 }
 
-function createWindow() {
-  window = new BrowserWindow({
+// ---------- Janelas ----------
+// A janela principal é o próprio Lume: o mesmo site publicado, na mesma origem,
+// para a conta, os amigos e o perfil continuarem iguais aos do navegador.
+// O painel pequeno cuida do que é local: presença, pareamento e atualização.
+
+function appUrl() {
+  return readConfig().apiUrl || DEFAULT_API;
+}
+
+function createMainWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1240,
+    height: 820,
+    minWidth: 900,
+    minHeight: 600,
+    show: false,
+    title: 'Lume',
+    backgroundColor: '#080d17',
+    autoHideMenuBar: true,
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+      spellcheck: true,
+    },
+  });
+
+  mainWindow.loadURL(appUrl());
+  mainWindow.on('close', (event) => {
+    if (quitting) return;
+    event.preventDefault();
+    mainWindow.hide();
+  });
+  // Links de fora abrem no navegador; o app fica no Lume.
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url);
+    return { action: 'deny' };
+  });
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (url.startsWith(appUrl())) return;
+    event.preventDefault();
+    shell.openExternal(url);
+  });
+  mainWindow.webContents.on('did-fail-load', (_event, code, description, url, isMainFrame) => {
+    if (!isMainFrame || code === -3) return;
+    mainWindow.loadFile(join(here, 'renderer', 'offline.html'), { query: { url: appUrl(), code: String(code), reason: description } });
+  });
+}
+
+function createPanelWindow() {
+  panelWindow = new BrowserWindow({
     width: 400,
     height: 640,
     minWidth: 340,
     minHeight: 480,
     show: false,
-    title: 'Lume Companion',
+    title: 'Lume — presença',
     backgroundColor: '#080d17',
     autoHideMenuBar: true,
     webPreferences: {
@@ -224,19 +287,25 @@ function createWindow() {
       sandbox: true,
     },
   });
-  window.loadFile(join(here, 'renderer', 'index.html'));
-  window.on('close', (event) => {
+  panelWindow.loadFile(join(here, 'renderer', 'index.html'));
+  panelWindow.on('close', (event) => {
     if (quitting) return;
     event.preventDefault();
-    window.hide();
+    panelWindow.hide();
   });
-  window.webContents.on('did-finish-load', () => window.webContents.send('state', snapshot()));
+  panelWindow.webContents.on('did-finish-load', () => panelWindow.webContents.send('state', snapshot()));
 }
 
-function showWindow() {
-  if (!window || window.isDestroyed()) createWindow();
-  window.show();
-  window.focus();
+function showMain() {
+  if (!mainWindow || mainWindow.isDestroyed()) createMainWindow();
+  mainWindow.show();
+  mainWindow.focus();
+}
+
+function showPanel() {
+  if (!panelWindow || panelWindow.isDestroyed()) createPanelWindow();
+  panelWindow.show();
+  panelWindow.focus();
 }
 
 async function togglePause() {
@@ -297,7 +366,7 @@ ipcMain.handle('action', async (_event, name, payload = {}) => {
     case 'update-install':
       return installUpdate();
     case 'hide':
-      window?.hide();
+      panelWindow?.hide();
       return state;
     case 'quit':
       app.quit();

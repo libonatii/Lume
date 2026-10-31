@@ -4,7 +4,7 @@
   <meta charset="utf-8"/>
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Lume Companion</title>
+  <title>Lume — presença</title>
   <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
@@ -12,27 +12,27 @@
     <div class="brand">
       <span class="mark" aria-hidden="true"></span>
       <div>
-        <strong>Lume Companion</strong>
+        <strong>Lume</strong>
         <small id="device">Desconectado</small>
       </div>
     </div>
-    <span id="status" class="pill">—</span>
+    <span id="status" class="pill">â€”</span>
   </header>
 
   <main>
     <section id="pair" class="card hidden" aria-labelledby="pair-title">
       <h2 id="pair-title">Conectar este computador</h2>
-      <p class="muted">No Lume, clique em <strong>Instalar aplicativo</strong> na barra lateral do navegador e gere um código.</p>
+      <p class="muted">No Lume, clique em <strong>Instalar aplicativo</strong> na barra lateral do navegador e gere um cÃ³digo.</p>
       <form id="pair-form">
-        <label>Código<input id="pair-code" autocomplete="off" spellcheck="false" placeholder="ABCD-EFGH" maxlength="20" required/></label>
+        <label>CÃ³digo<input id="pair-code" autocomplete="off" spellcheck="false" placeholder="ABCD-EFGH" maxlength="20" required/></label>
         <label>Nome do computador<input id="pair-name" autocomplete="off" maxlength="40" placeholder="PC da Ana"/></label>
         <details>
-          <summary>Endereço da API (avançado)</summary>
+          <summary>EndereÃ§o da API (avanÃ§ado)</summary>
           <label>URL<input id="pair-api" autocomplete="off" spellcheck="false" placeholder="https://lume.lume-prototype.workers.dev"/></label>
         </details>
         <button id="pair-submit" type="submit">Conectar</button>
       </form>
-      <button id="open-settings" class="ghost" type="button">Abrir o Lume para gerar o código</button>
+      <button id="open-settings" class="ghost" type="button">Abrir o Lume para gerar o cÃ³digo</button>
     </section>
 
     <section id="presence" class="card hidden" aria-labelledby="presence-title">
@@ -43,27 +43,27 @@
           <strong id="presence-app">Nenhum aplicativo da lista</strong>
           <small id="presence-meta">Aguardando um aplicativo autorizado.</small>
         </div>
-        <span id="presence-time" class="clock">—</span>
+        <span id="presence-time" class="clock">â€”</span>
       </div>
-      <p class="muted small">Aplicativo aberto não é estudo comprovado. Esta presença não gera XP.</p>
+      <p class="muted small">Aplicativo aberto nÃ£o Ã© estudo comprovado. Esta presenÃ§a nÃ£o gera XP.</p>
       <div class="row">
-        <button id="pause" class="secondary" type="button">Pausar presença</button>
+        <button id="pause" class="secondary" type="button">Pausar presenÃ§a</button>
         <button id="refresh" class="ghost" type="button">Atualizar roteiro</button>
       </div>
     </section>
 
     <section id="plan" class="card hidden" aria-labelledby="plan-title">
       <h2 id="plan-title">Roteiro</h2>
-      <p id="plan-totals" class="totals">—</p>
+      <p id="plan-totals" class="totals">â€”</p>
       <ol id="plan-steps" class="steps"></ol>
       <p id="plan-note" class="muted small hidden"></p>
     </section>
 
     <section id="update" class="card" aria-labelledby="update-title">
-      <h2 id="update-title">Versão</h2>
-      <p id="update-line" class="muted small">—</p>
+      <h2 id="update-title">VersÃ£o</h2>
+      <p id="update-line" class="muted small">â€”</p>
       <div class="row">
-        <button id="update-action" class="secondary" type="button">Verificar atualização</button>
+        <button id="update-action" class="secondary" type="button">Verificar atualizaÃ§Ã£o</button>
       </div>
       <p id="update-note" class="muted small hidden"></p>
     </section>
@@ -75,7 +75,7 @@
     <button id="open" class="ghost" type="button">Abrir o Lume</button>
     <button id="unpair" class="ghost hidden" type="button">Desconectar</button>
   </footer>
-  <p class="fine">Lê apenas nomes de processo da sua lista. Nunca títulos de janela, tela, teclado ou arquivos.</p>
+  <p class="fine">LÃª apenas nomes de processo da sua lista. Nunca tÃ­tulos de janela, tela, teclado ou arquivos.</p>
   <script src="app.js"></script>
 </body>
 </html>

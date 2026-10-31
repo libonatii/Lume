@@ -1,4 +1,4 @@
-# Lume Companion
+# Lume
 
 Programa local que informa ao Lume **qual aplicativo da sua lista está aberto** — a
 mesma ideia de "estou jogando X" do Discord, aplicada à sua atividade de estudo.

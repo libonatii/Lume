@@ -1,5 +1,5 @@
-appId: com.lume.companion
-productName: Lume Companion
+appId: com.lume.app
+productName: Lume
 copyright: Copyright © 2026 Lume
 
 directories:
@@ -34,5 +34,5 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: Lume Companion
-  artifactName: Lume-Companion-setup.${ext}
+  shortcutName: Lume
+  artifactName: Lume-setup.${ext}

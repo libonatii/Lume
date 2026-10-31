@@ -65,7 +65,7 @@ jobs:
           $tag = if ("${{ github.event_name }}" -eq "workflow_dispatch") { "${{ inputs.tag }}" } else { "${{ github.ref_name }}" }
           $assets = Get-ChildItem -Path release -File -Include *.exe,*.blockmap,latest.yml | ForEach-Object { $_.FullName }
           if (-not $assets) { throw "Nenhum artefato encontrado em companion/release" }
-          gh release create $tag --title "Lume Companion $tag" --generate-notes --verify-tag 2>$null
+          gh release create $tag --title "Lume $tag" --generate-notes --verify-tag 2>$null
           gh release upload $tag $assets --clobber
           Write-Host "Release $tag publicada com $($assets.Count) arquivo(s)."
 

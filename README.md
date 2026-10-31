@@ -9,7 +9,7 @@
 
 ## Referências do produto
 
-Leia nesta ordem: [Produto](docs/PRODUTO.md), [Gamificação](docs/GAMIFICACAO.md) e [Continuidade](docs/CONTINUIDADE.md). A [importação de cursos](docs/IMPORTACAO.md) descreve o fluxo por link, as fontes verificadas e suas limitações; o [Lume Companion](docs/COMPANHEIRO.md) descreve o programa de desktop, a presença local e o roteiro por prioridade; [Publicação e CI](docs/RELEASE.md) explica como gerar o instalador pelo GitHub Actions. As [instruções para colaboradores](AGENTS.md) descrevem os cuidados com dados, integrações e verificação.
+Leia nesta ordem: [Produto](docs/PRODUTO.md), [Gamificação](docs/GAMIFICACAO.md) e [Continuidade](docs/CONTINUIDADE.md). A [importação de cursos](docs/IMPORTACAO.md) descreve o fluxo por link, as fontes verificadas e suas limitações; o [Lume](docs/COMPANHEIRO.md) descreve o programa de desktop, a presença local e o roteiro por prioridade; [Publicação e CI](docs/RELEASE.md) explica como gerar o instalador pelo GitHub Actions. As [instruções para colaboradores](AGENTS.md) descrevem os cuidados com dados, integrações e verificação.
 
 A gamificação desejada reconhece estudo efetivo e conclusões. O código ainda preserva o **modelo legado de 5 XP por preparação e 10 XP por etapa**, sem migrar nem reinterpretar os registros antigos. Esses valores não são uma implementação da nova política nem podem alimentar um ranking compartilhado.
 
@@ -17,7 +17,7 @@ O onboarding tem três jornadas com sequências próprias: **Quero começar** (a
 
 A biblioteca aceita **importação por link** em uma entrada única: o servidor lê a página pública, identifica disciplinas, módulos e aulas e a pessoa escolhe as áreas antes de adicionar. Quando a fonte exige login, publica só contagens ou bloqueia acesso automatizado, o caminho é colar a grade ou enviar um arquivo — nunca digitar aula por aula. Importar e atualizar a grade não gera XP; a conclusão das aulas importadas é registro manual identificado. Detalhes e limitações por plataforma em [Importação](docs/IMPORTACAO.md).
 
-A página Hoje tem uma **sessão de estudo declarada**: a pessoa inicia, pausa e encerra um relógio vinculado ao material, com histórico em Meu caminho. Não é observação de atividade e não gera XP. **Amigos** funcionam por convite reaproveitável de 7 dias, sem busca por e-mail; o **perfil entre amigos** mostra só o que cada pessoa escolhe compartilhar. O **Lume Companion** é um programa de desktop opcional (bandeja + janela Electron, ou agente de terminal) que informa qual aplicativo autorizado está aberto, quantas aulas faltam e o próximo passo por prioridade - também sem XP. Ver [Companion](docs/COMPANHEIRO.md).
+A página Hoje tem uma **sessão de estudo declarada**: a pessoa inicia, pausa e encerra um relógio vinculado ao material, com histórico em Meu caminho. Não é observação de atividade e não gera XP. **Amigos** funcionam por convite reaproveitável de 7 dias, sem busca por e-mail; o **perfil entre amigos** mostra só o que cada pessoa escolhe compartilhar. O **Lume** é o programa de desktop: abre o site completo em uma janela e mantém a bandeja com presença, aulas restantes e roteiro - também sem XP. Ver [Lume](docs/COMPANHEIRO.md).
 
 ```sh
 cd D:\tabletop                    # a pasta deste projeto

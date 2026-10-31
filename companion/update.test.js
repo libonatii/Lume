@@ -14,7 +14,7 @@ function release(tag, { draft = false, prerelease = false, asset = INSTALLER } =
     html_url: `https://github.com/libonatii/Lume/releases/tag/${tag}`,
     body: `Notas de ${tag}`,
     published_at: '2026-10-30T12:00:00Z',
-    assets: asset ? [{ name: 'Lume-Companion-setup.exe', browser_download_url: asset, size: 1000 }] : [],
+    assets: asset ? [{ name: String(asset).split('/').pop(), browser_download_url: asset, size: 1000 }] : [],
   };
 }
 

@@ -17,7 +17,10 @@ export const REPO = 'libonatii/Lume';
 export const RELEASES_API = `https://api.github.com/repos/${REPO}/releases?per_page=20`;
 export const RELEASES_PAGE = `https://github.com/${REPO}/releases`;
 export const TAG_PREFIX = 'companion-v';
-export const INSTALLER_NAME = 'Lume-Companion-setup.exe';
+export const INSTALLER_NAME = 'Lume-setup.exe';
+// Releases antigas publicaram o instalador com o nome do Companion. Continuam
+// aceitas para que quem está nelas consiga atualizar.
+export const LEGACY_INSTALLER_NAMES = ['Lume-Companion-setup.exe'];
 const TRUSTED_HOSTS = new Set([
   'github.com',
   'api.github.com',
@@ -62,7 +65,8 @@ export function parseRelease(payload) {
     .filter((release) => typeof release.tag_name === 'string' && release.tag_name.startsWith(TAG_PREFIX))
     .map((release) => {
       const version = release.tag_name.slice(TAG_PREFIX.length);
-      const asset = (release.assets || []).find((item) => item?.name === INSTALLER_NAME);
+      const asset = (release.assets || []).find((item) => item?.name === INSTALLER_NAME)
+        || (release.assets || []).find((item) => LEGACY_INSTALLER_NAMES.includes(item?.name));
       return {
         version,
         installerUrl: asset?.browser_download_url || '',

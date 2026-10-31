@@ -1,8 +1,9 @@
-# Lume Companion — programa de desktop
+# Lume — programa de desktop
 
-Status: **em desenvolvimento**. O agente local, o pareamento, a presença e o
-roteiro de estudo já funcionam em linha de comando no Windows. A bandeja, a
-janela imersiva e o instalador ainda não estão implementados (ver seção 8).
+Status: **em desenvolvimento**. O app de desktop abre o Lume completo em uma
+janela, mantém a bandeja com a presença local e atualiza a si mesmo. O agente de
+linha de comando continua disponível para diagnóstico. O instalador é publicado
+pelo GitHub Actions e ainda não tem assinatura digital (ver seção 8).
 
 Este documento descreve o Companion como o **produto principal** de uso diário:
 o site continua sendo a conta, a biblioteca e o lugar de organizar; o programa
@@ -32,7 +33,7 @@ retoma o que já está na conta.
 | Painel no site: conectar, ver presença, desconectar | Implementado |
 | Quantas aulas faltam e em quais cursos | Implementado (`/api/companion/study`) |
 | Roteiro por prioridade | Implementado no servidor; exibido no comando `plan` e na janela |
-| Bandeja do sistema e janela imersiva (Electron 45) | Implementado no código; abrir com `npm run companion:app` |
+| Bandeja do sistema, janela principal com o site e painel de presença (Electron 45) | Implementado; abrir com `npm run companion:app` |
 | Instalador assinado | Pendente; a atualização pela janela já baixa e abre o instalador |
 
 O roteiro completo também aparece no site (Missões e Biblioteca), com o mesmo
@@ -104,9 +105,24 @@ Critério: Prioridade por continuidade recente, primeiro passo, proximidade do f
   2. Instalação do ambiente — Trilha Full-Stack (Primeiro passo)
 ```
 
-## 6. Janela e bandeja (implementadas)
+## 6. Janelas e bandeja (implementadas)
 
-O app Electron fica na bandeja e abre uma janela de 400×640 com:
+O app é o **Lume completo**: a janela principal (1240×820) carrega o próprio
+Lume publicado, na mesma origem do navegador. Conta, amigos, perfil, biblioteca e
+ranking continuam os mesmos, porque a API é a mesma — o app não tem banco local
+nem uma segunda conta.
+
+| Janela | O que mostra |
+| --- | --- |
+| Principal | O site do Lume inteiro: login, Hoje, Biblioteca, Missões, Conquistas, Meu caminho, Amigos, Perfil, Configurações e a página Instalar aplicativo |
+| Presença | Painel local de 400×640: dispositivo, aplicativo em uso, roteiro, pausa, pareamento e versão |
+
+A janela principal abre links externos no navegador, mantém a sessão entre
+execuções (cookie do site), fecha para a bandeja em vez de encerrar e mostra uma
+página local de "sem conexão" com botão de nova tentativa quando o site não
+responde.
+
+O painel de presença mostra:
 
 | Área | O que mostra |
 | --- | --- |
@@ -121,14 +137,14 @@ A bandeja tem ícones próprios para ativo, pausado e desconectado, menu com o
 estado atual, a próxima aula e o atalho para sair. Fechar a janela não encerra o
 programa: ele continua na bandeja até "Sair".
 
-**Atualização.** A janela mostra a versão instalada e um botão que consulta a
-última release `companion-v*` na API pública do GitHub (`companion/update.mjs`).
-Se houver versão nova, o mesmo botão baixa o `Lume-Companion-setup.exe` para uma
-pasta temporária, com progresso, e abre o instalador. A configuração em
-`%APPDATA%\Lume\companion.json` é preservada, então o computador continua
-pareado depois de atualizar; não é preciso reinstalar nem gerar outro código.
-Nada é baixado sem clique, só endereços `https` do GitHub são aceitos e o
-programa avisa que o instalador ainda não é assinado.
+**Atualização.** A janela de presença mostra a versão instalada e um botão que
+consulta a última release `companion-v*` na API pública do GitHub
+(`companion/update.mjs`). Se houver versão nova, o mesmo botão baixa o
+`Lume-setup.exe` para uma pasta temporária, com progresso, e abre o instalador.
+A configuração em `%APPDATA%\Lume\companion.json` é preservada, então o
+computador continua pareado depois de atualizar; não é preciso reinstalar nem
+gerar outro código. Nada é baixado sem clique, só endereços `https` do GitHub
+são aceitos e o programa avisa que o instalador ainda não é assinado.
 
 O que ainda falta nessa camada:
 
@@ -149,7 +165,8 @@ opt-in; pausa não é punida; nada de vigilância.
 ## 7. Arquitetura
 
 ```text
-[Electron: bandeja + janela]  ─┐
+[Electron: janela principal]  →  [site publicado: conta, biblioteca, amigos, perfil]
+[Electron: painel + bandeja]  ─┐
 [companion/agent.mjs (CLI)]   ─┴→ [companion/core.mjs]
                                       tasklist → allowlist → presença
                                       │  Bearer <token do dispositivo>
@@ -160,8 +177,12 @@ opt-in; pausa não é punida; nada de vigilância.
                               [estado da conta]  cursos, aulas, progresso, sessões
 ```
 
-- A janela não tem acesso a Node nem ao token: fala com o processo principal por
-  IPC com `contextIsolation` e `sandbox` ligados.
+- A janela principal carrega o site publicado na mesma origem. Não existe banco
+  local nem segunda conta: o que a pessoa vê no app é o mesmo Lume do navegador.
+- O painel de presença não tem acesso a Node nem ao token: fala com o processo
+  principal por IPC com `contextIsolation` e `sandbox` ligados.
+- A janela principal também roda com `contextIsolation`, `sandbox` e sem Node;
+  links externos vão para o navegador.
 - O token é criado no pareamento (código de 8 caracteres, uso único, 10 min).
 - O token só pode relatar presença e **ler** o roteiro; não altera estado.
 - O servidor guarda apenas o hash do token.
@@ -173,10 +194,10 @@ opt-in; pausa não é punida; nada de vigilância.
 | --- | --- | --- |
 | 1 | Agente CLI, pareamento, presença, painel no site | Feito |
 | 2 | Roteiro e contagem de aulas no agente | Feito |
-| 3 | App Electron: bandeja, janela e estado visual | Feito no código |
+| 3 | App Electron: bandeja, painel e **janela com o Lume completo** | Feito |
 | 4 | Instalador Windows via GitHub Actions | Feito; assinatura é opcional |
 | 5 | Início com o Windows e auto-update | Auto-update pelo botão da janela; início com o Windows pendente |
-| 6 | Sessão declarada dentro do programa + retomada | Planejado |
+| 6 | Sessão declarada dentro do programa + retomada | Substituído pela janela com o site: a sessão já funciona no app |
 | 7 | Presença social entre amigos (opt-in) | Depende de amigos e grupos |
 
 A publicação é feita por tag (`companion-v0.4.0`) e o workflow gera o instalador
@@ -187,7 +208,7 @@ solução de problemas em [Publicação e CI](RELEASE.md).
 
 O caminho normal é pelo site: **Instalar aplicativo**, na barra lateral,
 abaixo do menu e acima do perfil. O botão baixa o instalador da última release
-(`Lume-Companion-setup.exe`) e mostra o aviso de que ele ainda não é assinado.
+(`Lume-setup.exe`) e mostra o aviso de que ele ainda não é assinado.
 A mesma tela gera o código de conexão — o programa não pede mais que a pessoa
 procure em Configurações.
 
@@ -226,7 +247,8 @@ Ou, sem janela: `npm run companion` (agente de terminal).
   por checagem de sintaxe, mas **não foi possível abrir o app Electron na sessão
   automatizada de desenvolvimento** (sem desktop interativo). A validação final
   do ícone da bandeja é manual: `npm run companion:app`.
-- Sem instalador e sem assinatura de código: hoje o app roda pelo projeto.
+- Instalador publicado pelo CI, sem assinatura de código: o Windows pode avisar
+  na primeira execução.
 - Sem leitura de progresso automático das plataformas: a conclusão continua
   manual e identificada.
 - Sem integração com Discord: o Lume não lê a atividade de outros programas.

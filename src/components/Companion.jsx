@@ -5,18 +5,18 @@ import { api, apiError } from '../lib/api.js';
 import { copyText, selectText } from '../lib/clipboard.js';
 import { formatPairCode, presenceState } from '../../public/companion-domain.js';
 
-// Painel do Lume Companion: instalar o programa, conectar, ver o que ele
-// observa e remover o acesso. Presença é informação privada e temporária: não
-// entra no histórico, não conta como estudo e não gera XP.
+// Página do app de desktop: baixar o programa e conectar a presença local.
+// O programa é o Lume inteiro (janela com o site); este painel cuida da
+// instalação e do pareamento do dispositivo.
 
 const RELEASES_URL = 'https://github.com/libonatii/Lume/releases/latest';
-const DOWNLOAD_URL = `${RELEASES_URL}/download/Lume-Companion-setup.exe`;
+const DOWNLOAD_URL = `${RELEASES_URL}/download/Lume-setup.exe`;
 
 function InstallApp() {
   return <div className="companion-install">
     <div>
-      <strong>Programa para Windows</strong>
-      <p className="muted-text small">Fica na bandeja, mostra o aplicativo em uso, as aulas restantes e o roteiro do dia. Presença não gera XP.</p>
+      <strong>Lume para Windows</strong>
+      <p className="muted-text small">O Lume inteiro em uma janela, com bandeja, presença local, aulas restantes e roteiro. A conta é a mesma do navegador.</p>
     </div>
     <a className="button primary full-width" href={DOWNLOAD_URL} target="_blank" rel="noopener noreferrer">
       <Icon name="cloud"/>Instalar aplicativo
@@ -96,14 +96,14 @@ export default function Companion({ account, notify, go }) {
   // Tela própria: a instalação e a conexão não ficam mais dentro de Configurações.
   const page = (content) => <div className="personal-root">
     <Heading eyebrow="Lume no seu computador" title="Instalar aplicativo">
-      O programa opcional que mostra o aplicativo em uso, quantas aulas faltam e o roteiro do dia. Presença não gera XP.
+      O Lume completo em uma janela, com presença local, aulas restantes e roteiro. Presença não gera XP.
     </Heading>
     {content}
   </div>;
 
   if (!account) {
     return page(<section className="card-surface settings-panel companion-panel">
-      <div className="panel-title"><span className="pace-icon"><Icon name="lock"/></span><div><h2 className="title">Lume Companion</h2><p className="muted-text">O programa que acompanha sua atividade local.</p></div></div>
+      <div className="panel-title"><span className="pace-icon"><Icon name="lock"/></span><div><h2 className="title">Lume no desktop</h2><p className="muted-text">O programa que abre o Lume e acompanha sua atividade local.</p></div></div>
       <InstallApp/>
       <p className="muted-text">Conectar o programa exige uma conta: é ela que autoriza o dispositivo e guarda a lista dos seus computadores.</p>
       <Button secondary onClick={() => go('login')}>Entrar para conectar<Icon name="arrow"/></Button>
@@ -113,7 +113,7 @@ export default function Companion({ account, notify, go }) {
   const active = (data?.active || []).map((device) => ({ device, state: presenceState(device.presence) }));
 
   return page(<section className="card-surface settings-panel companion-panel">
-    <div className="panel-title"><span className="pace-icon"><Icon name="cloud"/></span><div><h2 className="title">Lume Companion</h2><p className="muted-text">Presença local, opcional e sem XP.</p></div></div>
+    <div className="panel-title"><span className="pace-icon"><Icon name="cloud"/></span><div><h2 className="title">Presença no desktop</h2><p className="muted-text">Presença local, opcional e sem XP.</p></div></div>
     <InstallApp/>
     <p className="muted-text">Depois de instalar, gere um código aqui nesta tela e cole no programa. Ele informa qual aplicativo da sua lista está aberto. O Lume lê apenas nomes de processo — nunca títulos de janela, tela, teclado ou arquivos.</p>
 
@@ -152,7 +152,7 @@ export default function Companion({ account, notify, go }) {
         <button className="text-button" onClick={() => setPairing(null)}>Fechar</button>
       </div>
       <div className="companion-steps">
-        <p>Abra o <strong>Lume Companion</strong> (ícone na bandeja do Windows), clique em <strong>Abrir painel</strong> e cole o código.</p>
+        <p>Abra o <strong>Lume</strong> (ícone na bandeja do Windows), escolha <strong>Presença e pareamento</strong> e cole o código.</p>
         <details>
           <summary>Rodando pelo projeto (desenvolvimento)</summary>
           <code className="companion-command">npm run companion:pair -- {formatPairCode(pairing.code)} --name "Meu computador"</code>

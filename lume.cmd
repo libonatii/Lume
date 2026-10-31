@@ -2,7 +2,7 @@
 setlocal
 cd /d "%~dp0"
 
-set "PACKAGED=companion\release\win-unpacked\Lume Companion.exe"
+set "PACKAGED=companion\release\win-unpacked\Lume.exe"
 set "ELECTRON=companion\node_modules\electron\dist\electron.exe"
 
 if exist "%PACKAGED%" (
@@ -17,7 +17,7 @@ if exist "%PACKAGED%" (
 
 if not exist "%ELECTRON%" (
   echo.
-  echo Lume Companion: o Electron ainda nao esta instalado.
+  echo Lume: o Electron ainda nao esta instalado.
   echo Rode uma vez, nesta pasta:
   echo     npm install --prefix companion
   echo.
