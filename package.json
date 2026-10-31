@@ -13,7 +13,8 @@
     "test:e2e": "playwright test",
     "companion": "node companion/agent.mjs run",
     "companion:pair": "node companion/agent.mjs pair",
-    "companion:status": "node companion/agent.mjs status"
+    "companion:status": "node companion/agent.mjs status",
+    "companion:app": "npm --prefix companion start"
   },
   "engines": {
     "node": ">=22.23.4"

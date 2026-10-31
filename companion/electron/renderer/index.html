@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Lume Companion</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <span class="mark" aria-hidden="true"></span>
+      <div>
+        <strong>Lume Companion</strong>
+        <small id="device">Desconectado</small>
+      </div>
+    </div>
+    <span id="status" class="pill">—</span>
+  </header>
+
+  <main>
+    <section id="pair" class="card hidden" aria-labelledby="pair-title">
+      <h2 id="pair-title">Conectar este computador</h2>
+      <p class="muted">No Lume, abra <strong>Configurações &amp; Conforto → Lume Companion</strong> e gere um código.</p>
+      <form id="pair-form">
+        <label>Código<input id="pair-code" autocomplete="off" spellcheck="false" placeholder="ABCD-EFGH" maxlength="20" required/></label>
+        <label>Nome do computador<input id="pair-name" autocomplete="off" maxlength="40" placeholder="PC da Ana"/></label>
+        <details>
+          <summary>Endereço da API (avançado)</summary>
+          <label>URL<input id="pair-api" autocomplete="off" spellcheck="false" placeholder="https://lume.lume-prototype.workers.dev"/></label>
+        </details>
+        <button id="pair-submit" type="submit">Conectar</button>
+      </form>
+    </section>
+
+    <section id="presence" class="card hidden" aria-labelledby="presence-title">
+      <h2 id="presence-title">Agora</h2>
+      <div class="presence-row">
+        <span id="presence-dot" class="dot" aria-hidden="true"></span>
+        <div class="presence-copy">
+          <strong id="presence-app">Nenhum aplicativo da lista</strong>
+          <small id="presence-meta">Aguardando um aplicativo autorizado.</small>
+        </div>
+        <span id="presence-time" class="clock">—</span>
+      </div>
+      <p class="muted small">Aplicativo aberto não é estudo comprovado. Esta presença não gera XP.</p>
+      <div class="row">
+        <button id="pause" class="secondary" type="button">Pausar presença</button>
+        <button id="refresh" class="ghost" type="button">Atualizar roteiro</button>
+      </div>
+    </section>
+
+    <section id="plan" class="card hidden" aria-labelledby="plan-title">
+      <h2 id="plan-title">Roteiro</h2>
+      <p id="plan-totals" class="totals">—</p>
+      <ol id="plan-steps" class="steps"></ol>
+      <p id="plan-note" class="muted small hidden"></p>
+    </section>
+
+    <p id="error" class="error hidden" role="alert"></p>
+  </main>
+
+  <footer>
+    <button id="open" class="ghost" type="button">Abrir o Lume</button>
+    <button id="unpair" class="ghost hidden" type="button">Desconectar</button>
+  </footer>
+  <p class="fine">Lê apenas nomes de processo da sua lista. Nunca títulos de janela, tela, teclado ou arquivos.</p>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -31,8 +31,9 @@ retoma o que já está na conta.
 | Presença com expiração (90 s sem batimento) | Implementado |
 | Painel no site: conectar, ver presença, desconectar | Implementado |
 | Quantas aulas faltam e em quais cursos | Implementado (`/api/companion/study`) |
-| Roteiro por prioridade | Implementado no servidor; exibido no comando `plan` |
-| Bandeja do sistema, janela, instalador | Pendente |
+| Roteiro por prioridade | Implementado no servidor; exibido no comando `plan` e na janela |
+| Bandeja do sistema e janela imersiva (Electron 45) | Implementado no código; abrir com `npm run companion:app` |
+| Instalador assinado | Pendente |
 
 O roteiro completo também aparece no site (Missões e Biblioteca), com o mesmo
 critério. O Companion não inventa uma prioridade diferente.
@@ -103,23 +104,34 @@ Critério: Prioridade por continuidade recente, primeiro passo, proximidade do f
   2. Instalação do ambiente — Trilha Full-Stack (Primeiro passo)
 ```
 
-## 6. Funcionalidades planejadas para a janela
+## 6. Janela e bandeja (implementadas)
 
-O objetivo é que o programa pareça um aplicativo de verdade, não um painel de
-diagnóstico. Nada abaixo está implementado; é o destino do produto.
+O app Electron fica na bandeja e abre uma janela de 400×640 com:
+
+| Área | O que mostra |
+| --- | --- |
+| Cabeçalho | Nome do dispositivo e estado (`observando`, `pausado`, `desconectado`) |
+| Agora | Aplicativo detectado, categoria, relógio da sessão e aviso de que não gera XP |
+| Roteiro | Aulas restantes, cursos ativos e as três próximas aulas com o motivo da prioridade |
+| Ações | Pausar/retomar presença, atualizar roteiro, abrir o Lume, desconectar |
+| Pareamento | Código, nome do computador e endereço da API (avançado) |
+
+A bandeja tem ícones próprios para ativo, pausado e desconectado, menu com o
+estado atual, a próxima aula e o atalho para sair. Fechar a janela não encerra o
+programa: ele continua na bandeja até "Sair".
+
+O que ainda falta nessa camada:
 
 | Recurso | Descrição |
 | --- | --- |
-| Bandeja | Ícone com estado (estudando/pausado/desconectado), menu rápido |
-| Janela imersiva | Cartão de presença, relógio de sessão, próxima aula e roteiro |
 | HUD discreto | Sempre no topo, por escolha, com tempo e próxima aula |
-| Sessão no programa | Iniciar, pausar e encerrar a mesma sessão declarada do site |
-| Retomada | Abrir a próxima aula direto no navegador, no link da fonte |
-| Notificações | Lembrete gentil de pausa; nunca cobrança, nunca sequência obrigatória |
-| Biblioteca local | Lista de cursos e aulas restantes sem abrir o site |
-| Amigos | Ver quem está estudando agora, quando a pessoa escolher compartilhar |
-| Offline | Fila local de presença; sincroniza quando a conexão volta |
-| Início com o Windows | Opcional, explícito, reversível |
+| Notificações | Lembrete gentil de pausa; nunca cobrança |
+| Sessão no programa | Iniciar, pausar e encerrar a sessão declarada do site |
+| Retomada direta | Abrir a próxima aula no navegador pelo link da fonte |
+| Biblioteca local | Lista de cursos sem abrir o site |
+| Offline | Fila local de presença, sincronizada depois |
+| Início com o Windows | Opcional, explícito e reversível |
+| Instalador assinado | Empacotamento e assinatura para distribuição |
 
 Regras para todos eles: presença e roteiro nunca geram XP; compartilhamento é
 opt-in; pausa não é punida; nada de vigilância.
@@ -127,20 +139,23 @@ opt-in; pausa não é punida; nada de vigilância.
 ## 7. Arquitetura
 
 ```text
-[companion/agent.mjs]  tasklist → allowlist → presença
-        │  Bearer <token do dispositivo>
-        ▼
-[API: /api/companion/*]  par, presença, estudo
-        │
-        ▼
-[estado da conta]  cursos, aulas, progresso, sessões
+[Electron: bandeja + janela]  ─┐
+[companion/agent.mjs (CLI)]   ─┴→ [companion/core.mjs]
+                                      tasklist → allowlist → presença
+                                      │  Bearer <token do dispositivo>
+                                      ▼
+                              [API: /api/companion/*]
+                                      │
+                                      ▼
+                              [estado da conta]  cursos, aulas, progresso, sessões
 ```
 
+- A janela não tem acesso a Node nem ao token: fala com o processo principal por
+  IPC com `contextIsolation` e `sandbox` ligados.
 - O token é criado no pareamento (código de 8 caracteres, uso único, 10 min).
 - O token só pode relatar presença e **ler** o roteiro; não altera estado.
 - O servidor guarda apenas o hash do token.
 - Revogar no site invalida o token imediatamente.
-- O agente não fala com o banco nem com outras pessoas; só com a API.
 
 ## 8. Roadmap
 
@@ -148,18 +163,32 @@ opt-in; pausa não é punida; nada de vigilância.
 | --- | --- | --- |
 | 1 | Agente CLI, pareamento, presença, painel no site | Feito |
 | 2 | Roteiro e contagem de aulas no agente | Feito |
-| 3 | Empacotamento Electron: bandeja, janela, instalador | Próximo |
-| 4 | Sessão declarada dentro do programa + retomada | Planejado |
-| 5 | Presença social entre amigos (opt-in) | Depende de amigos e grupos |
+| 3 | App Electron: bandeja, janela e estado visual | Feito no código |
+| 4 | Instalador assinado e início com o Windows | Pendente |
+| 5 | Sessão declarada dentro do programa + retomada | Planejado |
+| 6 | Presença social entre amigos (opt-in) | Depende de amigos e grupos |
 
-A fase 3 exige instalar o Electron (dependência de desenvolvimento) e assinar o
-executável para distribuir. Nada foi publicado nem ativado como serviço pago.
+A fase 3 exige o Electron instalado em `companion/` (`npm install --prefix companion`).
+O instalador da fase 4 exigirá empacotamento com assinatura de código; nada foi
+publicado nem ativado como serviço pago.
+
+### Como abrir agora
+
+```sh
+npm install --prefix companion   # instala o Electron (uma vez)
+npm run companion:app            # abre a bandeja e a janela
+```
+
+Ou, sem janela: `npm run companion` (agente de terminal).
 
 ## 9. Limitações atuais
 
 - Windows apenas; sem suporte a Linux/macOS.
-- Sem bandeja e sem instalador: hoje é um comando no terminal.
-- Sem assinatura de código.
+- A janela e a bandeja foram verificadas em Chromium (mesma engine do Electron) e
+  por checagem de sintaxe, mas **não foi possível abrir o app Electron na sessão
+  automatizada de desenvolvimento** (sem desktop interativo). A validação final
+  do ícone da bandeja é manual: `npm run companion:app`.
+- Sem instalador e sem assinatura de código: hoje o app roda pelo projeto.
 - Sem leitura de progresso automático das plataformas: a conclusão continua
   manual e identificada.
 - Sem integração com Discord: o Lume não lê a atividade de outros programas.

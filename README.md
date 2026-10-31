@@ -14,7 +14,13 @@ O onboarding tem três jornadas com sequências próprias: **Quero começar** (a
 
 A biblioteca aceita **importação por link** em uma entrada única: o servidor lê a página pública, identifica disciplinas, módulos e aulas e a pessoa escolhe as áreas antes de adicionar. Quando a fonte exige login, publica só contagens ou bloqueia acesso automatizado, o caminho é colar a grade ou enviar um arquivo — nunca digitar aula por aula. Importar e atualizar a grade não gera XP; a conclusão das aulas importadas é registro manual identificado. Detalhes e limitações por plataforma em [Importação](docs/IMPORTACAO.md).
 
-A página Hoje tem uma **sessão de estudo declarada**: a pessoa inicia, pausa e encerra um relógio vinculado ao material, com histórico em Meu caminho. Não é observação de atividade e não gera XP. **Amigos** funcionam por convite de uso único, sem busca por e-mail e sem compartilhar biblioteca ou progresso. O **Lume Companion** é um programa de desktop opcional que informa qual aplicativo autorizado está aberto, quantas aulas faltam e o próximo passo por prioridade — também sem XP. Bandeja e instalador do programa ainda não existem; ver [Companion](docs/COMPANHEIRO.md).
+A página Hoje tem uma **sessão de estudo declarada**: a pessoa inicia, pausa e encerra um relógio vinculado ao material, com histórico em Meu caminho. Não é observação de atividade e não gera XP. **Amigos** funcionam por convite de uso único, sem busca por e-mail e sem compartilhar biblioteca ou progresso. O **Lume Companion** é um programa de desktop opcional (bandeja + janela Electron, ou agente de terminal) que informa qual aplicativo autorizado está aberto, quantas aulas faltam e o próximo passo por prioridade — também sem XP. Ver [Companion](docs/COMPANHEIRO.md).
+
+```sh
+npm install --prefix companion   # Electron, uma vez
+npm run companion:app            # bandeja + janela
+npm run companion                # agente de terminal, se preferir
+```
 
 ## Stack e interações
 
@@ -67,7 +73,7 @@ npm run test:e2e
 
 Os testes de navegador usam Chrome instalado, em modo headless, com desktop e viewport móvel. Uma base SQLite separada em `data/e2e-*` impede alterações nas contas locais existentes. Os cenários verificam dados legados, prévia, teclado, busca, filtros, importação por texto, análise de link simulada por interceptação de rota, seleção parcial, reimportação, progresso manual, sessão declarada, importação de conta isolada, convite entre duas contas, Companion (pareamento, presença e revogação), preferências, cadastro, entrada, saída, sincronização e recuperação de senha. Os rastros de falhas ficam em `test-results/`, ignorado no Git. O servidor de teste sobe com `LUME_ATTEMPT_LIMIT=200` para não esbarrar no limite de tentativas compartilhado pelo endereço local; o padrão continua 10.
 
-Nesta rodada passaram o build, os **74 testes de domínio/autenticação/importação/Companion/sessão/amigos** e os **26 cenários de navegador** (13 por projeto, desktop e celular). A extração real de páginas foi conferida com acessos à Coursera, Alura, Rocketseat, DIO e Udemy; o resultado está documentado em [Importação](docs/IMPORTACAO.md#4-o-que-foi-realmente-verificado-nesta-rodada).
+Nesta rodada passaram o build, os **75 testes de domínio/autenticação/importação/Companion/sessão/amigos** e os **26 cenários de navegador** (13 por projeto, desktop e celular). A extração real de páginas foi conferida com acessos à Coursera, Alura, Rocketseat, DIO e Udemy; o resultado está documentado em [Importação](docs/IMPORTACAO.md#4-o-que-foi-realmente-verificado-nesta-rodada).
 
 ## Dados e limites atuais
 
@@ -109,7 +115,7 @@ Verificação desta troca: testes de autenticação/domínio, build estático, b
 | `public/study-plan.js` | Roteiro por prioridade e contagem de aulas restantes |
 | `public/companion-domain.js` | Regras do Companion: allowlist, presença e categorias |
 | `import-server.js` | Análise de fontes no servidor: validação de URL, limites, extração e organizador por IA |
-| `companion.js` / `companion/` | Pareamento, presença e roteiro; agente local do Windows |
+| `companion.js` / `companion/` | Pareamento, presença e roteiro; núcleo, agente local e app Electron (bandeja e janela) |
 | `friends.js` | Convites, amizades e remoção |
 | `public/*.css` | Estilos, sistema visual do Stitch e interações |
 | `public/assets/` | Fontes e imagens locais |

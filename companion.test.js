@@ -1,10 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   categoryLabel, describeElapsed, formatPairCode, generatePairCode, matchAllowlist,
   normalizeCategory, normalizePairCode, normalizeProcessName, parseTasklist, presenceState,
 } from './public/companion-domain.js';
 import { CompanionError, redeemPairCode } from './companion.js';
+import { addAllowlistEntry, configPath, readConfig, removeAllowlistEntry, setPaused } from './companion/core.mjs';
 import { hashSessionToken } from './auth.js';
 
 const TASKLIST = [
@@ -137,4 +141,32 @@ test('pareamento aceita o código uma única vez e valida nome e limite', async 
     (error) => error.code === 'missing_device_name',
   );
   assert.ok(codeHash, 'hash disponível para consulta');
+});
+
+test('configuração local cria padrões, evita duplicata e respeita pausa', { skip: process.platform !== 'win32' }, () => {
+  const directory = mkdtempSync(join(tmpdir(), 'lume-companion-'));
+  const previous = process.env.APPDATA;
+  process.env.APPDATA = directory;
+  try {
+    const initial = readConfig();
+    assert.ok(initial.allowlist.length > 0);
+    assert.equal(initial.paused, false);
+    assert.ok(configPath().startsWith(directory), 'não escreve fora do APPDATA de teste');
+
+    assert.equal(addAllowlistEntry('C:\\Apps\\Obsidian.exe', { label: 'Obsidian', category: 'study' }).added, true);
+    assert.equal(addAllowlistEntry('obsidian', { label: 'Outro nome' }).added, false, 'duplicata normalizada');
+    assert.equal(readConfig().allowlist.at(-1).label, 'Obsidian');
+
+    setPaused(true);
+    assert.equal(readConfig().paused, true);
+    setPaused(false);
+    assert.equal(readConfig().paused, false);
+
+    removeAllowlistEntry('obsidian');
+    assert.equal(readConfig().allowlist.some((entry) => entry.process === 'obsidian'), false);
+  } finally {
+    if (previous === undefined) delete process.env.APPDATA;
+    else process.env.APPDATA = previous;
+    rmSync(directory, { recursive: true, force: true });
+  }
 });

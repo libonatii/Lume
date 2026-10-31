@@ -11,3 +11,6 @@ dist/
 .astro/
 test-results/
 playwright-report/
+companion/node_modules/
+companion/out/
+companion/release/
