@@ -1064,6 +1064,48 @@ html[data-theme='light'] .plan-material-highlight {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.9rem;
+  align-items: stretch;
+}
+/* Os três cartões dividem a mesma altura e o botão fica no rodapé de cada um. */
+.social-preview-grid > .card-surface {
+  min-width: 0;
+}
+.social-preview-grid .card-surface > :last-child {
+  margin-top: auto;
+}
+.social-preview-grid .title {
+  font-size: 1.05rem;
+  line-height: 1.3;
+}
+/* Em coluna estreita o rótulo quebra em vez de vazar para fora do cartão. */
+.social-preview-grid .button {
+  max-width: 100%;
+  white-space: normal;
+  line-height: 1.25;
+  text-align: center;
+}
+.social-preview-grid .text-link {
+  flex-wrap: wrap;
+  max-width: 100%;
+  white-space: normal;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.soon-badge.is-ready {
+  background: rgba(94, 168, 255, 0.16);
+  color: var(--lume);
+}
+.invite-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1.05rem;
+  letter-spacing: 0.12em;
+  word-break: break-all;
+  text-align: center;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
 }
 .card-head {
   display: flex;

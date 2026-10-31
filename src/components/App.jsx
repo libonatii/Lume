@@ -69,7 +69,7 @@ export default function App() {
   let page;
   switch (route) {
     case 'login': page = checkingSession ? <SessionCheck/> : <Login model={model} mode={authMode} setMode={setAuthMode} go={go} notify={notify}/>; break;
-    case 'inicio': page = <Onboarding key={model.account?.id || 'local'} state={state} update={update} go={go} notify={notify}/>; break;
+    case 'inicio': page = <Onboarding key={model.account?.id || 'local'} state={state} update={update} go={go} notify={notify} account={model.account}/>; break;
     case 'recuperar': case 'redefinir': page = <Recovery key={route === 'redefinir' ? hash : route} reset={route === 'redefinir'} notify={notify} go={go}/>; break;
     case 'hoje': page = <Home state={state} open={open} go={go} update={update} notify={notify}/>; break;
     case 'biblioteca': page = <Library state={state} open={open}/>; break;

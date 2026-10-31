@@ -6,6 +6,7 @@ import {
 } from '../../public/domain.js';
 import Icon from './Icon.jsx';
 import { Button, Glow, ease, stagger } from './ui.jsx';
+import { api, apiError } from '../lib/api.js';
 
 // Cada jornada tem a própria sequência. Não é o mesmo formulário com outro título.
 const STEPS = {
@@ -36,12 +37,15 @@ function Stepper({ step, total }) {
   </div>;
 }
 
-export default function Onboarding({ state, update, go, notify }) {
+export default function Onboarding({ state, update, go, notify, account }) {
   const saved = state.onboarding ?? emptyOnboarding();
   const [journey, setJourney] = useState(saved.journey ?? state.habit ?? null);
   const [step, setStep] = useState(saved.journey && saved.status === 'active' ? saved.step : 0);
   const [answers, setAnswers] = useState(saved.answers ?? {});
   const [error, setError] = useState('');
+  const [invite, setInvite] = useState(null);
+  const [inviteBusy, setInviteBusy] = useState(false);
+  const [inviteError, setInviteError] = useState('');
 
   const steps = journey ? STEPS[journey] : [];
   const reviewStep = steps.length + 1;
@@ -89,6 +93,32 @@ export default function Onboarding({ state, update, go, notify }) {
     update(previous => completeJourney(saveOnboardingAnswer(previous, answers, socialStep)));
     go('hoje');
     notify('Seu começo está pronto. Você pode ajustar tudo depois.');
+  }
+
+  // Convite dentro do onboarding: mesmo endpoint da página Amigos, sem sair da etapa.
+  async function createInvite() {
+    setInviteBusy(true);
+    setInviteError('');
+    try {
+      const result = await api('/api/friends/invite', { method: 'POST', body: {} });
+      if (!result.ok) throw new Error(apiError(result));
+      setInvite(result.data);
+    } catch (exception) {
+      setInviteError(exception.message);
+    } finally {
+      setInviteBusy(false);
+    }
+  }
+
+  async function copyInvite() {
+    if (!invite) return;
+    const link = `${location.origin}/#amigos?convite=${invite.code}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      notify('Link do convite copiado. Vale por 7 dias e só pode ser usado uma vez.');
+    } catch {
+      notify('Não foi possível copiar. Selecione o código e envie como preferir.');
+    }
   }
 
   // Cria o primeiro material a partir das respostas. Não concede XP.
@@ -159,8 +189,27 @@ export default function Onboarding({ state, update, go, notify }) {
           <p className="muted-text">Você pode pular esta parte. Ela não muda seu XP nem seu plano.</p>
         </header>
         <div className="social-preview-grid">
-          <div className="card-surface"><div className="card-head"><span className="pace-icon"><Icon name="users"/></span><span className="soon-badge">Em breve</span></div><strong className="title">Convidar amigos</strong><p className="muted-text">Convites ainda não estão disponíveis nesta versão.</p><Button secondary disabled><Icon name="plus"/>Convidar (em breve)</Button></div>
-          <div className="card-surface"><div className="card-head"><span className="pace-icon"><Icon name="compass"/></span><span className="soon-badge">Em breve</span></div><strong className="title">Entrar em um grupo</strong><p className="muted-text">Entrada por convite será liberada quando os grupos existirem.</p><Button secondary disabled><Icon name="plus"/>Entrar com convite (em breve)</Button></div>
+          <div className="card-surface">
+            <div className="card-head"><span className="pace-icon"><Icon name="users"/></span><span className={`soon-badge${account ? ' is-ready' : ''}`}>{account ? 'Disponível' : 'Com conta'}</span></div>
+            <strong className="title">Convidar amigos</strong>
+            {account
+              ? invite
+                ? <>
+                    <p className="muted-text">Envie este código. Vale por 7 dias e só pode ser usado uma vez.</p>
+                    <code className="invite-code">{invite.code}</code>
+                    <Button secondary onClick={copyInvite}><Icon name="check"/>Copiar link do convite</Button>
+                  </>
+                : <>
+                    <p className="muted-text">Gere um convite por link. Ser amigo não compartilha sua biblioteca, seu progresso nem seu XP.</p>
+                    <Button secondary onClick={createInvite} disabled={inviteBusy}><Icon name="plus"/>{inviteBusy ? 'Gerando convite…' : 'Convidar amigos'}</Button>
+                  </>
+              : <>
+                  <p className="muted-text">O convite fica vinculado a uma conta. Na prévia, ele não pode ser gerado.</p>
+                  <Button secondary onClick={() => go('login')}><Icon name="lock"/>Entrar para convidar</Button>
+                </>}
+            {inviteError && <p role="alert" className="form-error">{inviteError}</p>}
+          </div>
+          <div className="card-surface"><div className="card-head"><span className="pace-icon"><Icon name="compass"/></span><span className="soon-badge">Em breve</span></div><strong className="title">Entrar em um grupo</strong><p className="muted-text">Entrada por convite será liberada quando os grupos existirem.</p><Button secondary disabled><Icon name="plus"/>Entrar com convite</Button></div>
           <div className="card-surface"><div className="card-head"><span className="pace-icon"><Icon name="podium"/></span><span className="soon-badge">Planejado</span></div><strong className="title">Ranking</strong><p className="muted-text">O ranking por nível, cursos concluídos e empenho está planejado. Você não entra nele automaticamente.</p><a className="text-link" href="#conquistas">Ver conquistas e progresso<Icon name="arrow"/></a></div>
         </div>
         <div className="step-actions"><Button secondary onClick={() => { go('hoje'); }}>Pular esta etapa</Button><Button onClick={finish}>Concluir e ir para Hoje<Icon name="arrow"/></Button></div>
