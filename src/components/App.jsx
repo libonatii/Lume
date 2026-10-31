@@ -12,6 +12,11 @@ import Companion from './Companion.jsx';
 import StudyDialog from './StudyDialog.jsx';
 import { Button, Dialog, enter, ease } from './ui.jsx';
 import Icon from './Icon.jsx';
+import { markDesktop, syncTitleBar } from '../lib/desktop.js';
+
+// Marca o documento antes do primeiro desenho: no app, a barra de título ocupa
+// o topo; no navegador, nada muda.
+markDesktop();
 
 const titles = { login: 'Bem-vindo', inicio: 'Seu ritmo', hoje: 'Hoje', biblioteca: 'Biblioteca', missoes: 'Missões', conquistas: 'Conquistas', historico: 'Meu caminho', amigos: 'Amigos', configuracoes: 'Do seu jeito', perfil: 'Perfil', aplicativo: 'Instalar aplicativo', recuperar: 'Recuperar acesso', redefinir: 'Nova senha' };
 // Enquanto a sessão é verificada, o formulário não aparece: evita a impressão de estar deslogada.
@@ -51,6 +56,7 @@ export default function App() {
   }, [model.account, requested, state.onboarded]);
   useLayoutEffect(() => {
     document.documentElement.dataset.theme = state.preferences.theme;
+    syncTitleBar(state.preferences.theme);
     document.documentElement.dataset.text = state.preferences.textSize;
     document.documentElement.dataset.page = route;
     document.documentElement.removeAttribute('data-essential');
@@ -80,7 +86,7 @@ export default function App() {
     case 'historico': page = <History state={state}/>; break;
     case 'amigos': page = <Friends account={model.account} notify={notify} go={go}/>; break;
     case 'configuracoes': page = <Preferences state={state} update={update} account={model.account} notify={notify} go={go} onPersonalize={() => go('inicio')}/>; break;
-    case 'perfil': page = <Profile id={new URLSearchParams(hash.split('?')[1] || '').get('id') || ''} state={state} account={model.account} go={go}/>; break;
+    case 'perfil': page = <Profile id={new URLSearchParams(hash.split('?')[1] || '').get('id') || ''} state={state} update={update} account={model.account} notify={notify} go={go}/>; break;
     case 'aplicativo': page = <Companion account={model.account} notify={notify} go={go}/>; break;
   }
   return <><Shell route={route} model={model} onComfort={() => open({ type: 'comfort' })} onHelp={() => open({ type: 'help' })} onRegister={() => setAuthMode('register')} onExit={exit}><motion.div className={`page page-${route}`} key={route} {...enter}>{page}</motion.div></Shell>

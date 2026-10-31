@@ -16,6 +16,7 @@ import { checkForUpdate, downloadInstaller, RELEASES_PAGE } from '../update.mjs'
 const here = dirname(fileURLToPath(import.meta.url));
 const assets = app.isPackaged ? join(process.resourcesPath, 'assets') : join(here, '..', 'assets');
 const smoke = process.argv.includes('--smoke') || process.env.LUME_COMPANION_SMOKE === '1';
+const TITLEBAR_HEIGHT = 36;
 
 let tray = null;
 let mainWindow = null;
@@ -240,7 +241,12 @@ function createMainWindow() {
     title: 'Lume',
     backgroundColor: '#080d17',
     autoHideMenuBar: true,
+    // Barra de título própria: os botões nativos ficam sobre o topo do site,
+    // com as cores do tema, como em editores e apps de desktop modernos.
+    titleBarStyle: 'hidden',
+    titleBarOverlay: { color: '#080d17', symbolColor: '#e8eefb', height: TITLEBAR_HEIGHT },
     webPreferences: {
+      preload: join(here, 'main-preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
@@ -325,6 +331,18 @@ async function disconnect() {
   broadcast();
   return state;
 }
+
+ipcMain.on('lume:theme', (_event, theme) => {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  const dark = theme !== 'light';
+  try {
+    mainWindow.setTitleBarOverlay({
+      color: dark ? '#080d17' : '#f1f6fd',
+      symbolColor: dark ? '#e8eefb' : '#0c1322',
+      height: TITLEBAR_HEIGHT,
+    });
+  } catch { /* plataformas sem overlay seguem com a barra padrão. */ }
+});
 
 ipcMain.handle('action', async (_event, name, payload = {}) => {
   switch (name) {
