@@ -14,7 +14,7 @@ export default function Shell({ route, model, children, onComfort, onHelp, onReg
   const name = model.account?.name || 'Prévia';
   const today = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
   if (entry) return <div className="entry-shell">
-    <header className="entry-header"><a className="brand" href="#login" aria-label="Lume — início"><Logo size={34}/><span className="brand-name">Lume</span></a><nav aria-label="Entrada no Lume"><button className="chip-button" onClick={onComfort}><Icon name="sun"/>Conforto visual</button>{route === 'login' ? <button className="text-button" onClick={onRegister}>Criar conta</button> : <button className="text-button" onClick={onExit}>Voltar à entrada</button>}<button className="text-button" onClick={onHelp}>Ajuda</button></nav></header>
+    <header className="entry-header"><a className="brand" href="#login" aria-label="Lume — início"><Logo size={34}/><span className="brand-name">Lume</span></a><nav aria-label="Entrada no Lume"><button className="chip-button" onClick={onComfort}><Icon name="sun"/>Conforto visual</button>{route === 'login' ? <button className="text-button" onClick={onRegister}>Criar conta</button> : route === 'inicio' ? <button className="text-button" onClick={onExit}>Sair</button> : <a className="text-button" href="#login">Voltar à entrada</a>}<button className="text-button" onClick={onHelp}>Ajuda</button></nav></header>
     <main id="main" tabIndex={-1} className="entry-main">{children}</main>
     <footer className="entry-footer"><span>Aprender no seu ritmo, com espaço para recomeçar.</span><span>Cadastro e acesso com e-mail e senha</span></footer>
   </div>;

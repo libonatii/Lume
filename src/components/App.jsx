@@ -12,6 +12,10 @@ import { Button, Dialog, enter, ease } from './ui.jsx';
 import Icon from './Icon.jsx';
 
 const titles = { login: 'Bem-vindo', inicio: 'Seu ritmo', hoje: 'Hoje', biblioteca: 'Biblioteca', missoes: 'Missões', conquistas: 'Conquistas', historico: 'Meu caminho', amigos: 'Amigos', configuracoes: 'Do seu jeito', recuperar: 'Recuperar acesso', redefinir: 'Nova senha' };
+// Enquanto a sessão é verificada, o formulário não aparece: evita a impressão de estar deslogada.
+function SessionCheck() {
+  return <section className="recovery-card" aria-busy="true"><span className="dialog-emblem"><Icon name="cloud"/></span><h1 className="headline">Verificando sua sessão.</h1><p className="muted-text">Só um instante enquanto confirmamos se você já está conectada.</p></section>;
+}
 export default function App() {
   const [hash, setHash] = useState(() => location.hash);
   const [toast, setToast] = useState(null);
@@ -22,7 +26,13 @@ export default function App() {
   const model = useLume(notify);
   const { state, setState: update } = model;
   const requested = hash.slice(1).split('?')[0];
-  const route = ['recuperar', 'redefinir'].includes(requested) ? requested : (!model.account && !model.preview) || requested === 'login' ? 'login' : !state.onboarded ? 'inicio' : titles[requested] ? requested : 'hoje';
+  const signedIn = Boolean(model.account);
+  // A sessão verificada vale mais que o hash: #login não pode derrubar quem já entrou.
+  const route = ['recuperar', 'redefinir'].includes(requested) ? requested
+    : (!signedIn && !model.preview) || (requested === 'login' && !signedIn) ? 'login'
+    : !state.onboarded ? 'inicio'
+    : requested && requested !== 'login' && titles[requested] ? requested : 'hoje';
+  const checkingSession = model.accountStatus === 'checking' && !signedIn && !model.preview;
   const previousRoute = useRef(null);
   const go = useCallback(destination => { location.hash = destination; }, []);
   useEffect(() => {
@@ -30,6 +40,13 @@ export default function App() {
     window.addEventListener('hashchange', change);
     return () => { window.removeEventListener('hashchange', change); clearTimeout(toastTimer.current); };
   }, []);
+  // #login preso na URL não deve sobreviver a uma sessão válida.
+  useLayoutEffect(() => {
+    if (!model.account || requested !== 'login') return;
+    const destination = state.onboarded ? 'hoje' : 'inicio';
+    history.replaceState(null, '', `#${destination}`);
+    setHash(`#${destination}`);
+  }, [model.account, requested, state.onboarded]);
   useLayoutEffect(() => {
     document.documentElement.dataset.theme = state.preferences.theme;
     document.documentElement.dataset.text = state.preferences.textSize;
@@ -51,7 +68,7 @@ export default function App() {
   }
   let page;
   switch (route) {
-    case 'login': page = <Login model={model} mode={authMode} setMode={setAuthMode} go={go} notify={notify}/>; break;
+    case 'login': page = checkingSession ? <SessionCheck/> : <Login model={model} mode={authMode} setMode={setAuthMode} go={go} notify={notify}/>; break;
     case 'inicio': page = <Onboarding key={model.account?.id || 'local'} state={state} update={update} go={go} notify={notify}/>; break;
     case 'recuperar': case 'redefinir': page = <Recovery key={route === 'redefinir' ? hash : route} reset={route === 'redefinir'} notify={notify} go={go}/>; break;
     case 'hoje': page = <Home state={state} open={open} go={go} update={update} notify={notify}/>; break;

@@ -45,7 +45,19 @@ export function useLume(notify) {
     clearTimeout(timer.current);
     syncGeneration.current += 1;
     const result = await api('/api/state', { signal });
-    if (!result.ok || !result.data) throw new Error('Não foi possível carregar o progresso da conta.');
+    if (result.status === 401) {
+      // O cookie não corresponde mais a uma sessão: aqui a entrada é necessária.
+      setAccount(null);
+      return;
+    }
+    if (!result.ok || !result.data) {
+      // Autenticado, mas a cópia remota não veio. Entra na conta sem sobrescrevê-la:
+      // ready.current continua false, então nada é enviado até um carregamento válido.
+      setAccount(user);
+      setSyncStatus('error');
+      notify('Você está conectada, mas o progresso da conta não carregou agora. Sua cópia local está preservada.');
+      return;
+    }
     if (result.data.state) {
       // Preserva a cópia anterior antes de carregar o estado remoto.
       try { localStorage.setItem(`${STORAGE_KEY}.before-account`, JSON.stringify(stateRef.current)); } catch { /* Cópia em memória permanece disponível. */ }
@@ -54,15 +66,28 @@ export function useLume(notify) {
     setAccount(user);
     ready.current = true;
     setSyncStatus('saved');
-  }, []);
+  }, [notify]);
 
   useEffect(() => {
     const controller = new AbortController();
+    const askSession = async () => {
+      const result = await api('/api/me', { signal: controller.signal });
+      if (typeof result.data?.authenticated !== 'boolean') throw new Error('API indisponível');
+      return result.data;
+    };
     (async () => {
       try {
-        const result = await api('/api/me', { signal: controller.signal });
-        if (typeof result.data?.authenticated !== 'boolean') throw new Error('API indisponível');
-        if (result.data.authenticated) await loadAccountProgress(result.data.user, controller.signal);
+        let data;
+        try {
+          data = await askSession();
+        } catch (error) {
+          // Uma falha isolada de rede não pode expulsar quem já tem sessão.
+          if (error.name === 'AbortError') throw error;
+          await new Promise((resolve) => setTimeout(resolve, 1200));
+          if (controller.signal.aborted) return;
+          data = await askSession();
+        }
+        if (data.authenticated) await loadAccountProgress(data.user, controller.signal);
         setAccountStatus('ready');
       } catch (error) {
         if (error.name !== 'AbortError') setAccountStatus('offline');
@@ -88,7 +113,8 @@ export function useLume(notify) {
   const exit = async () => {
     if (account) {
       clearTimeout(timer.current);
-      await saveRemote(stateRef.current);
+      // Sem cópia remota carregada, enviar o estado local sobrescreveria o da conta.
+      if (ready.current) await saveRemote(stateRef.current);
       const result = await api('/api/logout', { method: 'POST' });
       if (!result.ok) throw new Error(apiError(result));
       try { localStorage.setItem(`${STORAGE_KEY}.account-backup`, JSON.stringify(stateRef.current)); } catch { /* Estado ainda em memória. */ }

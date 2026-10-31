@@ -17,10 +17,13 @@ A biblioteca aceita **importação por link** em uma entrada única: o servidor 
 A página Hoje tem uma **sessão de estudo declarada**: a pessoa inicia, pausa e encerra um relógio vinculado ao material, com histórico em Meu caminho. Não é observação de atividade e não gera XP. **Amigos** funcionam por convite de uso único, sem busca por e-mail e sem compartilhar biblioteca ou progresso. O **Lume Companion** é um programa de desktop opcional (bandeja + janela Electron, ou agente de terminal) que informa qual aplicativo autorizado está aberto, quantas aulas faltam e o próximo passo por prioridade — também sem XP. Ver [Companion](docs/COMPANHEIRO.md).
 
 ```sh
-npm install --prefix companion   # Electron, uma vez
-npm run companion:app            # bandeja + janela
-npm run companion                # agente de terminal, se preferir
+cd D:\tabletop                    # a pasta deste projeto
+npm install --prefix companion    # Electron, uma vez
+npm run companion:app             # bandeja + janela
+npm run companion                 # agente de terminal, se preferir
 ```
+
+Fora da pasta do projeto, use o iniciador (funciona de qualquer lugar) ou dê dois cliques nele: `D:\tabletop\lume-companion.cmd`.
 
 ## Stack e interações
 
@@ -116,6 +119,7 @@ Verificação desta troca: testes de autenticação/domínio, build estático, b
 | `public/companion-domain.js` | Regras do Companion: allowlist, presença e categorias |
 | `import-server.js` | Análise de fontes no servidor: validação de URL, limites, extração e organizador por IA |
 | `companion.js` / `companion/` | Pareamento, presença e roteiro; núcleo, agente local e app Electron (bandeja e janela) |
+| `lume-companion.cmd` | Iniciador do app de bandeja; funciona de qualquer pasta |
 | `friends.js` | Convites, amizades e remoção |
 | `public/*.css` | Estilos, sistema visual do Stitch e interações |
 | `public/assets/` | Fontes e imagens locais |

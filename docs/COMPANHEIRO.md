@@ -174,10 +174,26 @@ publicado nem ativado como serviço pago.
 
 ### Como abrir agora
 
+Dentro da pasta do projeto:
+
 ```sh
 npm install --prefix companion   # instala o Electron (uma vez)
 npm run companion:app            # abre a bandeja e a janela
 ```
+
+De qualquer pasta, ou com dois cliques:
+
+```text
+D:\tabletop\lume-companion.cmd
+```
+
+O iniciador entra sozinho na pasta certa e confere se o Electron está instalado.
+Use `D:\tabletop\lume-companion.cmd --debug` para abrir com o console visível e
+ver mensagens de erro.
+
+> `npm run companion:app` só funciona dentro de `D:\tabletop`. Rodar em
+> `C:\Users\Ana` produz `npm error ENOENT ... C:\Users\Ana\package.json` — não é
+> falta de arquivo do projeto, é a pasta errada.
 
 Ou, sem janela: `npm run companion` (agente de terminal).
 
