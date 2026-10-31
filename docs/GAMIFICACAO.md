@@ -4,6 +4,8 @@ Versão da política: **proposta inicial v1**. O propósito e as proibições ab
 
 Referência de contexto: [Produto](PRODUTO.md). Divergências e migração: [Continuidade](CONTINUIDADE.md).
 
+A migração da interface para React + Astro não implementou esta política. Contas e sincronização básica de uma cópia do progresso já existem, mas o XP continua calculado no navegador pelo domínio legado, com 5 XP por preparação, 10 XP por etapa e nível a cada 100 XP. A cópia armazenada no servidor não torna esses registros elegíveis nem os valida para um placar compartilhado. Os valores e critérios das seções seguintes continuam sendo a proposta da nova política.
+
 ## 1. O que XP representa
 
 XP representa atividade de estudo elegível e conclusões significativas. Não mede inteligência, qualidade da pessoa, domínio garantido ou tempo de tela genérico.
@@ -186,7 +188,7 @@ Um evento observado por um player ou integração ainda não comprova compreens�
 
 ## 9. Integridade, repetição e segurança
 
-Na versão com contas, o servidor será a autoridade de concessão de XP e pontuação compartilhada.
+Na implementação da nova política para contas, o servidor deverá ser a autoridade de concessão de XP e pontuação compartilhada. A autenticação existente e o armazenamento de uma cópia do estado por `/api/state` ainda não implementam essa validação nem um livro de eventos elegíveis.
 
 Cada evento de XP deve ter uma chave única, por exemplo:
 
@@ -217,7 +219,7 @@ Ao implementar a nova política:
 6. Não incluir recompensas antigas em placares da nova política.
 7. Não apagar conquistas históricas silenciosamente. Distinguir marcos de demonstração/legado da nova vitrine de conclusões reais.
 
-A migração e a interface do saldo legado precisam ser implementadas e verificadas antes de alterar a versão dos dados. Esta tarefa de documentação não executa a migração.
+A migração e a interface do saldo legado precisam ser implementadas e verificadas antes de alterar a versão dos dados. A migração de stack preservou a versão 1 dos dados e não executou essa conversão. Os rótulos de legado na interface não substituem a separação dos saldos nem o processo de revisão descrito acima.
 
 ## 11. Casos obrigatórios de verificação
 

@@ -2,6 +2,8 @@
 
 Versão documental: 1.0. Esta é a referência de produto para planejamento, design, implementação e contexto de futuras IAs. Consulte também [Gamificação](GAMIFICACAO.md) e [Continuidade](CONTINUIDADE.md).
 
+Este documento descreve o destino do produto. Biblioteca com materiais tipados e retomada, nova política de XP, conquistas personalizadas, amigos, grupos e ranking são requisitos a implementar; os exemplos abaixo não significam que esses fluxos já estejam disponíveis. O protótipo atual usa React + Astro, tem contas e sincronização básica de uma cópia do progresso e ainda mantém o modelo legado de etapas e pontuação. O estado detalhado está em [Continuidade](CONTINUIDADE.md).
+
 ## 1. O que o Lume se propõe a ser
 
 **Lume é uma plataforma social de estudos que conecta continuidade de aprendizado, colaboração entre amigos e progressão de jogo baseada em estudo efetivo.**
@@ -61,10 +63,12 @@ O onboarding deve identificar:
 | Ritmo atual | Quero começar; estudo às vezes; estudo com frequência | Sugestões iniciais de sessões e carga de estudo, sempre editáveis |
 | Áreas de estudo | Programação, Direito, idiomas, outras ou múltiplas | Tipos de materiais, linguagem e integrações pertinentes |
 | Objetivos | Concluir um curso, estudar para uma prova, entregar um projeto | Organização de trilhas e marcos |
-| Apoios desejados | Menos informação, ajuda para começar, dividir uma atividade, retomar após pausas | Apresentação e sugestões, sem aumentar artificialmente XP |
+| Apoios desejados | Ajuda para começar, dividir uma atividade, retomar após pausas | Apresentação e sugestões, sem aumentar artificialmente XP |
 | Preferências sociais | Amigos, grupos, placares e privacidade | Participação opcional e compartilhamento controlado |
 
 As perguntas podem ser puladas e revisitadas. A pessoa não recebe uma classificação de capacidade. Estudar com frequência não dá multiplicador de XP; precisar de mais apoio não diminui a pontuação pela mesma atividade.
+
+Na interface atual, a personalização oferece três ritmos e três apoios: ajuda para começar, retomar sem culpa e passos ainda menores. Áreas de estudo, objetivos e preferências sociais da tabela ainda são requisitos futuros. O apoio antigo `calm` e a preferência `essential` permanecem apenas no formato legado dos dados, sem ativar um modo visual.
 
 ## 5. Biblioteca e continuidade
 
@@ -170,7 +174,7 @@ As regras detalhadas estão em [Gamificação](GAMIFICACAO.md).
 
 | Tela | Papel |
 | --- | --- |
-| Entrada e conta | Cadastro, autenticação, recuperação e saída reais quando implementados |
+| Entrada e conta | Cadastro, autenticação, recuperação por link e saída já disponíveis na API local; envio de e-mail ainda pendente |
 | Meu ritmo e interesses | Preferências e sugestões iniciais |
 | Hoje | Materiais em andamento, ponto de retomada e atividade de estudo |
 | Biblioteca | Cursos, aulas, leituras, exercícios e projetos |

@@ -23,7 +23,7 @@ Esses documentos descrevem o destino do Lume. O código atual é um protótipo e
 ## Regras para implementar
 
 - Preserve os dados existentes. A migração dos eventos antigos exige tratamento explícito; não apague progresso nem converta preparações antigas em aulas concluídas.
-- Separe recursos implementados, simulações locais e funcionalidades planejadas. Não apresente login local como autenticação real.
+- Separe recursos implementados, simulações locais e funcionalidades planejadas. A prévia sem conta e uma simulação de login no navegador não são autenticação. A API local já valida credenciais e emite sessão; isso não comprova publicação ou verificação do mesmo fluxo em produção. A sincronização de uma cópia do estado não equivale à validação de XP no servidor.
 - Integrações devem declarar suas capacidades. Não prometa rastreamento automático de qualquer URL, videoaula, PDF, artigo ou repositório.
 - Não coloque credenciais de integrações no frontend, em arquivos versionados ou em saídas de ferramentas. Não publicar o conteúdo de repositórios privados por padrão.
 - A atribuição de XP da versão com contas deve ser validada no servidor, com eventos identificáveis e proteção contra repetição. O navegador não deve ser a autoridade de um placar compartilhado.
