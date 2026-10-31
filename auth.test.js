@@ -78,3 +78,11 @@ test('o parâmetro de iterações é registrado no hash e usado na verificação
   assert.equal(await verifyPassword('outra-senha-1', stored), true);
   assert.equal(await verifyPassword('outra-senha-2', stored), false);
 });
+
+test('derivação acima do teto por bloco continua verificando corretamente', async () => {
+  // 250.000 exige três blocos encadeados (100.000 + 100.000 + 50.000).
+  const stored = await hashPassword('senha-em-blocos-1', 250000);
+  assert.match(stored, /^pbkdf2\$sha256\$250000\$/);
+  assert.equal(await verifyPassword('senha-em-blocos-1', stored), true);
+  assert.equal(await verifyPassword('senha-em-blocos-2', stored), false);
+});

@@ -7,10 +7,15 @@ export const MAX_PASSWORD_LENGTH = 200;
 export const MAX_NAME_LENGTH = 60;
 export const RESET_TTL_MS = 30 * 60 * 1000;
 
-// OWASP recomenda 600.000 iterações para PBKDF2-HMAC-SHA256. Isso exige o plano
-// Workers Paid: o plano gratuito tem 10 ms de CPU por requisição e a derivação
-// estoura o limite. Ajuste por variável de ambiente se precisar de outra relação.
+// OWASP recomenda 600.000 iterações para PBKDF2-HMAC-SHA256.
 export const DEFAULT_ITERATIONS = 600000;
+
+// O runtime da Cloudflare recusa qualquer chamada de PBKDF2 acima de 100.000
+// iterações ("iteration counts above 100000 are not supported"). Para manter o
+// custo de 600.000 sem inventar outra primitiva, a derivação é encadeada em
+// blocos de no máximo 100.000, cada um com o próprio salt derivado. O hash
+// guarda o total, então a verificação repete exatamente a mesma sequência.
+export const MAX_ITERATIONS_PER_ROUND = 100000;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const encoder = new TextEncoder();
@@ -75,9 +80,19 @@ function toHex(bytes) {
 }
 
 async function derive(password, salt, iterations) {
-  const key = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
-  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations, hash: 'SHA-256' }, key, 256);
-  return new Uint8Array(bits);
+  const rounds = Math.ceil(iterations / MAX_ITERATIONS_PER_ROUND);
+  let material = encoder.encode(password);
+  for (let round = 0; round < rounds; round += 1) {
+    const chunk = Math.min(MAX_ITERATIONS_PER_ROUND, iterations - round * MAX_ITERATIONS_PER_ROUND);
+    // Salt distinto por bloco: sem isso, repetir a mesma entrada daria o mesmo resultado.
+    const roundSalt = new Uint8Array(salt.length + 1);
+    roundSalt.set(salt);
+    roundSalt[salt.length] = round;
+    const key = await crypto.subtle.importKey('raw', material, 'PBKDF2', false, ['deriveBits']);
+    const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: roundSalt, iterations: chunk, hash: 'SHA-256' }, key, 256);
+    material = new Uint8Array(bits);
+  }
+  return material;
 }
 
 function constantTimeEqual(first, second) {

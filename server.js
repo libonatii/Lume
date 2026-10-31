@@ -1,7 +1,8 @@
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
-import { mkdirSync, readFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import {
   ValidationError, SESSION_TTL_MS, RESET_TTL_MS, DEFAULT_ITERATIONS,
@@ -50,7 +51,10 @@ const baseHeaders = {
 const dataDirectory = fileURLToPath(new URL('./data/', import.meta.url));
 mkdirSync(dataDirectory, { recursive: true });
 const db = new DatabaseSync(fileURLToPath(new URL('./data/lume.db', import.meta.url)));
-db.exec(readFileSync(fileURLToPath(new URL('./migrations/0001_init.sql', import.meta.url)), 'utf8'));
+const migrationsDirectory = fileURLToPath(new URL('./migrations/', import.meta.url));
+for (const file of readdirSync(migrationsDirectory).filter((name) => name.endsWith('.sql')).sort()) {
+  db.exec(readFileSync(join(migrationsDirectory, file), 'utf8'));
+}
 db.prepare('DELETE FROM sessions WHERE expires_at < ?').run(new Date().toISOString());
 
 const findUserByEmail = db.prepare('SELECT * FROM users WHERE email = ?');
@@ -73,6 +77,11 @@ const insertAttempt = db.prepare(
 );
 const findAttempt = db.prepare('SELECT count FROM rate_limits WHERE key = ?');
 const clearOldAttempts = db.prepare('DELETE FROM rate_limits WHERE started_at < ?');
+const findState = db.prepare('SELECT state, updated_at FROM user_state WHERE user_id = ?');
+const saveState = db.prepare(
+  `INSERT INTO user_state (user_id, state, updated_at) VALUES (?, ?, ?)
+   ON CONFLICT(user_id) DO UPDATE SET state = excluded.state, updated_at = excluded.updated_at`,
+);
 
 // ---------- Utilidades ----------
 
@@ -86,29 +95,32 @@ function send(response, status, body, extraHeaders = {}) {
   response.end(payload ?? undefined);
 }
 
-function readJsonBody(request) {
+function readRawBody(request, limit = MAX_BODY_BYTES) {
   return new Promise((resolve, reject) => {
     let size = 0;
     const chunks = [];
     request.on('data', (chunk) => {
       size += chunk.length;
-      if (size > MAX_BODY_BYTES) {
+      if (size > limit) {
         reject(Object.assign(new Error('Corpo grande demais.'), { status: 413 }));
         request.destroy();
         return;
       }
       chunks.push(chunk);
     });
-    request.on('end', () => {
-      if (!chunks.length) return resolve({});
-      try {
-        resolve(JSON.parse(Buffer.concat(chunks).toString('utf8')));
-      } catch {
-        reject(Object.assign(new Error('JSON inválido.'), { status: 400 }));
-      }
-    });
+    request.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
     request.on('error', reject);
   });
+}
+
+async function readJsonBody(request) {
+  const text = await readRawBody(request);
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw Object.assign(new Error('JSON inválido.'), { status: 400 });
+  }
 }
 
 function publicUser(row) {
@@ -241,6 +253,38 @@ async function handlePasswordReset(request, response) {
   return send(response, 200, { message: 'Senha alterada. Você já pode entrar com a nova senha.' });
 }
 
+async function handleStateGet(request, response) {
+  const user = await currentUser(request);
+  if (!user) return send(response, 401, { error: 'Entre na sua conta para ver seu progresso.' });
+  const row = findState.get(user.id);
+  if (!row) return send(response, 200, { state: null, updatedAt: null });
+  try {
+    return send(response, 200, { state: JSON.parse(row.state), updatedAt: row.updated_at });
+  } catch {
+    return send(response, 200, { state: null, updatedAt: row.updated_at });
+  }
+}
+
+async function handleStatePut(request, response) {
+  const user = await currentUser(request);
+  if (!user) return send(response, 401, { error: 'Entre na sua conta para salvar seu progresso.' });
+
+  const raw = await readRawBody(request, MAX_STATE_BYTES);
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return send(response, 400, { error: 'Progresso em formato inválido.' });
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return send(response, 400, { error: 'Progresso em formato inválido.' });
+  }
+
+  const updatedAt = new Date().toISOString();
+  saveState.run(user.id, raw, updatedAt);
+  return send(response, 200, { saved: true, updatedAt });
+}
+
 const apiRoutes = new Map([
   ['/api/register', handleRegister],
   ['/api/login', handleLogin],
@@ -259,6 +303,13 @@ const server = http.createServer(async (request, response) => {
     if (pathname === '/api/logout' && request.method === 'POST') {
       if (!sameOrigin(request)) return send(response, 403, { error: 'Origem não autorizada.' });
       return await handleLogout(request, response);
+    }
+    if (pathname === '/api/state') {
+      if (!['GET', 'PUT'].includes(request.method)) {
+        return send(response, 405, { error: 'Método não permitido.' }, { Allow: 'GET, PUT' });
+      }
+      if (!sameOrigin(request)) return send(response, 403, { error: 'Origem não autorizada.' });
+      return request.method === 'GET' ? await handleStateGet(request, response) : await handleStatePut(request, response);
     }
 
     if (pathname.startsWith('/api/')) {

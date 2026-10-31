@@ -39,7 +39,7 @@ O Lume não promete liberação de dopamina, eficácia clínica, aprendizado gar
 
 ## 3. Ciclo principal de uso
 
-1. A pessoa cria uma conta e entra no produto completo. A prévia atual ainda não oferece contas reais.
+1. A pessoa cria uma conta e entra no produto completo. O cadastro e o login com e-mail e senha já funcionam no protótipo; o progresso ainda não é sincronizado entre dispositivos.
 2. Informa seu ritmo, áreas de interesse e apoios desejados.
 3. Adiciona cursos, aulas, artigos, livros, exercícios ou projetos à biblioteca.
 4. Retoma um material do ponto salvo ou inicia uma atividade de estudo.
@@ -52,7 +52,7 @@ Preparar o ambiente e tornar uma atividade menor são apoios possíveis nesse ci
 
 ## 4. Entrada e personalização
 
-**O Lume terá cadastro e login com e-mail e senha.** Esse acesso faz parte do produto, com recuperação de senha, saída da conta e dados associados à pessoa autenticada. O acesso demonstrativo da prévia é temporário e não substitui a implementação de contas. Login com Google pode complementar o acesso; não substitui o requisito de e-mail e senha.
+**O cadastro e o login com e-mail e senha já funcionam.** Esse acesso faz parte do produto, com recuperação de senha, saída da conta e dados associados à pessoa autenticada; a associação do progresso de estudo à conta ainda está pendente. O acesso demonstrativo da prévia continua existindo e não substitui a conta. Login com Google pode complementar o acesso; não substitui o requisito de e-mail e senha.
 
 O onboarding deve identificar:
 

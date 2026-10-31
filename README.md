@@ -19,11 +19,11 @@ Antes de desenvolver ou pedir alterações a uma IA, leia:
 
 ## Estado do projeto
 
-Protótipo navegável em português, feito em HTML, CSS e JavaScript. **O Lume terá cadastro e login com e-mail e senha, recuperação de acesso e dados por conta. O fluxo completo de contas está em implementação.** A prévia de estudos ainda guarda o progresso no `localStorage` do navegador. Os cursos iniciais são exemplos ilustrativos, sem aulas hospedadas.
+Protótipo navegável em português, feito em HTML, CSS e JavaScript. **O cadastro e o login com e-mail e senha, a saída da conta e a recuperação de acesso já funcionam no servidor local.** O progresso de estudo ainda guarda no `localStorage` do navegador e não está separado por conta. Os cursos iniciais são exemplos ilustrativos, sem aulas hospedadas.
 
 ## O que já funciona
 
-- Tela de entrada com o visual do Stitch e campos previstos para e-mail e senha; acesso à prévia enquanto a integração de contas é concluída.
+- Tela de entrada com o sistema visual do Stitch: criar conta, entrar, sair e recuperar a senha por link, além da prévia sem conta.
 - Personalização após entrar: três ritmos de estudo e quatro apoios opcionais, com opção de pular e revisar depois.
 - Ritmo ajusta a sugestão semanal (2, 3 ou 5 passos); apoios permitem sugerir a preparação do material e ativar o modo essencial.
 - Transições suaves entre telas e animações discretas em cartões e diálogos, respeitando a preferência de movimento reduzido do sistema.
@@ -60,14 +60,14 @@ npm test
 
 ## Um primeiro caminho
 
-1. Use **Entrar na prévia** para experimentar o estudo enquanto a integração de cadastro e login com e-mail e senha é concluída. Os campos da tela permanecem desativados até essa integração; isso não significa que o produto será sem contas.
+1. Crie sua conta com nome, e-mail e senha, ou entre se já tiver uma. Também há **Explorar a prévia** para conhecer o layout sem conta.
 2. Escolha como os estudos fazem parte da sua rotina e marque os apoios desejados. Confirme para aplicar as sugestões ao seu espaço.
 3. Na página Hoje, comece uma missão de exemplo ou prepare o material. Uma preparação não conclui a aula original.
 4. Registre a conclusão e acompanhe seu histórico e suas conquistas.
 5. Na Biblioteca, adicione seu curso com uma etapa por linha.
 6. Nas Configurações, ajuste o ambiente ao seu conforto. Na entrada, **Conforto visual** também permite alterar o tema. Movimentos seguem a preferência do sistema operacional.
 
-**Sair da prévia** retorna à entrada sem apagar cursos, preferências ou XP. A navegação da prévia usa uma marca de sessão na aba, sem autenticar identidade nem separar dados entre pessoas. Ao entrar novamente, você pode confirmar outro ritmo ou manter suas preferências salvas. Revisar o mesmo ritmo preserva uma meta semanal já ajustada manualmente.
+**Sair** encerra a sessão e retorna à entrada sem apagar cursos, preferências ou XP. **Esqueci minha senha** gera um link de uso único, válido por 30 minutos; enquanto não há envio de e-mail, o link aparece na própria tela e no console do servidor. A prévia usa uma marca de sessão na aba, sem autenticar identidade nem separar dados entre pessoas.
 
 ## Princípios
 
@@ -79,31 +79,46 @@ npm test
 
 ## Dados e limitações
 
-O progresso da prévia permanece no navegador e na origem em que o site foi aberto. Limpar os dados do site ou trocar de navegador pode remover ou separar esse progresso. A exportação permite guardar uma cópia, mas ainda não há restauração pela interface. Não cadastre senhas ou dados sensíveis como conteúdo de estudo. O serviço de contas está em desenvolvimento, e a integração com a interface e a sincronização dos estudos devem ser verificadas antes de anunciar o fluxo completo como disponível.
+O progresso de estudo permanece no navegador e na origem em que o site foi aberto, inclusive para quem entrou com conta: cursos e XP ainda não são gravados no servidor nem separados por pessoa no mesmo navegador. Limpar os dados do site ou trocar de navegador pode remover ou separar esse progresso. A exportação permite guardar uma cópia, mas ainda não há restauração pela interface. Não cadastre senhas ou dados sensíveis como conteúdo de estudo. As contas, a sessão e a recuperação de senha funcionam; o envio do link por e-mail e a sincronização dos estudos ainda não estão implementados.
 
 ## Estrutura
 
 | Arquivo | Função |
 | --- | --- |
-| `index.html` | Estrutura e entrada da aplicação |
-| `styles.css` | Identidade visual, temas e adaptação para telas menores |
-| `neurofocus.css` | Visual NeuroFocus integrado, com telas Hoje e Biblioteca e temas acessíveis |
-| `entry.css` | Telas de entrada e personalização do ritmo de estudo |
-| `motion.css` | Transições de navegação e animações, seguindo a preferência de movimento do sistema |
-| `assets/stitch/` | Imagens do Stitch armazenadas localmente para o aplicativo |
-| `app.js` | Telas, navegação e interações |
-| `domain.js` | Cursos, missões, XP, conquistas e restauração dos dados |
+| `public/index.html` | Estrutura e entrada da aplicação |
+| `public/styles.css` | Identidade visual, temas e adaptação para telas menores |
+| `public/neurofocus.css` | Visual NeuroFocus integrado, com telas Hoje e Biblioteca e temas acessíveis |
+| `public/entry.css` | Telas de entrada e personalização do ritmo de estudo |
+| `public/stitch.css` | Sistema visual do Stitch preservado: cores, tipografia, espaçamentos e utilitários das telas exportadas |
+| `public/motion.css` | Transições de navegação e animações, seguindo a preferência de movimento do sistema |
+| `public/assets/stitch/` | Imagens do Stitch armazenadas localmente para o aplicativo |
+| `public/assets/fonts/` | Plus Jakarta Sans servida localmente, sem CDN |
+| `public/app.js` | Telas, navegação e interações |
+| `public/domain.js` | Cursos, missões, XP, conquistas e restauração dos dados |
 | `domain.test.js` | Testes das regras do protótipo |
-| `server.js` | Servidor local sem dependências |
+| `auth.js` | Validação, derivação de senha com PBKDF2 e sessão, usado pelo servidor local e pelo Worker |
+| `auth.test.js` | Testes de validação, senha, token e cookie |
+| `server.js` | Servidor local sem dependências, com a API de contas |
+| `worker.js` | Backend para Cloudflare Workers com D1 |
+| `wrangler.jsonc` | Configuração do Worker, do banco D1 e das observações |
+| `migrations/` | Esquema do banco, aplicado ao D1 |
+
+## Hospedagem
+
+O backend está publicado em **https://lume.lume-prototype.workers.dev** (Cloudflare Workers + D1). O endereço `workers.dev` é funcional, mas não é domínio próprio: nenhum domínio está registrado na conta.
+
+O runtime da Cloudflare recusa PBKDF2 acima de 100.000 iterações por chamada. Para manter o custo recomendado de 600.000, `auth.js` encadeia blocos de até 100.000 iterações e guarda o total no hash. A medição em produção mostrou 3 ms de CPU por requisição, dentro do plano gratuito.
 
 ## Próximos passos
 
 - Evoluir o modelo de materiais, XP e conquistas conforme [Gamificação](docs/GAMIFICACAO.md), com migração do legado.
 - Acrescentar continuidade de vídeos e leituras, começando por registros manuais e fontes efetivamente compatíveis.
-- Implementar amigos, grupos, compartilhamento, colaboração e placares opcionais após a base de contas e integridade de XP.
+- Implementar amigos, grupos, compartilhamento, colaboração, ranking e placares opcionais após a integridade de XP no servidor.
 - Validar a experiência com usuários e fazer uma revisão de acessibilidade.
 - Permitir edição de cursos e importação de cópias exportadas.
-- Implementar contas, recuperação de acesso e dados privados no servidor.
+- Associar o progresso de estudo à conta e mover a atribuição de XP para o servidor.
+- Implementar o envio de e-mail do link de recuperação.
+- Converter para o visual do Stitch as telas que ainda não têm exportação: Missões, Conquistas, Meu Caminho, Configurações e as de recuperação de senha.
 - Ampliar as sugestões por ritmo e apoio, além do plano semanal, preparação do material e modo essencial já disponíveis.
 - Avaliar uma versão instalável (PWA) e a hospedagem pública do aplicativo.
 

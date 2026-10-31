@@ -75,12 +75,52 @@ const icons = {
 };
 const icon = (name, className = '') => `<svg class="icon ${className}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${icons[name] || icons.spark}</svg>`;
 const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+let stateSaveTimer = null;
+let stateSyncAttempted = false;
+
 function save() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch {
     storageAvailable = false;
     notify('Não foi possível salvar neste navegador. Seu progresso fica disponível apenas enquanto esta página estiver aberta.');
+  }
+  if (account) queueRemoteSave();
+}
+
+// Envia o progresso para a conta sem travar a interface: agrupa alterações
+// próximas em um único envio.
+function queueRemoteSave() {
+  if (!account) return;
+  clearTimeout(stateSaveTimer);
+  stateSaveTimer = setTimeout(() => {
+    api('/api/state', { method: 'PUT', body: state })
+      .then((result) => {
+        if (!result.ok) notify('O progresso não foi enviado para sua conta. Vamos tentar de novo na próxima alteração.');
+      })
+      .catch(() => notify('Sem conexão com a conta. O progresso continua guardado neste navegador.'));
+  }, 900);
+}
+
+// Ao entrar, o progresso da conta tem prioridade; se a conta ainda não tem
+// progresso, o que existe neste navegador é enviado como semente.
+async function loadRemoteState() {
+  if (!account || stateSyncAttempted) return;
+  stateSyncAttempted = true;
+  try {
+    const { ok, data } = await api('/api/state');
+    if (!ok || !data) return;
+    if (data.state) {
+      state = restoreState(JSON.stringify(data.state));
+      onboardingDraft = { habit: state.habit, supports: [...state.supports] };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      notify('Seu progresso foi carregado da sua conta.');
+    } else if (state.courses.length || state.history.length) {
+      queueRemoteSave();
+      notify('O progresso deste navegador foi enviado para sua conta.');
+    }
+  } catch {
+    /* Sem servidor: segue com o progresso local. */
   }
 }
 
@@ -117,6 +157,7 @@ async function loadAccount() {
     }
     account = data.authenticated && data.user ? data.user : null;
     accountState = 'ready';
+    if (account) await loadRemoteState();
   } catch {
     account = null;
     accountState = 'offline';
@@ -154,10 +195,11 @@ async function submitAuth(form) {
     accountState = 'ready';
     authBusy = false;
     authMode = 'login';
+    stateSyncAttempted = false;
+    await loadRemoteState();
     onboardingDraft = { habit: state.habit, supports: [...state.supports] };
     go(account && state.onboarded ? 'hoje' : 'inicio');
-    notify(`Que bom ter você aqui, ${account.name.split(' ')[0]}.`);
-  } catch {
+    notify(`Que bom ter você aqui, ${account.name.split(' ')[0]}.`);  } catch {
     authBusy = false;
     accountState = 'offline';
     authError = SERVER_HINT;
@@ -685,11 +727,19 @@ document.addEventListener('click', (event) => {
       break;
     case 'logout': {
       api('/api/logout', { method: 'POST' }).catch(() => {});
+      clearTimeout(stateSaveTimer);
       account = null;
       previewEntered = false;
-      try { sessionStorage.removeItem(PREVIEW_SESSION_KEY); } catch { /* Sessão só em memória. */ }
+      stateSyncAttempted = false;
+      // O progresso de quem estava logado fica na conta. Não deixamos cópia no
+      // navegador para outra pessoa que use o mesmo computador não herdar dados.
+      state = createInitialState();
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+        sessionStorage.removeItem(PREVIEW_SESSION_KEY);
+      } catch { /* Sessão só em memória. */ }
       go('login');
-      notify('Você saiu da conta. Seu progresso continua guardado neste navegador.');
+      notify('Você saiu da conta. Seu progresso está guardado nela.');
       break;
     }
     case 'enter-preview':

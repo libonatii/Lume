@@ -8,21 +8,24 @@ Este documento separa o protótipo existente da visão em [Produto](PRODUTO.md) 
 
 ## 2. O que existe no código
 
-Na revisão que acompanha esta documentação, o projeto é uma aplicação local em HTML, CSS e JavaScript, servida por `server.js` ou Live Server.
+Na revisão que acompanha esta documentação, o projeto é uma aplicação em HTML, CSS e JavaScript servida por `server.js` (Node) ou por um Worker da Cloudflare. O Live Server entrega apenas os arquivos estáticos e não atende as rotas de conta.
 
 | Capacidade | Situação |
 | --- | --- |
-| Entrada | Prévia local sem autenticação de conta |
+| Entrada | Cadastro, login e saída com e-mail e senha; prévia local mantida como caminho alternativo, sem conta |
 | Ritmo de estudo | Três ritmos, apoios e sugestões de plano semanal |
 | Biblioteca | Cursos/assuntos com etapas, busca, filtros, pausa e links |
 | Progresso | Registro local de conclusão de etapas e preparação |
 | Gamificação | Modelo legado: 5 XP por preparação, 10 XP por etapa, nível a cada 100 XP |
 | Conquistas | Selos genéricos do protótipo, incluindo ações que não serão elegíveis na nova política |
 | Histórico | Dados no navegador e exportação JSON |
-| Visual | Telas inspiradas em referências Stitch, temas, entradas escalonadas, destaque de cartões, respostas em botões e transições de diálogos/avisos; efeitos desativados no modo essencial e com movimento reduzido |
-| Contas e sincronização | Cadastro e login com e-mail e senha são requisitos; serviço de contas em implementação, com integração completa e sincronização ainda a verificar |
+| Visual | Telas inspiradas em referências Stitch, com o sistema visual do export preservado em `public/stitch.css`, temas, entradas escalonadas, destaque de cartões, respostas em botões e transições de diálogos/avisos; efeitos desativados no modo essencial e com movimento reduzido |
+| Contas e sincronização | Cadastro, login, saída e recuperação de senha implementados em `auth.js`, com sessão em cookie `HttpOnly` e limite de tentativas no banco. O progresso de estudo ainda fica no navegador e não é associado à conta |
+| Hospedagem | Publicado em `lume.lume-prototype.workers.dev` com Cloudflare Workers e D1. O runtime recusa PBKDF2 acima de 100.000 iterações por chamada, então a derivação é encadeada em blocos para manter o custo de 600.000; a medição em produção ficou em 3 ms de CPU por requisição. Não há domínio próprio registrado |
+| Envio de e-mail | Não implementado; o link de recuperação é exibido na tela e no console do servidor |
 | Amigos, grupos e comunicação | Não implementados |
 | Placares compartilhados | Não implementados |
+| Ranking | Não implementado |
 | GitHub e outras integrações | Não implementadas |
 | Captura de posição de vídeo/leitura | Não implementada |
 | Conquistas personalizadas por material | Não implementadas como sistema da nova política |
@@ -37,7 +40,23 @@ Os efeitos usam como referência a [Arc Library, listada na FGLibs](https://fgli
 
 Entradas finitas orientam a chegada às telas de entrada, personalização, Hoje e Biblioteca; cartões recebem destaque e leve elevação com ponteiro preciso. Filtros revelam os resultados, sem repetir animações durante a busca. Diálogos, botões e avisos recebem respostas discretas. O conteúdo permanece funcional sem Web Animations API. Ativar o modo essencial ou a preferência de movimento reduzido cancela as entradas; o CSS também neutraliza as transições exportadas do Stitch.
 
-Esta alteração é visual: não migra dados nem implementa a nova política de XP, contas sincronizadas ou recursos sociais. Verificação: sintaxe JavaScript e 20 testes existentes aprovados. A revisão visual no navegador ficou pendente: o navegador interno não alcançou a prévia local, e o controle do Chrome foi interrompido pela ferramenta por não conseguir determinar a URL atual com segurança.
+Esta alteração é visual: não migra dados nem implementa a nova política de XP, contas sincronizadas ou recursos sociais. Verificação: sintaxe JavaScript e 20 testes existentes aprovados.
+
+### Sistema visual do Stitch
+
+O CSS do Stitch não foi reescrito à mão: `public/stitch.css` é gerado a partir do `tailwind.config` das exportações em `designs/stitch/`, mantendo os 47 nomes de cor, os 11 estilos tipográficos, os espaçamentos e os raios originais. A fonte Plus Jakarta Sans é servida localmente em `public/assets/fonts/`, sem CDN. O conjunto cobre as quatro telas exportadas sem classe ausente.
+
+As telas de Entrada, Ritmo de Estudo, Hoje e Biblioteca usam essa marcação dentro do escopo `[data-stitch]`, para que os utilitários não colidam com o CSS anterior das telas ainda não convertidas. A preferência de movimento reduzido do sistema continua sendo respeitada.
+
+Ainda sem exportação no Stitch, e por isso ainda no visual anterior: Missões, Conquistas, Meu Caminho, Configurações, Esqueci Minha Senha e Acesso Validado.
+
+### Contas e recuperação de acesso
+
+`auth.js` concentra validação, derivação de senha com PBKDF2-SHA256 e sessão, usado tanto pelo `server.js` quanto pelo `worker.js`. O banco guarda apenas o resumo SHA-256 do token de sessão. Trocar a senha encerra todas as sessões daquela conta. Cadastro, entrada e recuperação não concedem XP.
+
+O link de recuperação vale 30 minutos, é de uso único e a resposta é idêntica exista ou não a conta. O transporte por e-mail não foi implementado.
+
+O progresso de estudo continua em `localStorage` e não é separado por conta: duas contas no mesmo navegador compartilham cursos e XP. A atribuição de XP no servidor segue pendente.
 
 O protótipo inicial enfatizou passos de preparação e pequenas recompensas. A direção atual exige progresso real de estudo e um componente social central.
 
@@ -85,6 +104,8 @@ Não é uma decisão de banco de dados ou fornecedor. O objetivo deste modelo é
 - Livro de eventos e atribuição de XP no servidor.
 - Migração voluntária e segura dos dados locais para a conta.
 
+Situação: autenticação, recuperação de acesso e sessão implementadas. Persistência do progresso no servidor, sincronização e XP no servidor continuam pendentes.
+
 ### Etapa C — primeira experiência social
 
 - Amigos, grupos privados, compartilhamento e comunicação.
@@ -107,7 +128,7 @@ Já definidos como direção do produto: amigos e grupos, compartilhamento, cola
 
 Propostos nesta documentação para balanceamento inicial: valores de XP, 500 XP por nível, blocos de 30 minutos e limite diário da recompensa por tempo.
 
-Ainda precisam de decisão de implementação: fornecedor de autenticação e hospedagem, primeira fonte de vídeo suportada, regras detalhadas de revisão de entregas coletivas, tratamento visual do saldo legado e política para materiais muito curtos ou muito extensos. Essas escolhas não devem ser resolvidas com promessas genéricas de integração automática.
+Ainda precisam de decisão de implementação: primeira fonte de vídeo suportada, regras detalhadas de revisão de entregas coletivas, tratamento visual do saldo legado e política para materiais muito curtos ou muito extensos. Essas escolhas não devem ser resolvidas com promessas genéricas de integração automática. Fornecedor de autenticação e hospedagem passou a ser Cloudflare Workers com D1; o serviço de envio de e-mail de recuperação continua sem decisão.
 
 ## 7. Como manter o contexto
 
@@ -116,4 +137,4 @@ Ainda precisam de decisão de implementação: fornecedor de autenticação e ho
 - Mantenha o README como porta de entrada, apontando para estes documentos.
 - Envie `AGENTS.md` e os três documentos da pasta `docs` para uma IA que não tenha acesso ao repositório.
 - Não use apenas screenshots ou o README antigo como especificação de produto.
-- Esta rodada alterou documentação; não migrou dados, não reescreveu a pontuação em execução e não ativou integrações ou serviços externos.
+- Esta rodada documentou contas, sistema visual do Stitch e base de hospedagem; não publicou o Worker, não migrou dados e não alterou a pontuação em execução.

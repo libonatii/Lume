@@ -22,9 +22,10 @@
   ],
 
   "vars": {
-    // Sem transporte de e-mail configurado, o link de recuperação volta na
-    // resposta para permitir testar o fluxo. Desligue quando o envio existir.
-    "SHOW_RESET_LINK": "true"
+    // Em produção o link de recuperação não volta na resposta da API: ele vai
+    // para o log estruturado, acessível apenas ao dono da conta. Trocar por
+    // "true" reabre o fluxo de teste local e não deve ser usado em site público.
+    "SHOW_RESET_LINK": "false"
   },
 
   // PBKDF2 com 600.000 iterações não cabe nos 10 ms de CPU do plano gratuito.

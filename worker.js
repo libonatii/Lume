@@ -6,6 +6,7 @@ import {
 } from './auth.js';
 
 const MAX_BODY_BYTES = 16 * 1024;
+const MAX_STATE_BYTES = 256 * 1024;
 const ATTEMPT_LIMIT = 10;
 const ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
 const CLEANUP_AFTER_MS = 24 * 60 * 60 * 1000;
@@ -179,9 +180,13 @@ async function handlePasswordRequest(request, env, url) {
     .run();
 
   const link = `${url.origin}/#redefinir?token=${token}`;
+  // Sem transporte de e-mail, o link é a única forma de recuperar o acesso.
+  // Em produção ele vai para o log (visível só para o dono da conta na Cloudflare),
+  // nunca para a resposta da API.
+  if (env.SHOW_RESET_LINK === 'false') {
+    console.log(JSON.stringify({ event: 'password_reset_link', userId: row.id, link }));
+  }
   log('password_reset_requested', { userId: row.id });
-  // Sem transporte de e-mail configurado o link apareceria apenas no log.
-  // Enquanto isso, devolver o link é o que permite testar o fluxo.
   if (env.SHOW_RESET_LINK !== 'false') answer.resetUrl = link;
   return json(answer);
 }
@@ -207,6 +212,48 @@ async function handlePasswordReset(request, env) {
   return json({ message: 'Senha alterada. Você já pode entrar com a nova senha.' });
 }
 
+async function handleStateGet(request, env) {
+  const user = await currentUser(request, env);
+  if (!user) return json({ error: 'Entre na sua conta para ver seu progresso.' }, 401);
+  const row = await env.DB.prepare('SELECT state, updated_at FROM user_state WHERE user_id = ?1').bind(user.id).first();
+  if (!row) return json({ state: null, updatedAt: null });
+  let parsed;
+  try {
+    parsed = JSON.parse(row.state);
+  } catch {
+    return json({ state: null, updatedAt: row.updated_at });
+  }
+  return json({ state: parsed, updatedAt: row.updated_at });
+}
+
+async function handleStatePut(request, env) {
+  const user = await currentUser(request, env);
+  if (!user) return json({ error: 'Entre na sua conta para salvar seu progresso.' }, 401);
+
+  const text = await request.text();
+  if (text.length > MAX_STATE_BYTES) {
+    return json({ error: 'O progresso enviado é grande demais.' }, 413);
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return json({ error: 'Progresso em formato inválido.' }, 400);
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return json({ error: 'Progresso em formato inválido.' }, 400);
+  }
+
+  const updatedAt = new Date().toISOString();
+  await env.DB.prepare(
+    `INSERT INTO user_state (user_id, state, updated_at) VALUES (?1, ?2, ?3)
+     ON CONFLICT(user_id) DO UPDATE SET state = ?2, updated_at = ?3`,
+  ).bind(user.id, text, updatedAt).run();
+
+  log('state_saved', { userId: user.id, bytes: text.length });
+  return json({ saved: true, updatedAt });
+}
+
 const routes = new Map([
   ['/api/register', handleRegister],
   ['/api/login', handleLogin],
@@ -228,6 +275,12 @@ async function handleApi(request, env, url) {
     if (request.method !== 'POST') return json({ error: 'Método não permitido.' }, 405, { Allow: 'POST' });
     if (!sameOrigin(request, url)) return json({ error: 'Origem não autorizada.' }, 403);
     return handleLogout(request, env, url);
+  }
+
+  if (pathname === '/api/state') {
+    if (!['GET', 'PUT'].includes(request.method)) return json({ error: 'Método não permitido.' }, 405, { Allow: 'GET, PUT' });
+    if (!sameOrigin(request, url)) return json({ error: 'Origem não autorizada.' }, 403);
+    return request.method === 'GET' ? handleStateGet(request, env) : handleStatePut(request, env);
   }
 
   const handler = routes.get(pathname);
