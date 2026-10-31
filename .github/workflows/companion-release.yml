@@ -63,7 +63,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $tag = if ("${{ github.event_name }}" -eq "workflow_dispatch") { "${{ inputs.tag }}" } else { "${{ github.ref_name }}" }
-          $assets = Get-ChildItem -Path release -File -Include *.exe,*.blockmap,latest.yml | ForEach-Object { $_.FullName }
+          # Nomes fixos: evita subir o desinstalador e o pacote .7z por engano.
+          $names = @('Lume-setup.exe', 'Lume-setup.exe.blockmap', 'latest.yml')
+          $assets = Get-ChildItem -Path release -File | Where-Object { $names -contains $_.Name } | ForEach-Object { $_.FullName }
           if (-not $assets) { throw "Nenhum artefato encontrado em companion/release" }
           gh release create $tag --title "Lume $tag" --generate-notes --verify-tag 2>$null
           gh release upload $tag $assets --clobber
