@@ -88,7 +88,19 @@ dela**, quando ela clica no ícone. Ver [extension/LEIAME.md](../extension/LEIAM
   e acesso às origens do próprio Lume. Não há permissão permanente sobre Udemy, Alura, Coursera, Gran etc.
 - **O que lê:** título do curso, grupos (módulos/seções), nome, link e duração de cada aula e a marca de
   concluída visível. Abre as seções fechadas (o mesmo clique que a pessoa daria) e as fecha de novo.
-  Não lê cookie, senha, token, URL de mídia nem o conteúdo das aulas, e não chama a API da plataforma.
+  Não lê cookie, senha, token, URL de mídia nem o conteúdo das aulas. A única chamada a rotas da plataforma é a
+  do Gran (abaixo): só leitura, nas mesmas rotas que a página do curso já consulta.
+- **Gran pela API da página:** no painel do curso (`/aluno/curso/video/codigo/<código>`), a extensão pede a grade
+  em JSON às rotas `listar-conteudo-aula` (disciplinas → aulas → vídeos), na mesma origem, só com `GET`; o cookie
+  da sessão é enviado pelo navegador e a extensão não o lê. Cada **aula do Gran** ("Aula N - Tema") vira uma aula
+  no Lume, num módulo "Aulas" por disciplina. Ela conta como concluída quando todos os vídeos dela vêm com
+  `visualizado`; a duração é a soma dos vídeos e o link é o do primeiro vídeo. Vídeo por vídeo não cabe: um curso de
+  OAB conferido em 01/11/2026 tinha 2055 vídeos em 427 aulas, acima do limite de 600 aulas e do teto do estado
+  sincronizado. Nesse curso a leitura levou cerca de 20 s, sem abrir seções, e sai com confiança alta e
+  completude `complete`. Aula cuja lista de vídeos falhar usa a contagem do Gran (`qtdAulasAssistidas`), fica sem
+  link e deixa a leitura parcial; se a primeira rota falhar, a extensão volta a ler o DOM. As rotas não são
+  públicas nem documentadas e podem mudar sem aviso. Cursos já importados por vídeo mudam de forma na próxima
+  leitura: os vídeos antigos aparecem como removidos da fonte e as conclusões já registradas são preservadas.
 - **Como funciona:** leitor genérico sobre o DOM (itens com rota de aula, dados `data-*`, listas com duração;
   agrupa pelo título anterior; reconhece conclusão por checkbox marcado, `aria-checked`, rótulos de acessibilidade,
   ícones com título e classes como `completed`/`done`/`concluido`), mais regras de URL por plataforma para
@@ -107,7 +119,7 @@ dela**, quando ela clica no ícone. Ver [extension/LEIAME.md](../extension/LEIAM
   e lê hierarquia, contagem e conclusão sem que a pessoa abra nada. Uma seção que não abriu entra como um item só (num módulo "Aulas cujos vídeos não foram lidos" por disciplina, sem repetir o nome), com o
   selo de concluída que a página mostrar, e a leitura avisa quantas ficaram assim; quando os vídeos forem lidos depois,
   esse item aparece como removido da fonte e preserva a conclusão. Testado com uma página de exemplo que só cria os
-  filhos ao clicar; no site real do Gran ainda não foi exercitada.
+  filhos ao clicar; no site real do Gran essa varredura não foi exercitada, porque lá a leitura usa a API.
 - **Limites:** lista virtualizada ou carregada sob demanda só traz o que estava na tela; player ou índice em iframe de
   outra origem pode ficar fora; seção que não abre não é lida. A marca de conclusão depende de a plataforma
   mostrá-la.

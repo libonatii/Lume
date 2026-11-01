@@ -147,7 +147,7 @@ Não é observação de atividade, e isso está dito na interface.
 ### I1 — Leitura da grade por plataforma
 **Parcial.** Coursera e Alura (parcial) foram conferidas com páginas reais em 31/10; Udemy responde 403;
 Rocketseat e DIO não publicam títulos de aula; Gran e Estratégia exigem login e dependem da página copiada.
-Os testes da importação por link usam HTML sintético. O leitor da extensão foi testado contra páginas de exemplo e um trecho real do painel do Gran (`tests/fixtures/gran-painel.html`), mas não no site com uma conta; Udemy, Alura, Coursera e Rocketseat não foram testadas com páginas reais. O caso Gran/OAB por link nunca foi validado.
+Os testes da importação por link usam HTML sintético. O leitor da extensão foi testado contra páginas de exemplo e um trecho real do painel do Gran (`tests/fixtures/gran-painel.html`). A leitura do Gran pela API da página foi conferida com uma conta real em 01/11/2026 (31 disciplinas, 427 aulas), executando o trecho do leitor no console, ainda sem a extensão instalada; Udemy, Alura, Coursera e Rocketseat não foram testadas com páginas reais. O caso Gran/OAB por link nunca foi validado.
 
 ### I2 — Progresso e reprodução de aulas externas
 **Protótipo.** Hoje existem dois caminhos, ambos acionados pela pessoa:
@@ -158,8 +158,8 @@ histórico sem XP; nas seguintes, aulas que passaram a aparecer concluídas são
 pessoa confirmar, entram com origem `integration` e o servidor concede XP pela política vigente. Isso é uma
 observação da plataforma confirmada pela pessoa, não prova de que a aula foi assistida.
 
-Falta na extensão: carregá-la num Chrome real; conferir o DOM real de cada plataforma, inclusive como o Gran
-mostra uma aula assistida; teste automatizado da ponte e da entrega pelo service worker; ícones; publicação na
+Falta na extensão: carregá-la num Chrome real; conferir o DOM real das outras plataformas; no Gran, "Concluí
+esta aula" só reconhece a página do primeiro vídeo de cada aula, e cursos de pós/graduação não foram vistos; teste automatizado da ponte e da entrega pelo service worker; ícones; publicação na
 Chrome Web Store; configurar outro endereço do Lume.
 
 Não existe:

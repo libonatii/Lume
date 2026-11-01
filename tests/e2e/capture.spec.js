@@ -326,6 +326,97 @@ test('"Concluí esta aula" fora dos cursos importados é recusado sem abrir nada
   await expect(page.getByRole('button', { name: 'Concluí esta aula' })).toHaveCount(0);
 });
 
+// API do Gran simulada no formato conferido em 01/11/2026 com uma conta real
+// (só os campos usados; valores inventados).
+const GRAN_COURSE = 'https://www.grancursosonline.com.br/aluno/curso/video/codigo/Eclic28vUz4%3D';
+const GRAN_API = {
+  '': [{ id: '21717', nome: '1ª Fase OAB - Apresentação do Curso', caderno_questoes: null }, { id: '21718', nome: 'Direito Constitucional', caderno_questoes: null }],
+  '/disciplina/21717': [{ id: 1, index: 1, desc: 'Análise do Edital', progressoConteudo: { qtdAulas: 2, qtdAulasAssistidas: 2 } }],
+  '/disciplina/21718': [
+    { id: 1, index: 1, desc: 'Teoria da Constituição', progressoConteudo: { qtdAulas: 2, qtdAulasAssistidas: 1 } },
+    { id: 2, index: 2, desc: 'Poder Constituinte', progressoConteudo: { qtdAulas: 3, qtdAulasAssistidas: 3 } },
+    { id: 3, index: 3, desc: 'Controle de Constitucionalidade', progressoConteudo: { qtdAulas: 1, qtdAulasAssistidas: 0 } },
+  ],
+  '/disciplina/21717/conteudo/1': [
+    { id_video: 'ZxxT+CmS4Zc=', st_titulo_novo: 'Como utilizar a plataforma?', _tempo_duracao: '2340', st_tempo_duracao: '00:39:00', visualizado: true },
+    { id_video: 'Abc1', st_titulo_novo: 'Edital', _tempo_duracao: '600', st_tempo_duracao: '00:10:00', visualizado: true },
+  ],
+  '/disciplina/21718/conteudo/1': [
+    { id_video: 'Ccc1', _tempo_duracao: '1200', visualizado: true },
+    { id_video: 'Ccc2', _tempo_duracao: '', st_tempo_duracao: '00:20:00', visualizado: false },
+  ],
+  '/disciplina/21718/conteudo/2': [
+    { id_video: 'Ddd1', _tempo_duracao: '300', visualizado: true },
+    { id_video: 'Ddd2', _tempo_duracao: '300', visualizado: true },
+    { id_video: 'Ddd3', _tempo_duracao: '300', visualizado: true },
+  ],
+  '/disciplina/21718/conteudo/3': [{ id_video: 'Eee1', _tempo_duracao: '1800', visualizado: false }],
+};
+
+async function serveGran(page, api, { fail = [] } = {}) {
+  const requests = [];
+  await page.route('https://www.grancursosonline.com.br/**', (route) => {
+    const url = new URL(route.request().url());
+    const found = /^\/aluno\/curso\/listar-conteudo-aula\/codigo\/Eclic28vUz4%3D\/tipo\/video(.*)$/.exec(url.pathname);
+    if (!found) return route.fulfill({ contentType: 'text/html; charset=utf-8', body: LAZY.replace('Curso preguiçoso (Código: 77)', 'OAB 1ª Fase (Código: 204594)') });
+    requests.push({ method: route.request().method(), path: found[1], query: url.search });
+    if (fail.includes(found[1]) || !(found[1] in api)) return route.fulfill({ status: 500, contentType: 'application/json', body: '{}' });
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify(api[found[1]]) });
+  });
+  await page.goto(`${GRAN_COURSE}/v/ZxxT%2BCmS4Zc%3D`);
+  await page.addScriptTag({ path: 'extension/capture.js' });
+  return requests;
+}
+
+test('Gran: lê a grade pela API da página, uma aula do Gran por aula, sem abrir seções', async ({ page }) => {
+  const requests = await serveGran(page, GRAN_API);
+  const result = await read(page);
+  expect(result.ok).toBe(true);
+  const { payload } = result;
+  expect(payload.title).toBe('OAB 1ª Fase');
+  expect(payload.externalId).toBe('204594');
+  expect(payload.sourceUrl).toBe(GRAN_COURSE);
+  expect(payload.extraction).toMatchObject({ kind: 'extension-capture', confidence: 'high' });
+  expect(payload.completeness).toBe('complete');
+  expect(payload.warnings).toEqual([]);
+  expect(payload.disciplines.map((discipline) => discipline.title)).toEqual(['1ª Fase OAB - Apresentação do Curso', 'Direito Constitucional']);
+  expect(payload.disciplines[1].modules).toEqual([{
+    title: 'Aulas',
+    lessons: [
+      // Um vídeo assistido de dois: a aula ainda não está concluída.
+      { title: 'Aula 1 - Teoria da Constituição', url: `${GRAN_COURSE}/v/Ccc1`, duration: 2400, completed: false },
+      { title: 'Aula 2 - Poder Constituinte', url: `${GRAN_COURSE}/v/Ddd1`, duration: 900, completed: true },
+      { title: 'Aula 3 - Controle de Constitucionalidade', url: `${GRAN_COURSE}/v/Eee1`, duration: 1800, completed: false },
+    ],
+  }]);
+  // O link da aula é o do primeiro vídeo, codificado como a página faz.
+  expect(payload.disciplines[0].modules[0].lessons[0]).toEqual({ title: 'Aula 1 - Análise do Edital', url: `${GRAN_COURSE}/v/ZxxT%2BCmS4Zc%3D`, duration: 2940, completed: true });
+  expect(result.stats).toEqual({ lessons: 4, groups: 2, disciplines: 2, completed: 2, pending: 0, truncated: false });
+  // Só leitura, nas rotas da grade; nenhuma seção da página foi aberta.
+  expect(requests.every((request) => request.method === 'GET' && request.query === '?audiobooks=true')).toBe(true);
+  await expect(page.locator('[aria-expanded="true"]')).toHaveCount(0);
+});
+
+test('Gran: aula sem lista de vídeos usa a contagem do Gran, deixa a leitura parcial e avisa', async ({ page }) => {
+  await serveGran(page, GRAN_API, { fail: ['/disciplina/21718/conteudo/2', '/disciplina/21718/conteudo/3'] });
+  const result = await read(page);
+  const lessons = result.payload.disciplines[1].modules[0].lessons;
+  expect(lessons[1]).toEqual({ title: 'Aula 2 - Poder Constituinte', url: '', duration: null, completed: true });
+  expect(lessons[2]).toEqual({ title: 'Aula 3 - Controle de Constitucionalidade', url: '', duration: null, completed: false });
+  expect(result.payload.completeness).toBe('partial');
+  expect(result.payload.warnings.join(' ')).toMatch(/2 aulas vieram sem a lista de vídeos/);
+});
+
+test('Gran: se a API não responder, a leitura volta a abrir as seções da página', async ({ page }) => {
+  const requests = await serveGran(page, GRAN_API, { fail: [''] });
+  const result = await read(page);
+  expect(requests).toHaveLength(1);
+  expect(result.ok).toBe(true);
+  expect(result.payload.extraction.confidence).toBe('medium');
+  expect(result.payload.disciplines.map((discipline) => discipline.title)).toEqual(['Direito A', 'Direito B']);
+  expect(result.stats).toMatchObject({ lessons: 7, pending: 0 });
+});
+
 test('site que fecha as outras disciplinas e entrega os vídeos com atraso: lê todas, uma por vez', async ({ page }) => {
   const exclusive = LAZY.replace('const EXCLUSIVE = false, DELAY = 0;', 'const EXCLUSIVE = true, DELAY = 600;');
   await serve(page, 'https://www.grancursosonline.com.br/aluno/curso/video/codigo/XYZ/v/1', exclusive);

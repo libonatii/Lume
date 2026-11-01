@@ -4,7 +4,8 @@
 // ícone da extensão (permissão activeTab). Lê o que está na tela: título do
 // curso, grupos (módulos/seções), nomes das aulas, durações e quais aparecem
 // marcadas como concluídas. Não lê cookies, tokens, mídia nem o conteúdo das
-// aulas, e não usa a API da plataforma.
+// aulas. A exceção é o Gran: lá a grade vem das mesmas rotas JSON que a própria
+// página consulta (só leitura, ver `readGranApi`), e o DOM fica como reserva.
 //
 // Script clássico (sem import), para poder ser injetado em qualquer página.
 // O formato devolvido é validado de novo pelo Lume (`normalizePayload`).
@@ -553,16 +554,98 @@
     return { disciplines: finalizeDisciplines(accumulated), restore, clicks };
   }
 
+  // ---------- Gran: grade pela API da própria página ----------
+  // O painel do curso no Gran busca a grade em JSON, na mesma origem, com o
+  // cookie da sessão: disciplinas → aulas → vídeos, e cada vídeo diz se foi
+  // visualizado. Pedimos as mesmas rotas, só com GET; o cookie quem envia é o
+  // navegador, a extensão não o lê. Formato conferido em 01/11/2026 com uma
+  // conta real. Cada aula do Gran vira uma aula no Lume (um curso tem milhares
+  // de vídeos, além do limite de aulas e do tamanho do estado sincronizado).
+
+  const GRAN_HOST = /(^|\.)grancursosonline\.com\.br$/i;
+  const GRAN_CONCURRENCY = 6;
+
+  async function granJson(path) {
+    const response = await fetch(path, { credentials: 'same-origin', headers: { accept: 'application/json', 'x-requested-with': 'XMLHttpRequest' } });
+    if (!response.ok) throw new Error(`gran_${response.status}`);
+    return response.json();
+  }
+
+  // Aplica `task` a cada item, no máximo `limit` por vez, e devolve na ordem.
+  async function mapLimited(items, limit, task) {
+    const results = new Array(items.length);
+    let next = 0;
+    const worker = async () => {
+      while (next < items.length) {
+        const index = next;
+        next += 1;
+        results[index] = await task(items[index]);
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+    return results;
+  }
+
+  const granSeconds = (video) => Number(video?._tempo_duracao) || toSeconds(video?.st_tempo_duracao) || 0;
+
+  async function readGranApi(pageUrl, report) {
+    let url;
+    try { url = new URL(pageUrl); } catch { return null; }
+    if (globalThis.window !== globalThis.top || !GRAN_HOST.test(url.hostname) || url.origin !== location.origin) return null;
+    const code = GRAN_PATH.exec(url.pathname)?.[1];
+    if (!code) return null;
+    const base = `/aluno/curso/listar-conteudo-aula/codigo/${code}/tipo/video`;
+    const query = '?audiobooks=true';
+
+    const subjects = await granJson(`${base}${query}`);
+    if (!Array.isArray(subjects) || !subjects.length) return null;
+    const truncated = subjects.length > MAX_DISCIPLINES;
+    const disciplines = [];
+    let unread = 0;
+    for (const [index, subject] of subjects.slice(0, MAX_DISCIPLINES).entries()) {
+      const name = clean(subject?.nome).slice(0, 150);
+      if (!name || subject?.id == null) continue;
+      report?.(`Lendo a disciplina ${index + 1} de ${Math.min(subjects.length, MAX_DISCIPLINES)}…`);
+      const path = `${base}/disciplina/${encodeURIComponent(subject.id)}`;
+      const items = await granJson(`${path}${query}`);
+      if (!Array.isArray(items) || !items.length) continue;
+      const videoLists = await mapLimited(items, GRAN_CONCURRENCY, (item) => granJson(`${path}/conteudo/${encodeURIComponent(item.id)}${query}`).catch(() => null));
+      const lessons = items.map((item, position) => {
+        const videos = Array.isArray(videoLists[position]) ? videoLists[position].filter((video) => video?.id_video) : null;
+        const progress = item?.progressoConteudo;
+        const title = clean(`Aula ${item?.index ?? position + 1}${clean(item?.desc) ? ` - ${clean(item.desc)}` : ''}`).slice(0, 200);
+        if (!videos?.length) {
+          // Sem a lista de vídeos, a conclusão vem da contagem que o próprio Gran mostra.
+          unread += 1;
+          return { title, url: '', duration: null, completed: Number(progress?.qtdAulas) > 0 && Number(progress?.qtdAulasAssistidas) >= Number(progress?.qtdAulas) };
+        }
+        const seconds = videos.reduce((total, video) => total + granSeconds(video), 0);
+        return {
+          title,
+          url: `${location.origin}/aluno/curso/video/codigo/${code}/v/${encodeURIComponent(videos[0].id_video)}`,
+          duration: seconds || null,
+          completed: videos.every((video) => video.visualizado === true),
+        };
+      });
+      disciplines.push({ title: name, modules: [{ title: 'Aulas', lessons }] });
+    }
+    return disciplines.length ? { disciplines, truncated, unread } : null;
+  }
+
   // ---------- Entrada ----------
 
   const report = (text) => { try { chrome.runtime.sendMessage({ type: 'lume-progress', text }); } catch { /* fora da extensão */ } };
 
-  async function run({ pageUrl = location.href, pageTitle = '', expand = true } = {}) {
+  async function run({ pageUrl = location.href, pageTitle = '', expand = true, api = true } = {}) {
     let restore = async () => {};
     try {
       const { title, code } = courseIdentity(pageTitle);
       let disciplines;
-      if (expand) {
+      // A API, quando responde, dispensa abrir seções; se falhar, vale o DOM.
+      const fromApi = api ? await readGranApi(pageUrl, report).catch(() => null) : null;
+      if (fromApi) {
+        disciplines = fromApi.disciplines;
+      } else if (expand) {
         const result = await sweep(title, report);
         restore = result.restore;
         disciplines = result.disciplines;
@@ -575,7 +658,7 @@
       }
       if (!disciplines.length) return { ok: false, reason: 'no_lessons' };
 
-      let truncated = false;
+      let truncated = Boolean(fromApi?.truncated);
       if (disciplines.length > MAX_DISCIPLINES) { disciplines = disciplines.slice(0, MAX_DISCIPLINES); truncated = true; }
       let budget = MAX_LESSONS;
       disciplines = disciplines.map((discipline) => {
@@ -598,8 +681,11 @@
       const sourceUrl = courseUrlFor(pageUrl);
       let host = '';
       try { host = new URL(pageUrl).hostname; } catch { host = location.hostname; }
-      const notes = ['Lido pela extensão do Lume na página aberta com a sua conta. Confira se todos os itens são aulas.'];
-      const warnings = ['A leitura mostra só o que a página tinha na tela. Aulas de seções que não abriram, ou carregadas depois, podem faltar.'];
+      const notes = fromApi
+        ? ['Lido pela extensão do Lume na grade que o Gran entrega à página aberta com a sua conta. Cada aula do Gran entra como uma aula; ela conta como concluída quando todos os vídeos dela aparecem como assistidos.']
+        : ['Lido pela extensão do Lume na página aberta com a sua conta. Confira se todos os itens são aulas.'];
+      const warnings = fromApi ? [] : ['A leitura mostra só o que a página tinha na tela. Aulas de seções que não abriram, ou carregadas depois, podem faltar.'];
+      if (fromApi?.unread) warnings.push(`${fromApi.unread} ${fromApi.unread === 1 ? 'aula veio' : 'aulas vieram'} sem a lista de vídeos: a conclusão segue a contagem do Gran e o link ficou vazio.`);
       if (pending) warnings.push(`${pending} ${pending === 1 ? 'seção não abriu' : 'seções não abriram'}: ${pending === 1 ? 'entrou' : 'entraram'} como um item só, sem os vídeos. Leia a página de novo para tentar abrir.`);
       if (truncated) warnings.push(`A leitura passou do limite do Lume (${MAX_LESSONS} aulas, ${MAX_DISCIPLINES} disciplinas) e foi cortada. Importe por partes.`);
 
@@ -624,8 +710,8 @@
               })),
             })),
           })),
-          extraction: { kind: 'extension-capture', confidence: 'medium', notes },
-          completeness: 'partial',
+          extraction: { kind: 'extension-capture', confidence: fromApi ? 'high' : 'medium', notes },
+          completeness: fromApi && !truncated && !fromApi.unread ? 'complete' : 'partial',
           warnings,
           analyzedAt: new Date().toISOString(),
         },
