@@ -10,6 +10,7 @@
 // entram: eles não representam o estudo real da pessoa. Nada aqui concede XP.
 
 import { courseLessons, isImportedCourse, sourceLabel } from './import-domain.js';
+import { completedUnitIds } from './progress-domain.js';
 
 export const PLAN_LIMIT = 8;
 export const RECENT_DAYS = 7;
@@ -39,8 +40,7 @@ function lastTouched(state) {
     const time = Date.parse(at);
     if (courseId && Number.isFinite(time)) map.set(courseId, Math.max(map.get(courseId) || 0, time));
   };
-  for (const entry of state.studyLog || []) if (!entry.revertedAt) mark(entry.courseId, entry.at);
-  for (const entry of state.history || []) mark(entry.courseId, entry.at);
+  for (const entry of state.progress || []) if (!entry.revertedAt) mark(entry.materialId, entry.at);
   for (const session of state.studySessions || []) mark(session.courseId, session.startedAt);
   return map;
 }
@@ -53,7 +53,7 @@ function reasonFor(item) {
 }
 
 export function studyPlan(state, { limit = PLAN_LIMIT, now = Date.now() } = {}) {
-  const completed = new Set(state.completed || []);
+  const completed = completedUnitIds(state);
   const touchedMap = lastTouched(state);
   const cutoff = now - RECENT_DAYS * 24 * 60 * 60 * 1000;
   const limitValue = Math.max(1, Math.min(Number(limit) || PLAN_LIMIT, 20));
@@ -157,7 +157,7 @@ export function nextAction(state, { now = Date.now() } = {}) {
   const lessons = new Map(courseLessons(course).map((lesson) => [lesson.id, lesson]));
   const lesson = lessons.get(step.lessonId);
   const known = Number.isFinite(lesson?.duration) && lesson.duration > 0;
-  const completed = new Set(state.completed || []);
+  const completed = completedUnitIds(state);
   const remainingSteps = course.steps.filter((item) => !completed.has(item.id));
   const durations = remainingSteps.map((item) => lessons.get(item.id)?.duration).filter((value) => Number.isFinite(value) && value > 0);
   return {

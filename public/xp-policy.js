@@ -5,6 +5,8 @@
 // protótipo (5 XP por preparação, 10 XP por etapa/tarefa) fica separado e nunca
 // entra aqui, no nível novo ou no ranking.
 
+import { completionTime, isCompleted } from './progress-domain.js';
+
 export const XP_POLICY_VERSION = 'v1';
 export const LEVEL_XP = 500;
 export const TIME_BLOCK_SECONDS = 30 * 60;
@@ -124,27 +126,16 @@ export function slideProgressSnapshot(course) {
   };
 }
 
-// Data da conclusão declarada. Aulas importadas usam studyLog; cursos manuais
-// usam o histórico da etapa. Sem data, o registro é tratado como legado.
+// Data da conclusão declarada: o registro ativo mais recente que não é histórico
+// (progress-domain.js). Sem data, o registro é tratado como legado.
 export function completionTimestamp(state, course, stepId) {
   if (!course || !stepId) return null;
-  if (isImportedCourse(course)) {
-    const entries = (state?.studyLog || []).filter((entry) => entry.stepId === stepId
-      && !entry.revertedAt
-      && entry.origin !== 'import'
-      && entry.historical !== true);
-    const latest = entries[entries.length - 1];
-    const at = Date.parse(latest?.at);
-    return Number.isFinite(at) ? at : null;
-  }
-  const entry = (state?.history || []).find((item) => item.id === `step:${stepId}`);
-  const at = Date.parse(entry?.at);
-  return Number.isFinite(at) ? at : null;
+  return completionTime(state, stepId);
 }
 
 export function courseIsComplete(state, course) {
   return Boolean(course?.steps?.length)
-    && course.steps.every((step) => (state?.completed || []).includes(step.id));
+    && course.steps.every((step) => isCompleted(state, step.id));
 }
 
 // Uma grade completa da fonte não basta: se a pessoa escolheu só parte das
@@ -173,7 +164,7 @@ export function collectCompletionCandidates(state, eligibleSince) {
     const kind = completionKindForCourse(course);
     let allSince = true;
     for (const step of course.steps) {
-      if (!(state.completed || []).includes(step.id)) {
+      if (!isCompleted(state, step.id)) {
         allSince = false;
         continue;
       }

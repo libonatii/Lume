@@ -112,7 +112,7 @@ dela**, quando ela clica no ícone. Ver [extension/LEIAME.md](../extension/LEIAM
 - **Progresso e XP:** a primeira leitura de um curso importa as conclusões visíveis como **histórico sem XP**.
   Nas leituras seguintes do mesmo curso (mesma identidade), aulas que aparecem concluídas e que o Lume ainda não
   tinha são oferecidas em uma caixa **marcada por padrão**, que a pessoa pode desmarcar. Se confirmada, a conclusão
-  entra no `studyLog` com origem `integration` e o servidor decide o XP pela política vigente (100 XP por aula,
+  entra no registro `progress` com origem `integration` e o servidor decide o XP pela política vigente (100 XP por aula,
   teto diário). Aula do histórico nunca é convertida em XP. É uma observação da plataforma confirmada pela pessoa,
   não prova de que a aula foi assistida.
 - **Estrutura completa:** a leitura abre seções dentro de seções (disciplina → aula → vídeos, até 600 cliques e 4 minutos). Quando abrir uma seção fecha as outras (como o Gran faz com as disciplinas), lê uma por vez e junta o que cada uma mostra; espera os vídeos chegarem por rede antes de ler; filtra atalhos como "Conteúdo" e "Retomar". Em cursos grandes leva um ou dois minutos
@@ -185,9 +185,9 @@ ainda podem gerar itens indevidos — por isso a revisão existe e a grade é ma
   não apaga conclusões.
 - `course.source` guarda provedor, identidade, data da análise, tipo de extração, completude, capacidades,
   avisos e a marca de demonstração.
-- Progresso continua separado do conteúdo: `completed` (ids de aula concluída), `studyLog` (registro com origem
+- Progresso continua separado do conteúdo: o registro único `progress` (cada conclusão com origem
   `manual` ou `integration`, data e possível desfazer) e `imports` (histórico de importações).
-- `restoreState` aceita dados antigos sem `studyLog`/`imports` e descarta registros inválidos sem zerar o progresso.
+- `restoreState` aceita documentos v1 (`completed`/`history`/`studyLog`, convertidos para `progress`) e descarta registros inválidos um a um, sem zerar o progresso.
 
 Reimportação:
 
@@ -202,7 +202,7 @@ Reimportação:
   explicitamente na conclusão.
 - Concluir uma aula importada registra progresso **manual**, com origem visível. A conclusão manual é elegível
   para 100 XP de aula, concedidos pelo servidor no livro de eventos; não usa a recompensa legada de 10 XP por etapa.
-- A página copiada da conta pode marcar aulas como concluídas. Elas entram como `studyLog` com origem `import` e
+- A página copiada da conta pode marcar aulas como concluídas. Elas entram no registro `progress` com origem `import` e
   `historical: true`, somam no progresso exibido, mas **não geram XP** e não podem ser desfeitas como conclusão
   manual. O Lume não converte progresso antigo em recompensa nova.
 - Importar, escolher disciplinas, atualizar a grade e conectar uma fonte continuam sem XP. A política de XP vive

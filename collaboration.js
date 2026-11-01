@@ -9,6 +9,7 @@
 
 import { restoreState } from './public/domain.js';
 import { AppError } from './api/errors.js';
+import { isCompleted } from './public/progress-domain.js';
 
 export const MAX_COLLABORATION_NOTE = 400;
 
@@ -61,7 +62,7 @@ export async function createCollaborationInvite(db, ownerId, { friendId, courseI
   if (course.type !== 'project') throw new CollaborationError('Convites de colaboração existem em projetos.', 'not_project', 400);
   const step = (course.steps || []).find((item) => item.id === stepId);
   if (!step) throw new CollaborationError('Entrega não encontrada.', 'step_not_found', 404);
-  if ((state.completed || []).includes(stepId)) throw new CollaborationError('Essa entrega já foi concluída.', 'already_completed', 409);
+  if (isCompleted(state, stepId)) throw new CollaborationError('Essa entrega já foi concluída.', 'already_completed', 409);
 
   const existing = await db.first(
     'SELECT * FROM delivery_invites WHERE owner_id = ? AND friend_id = ? AND course_id = ? AND step_id = ?',

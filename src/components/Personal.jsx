@@ -8,6 +8,7 @@ import { mergeBackup, previewBackup, readBackup } from '../../public/backup-doma
 import { api, apiError } from '../lib/api.js';
 import Icon from './Icon.jsx';
 import { AnimatedNumber, Button, Cover, Empty, Glow, Heading, Progress, Ring, stagger } from './ui.jsx';
+import { isCompleted } from '../../public/progress-domain.js';
 
 export function Achievements({ state, account, xp }) {
   const legacy = achievements(state);
@@ -83,6 +84,8 @@ export function History({ state, account, xp, refreshXP, notify }) {
   const [adjustReason, setAdjustReason] = useState('');
   const [adjustError, setAdjustError] = useState('');
   const completedCourses = state.courses.filter(course => courseStatus(state, course) === 'completed').length;
+  // Passos com data, desfeitos fora; conclusões lidas como histórico da fonte não entram.
+  const steps = (state.progress || []).filter((entry) => entry.at && !entry.revertedAt && !entry.historical);
   const summary = account ? xp?.summary : null;
   const events = account ? (xp?.events || []) : [];
   const legacy = totalXP(state);
@@ -109,7 +112,7 @@ export function History({ state, account, xp, refreshXP, notify }) {
     </Heading>
     <div className="history-stats">
       <div className="card-surface stat-card"><span className="eyebrow">{account ? 'XP elegível' : 'XP de prévia'}</span><strong className="stat-value"><AnimatedNumber value={level.total}/></strong><small className="muted-text">Nível {level.level} · {level.current}/{level.next} para o próximo</small></div>
-      <div className="card-surface stat-card"><span className="eyebrow">Passos registrados</span><strong className="stat-value"><AnimatedNumber value={state.history.length}/></strong><small className="muted-text">Avanços anotados no seu tempo</small></div>
+      <div className="card-surface stat-card"><span className="eyebrow">Passos registrados</span><strong className="stat-value"><AnimatedNumber value={steps.length}/></strong><small className="muted-text">Avanços anotados no seu tempo</small></div>
       <div className="card-surface stat-card"><span className="eyebrow">Cursos concluídos</span><strong className="stat-value"><AnimatedNumber value={completedCourses}/></strong><small className="muted-text">Trilhas percorridas até o fim</small></div>
     </div>
 
@@ -168,17 +171,17 @@ export function History({ state, account, xp, refreshXP, notify }) {
       </ul>
     </section>}
 
-    {state.history.length ? <section className="history-list" aria-label="Histórico de passos">
-      {[...state.history].reverse().map((entry, index) => <motion.article className="history-entry" key={entry.id} {...stagger(index)}>
-        <span className={`history-dot ${entry.preparation ? 'prep' : 'done'}`}><Icon name={entry.preparation ? 'sprout' : 'check'}/></span>
+    {steps.length ? <section className="history-list" aria-label="Histórico de passos">
+      {[...steps].reverse().map((entry, index) => <motion.article className="history-entry" key={entry.id} {...stagger(index)}>
+        <span className={`history-dot ${entry.type === 'preparation' ? 'prep' : 'done'}`}><Icon name={entry.type === 'preparation' ? 'sprout' : 'check'}/></span>
         <div className="history-copy">
           <h2 className="title">{entry.title}</h2>
-          <p className="muted-text">{entry.courseTitle}{entry.preparation && ' · Preparação; a etapa original não foi concluída'}</p>
+          <p className="muted-text">{entry.materialTitle}{entry.type === 'preparation' && ' · Preparação; a etapa original não foi concluída'}{entry.origin === 'integration' && ' · Observada na plataforma'}</p>
         </div>
         <div className="history-date">
           <time dateTime={entry.at}>{new Date(entry.at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</time>
-          {state.preferences.gamification && entry.xp > 0 && <span className="xp-pill">+{entry.xp} XP de legado</span>}
-          {state.preferences.gamification && account && entry.policy === 'v1' && <span className="xp-pill tone-muted">XP elegível no extrato</span>}
+          {state.preferences.gamification && entry.legacyXp > 0 && <span className="xp-pill">+{entry.legacyXp} XP de legado</span>}
+          {state.preferences.gamification && account && entry.type === 'completion' && entry.origin !== 'legacy' && <span className="xp-pill tone-muted">XP elegível no extrato</span>}
         </div>
       </motion.article>)}
     </section> : <Empty title="Sua história começa com um passo.">Quando você registrar uma etapa, ela aparece aqui.</Empty>}
@@ -253,7 +256,7 @@ export function Preferences({ state, update, notify, onPersonalize, account, go,
   const projects = state.courses.filter(course => course.type === 'project');
   const eventKeys = new Set((xp?.events || []).map((event) => event.eventKey));
   const legacyCourses = state.courses.filter((course) => !course.example
-    && (course.planning === true || course.steps.some((step) => state.completed.includes(step.id)
+    && (course.planning === true || course.steps.some((step) => isCompleted(state, step.id)
       && !eventKeys.has(stepEventKey(completionKindForCourse(course), course.id, step.id))))).slice(0, 8);
   function classifyCourse(courseId, patch) {
     update(previous => updateCourse(previous, courseId, patch));

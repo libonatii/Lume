@@ -45,5 +45,5 @@ test('sessão declarada persiste ao recarregar, pausa, retoma e encerra sem conc
   expect(state.studySessions).toHaveLength(1);
   expect(state.studySessions[0].origin).toBe('declared');
   expect(state.activeSession).toBeNull();
-  expect(state.history).toHaveLength(0);
+  expect(state.progress).toHaveLength(0);
 });

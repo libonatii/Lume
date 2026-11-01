@@ -64,8 +64,8 @@ test('cronograma distribui aulas, explica conflito, recalcula após conclusão e
   expect(saved.plan.availability).toEqual({ 1: 30, 2: 30, 3: 30, 4: 30, 5: 30 });
   expect(saved.plan.goals[course.id].deadline).not.toBe('');
   expect(Object.keys(saved.plan.postponed)).toEqual([course.steps[1].id]);
-  expect(saved.completed).toEqual([course.steps[0].id]);
-  expect(saved.history).toEqual([]);
+  expect(saved.progress.filter((event) => event.type === 'completion' && !event.revertedAt).map((event) => event.unitId)).toEqual([course.steps[0].id]);
+  expect(saved.progress.some((event) => event.legacyXp)).toBe(false);
 });
 
 test('subtarefas e vínculo com aula não alteram XP e sobrevivem ao recarregamento', async ({ page }) => {
@@ -93,6 +93,5 @@ test('subtarefas e vínculo com aula não alteram XP e sobrevivem ao recarregame
   expect(saved.tasks[0].lessonId).toBe(saved.courses[0].steps[0].id);
   expect(saved.tasks[0].subtasks).toEqual([expect.objectContaining({ title: 'Resolver 10 questões', done: true })]);
   expect(saved.tasks[0].done).toBe(false);
-  expect(saved.history).toEqual([]);
-  expect(saved.completed).toEqual([]);
+  expect(saved.progress).toEqual([]);
 });

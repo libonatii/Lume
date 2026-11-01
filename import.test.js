@@ -9,6 +9,9 @@ import {
   ImportError, analyzeSnapshot, analyzeUrl, assertPublicHttpUrl, extractFromHtml, parseSyllabusText,
 } from './import-server.js';
 import { createInitialState, restoreState, totalXP, courseStatus, weekCount } from './public/domain.js';
+import { completedUnitIds, isCompleted } from './public/progress-domain.js';
+
+const eventFor = (state, unitId) => state.progress.find((item) => item.unitId === unitId);
 
 const UDEMY_PAGE = `<!doctype html><html><head>
 <title>Curso de React do zero | Udemy</title>
@@ -199,8 +202,8 @@ test('progresso já marcado na página copiada entra como histórico sem XP', ()
   const state = applyCourseImport(createInitialState(), payload, { now: '2026-10-31T12:00:00Z' });
   const course = state.courses[0];
   const first = course.steps.find((step) => step.title === completedTitle);
-  assert.ok(state.completed.includes(first.id));
-  const entry = state.studyLog.find((item) => item.stepId === first.id);
+  assert.ok(isCompleted(state, first.id));
+  const entry = eventFor(state, first.id);
   assert.equal(entry.origin, 'import');
   assert.equal(entry.historical, true);
   assert.equal(totalXP(state), 0);
@@ -259,7 +262,7 @@ test('importar não concede XP e cria curso tipado com disciplinas', () => {
   assert.equal(course.source.provider, 'grancursos');
   assert.equal(course.source.completeness, 'partial');
   assert.equal(totalXP(state), 0, 'importar organiza, não recompensa');
-  assert.equal(state.studyLog.length, 0);
+  assert.equal(state.progress.length, 0);
   assert.equal(state.imports.length, 1);
   assert.equal(courseStatus(state, course), 'new');
   assert.equal(courseSummary(state, course).partial, true);
@@ -306,11 +309,11 @@ test('reimportar preserva conclusões, aulas removidas e não duplica o curso', 
   assert.equal(state.courses.length, totalCourses, 'sem duplicata');
   const merged = state.courses.find((item) => item.source?.identity === updated.identity);
   assert.equal(merged.id, course.id);
-  assert.deepEqual(state.completed, [firstLesson], 'conclusão preservada');
+  assert.deepEqual([...completedUnitIds(state)], [firstLesson], 'conclusão preservada');
   assert.ok(merged.steps.some((step) => step.id === firstLesson), 'aula removida da fonte continua no curso');
   assert.ok(merged.steps.some((step) => step.title === 'Aula 3'));
   assert.equal(merged.source.importedAt, course.source.importedAt);
-  assert.equal(state.studyLog.length, 1, 'histórico preservado');
+  assert.equal(state.progress.length, 1, 'histórico preservado');
   assert.equal(state.imports.length, 2);
 });
 
@@ -334,8 +337,8 @@ test('conclusão manual é registrada sem XP e pode ser desfeita sem apagar o hi
 
   const undone = revertLessonCompletion(state, course.id, lessonId, { now: '2026-10-30T11:00:00Z' });
   assert.equal(undone.reverted, true);
-  assert.equal(undone.state.completed.length, 0);
-  assert.equal(undone.state.studyLog[0].revertedAt, '2026-10-30T11:00:00Z');
+  assert.equal(completedUnitIds(undone.state).size, 0);
+  assert.equal(undone.state.progress[0].revertedAt, '2026-10-30T11:00:00Z');
   assert.equal(weekCount(undone.state, new Date('2026-10-30T12:00:00Z')), 0);
 });
 
@@ -350,18 +353,19 @@ test('o estado importado sobrevive à restauração e aceita dados legados sem s
   const course = restored.courses.at(-1);
   assert.equal(course.source.identity, payload.identity);
   assert.equal(course.structure.length, 1);
-  assert.equal(restored.studyLog.length, 1);
-  assert.equal(restored.completed.length, state.completed.length);
+  assert.equal(restored.progress.length, 1);
+  assert.equal(completedUnitIds(restored).size, completedUnitIds(state).size);
 
-  const legacy = createInitialState();
-  delete legacy.studyLog;
+  // Documento v1 de antes do studyLog: lido sem erro e sem progresso inventado.
+  const legacy = { ...createInitialState(), version: 1, completed: [], history: [] };
+  delete legacy.progress;
   delete legacy.imports;
   const legacyRestored = restoreState(JSON.stringify(legacy));
-  assert.deepEqual(legacyRestored.studyLog, []);
+  assert.deepEqual(legacyRestored.progress, []);
   assert.equal(legacyRestored.courses.length, 0);
 
-  const broken = { ...state, studyLog: [{ id: 'x' }, ...state.studyLog] };
-  assert.equal(restoreState(JSON.stringify(broken)).studyLog.length, 1, 'registro inválido não derruba o progresso');
+  const broken = { ...state, progress: [{ id: 'x' }, ...state.progress] };
+  assert.equal(restoreState(JSON.stringify(broken)).progress.length, 1, 'registro inválido não derruba o progresso');
 });
 
 test('cobertura de edital pede edição e fase e não inventa grade', () => {
@@ -425,13 +429,13 @@ test('primeira leitura da extensão é histórico sem XP; conclusões novas conf
     now: '2026-10-31T12:00:00Z', observedCompletionIds: allLessonIds(first),
   });
   const course = imported.courses[0];
-  assert.equal(imported.studyLog.length, 1);
-  assert.equal(imported.studyLog[0].origin, 'import', 'em curso novo, nada é registrado como conclusão elegível');
-  assert.equal(imported.studyLog[0].historical, true);
+  assert.equal(imported.progress.length, 1);
+  assert.equal(imported.progress[0].origin, 'import', 'em curso novo, nada é registrado como conclusão elegível');
+  assert.equal(imported.progress[0].historical, true);
 
   const second = normalizePayload(extensionCapture(new Set(['a', 'b', 'd'])));
   const newIds = second.disciplines[0].modules.flatMap((module) => module.lessons)
-    .filter((lesson) => lesson.completedInSource && !imported.completed.includes(lesson.id)).map((lesson) => lesson.id);
+    .filter((lesson) => lesson.completedInSource && !isCompleted(imported, lesson.id)).map((lesson) => lesson.id);
   assert.equal(newIds.length, 2);
 
   const confirmed = applyCourseImport(imported, second, { now: '2026-11-01T12:00:00Z', observedCompletionIds: newIds });
@@ -439,9 +443,9 @@ test('primeira leitura da extensão é histórico sem XP; conclusões novas conf
   assert.equal(confirmed.imports.at(-1).observed, 2);
   for (const id of newIds) {
     assert.equal(lessonOrigin(confirmed, id), 'integration');
-    assert.equal(confirmed.studyLog.find((entry) => entry.stepId === id).historical, undefined);
+    assert.equal(eventFor(confirmed, id).historical, false);
   }
-  assert.equal(confirmed.studyLog.filter((entry) => entry.origin === 'import').length, 1, 'o histórico anterior não é reescrito');
+  assert.equal(confirmed.progress.filter((entry) => entry.origin === 'import').length, 1, 'o histórico anterior não é reescrito');
 
   // Sem confirmação, a mesma leitura vira só histórico.
   const declined = applyCourseImport(imported, second, { now: '2026-11-01T12:00:00Z' });

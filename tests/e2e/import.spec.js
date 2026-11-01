@@ -89,7 +89,7 @@ test('seleção parcial, reimportação sem duplicata e progresso preservado', a
   await expect(page.getByText('registro manual').first()).toBeVisible();
   const firstLesson = await page.evaluate(key => {
     const state = JSON.parse(localStorage.getItem(key));
-    return state.completed.at(-1);
+    return state.progress.filter((event) => event.type === 'completion' && !event.revertedAt).at(-1).unitId;
   }, STORAGE_KEY);
 
   // Reimportação: a mesma identidade atualiza o curso, sem duplicar.
@@ -115,9 +115,9 @@ test('seleção parcial, reimportação sem duplicata e progresso preservado', a
   await expect(page.locator('#library-results .course-card').filter({ hasText: 'Preparatório OAB' })).toHaveCount(1);
   const state = await page.evaluate(key => JSON.parse(localStorage.getItem(key)), STORAGE_KEY);
   expect(state.courses.filter(course => course.title === 'Preparatório OAB')).toHaveLength(1);
-  expect(state.completed).toContain(firstLesson);
-  expect(state.studyLog).toHaveLength(1);
-  expect(state.history).toHaveLength(0);
+  expect(state.progress.filter((event) => !event.revertedAt).map((event) => event.unitId)).toContain(firstLesson);
+  expect(state.progress).toHaveLength(1);
+  expect(state.progress[0].origin).toBe('manual');
   expect(state.imports.at(-1).mode).toBe('update');
 });
 
@@ -168,7 +168,7 @@ test('biblioteca vazia pergunta a área e cria a primeira trilha sem XP', async 
   expect(state.courses[0].title).toBe('Direito');
   expect(state.courses[0].origin).toBe('manual');
   expect(state.courses[0].steps[0].title).toBe('Ler a introdução de processo penal');
-  expect(state.history).toEqual([]);
+  expect(state.progress.filter((event) => event.origin === 'manual' || event.legacyXp)).toEqual([]);
 });
 
 test('página copiada da conta vira revisão sem enviar sessão', async ({ page }) => {
@@ -250,6 +250,6 @@ test('link sem https é detectado e adicionado sem abrir a revisão', async ({ p
   const state = await page.evaluate(key => JSON.parse(localStorage.getItem(key)), STORAGE_KEY);
   expect(state.courses).toHaveLength(1);
   expect(state.courses[0].steps).toHaveLength(2);
-  expect(state.history).toEqual([]);
+  expect(state.progress.filter((event) => event.origin === 'manual' || event.legacyXp)).toEqual([]);
   await page.unroute('**/api/import/analyze');
 });

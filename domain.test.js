@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createInitialState, restoreState, completeMission, totalXP, courseProgress, courseStatus, nextMission, achievements, addCourse, safeCourseURL, weekCount } from './public/domain.js';
-import { applyStudyRhythm, studyRhythm, startJourney, saveOnboardingAnswer, completeJourney, normalizeOnboarding, addMaterial, journeyPlan } from './public/domain.js';
+import { applyStudyRhythm, studyRhythm, startJourney, saveOnboardingAnswer, completeJourney, normalizeOnboarding, addMaterial, journeyPlan, STATE_VERSION } from './public/domain.js';
+import { completedUnitIds, isCompleted, progressFromV1 } from './public/progress-domain.js';
 
 // Estado de teste com trilhas próprias. A biblioteca real começa vazia.
 function seededState() {
@@ -33,8 +34,8 @@ test('ritmo inicial e apoios mudam sugestões e plano, preservando cursos e XP',
   assert.equal(totalXP(state), 0);
   assert.equal(courseProgress(state, state.courses[0]).done, 1);
   assert.equal(totalXP(previous), 0);
-  assert.equal(state.history[0].xp, 0);
-  assert.equal(state.history[0].policy, 'v1');
+  assert.equal(state.progress[0].legacyXp, undefined);
+  assert.equal(state.progress[0].origin, 'manual');
   assert.equal(previous.onboarded, false);
 });
 
@@ -66,7 +67,7 @@ test('apoios e ritmo sobrevivem à restauração sem duplicatas nem valores desc
 test('conclusão é registrada uma única vez e avança a próxima etapa sem saldo legado novo', () => {
   const { state } = completeMission(seededState(), 'design', 'design-1');
   assert.equal(totalXP(state), 0);
-  assert.equal(state.history[0].xp, 0);
+  assert.equal(state.progress[0].legacyXp, undefined);
   assert.equal(nextMission(state).step.id, 'design-2');
   assert.equal(courseProgress(state, state.courses[0]).done, 1);
   assert.equal(completeMission(state, 'design', 'design-1').added, false);
@@ -76,8 +77,9 @@ test('conclusão é registrada uma única vez e avança a próxima etapa sem sal
 test('tornar menor não conclui a aula nem concede XP de preparação', () => {
   const result = completeMission(seededState(), 'design', 'design-1', { preparation: true });
   assert.equal(result.xp, 0);
-  assert.equal(result.state.history[0].xp, 0);
-  assert.equal(result.state.completed.length, 0);
+  assert.equal(result.state.progress[0].type, 'preparation');
+  assert.equal(result.state.progress[0].legacyXp, undefined);
+  assert.equal(completedUnitIds(result.state).size, 0);
   assert.equal(nextMission(result.state).step.id, 'design-1');
   assert.equal(courseStatus(result.state, result.state.courses[0]), 'active');
   assert.equal(completeMission(result.state, 'design', 'design-1', { preparation: true }).added, false);
@@ -122,29 +124,40 @@ test('histórico semanal usa a semana local e exclui datas futuras de outra sema
 });
 
 test('pausas não reduzem o saldo legado nem apagam conquistas', () => {
-  let state = seededState();
-  // Histórico antigo do protótipo: continua aceito e preservado.
-  state.history = [{ id: 'step:design-1', courseId: 'design', stepId: 'design-1', title: 'Etapa 1', courseTitle: 'Design de interfaces', preparation: false, xp: 10, at: '2026-01-01T12:00:00Z' }];
-  state.completed = ['design-1'];
+  // Histórico antigo do protótipo (documento v1): continua aceito e preservado.
+  let state = restoreState({
+    ...seededState(),
+    version: 1,
+    history: [{ id: 'step:design-1', courseId: 'design', stepId: 'design-1', title: 'Etapa 1', courseTitle: 'Design de interfaces', preparation: false, xp: 10, at: '2026-01-01T12:00:00Z' }],
+    completed: ['design-1'],
+  });
+  assert.equal(state.progress[0].origin, 'legacy');
+  assert.equal(state.progress[0].legacyXp, 10);
   state = completeMission(state, 'design', 'design-2', { now: '2026-10-30T12:00:00Z' }).state;
   assert.equal(totalXP(state), 10);
-  assert.equal(state.history.at(-1).xp, 0);
+  assert.equal(state.progress.at(-1).legacyXp, undefined);
   assert.equal(achievements(state)[0].unlocked, true);
 });
 
 test('armazenamento inválido não quebra o início e preferências são normalizadas', () => {
-  assert.equal(restoreState('{').version, 1);
-  assert.equal(restoreState('null').history.length, 0);
+  assert.equal(restoreState('{').version, STATE_VERSION);
+  assert.equal(restoreState('null').progress.length, 0);
   const state = completeMission(seededState(), 'design', 'design-1').state;
   state.preferences.weeklyGoal = 999;
   const restored = restoreState(JSON.stringify(state));
   assert.equal(totalXP(restored), 0);
-  assert.equal(restored.history[0].xp, 0);
+  assert.equal(restored.progress[0].legacyXp, undefined);
   assert.equal(restored.preferences.weeklyGoal, 3);
-  const legacy = { ...restored, history: [{ ...restored.history[0], xp: 10 }] };
+  const legacy = { ...restored, progress: [{ ...restored.progress[0], origin: 'legacy', legacyXp: 10 }] };
   assert.equal(totalXP(restoreState(JSON.stringify(legacy))), 10);
-  state.history.push(state.history[0]);
-  assert.equal(restoreState(JSON.stringify(state)).history.length, 0);
+  // Registro repetido é descartado sozinho: o resto do progresso continua.
+  state.progress.push(state.progress[0]);
+  const deduped = restoreState(JSON.stringify(state));
+  assert.equal(deduped.progress.length, 1);
+  assert.equal(isCompleted(deduped, 'design-1'), true);
+  // Um curso estragado não apaga os outros.
+  const broken = { ...state, courses: [...state.courses, { id: 'quebrado', title: 3, steps: [] }] };
+  assert.deepEqual(restoreState(JSON.stringify(broken)).courses.map((course) => course.id), ['design', 'python']);
 });
 
 test('preferência antiga de reduzir movimentos é descartada e não volta ao estado', () => {
@@ -211,7 +224,7 @@ test('material do onboarding guarda tipo e ponto de retomada sem gerar hist�ri
   assert.equal(created.type, 'article');
   assert.equal(created.resumeAt, 'p�gina 12');
   assert.equal(created.origin, 'onboarding');
-  assert.deepEqual(next.history, []);
+  assert.deepEqual(next.progress, []);
   assert.equal(totalXP(next), 0);
   assert.equal(journeyPlan(next).firstActivity !== null, true);
 });
@@ -227,7 +240,7 @@ test('exemplos antigos sem uso saem da biblioteca; com progresso permanecem', ()
   used.courses = used.courses.map((course) => ({ ...course, example: true }));
   const kept = restoreState(JSON.stringify(used));
   assert.deepEqual(kept.courses.map((course) => course.id), ['design']);
-  assert.equal(kept.completed.includes('design-1'), true);
+  assert.equal(isCompleted(kept, 'design-1'), true);
   assert.equal(kept.selectedCourseId, 'design');
 });
 test('paleta da Aparência começa no Redesign Moderno e valores desconhecidos voltam ao padrão', () => {
@@ -240,4 +253,37 @@ test('paleta da Aparência começa no Redesign Moderno e valores desconhecidos v
   const old = createInitialState();
   delete old.preferences.palette;
   assert.equal(restoreState(JSON.stringify(old)).preferences.palette, 'moderno');
+});
+
+test('documento v1 é convertido sem perder conclusões, preparações nem o saldo legado', () => {
+  const v1 = {
+    ...seededState(),
+    version: 1,
+    completed: ['design-1', 'design-2', 'python-1'],
+    history: [
+      { id: 'prepare:design-1', courseId: 'design', stepId: 'design-1', title: 'Preparar', courseTitle: 'Design de interfaces', preparation: true, xp: 5, at: '2026-01-01T10:00:00Z' },
+      { id: 'step:design-1', courseId: 'design', stepId: 'design-1', title: 'Etapa 1', courseTitle: 'Design de interfaces', preparation: false, xp: 10, at: '2026-01-01T12:00:00Z' },
+      { id: 'step:design-2', courseId: 'design', stepId: 'design-2', title: 'Etapa 2', courseTitle: 'Design de interfaces', preparation: false, xp: 0, policy: 'v1', at: '2026-10-30T12:00:00Z' },
+      { id: 'prepare:design-3', courseId: 'design', stepId: 'design-3', title: 'Preparar', courseTitle: 'Design de interfaces', preparation: true, xp: 0, at: '2026-10-30T13:00:00Z' },
+    ],
+    studyLog: [],
+  };
+  const converted = restoreState(JSON.stringify(v1));
+  assert.equal(converted.version, STATE_VERSION);
+  assert.equal('completed' in converted || 'history' in converted || 'studyLog' in converted, false);
+  // Invariante: o conjunto concluído é exatamente o do v1.
+  assert.deepEqual([...completedUnitIds(converted)].sort(), ['design-1', 'design-2', 'python-1']);
+  // Preparação continua preparação; nunca vira aula concluída.
+  assert.equal(isCompleted(converted, 'design-3'), false);
+  assert.equal(converted.progress.filter((event) => event.type === 'preparation').length, 2);
+  // Saldo legado preservado: 5 (preparação) + 10 (etapa).
+  assert.equal(totalXP(converted), 15);
+  // Concluída sem registro (python-1) entra como histórico sem data.
+  const orphan = converted.progress.find((event) => event.unitId === 'python-1');
+  assert.equal(orphan.origin, 'legacy');
+  assert.equal(orphan.historical, true);
+  assert.equal(orphan.at, null);
+  // Converter de novo o resultado não muda nada.
+  assert.deepEqual(restoreState(JSON.stringify(converted)).progress, converted.progress);
+  assert.deepEqual(progressFromV1({}), []);
 });

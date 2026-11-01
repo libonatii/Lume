@@ -9,6 +9,8 @@
 // - Reimportar preserva conclusões, marcadores e histórico; conteúdo removido
 //   da fonte é marcado, não apagado.
 
+import { completedUnitIds, isCompleted, recordCompletion, revertUnit, unitOrigin } from './progress-domain.js';
+
 const MAX_DISCIPLINES = 40;
 const MAX_MODULES = 60;
 const MAX_LESSONS = 600;
@@ -435,34 +437,26 @@ export function applyCourseImport(state, payload, { selectedLessonIds = [], now 
     .flatMap((discipline) => discipline.modules.flatMap((module) => module.lessons))
     .filter((lesson) => lesson.completedInSource === true && steps.some((step) => step.id === lesson.id))
     .map((lesson) => lesson.id);
-  const existingLog = new Set((state.studyLog || []).map((entry) => entry.stepId));
+  // Aula que a fonte mostra concluída e que ainda não está concluída aqui:
+  // vira histórico de importação, ou conclusão por integração quando a pessoa
+  // confirmou a observação numa leitura posterior.
   const observed = new Set(existing ? observedCompletionIds : []);
-  const pendingIds = importedDoneIds.filter((stepId) => !existingLog.has(stepId) && !(state.completed || []).includes(stepId));
+  const pendingIds = importedDoneIds.filter((stepId) => !isCompleted(state, stepId));
   const observedIds = pendingIds.filter((stepId) => observed.has(stepId));
-  const observedLogs = observedIds.map((stepId) => ({
-    id: `lesson:${stepId}`,
-    courseId: id,
-    stepId,
-    courseTitle: course.title,
-    lessonTitle: steps.find((item) => item.id === stepId)?.title || '',
-    origin: 'integration',
-    at: now,
-  }));
-  const importedLogs = pendingIds
-    .filter((stepId) => !observed.has(stepId))
-    .map((stepId) => {
-      const step = steps.find((item) => item.id === stepId);
-      return {
-        id: `import:${stepId}`,
-        courseId: id,
-        stepId,
-        courseTitle: course.title,
-        lessonTitle: step?.title || '',
-        origin: 'import',
-        historical: true,
-        at: now,
-      };
-    });
+  let progressState = state;
+  for (const stepId of pendingIds) {
+    const integration = observed.has(stepId);
+    progressState = recordCompletion(progressState, {
+      materialId: id,
+      unitId: stepId,
+      origin: integration ? 'integration' : 'import',
+      historical: !integration,
+      at: now,
+      title: steps.find((item) => item.id === stepId)?.title || '',
+      materialTitle: course.title,
+      idPrefix: integration ? 'lesson' : 'import',
+    }).state;
+  }
 
   const record = {
     id: `imp_${stableHash(`${payload.identity}|${now}`)}`,
@@ -483,8 +477,7 @@ export function applyCourseImport(state, payload, { selectedLessonIds = [], now 
     courses: existing
       ? state.courses.map((item) => (item.id === id ? course : item))
       : [...state.courses, course],
-    completed: [...new Set([...(state.completed || []), ...importedDoneIds])],
-    studyLog: [...(state.studyLog || []), ...importedLogs, ...observedLogs].slice(-500),
+    progress: progressState.progress || [],
     selectedCourseId: id,
     imports: [...(state.imports || []), record].slice(-50),
   };
@@ -546,7 +539,7 @@ export function sourceLabel(source) {
 // conclusão do curso inteiro quando a grade é parcial.
 export function courseSummary(state, course) {
   const lessons = courseLessons(course).filter((lesson) => course.steps?.some((step) => step.id === lesson.id));
-  const doneIds = new Set(state.completed || []);
+  const doneIds = completedUnitIds(state);
   const disciplines = (course.structure || []).map((discipline) => {
     const items = discipline.modules.flatMap((module) => module.lessons).filter((lesson) => course.steps?.some((step) => step.id === lesson.id));
     const done = items.filter((lesson) => doneIds.has(lesson.id)).length;
@@ -554,9 +547,9 @@ export function courseSummary(state, course) {
   }).filter((discipline) => discipline.total > 0);
   const done = lessons.filter((lesson) => doneIds.has(lesson.id)).length;
   const next = lessons.find((lesson) => !doneIds.has(lesson.id)) || null;
-  const log = (state.studyLog || []).filter((entry) => entry.courseId === course.id);
-  const lastStudied = [...log].reverse().find((entry) => !entry.revertedAt) || null;
-  const resume = lastStudied ? lessons.find((lesson) => lesson.id === lastStudied.stepId) || null : null;
+  const log = (state.progress || []).filter((entry) => entry.materialId === course.id && entry.type === 'completion');
+  const lastStudied = [...log].reverse().find((entry) => !entry.revertedAt && entry.at) || null;
+  const resume = lastStudied ? lessons.find((lesson) => lesson.id === lastStudied.unitId) || null : null;
   const activeLog = log.filter((entry) => !entry.revertedAt);
   const origin = activeLog.some((entry) => entry.origin === 'manual')
     ? 'manual'
@@ -582,51 +575,37 @@ export function courseSummary(state, course) {
 }
 
 export function lessonOrigin(state, lessonId) {
-  const entries = (state.studyLog || []).filter((entry) => entry.stepId === lessonId && !entry.revertedAt);
-  if (!entries.length) return null;
-  if (entries.some((entry) => entry.origin === 'manual')) return 'manual';
-  if (entries.some((entry) => entry.origin === 'integration')) return 'integration';
-  return 'import';
+  const origin = unitOrigin(state, lessonId);
+  return origin === 'legacy' ? 'import' : origin;
 }
 
 // Concluir uma aula importada registra progresso com origem explícita.
-// Não cria evento de XP: a atribuição da nova política exige validação no
-// servidor, que ainda não existe para contas.
+// Não cria evento de XP: quem concede é o servidor, pela política vigente.
 export function completeLesson(state, courseId, lessonId, { origin = 'manual', now = new Date().toISOString() } = {}) {
   const course = (state.courses || []).find((item) => item.id === courseId);
   const lesson = course?.steps?.find((item) => item.id === lessonId);
-  if (!course || !lesson || (state.completed || []).includes(lessonId)) return { state, added: false, xp: 0 };
-  const entry = {
-    id: `lesson:${lessonId}`,
-    courseId,
-    stepId: lessonId,
-    courseTitle: course.title,
-    lessonTitle: lesson.title,
+  if (!course || !lesson || isCompleted(state, lessonId)) return { state, added: false, xp: 0 };
+  const result = recordCompletion(state, {
+    materialId: courseId,
+    unitId: lessonId,
     origin: origin === 'integration' ? 'integration' : 'manual',
     at: now,
-  };
-  return {
-    state: { ...state, completed: [...(state.completed || []), lessonId], studyLog: [...(state.studyLog || []), entry].slice(-500) },
-    added: true,
-    xp: 0,
-  };
+    title: lesson.title,
+    materialTitle: course.title,
+    idPrefix: 'lesson',
+  });
+  return { state: result.state, added: result.added, xp: 0 };
 }
 
 export function revertLessonCompletion(state, courseId, lessonId, { now = new Date().toISOString() } = {}) {
   const course = (state.courses || []).find((item) => item.id === courseId);
-  if (!course || !(state.completed || []).includes(lessonId)) return { state, reverted: false };
+  if (!course || !isCompleted(state, lessonId)) return { state, reverted: false };
   const origin = lessonOrigin(state, lessonId);
   if (origin === 'integration') return { state, reverted: false, reason: 'integration' };
   if (origin === 'import') return { state, reverted: false, reason: 'import' };
-  return {
-    state: {
-      ...state,
-      completed: state.completed.filter((id) => id !== lessonId),
-      // O histórico não é apagado: fica registrado que a conclusão foi desfeita.
-      studyLog: (state.studyLog || []).map((entry) => (entry.stepId === lessonId && !entry.revertedAt ? { ...entry, revertedAt: now } : entry)),
-    },
-    reverted: true,
-  };
+  // O histórico não é apagado: fica registrado que a conclusão foi desfeita.
+  const result = revertUnit(state, lessonId, now);
+  return { state: result.state, reverted: result.reverted };
 }
 
 // ---------------- Programação e GitHub ----------------

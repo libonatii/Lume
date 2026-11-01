@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
-import { createInitialState } from './public/domain.js';
+import { createInitialState, restoreState } from './public/domain.js';
 import {
   ensureXpSettings, getRanking, getXpSnapshot, grantBonus, grantSlide, grantStep,
   recordTimeSession, updateXpSettings, adjustEvent, XpError,
@@ -65,11 +65,14 @@ function materialState({ type = 'course', steps = ['Aula 1', 'Aula 2'], courseId
   return state;
 }
 
+// Monta o progresso no formato v1 (completed + history) e passa pela leitura
+// do estado, que converte para o registro único — como acontece com contas antigas.
 function completeState(state, ids, at = NOW + 1000) {
   const course = state.courses[0];
   const completed = new Set(ids);
-  return {
+  return restoreState({
     ...state,
+    version: 1,
     completed: [...completed],
     history: [...completed].map((stepId) => ({
       id: `step:${stepId}`,
@@ -82,7 +85,7 @@ function completeState(state, ids, at = NOW + 1000) {
       policy: 'v1',
       at: new Date(at).toISOString(),
     })),
-  };
+  });
 }
 
 test('evento de etapa é único, deriva o tipo do estado e soma no nível novo', async () => {
@@ -130,6 +133,7 @@ test('progresso anterior à política e progresso importado permanecem legado', 
   const imported = materialState({ courseId: 'imp' });
   imported.courses[0].source = { provider: 'coursera', providerLabel: 'Coursera', identity: 'coursera|https://example.test/c', completeness: 'complete', demo: false };
   imported.courses[0].structure = [{ id: 'd1', title: 'Área', modules: [{ id: 'm1', title: 'Módulo', lessons: [{ id: 'imp-0', title: 'Aula 1' }] }] }];
+  imported.version = 1;
   imported.completed = ['imp-0'];
   imported.history = [];
   imported.studyLog = [{ id: 'import:imp-0', courseId: 'imp', stepId: 'imp-0', origin: 'import', historical: true, at: new Date(NOW + 1000).toISOString() }];

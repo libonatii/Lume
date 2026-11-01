@@ -36,6 +36,9 @@ function courseState(completedIds = ['c1-0']) {
     ],
   }];
   state.selectedCourseId = 'c1';
+  // Formato v1, como uma conta criada antes do registro único de progresso.
+  state.version = 1;
+  delete state.progress;
   state.completed = [...completedIds];
   state.history = completedIds.map((stepId) => ({
     id: `step:${stepId}`,

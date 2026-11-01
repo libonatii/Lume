@@ -11,6 +11,7 @@ import {
   stepEventKey, timeEventKey,
 } from './public/xp-policy.js';
 import { AppError } from './api/errors.js';
+import { isCompleted } from './public/progress-domain.js';
 
 export class XpError extends AppError {
   constructor(message, code = 'xp_error', status = 400) {
@@ -303,7 +304,7 @@ export async function grantStep(db, userId, { courseId, stepId }, { now = Date.n
   }
   const step = course.steps.find((item) => item.id === stepId);
   if (!step) throw new XpError('Etapa não encontrada.', 'step_not_found', 404);
-  if (!(state.completed || []).includes(stepId)) {
+  if (!isCompleted(state, stepId)) {
     throw new XpError('Conclua a etapa antes de registrar o XP.', 'step_not_completed', 409);
   }
   const at = completionTimestamp(state, course, stepId);

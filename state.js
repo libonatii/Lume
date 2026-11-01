@@ -40,6 +40,13 @@ export function parseStateBody(text) {
   return { state: parsed, text, baseRevision: null };
 }
 
+function formatVersion(value) {
+  if (value && typeof value === 'object') return Number(value.version) || 0;
+  const match = /"version"s*:s*(d+)/.exec(String(value || '').slice(0, 200));
+  if (match) return Number(match[1]);
+  try { return Number(JSON.parse(value)?.version) || 0; } catch { return 0; }
+}
+
 export async function readState(db, userId) {
   const row = await db.first('SELECT state, updated_at, revision FROM user_state WHERE user_id = ?', [userId]);
   if (!row) return { state: null, updatedAt: null, revision: 0 };
@@ -56,8 +63,14 @@ export async function writeState(db, userId, { state, text, baseRevision }, { no
   }
   const raw = typeof text === 'string' ? text : JSON.stringify(state);
   if (raw.length > MAX_STATE_BYTES) throw new StateError('O progresso enviado é grande demais.', 'state_too_large', 413);
-  const current = await db.first('SELECT revision FROM user_state WHERE user_id = ?', [userId]);
+  const current = await db.first('SELECT revision, state FROM user_state WHERE user_id = ?', [userId]);
   const currentRevision = Number(current?.revision || 0);
+
+  // Um aba antiga (versão anterior do site, ainda em cache) não pode gravar o
+  // formato velho por cima do novo: ela leria o documento novo como vazio.
+  if (current && formatVersion(current.state) > formatVersion(state)) {
+    throw new StateError('O Lume foi atualizado em outro dispositivo. Recarregue a página para continuar salvando.', 'client_outdated', 409);
+  }
 
   // Sem baseRevision, mantém o comportamento antigo (última escrita vence),
   // mas ainda incrementa a revisão para que os próximos clientes percebam.

@@ -18,7 +18,7 @@ test('começar uma sessão não gera XP e conta tempo declarado', () => {
   assert.equal(sessionElapsed(state.activeSession, T0 + 5 * MINUTE), 5 * MINUTE);
   assert.equal(totalXP(state), 0);
   assert.deepEqual(state.studySessions, []);
-  assert.deepEqual(state.history, []);
+  assert.deepEqual(state.progress, []);
 });
 
 test('pausar congela o tempo e retomar continua de onde parou', () => {
@@ -42,7 +42,7 @@ test('encerrar guarda a sessão sem tocar em XP ou histórico', () => {
   assert.equal(state.studySessions[0].origin, 'declared');
   assert.equal(result.session.label, 'Primeira aula');
   assert.equal(totalXP(state), 0);
-  assert.deepEqual(state.history, []);
+  assert.deepEqual(state.progress, []);
 });
 
 test('começar outra sessão encerra a anterior em vez de perder o tempo', () => {

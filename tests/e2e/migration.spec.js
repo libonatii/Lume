@@ -18,7 +18,16 @@ test('prévia, dados legados, busca, filtros, teclado, curso e progresso', async
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
-  const oldState = completeMission(seededState(), 'design', 'design-1').state;
+  // Documento salvo por uma versão antiga do Lume (formato v1: completed + history).
+  const at = new Date().toISOString();
+  const { progress: _progress, ...current } = completeMission(seededState(), 'design', 'design-1', { now: at }).state;
+  const oldState = {
+    ...current,
+    version: 1,
+    completed: ['design-1'],
+    history: [{ id: 'step:design-1', courseId: 'design', stepId: 'design-1', title: 'Etapa 1', courseTitle: 'Design de interfaces', preparation: false, xp: 10, at }],
+    studyLog: [],
+  };
   oldState.onboarded = true;
   oldState.preferences.essential = true;
   oldState.supports = ['calm'];
@@ -67,10 +76,12 @@ test('prévia, dados legados, busca, filtros, teclado, curso e progresso', async
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Biblioteca', exact: true })).toBeVisible();
   const restored = await page.evaluate(key => JSON.parse(localStorage.getItem(key)), STORAGE_KEY);
-  expect(restored.history).toHaveLength(1);
-  expect(restored.studyLog).toHaveLength(1);
-  expect(restored.studyLog[0].origin).toBe('manual');
-  expect(restored.completed).toContain('design-1');
+  expect(restored.version).toBe(2);
+  expect('history' in restored || 'completed' in restored || 'studyLog' in restored).toBe(false);
+  const done = restored.progress.filter((event) => event.type === 'completion' && !event.revertedAt);
+  expect(done).toHaveLength(2);
+  expect(done.find((event) => event.unitId === 'design-1')).toMatchObject({ origin: 'legacy', legacyXp: 10 });
+  expect(done.find((event) => event.materialTitle === 'Leitura React')?.origin).toBe('manual');
   expect(restored.preferences.essential).toBe(true); // Guardado como legado, sem efeito visual.
   await page.getByRole('button', { name: /^Menu da conta/ }).click();
   await page.getByRole('menuitem', { name: 'Meu Perfil', exact: true }).click();
@@ -179,7 +190,7 @@ test('jornada 3 preserva a rotina e não gera XP ao configurar', async ({ page }
   expect(state.onboarded).toBe(true);
   expect(state.onboarding.status).toBe('done');
   expect(state.onboarding.journey).toBe('often');
-  expect(state.history).toEqual([]);
+  expect(state.progress).toEqual([]);
   expect(state.courses.some(course => course.title === 'curso de algoritmos' && course.origin === 'onboarding')).toBe(true);
 
   // Navegação das telas restantes continua funcionando
@@ -225,7 +236,7 @@ test('jornada 1 leva a uma primeira atividade concreta sem XP', async ({ page })
 
   const state = await page.evaluate(key => JSON.parse(localStorage.getItem(key)), STORAGE_KEY);
   expect(state.onboarding.journey).toBe('starting');
-  expect(state.history).toEqual([]);
+  expect(state.progress).toEqual([]);
   const material = state.courses.find(course => course.title === 'Curso de redes — módulo 1');
   expect(material.type).toBe('lesson');
   expect(material.steps[0].title).toBe('Assistir à aula 1 completa');
@@ -253,7 +264,7 @@ test('jornada 2 registra o ponto de retomada', async ({ page }) => {
 
   const state = await page.evaluate(key => JSON.parse(localStorage.getItem(key)), STORAGE_KEY);
   expect(state.onboarding.journey).toBe('sometimes');
-  expect(state.history).toEqual([]);
+  expect(state.progress).toEqual([]);
   const material = state.courses.find(course => course.title === 'Curso de estatística');
   expect(material.resumeAt).toBe('aula 3');
   expect(material.steps[0].title).toBe('Retomar em: aula 3');

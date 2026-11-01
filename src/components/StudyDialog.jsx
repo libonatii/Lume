@@ -13,6 +13,7 @@ import ImportCourse from './ImportCourse.jsx';
 import CourseEditor, { ManualCourseForm } from './CourseEditor.jsx';
 import { SlidesEditor, SlidesViewer } from './Slides.jsx';
 import { CollaborationPanel } from './Collaboration.jsx';
+import { isCompleted } from '../../public/progress-domain.js';
 
 const ORIGIN_LABEL = { manual: 'registro manual', integration: 'integração', import: 'progresso importado da fonte' };
 const EXTRACTION_LABEL = {
@@ -169,7 +170,7 @@ function ImportedSession({ course, state, update, open, close, notify, stepId, a
   const step = course.steps.find((item) => item.id === stepId) || summary.next || summary.resume;
   if (!step) return <div className="dialog-content"><h2 id="dialog-title" className="title">Todas as aulas selecionadas foram concluídas.</h2><p className="muted-text">Isso vale para as áreas que você escolheu, não necessariamente para o curso inteiro.</p><Button onClick={close}>Voltar</Button></div>;
   const lesson = (course.structure || []).flatMap((discipline) => discipline.modules.flatMap((module) => module.lessons.map((item) => ({ ...item, discipline: discipline.title, module: module.title })))).find((item) => item.id === step.id);
-  const done = state.completed.includes(step.id);
+  const done = isCompleted(state, step.id);
   const origin = lessonOrigin(state, step.id);
   const link = lesson?.url || course.url;
   function finish() {
@@ -302,7 +303,7 @@ function ImportedCourse({ course, state, update, open, close, notify }) {
               <div className="import-module-head"><strong>{module.title}</strong></div>
               <ul className="import-lessons">
                 {module.lessons.filter((lesson) => course.steps.some((step) => step.id === lesson.id)).map((lesson) => {
-                  const done = state.completed.includes(lesson.id);
+                  const done = isCompleted(state, lesson.id);
                   const origin = lessonOrigin(state, lesson.id);
                   return <li key={lesson.id} className={done ? 'is-done' : ''}>
                     <button className="import-check small" role="checkbox" aria-checked={done ? 'true' : 'false'} aria-label={`${done ? 'Desmarcar' : 'Marcar'} a aula ${lesson.title}`} onClick={() => (done ? undoLesson(lesson.id) : markLesson(lesson.id))}>

@@ -180,7 +180,7 @@ test('o Lume recebe a leitura da extensão, importa como histórico e depois reg
   await page.getByRole('button', { name: /Adicionar 3 aulas à biblioteca/ }).click();
   await expect(page.getByText(/1 conclusão registrada com origem na plataforma/)).toBeVisible();
 
-  const log = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).studyLog.map(({ lessonTitle, origin, historical }) => ({ lessonTitle, origin, historical: Boolean(historical) })), STORAGE_KEY);
+  const log = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).progress.map(({ title, origin, historical }) => ({ lessonTitle: title, origin, historical: Boolean(historical) })), STORAGE_KEY);
   expect(log).toEqual([
     { lessonTitle: 'Boas-vindas', origin: 'import', historical: true },
     { lessonTitle: 'Instalação', origin: 'integration', historical: false },
@@ -305,10 +305,10 @@ test('"Concluí esta aula" abre a aula certa pelo endereço da página e só reg
   const ack = await deliver(page, { url: 'https://www.udemy.com/course/react-do-zero/learn/lecture/2/extra?x=1', title: 'Aula' }, 'concluir-1', 'complete');
   expect(ack.accepted).toBe(true);
   await expect(page.getByRole('heading', { name: 'Instalação' })).toBeVisible();
-  const before = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).completed.length, STORAGE_KEY);
+  const before = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).progress.filter((event) => event.type === 'completion' && !event.revertedAt).length, STORAGE_KEY);
   expect(before).toBe(0);
   await page.getByRole('button', { name: 'Concluí esta aula' }).click();
-  const log = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).studyLog.map(({ lessonTitle, origin }) => ({ lessonTitle, origin })), STORAGE_KEY);
+  const log = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).progress.map(({ title, origin }) => ({ lessonTitle: title, origin })), STORAGE_KEY);
   expect(log).toEqual([{ lessonTitle: 'Instalação', origin: 'manual' }]);
 });
 

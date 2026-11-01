@@ -54,8 +54,7 @@ test('conectar programa, ver presença local e revogar o acesso', async ({ page,
 
   // Presença observada não cria histórico nem XP.
   const state = await page.evaluate(key => JSON.parse(localStorage.getItem(key) || '{}'), STORAGE_KEY);
-  expect(state.history).toHaveLength(0);
-  expect(state.studyLog).toHaveLength(0);
+  expect(state.progress).toHaveLength(0);
 
   await page.getByRole('button', { name: 'Desconectar QA Desktop' }).click();
   await expect(page.getByText('Nenhum programa conectado ainda.')).toBeVisible();

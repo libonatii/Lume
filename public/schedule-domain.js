@@ -14,6 +14,7 @@
 
 import { courseLessons } from './import-domain.js';
 import { DEFAULT_SESSION_MINUTES, studyPlan } from './study-plan.js';
+import { completedUnitIds } from './progress-domain.js';
 
 export const WEEKDAYS = Object.freeze([
   { id: 1, short: 'seg', label: 'Segunda' },
@@ -137,7 +138,7 @@ function sessionEstimate(state) {
 }
 
 function queues(state, plan, today) {
-  const completed = new Set(state.completed || []);
+  const completed = completedUnitIds(state);
   const roadmap = studyPlan(state, { limit: 1 });
   const order = new Map(roadmap.courses.map((course, index) => [course.id, index]));
   const estimate = sessionEstimate(state);

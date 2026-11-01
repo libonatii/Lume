@@ -101,7 +101,7 @@ test('link de convite preenche o código e a amizade não concede XP', async ({ 
   expect((await guestState.json()).state).toBeNull();
   const hostState = await page.request.get('/api/state', { headers: { origin: baseURL } });
   const hostPayload = await hostState.json();
-  expect(hostPayload.state?.history ?? []).toHaveLength(0);
+  expect(hostPayload.state?.progress ?? []).toHaveLength(0);
 
   await guest.dispose();
 });

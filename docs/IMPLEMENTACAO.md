@@ -296,7 +296,7 @@ arquivo. As cinco folhas sem uso foram removidas em 01/11/2026; a divisão por f
 [Refatoração F7](REFATORACAO_01112026.md#f7--css-por-componente-sobre-tokens).
 
 ### D2 — Regras antigas ainda em uso
-`nextMission` (ordem da biblioteca), `weekCount` (soma preparação e conclusão), `applyStudyRhythm`, `HABITS` e
+`nextMission` (ordem da biblioteca), `applyStudyRhythm`, `HABITS` e
 `CHALLENGES` sobrevivem por compatibilidade ou testes antigos. O saldo legado (5/10 XP) continua no navegador.
 Separar o que é compatibilidade de dados do que é código morto antes de remover.
 

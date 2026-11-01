@@ -7,6 +7,7 @@ import {
   MAX_SYLLABUS_CHARS, allLessonIds, applyCourseImport, formatDuration,
   looksLikeExamCourse, normalizeImportUrl, normalizePayload, detectProvider,
 } from '../../public/import-domain.js';
+import { completedUnitIds } from '../../public/progress-domain.js';
 
 // Fluxo curto de importação: colar link → analisar → escolher áreas → adicionar.
 // A revisão é a própria árvore de disciplinas; não existe formulário por aula.
@@ -98,11 +99,11 @@ export default function ImportCourse({ state, update, close, notify, go, open, m
   const newlyDone = useMemo(() => {
     if (!payload || !matched) return [];
     const known = new Set((matched.steps || []).map((step) => step.id));
-    const done = new Set(state.completed || []);
+    const done = completedUnitIds(state);
     return payload.disciplines
       .flatMap((discipline) => discipline.modules.flatMap((module) => module.lessons))
       .filter((lesson) => lesson.completedInSource && known.has(lesson.id) && !done.has(lesson.id));
-  }, [payload, matched, state.completed]);
+  }, [payload, matched, state.progress]);
   const examLike = useMemo(() => payload && looksLikeExamCourse(payload), [payload]);
   const detectedProvider = useMemo(() => {
     const normalized = normalizeImportUrl(url);

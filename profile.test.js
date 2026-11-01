@@ -18,18 +18,19 @@ function fixture() {
       { id: 'e1', title: 'Curso de exemplo', type: 'course', example: true, url: '', steps: [{ id: 's5', title: 'Aula' }] },
       { id: 'c2', title: 'Curso concluído', type: 'course', url: '', steps: [{ id: 's6', title: 'Aula' }] },
     ],
+    version: 1,
     completed: ['s1', 's6'],
     history: [],
   };
 }
 
 function withSharing(sharing) {
-  const state = fixture();
+  const state = restoreState(fixture());
   return { ...state, preferences: { ...state.preferences, sharing } };
 }
 
 test('perfil padrão compartilha biblioteca, fila, progresso e XP', () => {
-  const profile = buildProfile(fixture());
+  const profile = buildProfile(restoreState(fixture()));
   assert.deepEqual(profile.sharing, { library: true, queue: true, progress: true, xp: true });
   assert.ok(profile.studying.length > 0);
   assert.ok(profile.queue.length > 0);

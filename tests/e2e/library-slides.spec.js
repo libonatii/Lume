@@ -108,5 +108,5 @@ test('excluir material pede confirmação e remove o progresso dependente', asyn
   await expect(page.getByRole('heading', { name: 'Qual área você quer estudar?' })).toBeVisible();
   const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), STORAGE_KEY);
   expect(saved.courses).toHaveLength(0);
-  expect(saved.completed).toHaveLength(0);
+  expect(saved.progress.filter((event) => event.type === 'completion' && !event.revertedAt)).toHaveLength(0);
 });

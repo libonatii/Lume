@@ -20,7 +20,7 @@ test('tarefa de prova é criada, concluída com XP uma vez e sobrevive ao recarr
   const completed = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), STORAGE_KEY);
   expect(completed.tasks).toHaveLength(1);
   expect(completed.tasks[0].done).toBe(true);
-  expect(completed.history).toEqual([]);
+  expect(completed.progress).toEqual([]);
 
   await page.reload();
   await expect(page.getByText('Resolver 10 questões de constitucional')).toBeVisible();
@@ -63,5 +63,5 @@ test('prioridade e atraso aparecem na lista e na Hoje e sobrevivem ao recarregam
   await expect(page.getByLabel('Prioridade de Separar súmulas vinculantes')).toHaveValue('1');
   const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), STORAGE_KEY);
   expect(saved.tasks.find((task) => task.id === 'plain').priority).toBe(1);
-  expect(saved.history).toEqual([]);
+  expect(saved.progress).toEqual([]);
 });

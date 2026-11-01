@@ -1,12 +1,13 @@
 // Restauração de cópia JSON. A mesclagem é conservadora: mantém o material
-// atual, acrescenta materiais que ainda não existem e une progresso, histórico,
+// atual, acrescenta materiais que ainda não existem e une o registro de progresso,
 // tarefas e sessões sem duplicar ids. Preferências, privacidade e onboarding
 // atuais não são substituídos pela cópia.
 //
 // O XP validado não viaja neste arquivo: ele vive no livro de eventos do
 // servidor. Restaurar uma cópia não recria nem duplica recompensas.
 
-import { restoreState } from './domain.js';
+import { STATE_VERSION, restoreState } from './domain.js';
+import { completedUnitIds, mergeProgress } from './progress-domain.js';
 
 export const MAX_BACKUP_BYTES = 2 * 1024 * 1024;
 
@@ -30,11 +31,15 @@ export function readBackup(text) {
     throw new BackupError('Este arquivo não é um JSON válido.', 'invalid_json');
   }
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new BackupError('Este arquivo não parece uma cópia do Lume.', 'invalid_shape');
-  if (raw.version !== 1 || !Array.isArray(raw.courses) || !Array.isArray(raw.completed) || !Array.isArray(raw.history)) {
+  // Cópias da versão 1 (com `completed` e `history`) continuam aceitas e são
+  // convertidas para o registro único de progresso.
+  const v1 = raw.version === 1 && Array.isArray(raw.completed) && Array.isArray(raw.history);
+  const v2 = raw.version === STATE_VERSION && Array.isArray(raw.progress);
+  if (!Array.isArray(raw.courses) || (!v1 && !v2)) {
     throw new BackupError('A cópia não tem o formato de progresso do Lume.', 'invalid_version');
   }
   const restored = restoreState(JSON.stringify(raw));
-  if (!restored || restored.version !== 1) throw new BackupError('Não foi possível ler a cópia.', 'invalid_state');
+  if (!restored || restored.version !== STATE_VERSION) throw new BackupError('Não foi possível ler a cópia.', 'invalid_state');
   return restored;
 }
 
@@ -56,8 +61,6 @@ function mergeCourseSteps(currentSteps, incomingSteps) {
 
 function mergeCourseProgress(current, incoming) {
   const steps = mergeCourseSteps(current.steps, incoming.steps);
-  const stepIds = new Set(steps.map((step) => step.id));
-  const completed = new Set([...(current.completed || []), ...(incoming.completed || [])]);
   const slides = mergeById(current.slides || [], incoming.slides || []);
   const seen = new Set([
     ...(current.slideProgress?.seen || []),
@@ -72,8 +75,6 @@ function mergeCourseProgress(current, incoming) {
     steps,
     slides,
     // Mantém as escolhas atuais de título, tipo, link e privacidade.
-    completed: [...completed].filter((id) => stepIds.has(id)),
-    studyLog: mergeById(current.studyLog, incoming.studyLog).filter((entry) => stepIds.has(entry.stepId)),
     slideProgress: {
       seen: [...seen],
       lastId: seen.has(current.slideProgress?.lastId) ? current.slideProgress.lastId : (seen.has(incoming.slideProgress?.lastId) ? incoming.slideProgress.lastId : ''),
@@ -94,22 +95,14 @@ export function mergeBackup(current, incoming) {
       continue;
     }
     const existing = byId.get(course.id);
-    const merged = mergeCourseProgress(existing, course);
-    // Histórico por material também é unido, sem duplicar ids.
-    merged.history = mergeById(
-      (current.history || []).filter((entry) => entry.courseId === course.id),
-      (incoming.history || []).filter((entry) => entry.courseId === course.id),
-    );
-    byId.set(course.id, merged);
+    byId.set(course.id, mergeCourseProgress(existing, course));
   }
   const courses = [...byId.values()];
   const validCourses = new Set(courses.map((course) => course.id));
   const stepIds = new Set(courses.flatMap((course) => course.steps.map((step) => step.id)));
-  const completed = [...new Set([...(current.completed || []), ...(incoming.completed || [])])].filter((id) => stepIds.has(id));
-  const history = mergeById(current.history || [], incoming.history || [])
-    .filter((entry) => validCourses.has(entry.courseId) && stepIds.has(entry.stepId));
-  const studyLog = mergeById(current.studyLog || [], incoming.studyLog || [])
-    .filter((entry) => validCourses.has(entry.courseId) && stepIds.has(entry.stepId));
+  // Restaurar nunca tira progresso: conclusão ativa em qualquer lado continua ativa.
+  const progress = mergeProgress(current.progress || [], incoming.progress || [])
+    .filter((event) => stepIds.has(event.unitId));
   const tasks = mergeById(current.tasks || [], incoming.tasks || []).map((task) => ({
     ...task,
     courseId: validCourses.has(task.courseId) ? task.courseId : '',
@@ -118,9 +111,7 @@ export function mergeBackup(current, incoming) {
   return {
     ...current,
     courses,
-    completed,
-    history,
-    studyLog,
+    progress,
     tasks,
     studySessions: sessions,
     imports: mergeById(current.imports || [], incoming.imports || []),
@@ -132,18 +123,16 @@ export function mergeBackup(current, incoming) {
 
 export function previewBackup(current, incoming) {
   const currentCourses = new Set((current.courses || []).map((course) => course.id));
-  const currentCompleted = new Set(current.completed || []);
-  const currentHistory = new Set((current.history || []).map((entry) => entry.id));
-  const currentLog = new Set((current.studyLog || []).map((entry) => entry.id));
+  const currentCompleted = completedUnitIds(current);
+  const currentEvents = new Set((current.progress || []).map((event) => event.id));
   const currentTasks = new Set((current.tasks || []).map((task) => task.id));
   const currentSessions = new Set((current.studySessions || []).map((session) => session.id));
   const newCourses = (incoming.courses || []).filter((course) => !currentCourses.has(course.id));
   return {
     newCourses: newCourses.map((course) => course.title).slice(0, 8),
     newCourseCount: newCourses.length,
-    newCompleted: (incoming.completed || []).filter((id) => !currentCompleted.has(id)).length,
-    newHistory: (incoming.history || []).filter((entry) => !currentHistory.has(entry.id)).length,
-    newStudyLog: (incoming.studyLog || []).filter((entry) => !currentLog.has(entry.id)).length,
+    newCompleted: [...completedUnitIds(incoming)].filter((id) => !currentCompleted.has(id)).length,
+    newProgress: (incoming.progress || []).filter((event) => !currentEvents.has(event.id)).length,
     newTasks: (incoming.tasks || []).filter((task) => !currentTasks.has(task.id)).length,
     newSessions: (incoming.studySessions || []).filter((session) => !currentSessions.has(session.id)).length,
     unchanged: (incoming.courses || []).length - newCourses.length,

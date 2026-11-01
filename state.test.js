@@ -27,7 +27,7 @@ test('primeira gravação cria revisão 1 e leitura devolve o estado', async () 
   assert.equal(result.revision, 1);
   const read = await readState(db, 'u1');
   assert.equal(read.revision, 1);
-  assert.equal(read.state.version, 1);
+  assert.equal(read.state.version, 2);
 });
 
 test('revisão antiga recebe conflito e o estado atual, sem sobrescrever', async () => {
@@ -57,4 +57,16 @@ test('corpo inválido ou grande demais é recusado', () => {
   assert.throws(() => parseStateBody('{'), (error) => error instanceof StateError && error.code === 'invalid_state');
   assert.throws(() => parseStateBody('[]'), (error) => error.code === 'invalid_state');
   assert.throws(() => parseStateBody('x'.repeat(320 * 1024 + 1)), (error) => error.code === 'state_too_large');
+});
+
+test('cliente antigo não grava o formato v1 por cima de um documento v2', async () => {
+  const db = makeDb();
+  const state = createInitialState();
+  await writeState(db, 'u1', { state, text: JSON.stringify(state), baseRevision: 0 });
+  const old = { version: 1, courses: [], completed: [], history: [] };
+  await assert.rejects(
+    () => writeState(db, 'u1', { state: old, text: JSON.stringify(old), baseRevision: 1 }),
+    (error) => error.code === 'client_outdated' && error.status === 409,
+  );
+  assert.equal((await readState(db, 'u1')).state.version, 2);
 });

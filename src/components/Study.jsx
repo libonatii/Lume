@@ -14,6 +14,7 @@ import {
 } from '../../public/session-domain.js';
 import Icon from './Icon.jsx';
 import { Button, Cover, Empty, Heading, Progress, ease, enter } from './ui.jsx';
+import { isCompleted } from '../../public/progress-domain.js';
 
 export function Home({ state, open, go, update, notify, account, xp }) {
   const action = nextAction(state);
@@ -337,7 +338,7 @@ function FirstStudyArea({ update, open }) {
 
 export function Steps({ course, state }) {
   return <ol className="course-step-list">{course.steps.map((step, index) => {
-    const done = state.completed.includes(step.id);
+    const done = isCompleted(state, step.id);
     const prepared = hasPreparation(state, step.id) && !done;
     return <li className={done ? 'completed-step' : prepared ? 'prepared-step' : ''} key={step.id}>
       <span className="step-number">{done ? <Icon name="check"/> : String(index + 1).padStart(2, '0')}</span>

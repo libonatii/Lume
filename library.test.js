@@ -1,18 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  addCourse, addMaterial, createInitialState, deleteCourse, formatVideoTime, normalizePosition,
+  addCourse, addMaterial, completeMission, createInitialState, deleteCourse, formatVideoTime, normalizePosition,
   positionLabel, parseVideoTime, updateCourse, replaceCourseSteps, restoreState,
 } from './public/domain.js';
 import {
   addSlide, completeDeck, markSlideSeen, moveSlide, normalizeSlides, removeSlide, slidesSummary, updateSlide,
 } from './public/slides-domain.js';
 import { deleteSlideObject, parseMediaKeyFromPath, sanitizeSlideImage, uploadSlideObject } from './media.js';
+import { completedUnitIds, isCompleted } from './public/progress-domain.js';
 
 function courseState() {
   const state = addCourse(createInitialState(), { title: 'Direito Constitucional', steps: ['Ler a introdução', 'Resolver exercícios', 'Revisar'] });
   const course = state.courses[0];
-  return { state: { ...state, completed: [`${course.id}-0`, `${course.id}-1`] }, course };
+  let next = completeMission(state, course.id, `${course.id}-0`).state;
+  next = completeMission(next, course.id, `${course.id}-1`).state;
+  return { state: next, course };
 }
 
 test('editar material altera título, tipo e ponto de retomada sem perder etapas', () => {
@@ -23,18 +26,18 @@ test('editar material altera título, tipo e ponto de retomada sem perder etapas
   assert.equal(updated.type, 'book');
   assert.equal(updated.resumeAt, 'capítulo 2');
   assert.equal(updated.steps.length, 3);
-  assert.deepEqual(next.completed, state.completed);
+  assert.deepEqual(completedUnitIds(next), completedUnitIds(state));
 });
 
 test('renomear etapa mantém o progresso e remover apaga só o registro daquela etapa', () => {
   const { state, course } = courseState();
   const renamed = replaceCourseSteps(state, course.id, ['Ler a introdução completa', 'Resolver exercícios', 'Revisar']);
   assert.equal(renamed.courses[0].steps[0].id, `${course.id}-0`);
-  assert.ok(renamed.completed.includes(`${course.id}-0`));
+  assert.ok(isCompleted(renamed, `${course.id}-0`));
   const removed = replaceCourseSteps(renamed, course.id, ['Ler a introdução completa', 'Revisar']);
   assert.equal(removed.courses[0].steps.length, 2);
-  assert.ok(removed.completed.includes(`${course.id}-0`));
-  assert.equal(removed.completed.includes(`${course.id}-1`), false);
+  assert.ok(isCompleted(removed, `${course.id}-0`));
+  assert.equal(isCompleted(removed, `${course.id}-1`), false);
 });
 
 test('excluir material remove curso e progresso dependente, mantendo o restante', () => {
@@ -43,7 +46,8 @@ test('excluir material remove curso e progresso dependente, mantendo o restante'
   const next = deleteCourse(other, course.id);
   assert.equal(next.courses.some((item) => item.id === course.id), false);
   assert.equal(next.courses.some((item) => item.title === 'Outro material'), true);
-  assert.deepEqual(next.completed, []);
+  assert.equal(completedUnitIds(next).size, 0);
+  assert.equal(next.progress.length, 0);
   assert.equal(next.selectedCourseId, next.courses[0].id);
 });
 

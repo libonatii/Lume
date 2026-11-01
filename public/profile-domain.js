@@ -68,11 +68,9 @@ function buildRecentActivity(state, courses, { sharing, now }) {
     eventsByCourse.set(courseId, current);
   };
 
-  for (const entry of state?.history || []) {
-    touch(entry.courseId, entry.at, entry.title, !entry.preparation);
-  }
-  for (const entry of state?.studyLog || []) {
-    if (!entry.revertedAt) touch(entry.courseId, entry.at, entry.lessonTitle, true);
+  for (const entry of state?.progress || []) {
+    if (entry.revertedAt || !entry.at) continue;
+    touch(entry.materialId, entry.at, entry.title, entry.type === 'completion');
   }
   for (const session of state?.studySessions || []) {
     if (!visibleIds.has(session.courseId)) continue;

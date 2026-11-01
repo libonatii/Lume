@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { addCourse, createInitialState, restoreState, totalXP } from './public/domain.js';
 import { applyCourseImport, completeLesson, normalizePayload } from './public/import-domain.js';
+import { isCompleted } from './public/progress-domain.js';
 import {
   addDays, applyAvailability, buildSchedule, increaseWeekly, nextAvailableDay, normalizePlan, postponeLesson,
   setAvailability, setGoal, suggestedAvailability, weeklyMinutes,
@@ -60,7 +61,7 @@ test('concluir uma aula recalcula o cronograma sem apagar progresso', () => {
   const schedule = buildSchedule(done, { today: MONDAY });
   assert.deepEqual(schedule.days[0].items.map((item) => item.title), ['Aula 2']);
   assert.equal(schedule.courses[0].remaining, 3);
-  assert.ok(done.completed.includes(course.steps[0].id));
+  assert.ok(isCompleted(done, course.steps[0].id));
 });
 
 test('adiar uma aula adia as seguintes do mesmo curso', () => {
