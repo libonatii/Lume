@@ -80,7 +80,7 @@ A migração preserva formato, chave de armazenamento, contas e APIs. Não reint
 
 ### Sistema visual do Stitch
 
-O CSS do Stitch não foi reescrito à mão: `public/stitch.css` é gerado a partir do `tailwind.config` das exportações em `designs/stitch/`, mantendo os 47 nomes de cor, os 11 estilos tipográficos, os espaçamentos e os raios originais. A fonte Plus Jakarta Sans é servida localmente em `public/assets/fonts/`, sem CDN. Os componentes React reutilizam esses utilitários e adicionam estilos de interação em `public/motion.css`.
+Os tokens do Stitch (cores, tipografia, espaçamentos e raios) foram incorporados a `public/lume.css`; as folhas geradas na primeira importação (`stitch.css`, `motion.css` e outras) não eram carregadas e foram removidas em 01/11/2026. A fonte Plus Jakarta Sans é servida localmente em `public/assets/fonts/`, sem CDN.
 
 As telas de Entrada, Ritmo de Estudo, Hoje e Biblioteca usam essa marcação dentro do escopo `[data-stitch]`, para que os utilitários não colidam com o CSS anterior das telas ainda não convertidas. Modo essencial e tratamento de movimento reduzido foram removidos por solicitação explícita da responsável.
 

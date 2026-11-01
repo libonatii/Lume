@@ -4397,7 +4397,7 @@ html[data-desktop="true"] .entry-header button {
   }
 }
 
-/* --- Biblioteca: edi��o, slides e materiais tipados --- */
+/* --- Biblioteca: edição, slides e materiais tipados --- */
 .course-slide-chip {
   position: absolute;
   top: 0.6rem;
@@ -4834,7 +4834,7 @@ html[data-desktop="true"] .entry-header button {
   }
 }
 
-/* --- Restaura��o de c�pia --- */
+/* --- Restauração de cópia --- */
 .backup-restore {
   display: grid;
   gap: 0.55rem;
@@ -5101,7 +5101,7 @@ html[data-desktop="true"] .entry-header button {
   align-self: center;
 }
 
-/* --- Corre��o de XP --- */
+/* --- Correção de XP --- */
 .xp-event {
   display: grid;
   gap: 0.6rem;
@@ -5127,7 +5127,7 @@ html[data-desktop="true"] .entry-header button {
   background: var(--surface-2);
 }
 
-/* --- Revis�o de materiais antigos --- */
+/* --- Revisão de materiais antigos --- */
 .legacy-review-list {
   list-style: none;
   margin: 0;
@@ -5149,7 +5149,7 @@ html[data-desktop="true"] .entry-header button {
   align-items: flex-end;
 }
 
-/* --- GitHub e sugest�es de entrega --- */
+/* --- GitHub e sugestões de entrega --- */
 .github-form {
   display: flex;
   align-items: flex-end;
@@ -5211,7 +5211,7 @@ html[data-desktop="true"] .entry-header button {
   font-size: 0.8rem;
 }
 
-/* --- Colabora��o em entregas --- */
+/* --- Colaboração em entregas --- */
 .collab-panel {
   display: grid;
   gap: 0.7rem;

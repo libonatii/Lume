@@ -31,7 +31,7 @@ Em ordem de impacto para quem usa o site publicado.
 | 7 | **Social sem segurança nem reconhecimento** | Não há denúncia de abuso (exigida em Produto §7), compartilhamento de aprendizados nem reconhecimento a conquistas de amigos. Colaboração não registra contribuição. Mensagens chegam por consulta periódica, sem notificação | Parcial | [S2](#s2--segurança-social-e-moderação)–[S5](#s5--colaboração-com-contribuição-identificável) |
 | 8 | **Conta e dados pessoais incompletos** | Não é possível trocar senha ou e-mail estando logada, excluir a conta nem ver sessões ativas. Não há termos de uso nem política de privacidade, embora o site guarde e-mail e progresso | Parcial | [C2](#c2--gestão-da-conta), [C3](#c3--termos-privacidade-e-exclusão-de-dados) |
 | 9 | **Organização ao estilo Notion** | Sem anotações ligadas ao material, quadro de projeto, trilhas como sequência de materiais ou modelos | Não implementado | [B3](#b3--anotações-trilhas-e-modelos) |
-| 10 | **Visual novo só na Hoje** | O Redesign Moderno (Stitch) tem layout próprio apenas na Hoje; as demais telas herdaram cores e cartões, mas não foram desenhadas. Há CSS legado sobreposto e cinco folhas sem uso | Parcial | [V1](#v1--redesign-nas-demais-telas), [D1](#d1--css-legado) |
+| 10 | **Visual novo só na Hoje** | O Redesign Moderno (Stitch) tem layout próprio apenas na Hoje; as demais telas herdaram cores e cartões, mas não foram desenhadas. Há CSS legado sobreposto | Parcial | [V1](#v1--redesign-nas-demais-telas), [D1](#d1--css-legado) |
 
 ---
 
@@ -291,9 +291,9 @@ A reestruturação que trata estes itens e as causas de arquitetura por trás de
 [Plano de refatoração](REFATORACAO_01112026.md).
 
 ### D1 — CSS legado
-`public/entry.css`, `neurofocus.css`, `styles.css`, `stitch.css` e `motion.css` não são carregados por nenhuma
-página, mas continuam sendo publicados. `public/lume.css` acumula regras antigas sobrescritas pelas camadas
-novas (Plano e Redesign Moderno) no fim do arquivo.
+`public/lume.css` acumula regras antigas sobrescritas pelas camadas novas (Plano e Redesign Moderno) no fim do
+arquivo. As cinco folhas sem uso foram removidas em 01/11/2026; a divisão por funcionalidade está em
+[Refatoração F7](REFATORACAO_01112026.md#f7--css-por-componente-sobre-tokens).
 
 ### D2 — Regras antigas ainda em uso
 `nextMission` (ordem da biblioteca), `weekCount` (soma preparação e conclusão), `applyStudyRhythm`, `HABITS` e
@@ -305,7 +305,7 @@ Separar o que é compatibilidade de dados do que é código morto antes de remov
 `emptySessionState()` (`session-domain.js`) e `GITHUB_CAPABILITIES`.
 
 ### D4 — Dependência sem uso
-`@fontsource-variable/fraunces` continua em `package.json`, mas a página não a importa desde o Redesign Moderno.
+Resolvido em 01/11/2026: `@fontsource-variable/fraunces` saiu do `package.json`.
 
 ---
 
