@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createInitialState, restoreState, completeMission, totalXP, courseProgress, courseStatus, nextMission, achievements, addCourse, safeCourseURL, weekCount } from './public/domain.js';
-import { applyStudyRhythm, studyRhythm, startJourney, saveOnboardingAnswer, completeJourney, normalizeOnboarding, addMaterial, journeyPlan, STATE_VERSION } from './public/domain.js';
+import { studyRhythm, startJourney, saveOnboardingAnswer, completeJourney, normalizeOnboarding, addMaterial, journeyPlan, STATE_VERSION } from './public/domain.js';
 import { completedUnitIds, isCompleted, progressFromV1 } from './public/progress-domain.js';
 
 // Estado de teste com trilhas próprias. A biblioteca real começa vazia.
@@ -24,41 +24,13 @@ test('começa sem XP, sem cursos de exemplo e sem próxima ação inventada', ()
   assert.equal(achievements(state).filter((item) => item.unlocked).length, 0);
 });
 
-test('ritmo inicial e apoios mudam sugestões e plano, preservando cursos e XP', () => {
-  const previous = completeMission(seededState(), 'design', 'design-1').state;
-  const state = applyStudyRhythm(previous, { habit: 'starting', supports: ['calm', 'initiation'] });
-  assert.equal(state.preferences.weeklyGoal, 2);
-  assert.equal(state.preferences.essential, true);
-  assert.equal(studyRhythm(state).prepareFirst, true);
-  assert.equal(state.onboarded, true);
-  assert.equal(totalXP(state), 0);
-  assert.equal(courseProgress(state, state.courses[0]).done, 1);
-  assert.equal(totalXP(previous), 0);
-  assert.equal(state.progress[0].legacyXp, undefined);
-  assert.equal(state.progress[0].origin, 'manual');
-  assert.equal(previous.onboarded, false);
-});
-
-test('revisar o mesmo ritmo preserva plano e conforto ajustados manualmente', () => {
-  const state = applyStudyRhythm(createInitialState(), { habit: 'sometimes', supports: ['calm'] });
-  state.preferences.weeklyGoal = 6;
-  state.preferences.essential = false;
-  const reviewed = applyStudyRhythm(state, { habit: 'sometimes', supports: ['calm'] });
-  assert.equal(reviewed.preferences.weeklyGoal, 6);
-  assert.equal(reviewed.preferences.essential, false);
-  const changed = applyStudyRhythm(reviewed, { habit: 'often', supports: ['chunking'] });
-  assert.equal(changed.preferences.weeklyGoal, 5);
-  assert.equal(studyRhythm(changed).prepareFirst, true);
-});
-
 test('apoios e ritmo sobrevivem à restauração sem duplicatas nem valores desconhecidos', () => {
-  const state = applyStudyRhythm(createInitialState(), { habit: 'often', supports: ['return', 'return', 'unknown'] });
-  assert.deepEqual(state.supports, ['return']);
+  const state = { ...createInitialState(), habit: 'often', supports: ['return', 'return', 'unknown'] };
   const restored = restoreState(JSON.stringify(state));
   assert.deepEqual(restored.supports, ['return']);
   assert.equal(restored.habit, 'often');
   assert.match(studyRhythm(restored).message, /Retome pela próxima aula/);
-  assert.throws(() => applyStudyRhythm(state, { habit: 'unknown' }));
+  assert.equal(restoreState(JSON.stringify({ ...state, habit: 'unknown' })).habit, null);
   const oldState = createInitialState();
   delete oldState.supports;
   assert.deepEqual(restoreState(JSON.stringify(oldState)).supports, []);
@@ -213,7 +185,7 @@ test('meta ajustada � m�o n�o � substitu�da ao revisar o ritmo', () =>
   initial.preferences.weeklyGoalSource = 'manual';
   const done = completeJourney(startJourney(initial, 'often'));
   assert.equal(done.preferences.weeklyGoal, 6);
-  const reviewed = applyStudyRhythm(done, { habit: 'starting', supports: [] });
+  const reviewed = completeJourney(startJourney(done, 'starting'));
   assert.equal(reviewed.preferences.weeklyGoal, 6);
 });
 

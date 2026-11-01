@@ -8,7 +8,7 @@ import {
   ensureXpSettings, getRanking, getXpSnapshot, recordTimeSession, updateXpSettings, adjustEvent, XpError,
 } from './xp.js';
 import { grantBonus, grantSlide, grantStep } from './rewards.js';
-import { collectCompletionCandidates, levelProgress } from './public/xp-policy.js';
+import { levelProgress } from './public/xp-policy.js';
 
 const NOW = Date.parse('2026-10-31T12:00:00Z');
 const DAY = '2026-10-31';
@@ -305,16 +305,3 @@ test('ranking tem três abas, empates compartilhados, opt-in e legado fora', asy
   assert.equal(out.self.position, null);
 });
 
-test('candidatos do navegador ignoram legado e incluem apresentação concluída', () => {
-  const state = completeState(materialState(), ['c1-0', 'c1-1']);
-  state.courses[0].slides = [{ id: 's1', title: 'Um', body: '' }, { id: 's2', title: 'Dois', body: '' }];
-  state.courses[0].slideProgress = { seen: ['s1', 's2'], lastId: 's2', completedAt: new Date(NOW + 1000).toISOString() };
-  const candidates = collectCompletionCandidates(state, new Date(NOW).toISOString());
-  assert.equal(candidates.steps.length, 2);
-  assert.equal(candidates.bonuses.length, 1);
-  assert.equal(candidates.slides.length, 1);
-  const legacy = collectCompletionCandidates(state, new Date(NOW + 5000).toISOString());
-  assert.equal(legacy.steps.length, 0);
-  assert.equal(legacy.bonuses.length, 0);
-  assert.equal(legacy.slides.length, 0);
-});

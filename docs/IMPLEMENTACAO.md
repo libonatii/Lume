@@ -296,13 +296,13 @@ arquivo. As cinco folhas sem uso foram removidas em 01/11/2026; a divisão por f
 [Refatoração F7](REFATORACAO_01112026.md#f7--css-por-componente-sobre-tokens).
 
 ### D2 — Regras antigas ainda em uso
-`nextMission` (ordem da biblioteca), `applyStudyRhythm`, `HABITS` e
+`nextMission` (ordem da biblioteca), `HABITS` e
 `CHALLENGES` sobrevivem por compatibilidade ou testes antigos. O saldo legado (5/10 XP) continua no navegador.
 Separar o que é compatibilidade de dados do que é código morto antes de remover.
 
 ### D3 — Exportações sem consumidor
-`importXp()` e `selectedCount()` (`import-domain.js`), `providerSummary()` (`import-server.js`),
-`emptySessionState()` (`session-domain.js`) e `GITHUB_CAPABILITIES`.
+Resolvido em 01/11/2026: `importXp`, `selectedCount`, `providerSummary`, `emptySessionState`, `GITHUB_CAPABILITIES`,
+`collectCompletionCandidates`, `completionTimestamp`, `courseIsComplete` e `applyStudyRhythm` foram removidos.
 
 ### D4 — Dependência sem uso
 Resolvido em 01/11/2026: `@fontsource-variable/fraunces` saiu do `package.json`.

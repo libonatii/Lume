@@ -822,7 +822,3 @@ export async function analyzeText(text, { title = '', env = {}, fetchImpl = fetc
   };
 }
 
-export function providerSummary(id) {
-  const provider = providerById(id);
-  return { id: provider.id, label: provider.label, structure: provider.structure, note: provider.note };
-}

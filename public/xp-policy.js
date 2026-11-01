@@ -5,8 +5,6 @@
 // protótipo (5 XP por preparação, 10 XP por etapa/tarefa) fica separado e nunca
 // entra aqui, no nível novo ou no ranking.
 
-import { completionTime, isCompleted } from './progress-domain.js';
-
 export const XP_POLICY_VERSION = 'v1';
 export const LEVEL_XP = 500;
 export const TIME_BLOCK_SECONDS = 30 * 60;
@@ -126,18 +124,6 @@ export function slideProgressSnapshot(course) {
   };
 }
 
-// Data da conclusão declarada: o registro ativo mais recente que não é histórico
-// (progress-domain.js). Sem data, o registro é tratado como legado.
-export function completionTimestamp(state, course, stepId) {
-  if (!course || !stepId) return null;
-  return completionTime(state, stepId);
-}
-
-export function courseIsComplete(state, course) {
-  return Boolean(course?.steps?.length)
-    && course.steps.every((step) => isCompleted(state, step.id));
-}
-
 // Uma grade completa da fonte não basta: se a pessoa escolheu só parte das
 // disciplinas, o curso inteiro continua em aberto e o bônus não é liberado.
 export function courseGradeIsComplete(course) {
@@ -149,58 +135,6 @@ export function courseGradeIsComplete(course) {
     .filter((lesson) => lesson && lesson.removedFromSource !== true)
     .length;
   return total > 0 && course.steps.length >= total;
-}
-
-// Candidatos que o navegador envia ao servidor. O servidor revalida tudo:
-// conclusão registrada, data posterior ao início da política e integridade.
-export function collectCompletionCandidates(state, eligibleSince) {
-  const since = Date.parse(eligibleSince);
-  const steps = [];
-  const bonuses = [];
-  const slides = [];
-  if (!Number.isFinite(since)) return { steps, bonuses, slides };
-  for (const course of state?.courses || []) {
-    if (!isEligibleCourse(course)) continue;
-    const kind = completionKindForCourse(course);
-    let allSince = true;
-    for (const step of course.steps) {
-      if (!isCompleted(state, step.id)) {
-        allSince = false;
-        continue;
-      }
-      const at = completionTimestamp(state, course, step.id);
-      if (!Number.isFinite(at) || at < since) {
-        allSince = false;
-        continue;
-      }
-      steps.push({
-        key: stepEventKey(kind, course.id, step.id),
-        body: { courseId: course.id, stepId: step.id },
-      });
-    }
-    if (allSince && courseIsComplete(state, course)) {
-      // Grade parcial ou seleção parcial não conclui o curso inteiro.
-      if (courseGradeIsComplete(course)) {
-        // Um curso manual de uma única etapa não recebe bônus de contêiner.
-        const minimum = course.type === 'project' ? 1 : 2;
-        if (isImportedCourse(course) || course.steps.length >= minimum) {
-          const bonusKind = bonusKindForCourse(course);
-          bonuses.push({
-            key: bonusEventKey(bonusKind, course.id),
-            body: { courseId: course.id },
-          });
-        }
-      }
-    }
-    const deck = slideProgressSnapshot(course);
-    if (deck.completed && Number.isFinite(Date.parse(deck.completedAt)) && Date.parse(deck.completedAt) >= since) {
-      slides.push({
-        key: slideEventKey(course.id),
-        body: { courseId: course.id },
-      });
-    }
-  }
-  return { steps, bonuses, slides };
 }
 
 export function normalizeTimeZone(value) {

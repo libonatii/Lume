@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { addCourse, createInitialState } from './public/domain.js';
+import { sqliteAdapter } from './api/adapters/sqlite.js';
 import {
   CollaborationError, cancelCollaborationInvite, createCollaborationInvite,
   listCollaborationInvites, respondCollaborationInvite,
@@ -13,11 +14,7 @@ function makeDb() {
   for (const file of ['0001_init.sql', '0002_user_state.sql', '0004_friends.sql', '0010_collaboration.sql']) {
     sqlite.exec(readFileSync(new URL(`./migrations/${file}`, import.meta.url), 'utf8'));
   }
-  const db = {
-    async run(sql, params = []) { return Number(sqlite.prepare(sql).run(...params).changes ?? 0); },
-    async first(sql, params = []) { return sqlite.prepare(sql).get(...params) ?? null; },
-    async all(sql, params = []) { return sqlite.prepare(sql).all(...params); },
-  };
+  const db = sqliteAdapter(sqlite);
   for (const [id, name] of [['u1', 'Ana'], ['u2', 'Bia']]) {
     sqlite.prepare('INSERT INTO users (id, name, email, password_hash, created_at) VALUES (?, ?, ?, ?, ?)')
       .run(id, name, `${id}@example.test`, 'x', '2026-10-31T12:00:00Z');

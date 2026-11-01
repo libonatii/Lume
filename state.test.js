@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { StateError, parseStateBody, readState, writeState } from './state.js';
 import { createInitialState } from './public/domain.js';
+import { sqliteAdapter } from './api/adapters/sqlite.js';
 
 function makeDb() {
   const sqlite = new DatabaseSync(':memory:');
@@ -12,11 +13,7 @@ function makeDb() {
   sqlite.exec(readFileSync(new URL('./migrations/0007_state_revision.sql', import.meta.url), 'utf8'));
   sqlite.prepare('INSERT INTO users (id, name, email, password_hash, created_at) VALUES (?, ?, ?, ?, ?)')
     .run('u1', 'Ana', 'ana@example.test', 'x', '2026-10-31T12:00:00Z');
-  return {
-    async run(sql, params = []) { return Number(sqlite.prepare(sql).run(...params).changes ?? 0); },
-    async first(sql, params = []) { return sqlite.prepare(sql).get(...params) ?? null; },
-    async all(sql, params = []) { return sqlite.prepare(sql).all(...params); },
-  };
+  return sqliteAdapter(sqlite);
 }
 
 test('primeira gravação cria revisão 1 e leitura devolve o estado', async () => {

@@ -265,21 +265,6 @@ export function studyRhythm(state) {
   };
 }
 
-export function applyStudyRhythm(state, { habit, supports = [] }) {
-  if (!STUDY_RHYTHMS.some(item => item.id === habit)) throw new Error('Escolha o ritmo que combina com seu momento.');
-  const cleanSupports = [...new Set(supports.filter(id => STUDY_SUPPORTS.some(item => item.id === id)))];
-  const changedRhythm = !state.onboarded || state.habit !== habit;
-  const changedCalm = !state.onboarded || (state.supports || []).includes('calm') !== cleanSupports.includes('calm');
-  const manualGoal = state.preferences.weeklyGoalSource === 'manual';
-  const next = { ...state, onboarded: true, habit, supports: cleanSupports };
-  return { ...next, preferences: { ...state.preferences,
-    // Meta ajustada à mão não é substituída por sugestão de ritmo.
-    weeklyGoal: manualGoal || !changedRhythm ? state.preferences.weeklyGoal : studyRhythm(next).weeklyGoal,
-    weeklyGoalSource: manualGoal ? 'manual' : 'suggested',
-    essential: changedCalm ? cleanSupports.includes('calm') : state.preferences.essential,
-  } };
-}
-
 export const MAX_PROFILE_IMAGE_LENGTH = 256;
 export const MAX_PROFILE_BIO_LENGTH = 240;
 

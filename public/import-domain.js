@@ -272,16 +272,6 @@ export function allLessonIds(payload) {
   return payload.disciplines.flatMap((discipline) => discipline.modules.flatMap((module) => module.lessons.map((lesson) => lesson.id)));
 }
 
-export function selectedCount(payload, selected) {
-  return allLessonIds(payload).filter((id) => selected.has(id)).length;
-}
-
-// 30 XP não: importar é organização, não estudo. A função existe para deixar
-// explícito no código o valor zero que a política de gamificação determina.
-export function importXp() {
-  return 0;
-}
-
 // Aula que já está na biblioteca mantém o id que tem: o progresso, o XP e as
 // tarefas apontam para ele. Casa primeiro pela identidade da plataforma
 // (externalId) e, para aulas importadas antes dela existir, pelo caminho de
@@ -616,17 +606,6 @@ export function revertLessonCompletion(state, courseId, lessonId, { now = new Da
   const result = revertUnit(state, lessonId, now);
   return { state: result.state, reverted: result.reverted };
 }
-
-// ---------------- Programação e GitHub ----------------
-// Preparação de adaptadores: os repositórios ainda não são consultados nesta
-// versão. O formato existe para que a integração futura não invente conclusão
-// a partir de issues abertas ou de inatividade.
-export const GITHUB_CAPABILITIES = [
-  { id: 'syllabus', label: 'Identificar o projeto', value: 'Não — conexão ao GitHub ainda não implementada', available: false },
-  { id: 'deliveries', label: 'Sugerir entregas pendentes', value: 'Planejado (README, issues e milestones autorizados)', available: false },
-  { id: 'progress', label: 'Validar conclusão automaticamente', value: 'Não — a pessoa valida cada entrega', available: false },
-  { id: 'share', label: 'Compartilhar para colaboração', value: 'Não — amigos e grupos ainda não existem', available: false },
-];
 
 export function deliveryCandidates(repository) {
   // Estrutura de entrada esperada: { name, readme, issues: [{ title, state, milestone }], milestones: [...] }
