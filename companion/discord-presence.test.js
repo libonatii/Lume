@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { readConfig, setDiscordPresence } from './core.mjs';
 import {
-  DISCORD_ASSET_KEY, DISCORD_BUTTON_LABEL, DISCORD_CLIENT_ID_PLACEHOLDER, DISCORD_FALLBACK_DETAILS,
+  DEFAULT_DISCORD_CLIENT_ID, DISCORD_ASSET_KEY, DISCORD_BUTTON_LABEL, DISCORD_CLIENT_ID_PLACEHOLDER, DISCORD_FALLBACK_DETAILS,
   PRESENCE_UPDATE_INTERVAL_MS, PUBLIC_SITE_URL, activityKey, buildDiscordActivity, clipDiscordText,
   createDiscordPresence, currentLesson, isUsableClientId, planPresenceUpdate, resolveDiscordSettings,
   resolveStartedAt, retryDelayMs,
@@ -241,7 +241,9 @@ test('o Application ID vem do ambiente ou da configuração e o marcador desliga
 
   const missing = resolveDiscordSettings({ discordPresence: true, discordClientId: DISCORD_CLIENT_ID_PLACEHOLDER });
   assert.equal(missing.enabled, true);
-  assert.equal(missing.configured, false);
+  assert.equal(missing.configured, true);
+  assert.equal(missing.clientId, DEFAULT_DISCORD_CLIENT_ID);
+  assert.equal(isUsableClientId(DEFAULT_DISCORD_CLIENT_ID), true);
   assert.equal(missing.publicUrl, PUBLIC_SITE_URL);
 
   const fromEnv = resolveDiscordSettings(

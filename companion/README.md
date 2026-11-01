@@ -144,8 +144,9 @@ Electron.
 2. Copie o **Application ID**.
 3. Em **Rich Presence → Art Assets**, envie o logo do Lume com o nome
    **`lume_logo`** (minúsculas, sem espaço).
-4. Coloque o ID em `%APPDATA%\Lume\companion.json`, no lugar de
-   `COLOQUE_O_APPLICATION_ID`:
+4. O Application ID do Lume já vem no build (`DEFAULT_DISCORD_CLIENT_ID` em
+   `discord-presence.mjs`); não é segredo. Para usar outro aplicativo, coloque o
+   ID em `%APPDATA%\Lume\companion.json`, no lugar de `COLOQUE_O_APPLICATION_ID`:
 
 ```json
 "discordClientId": "123456789012345678"
