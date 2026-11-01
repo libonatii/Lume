@@ -4,37 +4,17 @@ import { reconcileSession } from '../../public/session-domain.js';
 import { mergeStates } from '../../public/merge-domain.js';
 import { api, apiError } from '../lib/api.js';
 import { clearResources } from '../lib/resources.js';
-import { BATCH_SIZE, pendingCommands, readSent as readOutbox, writeSent as writeOutbox } from '../lib/outbox.js';
+import { readLegacyBase64Profile, uploadLegacyProfileMedia } from '../features/account/legacyProfileMedia.js';
+import { useXp } from '../features/progress/useXp.js';
+import { useProgressSync } from '../features/progress/useProgressSync.js';
 
 export const PREVIEW_KEY = 'lume.preview-session.v1';
-const SENT_KEY = 'lume.xp.sent.v1';
-function readSent() {
-  try {
-    const value = JSON.parse(localStorage.getItem(SENT_KEY) || '{}');
-    return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
-  } catch {
-    return {};
-  }
-}
-function readLegacyBase64Profile(raw) {
-  try {
-    const parsed = JSON.parse(raw || '{}');
-    const found = {};
-    for (const slot of ['avatar', 'header']) {
-      const value = parsed?.profile?.[slot];
-      if (typeof value === 'string' && value.startsWith('data:image/')) {
-        found[slot] = value;
-      }
-    }
-    return found;
-  } catch {
-    return {};
-  }
-}
 function readLocal() {
   try { return reconcileSession(restoreState(localStorage.getItem(STORAGE_KEY))); }
   catch { return createInitialState(); }
 }
+// Estado do cliente: documento local, conta, sincronização da biblioteca e
+// prévia. XP e envio de progresso ficam em src/features/progress/.
 export function useLume(notify) {
   const legacyProfileMedia = useRef(null);
   if (legacyProfileMedia.current === null) {
@@ -45,8 +25,6 @@ export function useLume(notify) {
   const [account, setAccount] = useState(null);
   const [accountStatus, setAccountStatus] = useState('checking');
   const [syncStatus, setSyncStatus] = useState('local');
-  const [xp, setXp] = useState(null);
-  const [xpStatus, setXpStatus] = useState('idle');
   const [preview, setPreview] = useState(() => { try { return sessionStorage.getItem(PREVIEW_KEY) === 'open'; } catch { return false; } });
   const stateRef = useRef(state);
   const ready = useRef(false);
@@ -54,9 +32,6 @@ export function useLume(notify) {
   const syncGeneration = useRef(0);
   const pendingSave = useRef(Promise.resolve());
   const revisionRef = useRef(0);
-  const xpBusy = useRef(false);
-  const xpSent = useRef(readSent());
-  const outbox = useRef(readOutbox());
   stateRef.current = state;
 
   const saveRemote = useCallback((snapshot) => {
@@ -131,89 +106,20 @@ export function useLume(notify) {
     setSyncStatus('saved');
   }, [notify]);
 
-  const persistSent = useCallback(() => {
-    try { localStorage.setItem(SENT_KEY, JSON.stringify(xpSent.current)); } catch { /* A marcação é só uma otimização. */ }
+  // Ação de domínio: calcula o resultado sobre o estado atual (para a tela
+  // decidir o que mostrar) e grava reaplicando a mesma função sobre o estado
+  // mais recente, sem sobrescrever uma mudança que chegou no meio do caminho.
+  // `fn(state)` precisa ser pura e devolver `{ state, ... }`.
+  const act = useCallback((fn) => {
+    const outcome = fn(stateRef.current);
+    if (outcome?.state && outcome.state !== stateRef.current) {
+      setState((previous) => fn(previous)?.state ?? previous);
+    }
+    return outcome;
   }, []);
 
-  const refreshXP = useCallback(async () => {
-    if (!account?.id) { setXp(null); setXpStatus('idle'); return; }
-    setXpStatus((current) => current === 'ready' ? current : 'loading');
-    const timeZone = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return ''; } })();
-    const result = await api(`/api/xp?timeZone=${encodeURIComponent(timeZone || '')}`);
-    if (!result.ok) {
-      setXpStatus(result.status === 401 ? 'signed-out' : 'error');
-      return;
-    }
-    setXp(result.data);
-    setXpStatus('ready');
-    for (const event of result.data.events || []) {
-      if (event.eventKey) xpSent.current[`${account.id}|${event.eventKey}`] = true;
-    }
-    persistSent();
-  }, [account?.id, persistSent]);
-
-  useEffect(() => {
-    if (!account?.id) { setXp(null); setXpStatus('idle'); return; }
-    refreshXP();
-  }, [account?.id, refreshXP]);
-
-  // Progresso vai ao servidor como comandos (src/lib/outbox.js): o servidor grava
-  // a conclusão com o próprio relógio e as regras de recompensa respondem na
-  // mesma requisição. Sessões declaradas seguem pela rota de tempo.
-  useEffect(() => {
-    if (!account?.id || !ready.current || !xp?.settings?.eligibleSince) return undefined;
-    const eligibleSince = xp.settings.eligibleSince;
-    const isSent = (key) => Boolean(xpSent.current[`${account.id}|${key}`]);
-    const commands = pendingCommands(state, account.id, outbox.current);
-    const sessions = (state.studySessions || []).filter((session) => {
-      if (!Number.isFinite(Date.parse(session.endedAt)) || Date.parse(session.endedAt) < Date.parse(eligibleSince)) return false;
-      return !isSent(`session|${session.id}`);
-    });
-    if (!commands.length && !sessions.length) return undefined;
-
-    const timerId = setTimeout(async () => {
-      if (xpBusy.current) return;
-      xpBusy.current = true;
-      const sent = (key) => { xpSent.current[`${account.id}|${key}`] = true; };
-      const unsent = (key) => { delete xpSent.current[`${account.id}|${key}`]; };
-      try {
-        // A biblioteca precisa estar salva: o servidor confere a aula nela.
-        if (ready.current && !(await saveRemote(state))) return;
-        for (let start = 0; start < commands.length; start += BATCH_SIZE) {
-          const batch = commands.slice(start, start + BATCH_SIZE);
-          try {
-            const result = await api('/api/progress', { method: 'POST', body: { commands: batch.map((item) => item.command) } });
-            // Erro de servidor ou rede: tenta de novo depois. Recusa (4xx) não muda com repetição.
-            if (!result.ok && (result.status >= 500 || result.status === 0)) break;
-            batch.forEach((item) => { outbox.current[`${account.id}|${item.key}`] = true; });
-            writeOutbox(outbox.current);
-          } catch { break; }
-        }
-        for (const session of sessions) {
-          const key = `session|${session.id}`;
-          sent(key);
-          try {
-            const result = await api('/api/xp/time', {
-              method: 'POST',
-              body: {
-                sessionId: session.id,
-                startedAt: session.startedAt,
-                endedAt: session.endedAt,
-                durationSeconds: Math.round(Number(session.durationMs || 0) / 1000),
-                courseId: session.courseId,
-              },
-            });
-            if (!result.ok && result.status >= 500) unsent(key);
-          } catch { unsent(key); }
-        }
-        persistSent();
-        await refreshXP();
-      } finally {
-        xpBusy.current = false;
-      }
-    }, 1500);
-    return () => clearTimeout(timerId);
-  }, [state, account?.id, xp?.settings?.eligibleSince, saveRemote, refreshXP, persistSent]);
+  const { xp, xpStatus, refreshXP, sent: xpSent, persistSent } = useXp(account);
+  useProgressSync({ state, account, ready, saveRemote, xp, refreshXP, xpSent, persistSent });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -238,21 +144,7 @@ export function useLume(notify) {
         setAccountStatus('ready');
         const pending = legacyProfileMedia.current || {};
         legacyProfileMedia.current = {};
-        for (const [slot, dataUrl] of Object.entries(pending)) {
-          try {
-            const blob = await (await fetch(dataUrl)).blob();
-            const res = await fetch(`/api/profile/media/${encodeURIComponent(slot)}`, {
-              method: 'PUT',
-              credentials: 'same-origin',
-              headers: { 'Content-Type': blob.type || 'image/webp' },
-              body: blob,
-            });
-            const uploaded = await res.json();
-            if (res.ok && uploaded?.url) {
-              setState(prev => ({ ...prev, profile: { ...prev.profile, [slot]: uploaded.url } }));
-            }
-          } catch { /* Se falhar, a pessoa pode reenviar pelo perfil. */ }
-        }
+        await uploadLegacyProfileMedia(pending, setState);
       } catch (error) {
         if (error.name !== 'AbortError') setAccountStatus('offline');
       }
@@ -293,5 +185,5 @@ export function useLume(notify) {
     setPreview(false);
     try { sessionStorage.removeItem(PREVIEW_KEY); } catch { /* Sessão em memória. */ }
   };
-  return { state, setState, account, accountStatus, setAccountStatus, syncStatus, preview, enterPreview, exit, loadAccountProgress, xp, xpStatus, refreshXP };
+  return { state, setState, act, account, accountStatus, setAccountStatus, syncStatus, preview, enterPreview, exit, loadAccountProgress, xp, xpStatus, refreshXP };
 }

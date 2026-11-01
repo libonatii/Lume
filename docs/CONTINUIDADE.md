@@ -225,7 +225,7 @@ Ainda precisam de decisão de implementação: primeira fonte de vídeo suportad
 
 ### Escolha de stack
 
-A responsável solicitou explicitamente a migração para **React + Astro**, agora implementada e publicada. `src/pages/index.astro` monta a aplicação React; `src/components/` contém as telas, e `src/hooks/useLume.js` mantém estado, conta e sincronização. O antigo `public/app.js` e a entrada HTML manual foram substituídos. `public/domain.js` permanece como fonte das regras legadas e restauração, preservando os dados.
+A responsável solicitou explicitamente a migração para **React + Astro**, agora implementada e publicada. `src/pages/index.astro` monta a aplicação React; `src/features/<área>/` contém as telas, `src/app/` a casca e as rotas, e `src/app/useLume.js` mantém estado, conta e sincronização. O antigo `public/app.js` e a entrada HTML manual foram substituídos. `public/domain.js` permanece como fonte das regras legadas e restauração, preservando os dados.
 
 O Astro gera o frontend estático em `dist/`, e a API continua no Worker/D1 sem introduzir SSR. O build gera hashes CSP dos scripts/estilos inline exatos do Astro. A configuração de publicação usa `dist/` e executa o build. Nenhum serviço pago foi ativado e nenhuma publicação foi realizada nesta migração.
 

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { api, apiError } from '../lib/api.js';
-import Icon from './Icon.jsx';
-import { Button, Empty, Heading, Progress, stagger } from './ui.jsx';
+import { api, apiError } from '../../lib/api.js';
+import Icon from '../../ui/Icon.jsx';
+import { Button, Empty, Heading, Progress, stagger } from '../../ui/ui.jsx';
 
 const TABS = [
   { id: 'level', label: 'Nível', hint: 'Maior nível e, depois, maior XP elegível acumulado.' },

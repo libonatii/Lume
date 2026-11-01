@@ -2,10 +2,10 @@ import { useState } from 'react';
 import {
   STUDY_TYPES, addMaterial, deleteCourse, formatVideoTime, normalizePosition,
   replaceCourseSteps, resumeLabel, updateCourse,
-} from '../../public/domain.js';
-import { isImportedCourse } from '../../public/import-domain.js';
-import Icon from './Icon.jsx';
-import { Button } from './ui.jsx';
+} from '../../../public/domain.js';
+import { isImportedCourse } from '../../../public/import-domain.js';
+import Icon from '../../ui/Icon.jsx';
+import { Button } from '../../ui/ui.jsx';
 
 export function ManualCourseForm({ state, update, close, notify, open }) {
   const [title, setTitle] = useState('');

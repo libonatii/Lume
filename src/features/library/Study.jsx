@@ -1,22 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import Atropos from 'atropos/react';
-import { studyRhythm, nextMission, hasPreparation, courseProgress, courseStatus, addMaterial, materialType } from '../../public/domain.js';
-import { nextAction } from '../../public/study-plan.js';
-import { completeTask, isOverdue, priorityLabel, taskAgenda } from '../../public/tasks-domain.js';
-import { XP_KIND_LABELS, levelProgress } from '../../public/xp-policy.js';
-import { overdueMessage } from './Tasks.jsx';
-import { courseSummary, isImportedCourse, sourceLabel } from '../../public/import-domain.js';
-import { slidePositionLabel, slidesSummary } from '../../public/slides-domain.js';
+import { studyRhythm, nextMission, hasPreparation, courseProgress, courseStatus, addMaterial, materialType } from '../../../public/domain.js';
+import { nextAction } from '../../../public/study-plan.js';
+import { completeTask, isOverdue, priorityLabel, taskAgenda } from '../../../public/tasks-domain.js';
+import { XP_KIND_LABELS, levelProgress } from '../../../public/xp-policy.js';
+import { overdueMessage } from '../plan/Tasks.jsx';
+import { courseSummary, isImportedCourse, sourceLabel } from '../../../public/import-domain.js';
+import { slidePositionLabel, slidesSummary } from '../../../public/slides-domain.js';
 import {
   endSession, formatSessionDuration, pauseSession, resumeSession, sessionElapsed,
   startSession, touchSession,
-} from '../../public/session-domain.js';
-import Icon from './Icon.jsx';
-import { Button, Cover, Empty, Heading, Progress, ease, enter } from './ui.jsx';
-import { isCompleted } from '../../public/progress-domain.js';
+} from '../../../public/session-domain.js';
+import Icon from '../../ui/Icon.jsx';
+import { Button, Cover, Empty, Heading, Progress, ease, enter } from '../../ui/ui.jsx';
+import { isCompleted } from '../../../public/progress-domain.js';
 
-export function Home({ state, open, go, update, notify, account, xp }) {
+export function Home({ state, open, go, update, act, notify, account, xp }) {
   const action = nextAction(state);
   const plan = studyRhythm(state);
   const agenda = taskAgenda(state);
@@ -63,7 +63,7 @@ export function Home({ state, open, go, update, notify, account, xp }) {
       </>}
     </section>
 
-    <StudySession state={state} update={update} mission={action ? { course: { id: action.courseId }, step: { id: action.lessonId, title: action.title } } : null} notify={notify} account={account}/>
+    <StudySession state={state} update={update} act={act} mission={action ? { course: { id: action.courseId }, step: { id: action.lessonId, title: action.title } } : null} notify={notify} account={account}/>
     </div>
 
     <div className="today-grid">
@@ -73,9 +73,9 @@ export function Home({ state, open, go, update, notify, account, xp }) {
         {agenda.next.length
           ? <ul className="today-task-list">{agenda.next.map((task) => <li key={task.id} className="todo-item">
             <button type="button" role="checkbox" aria-checked="false" aria-label={`Concluir tarefa ${task.title}`} className="todo-check" onClick={() => {
-              const result = completeTask(state, task.id);
+              const now = new Date().toISOString();
+              const result = act((current) => completeTask(current, task.id, now));
               if (!result.added) return;
-              update(result.state);
               notify(`Tarefa concluída: ${task.title}.`);
             }}><Icon name="plus"/></button>
             <span className="todo-copy"><strong>{task.title}</strong><small className="todo-meta">{taskMeta(task)}</small></span>
@@ -141,7 +141,7 @@ function Evolution({ state, account, xp }) {
 
 // Sessão declarada: a pessoa inicia e encerra. O relógio é informativo e não
 // concede XP; o batimento de 60 s evita contar dias de aba esquecida.
-function StudySession({ state, update, mission, notify, account }) {
+function StudySession({ state, update, act, mission, notify, account }) {
   const active = state.activeSession;
   const [now, setNow] = useState(() => Date.now());
 
@@ -160,8 +160,8 @@ function StudySession({ state, update, mission, notify, account }) {
     label: mission ? mission.step.title : 'Estudo livre',
   }));
   const finish = () => {
-    const result = endSession(state);
-    update(result.state);
+    const now = Date.now();
+    const result = act((current) => endSession(current, now));
     if (result.session) notify(account
       ? `Sessão registrada: ${formatSessionDuration(result.session.durationMs)}. O servidor confirma os blocos de 30 minutos.`
       : `Sessão registrada: ${formatSessionDuration(result.session.durationMs)}. Nesta prévia o tempo fica local; entre na conta para o XP de tempo.`);

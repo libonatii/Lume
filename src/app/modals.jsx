@@ -1,9 +1,9 @@
 // Diálogos abertos por `open({ type, ... })`. Os de estudo (sessão, curso,
 // importação…) ficam em StudyDialog; aqui só os avisos simples da casca.
 
-import StudyDialog from '../components/StudyDialog.jsx';
-import Icon from '../components/Icon.jsx';
-import { Button } from '../components/ui.jsx';
+import StudyDialog from '../features/progress/StudyDialog.jsx';
+import Icon from '../ui/Icon.jsx';
+import { Button } from '../ui/ui.jsx';
 
 function ComfortDialog({ state, update, close }) {
   const setTheme = (theme) => update((previous) => ({ ...previous, preferences: { ...previous.preferences, theme } }));
@@ -36,8 +36,8 @@ const SIMPLE = {
   break: ({ close }) => <NoticeDialog icon="leaf" tone="tone-mint" title="Pausa registrada." close={close}>O progresso está salvo e nenhuma etapa foi marcada como concluída. Ao voltar, retome pela próxima ação em Hoje.</NoticeDialog>,
 };
 
-export function ModalContent({ modal, state, update, open, close, notify, go, account }) {
+export function ModalContent({ modal, state, update, act, open, close, notify, go, account }) {
   const simple = SIMPLE[modal.type];
   if (simple) return simple({ state, update, close });
-  return <StudyDialog key={modal.type} modal={modal} state={state} update={update} open={open} close={close} notify={notify} go={go} account={account}/>;
+  return <StudyDialog key={modal.type} modal={modal} state={state} update={update} act={act} open={open} close={close} notify={notify} go={go} account={account}/>;
 }

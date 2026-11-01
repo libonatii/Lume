@@ -113,8 +113,9 @@ Verificação desta troca: testes de autenticação/domínio, build estático, b
 | Caminho | Função |
 | --- | --- |
 | `src/pages/index.astro` | Documento HTML e entrada da ilha React |
-| `src/components/` | Telas, navegação, formulários, cartões, progresso e diálogos |
-| `src/hooks/useLume.js` | Estado persistente, sessão e sincronização básica |
+| `src/app/` | Casca: `App.jsx`, tabela de rotas (`routes.jsx`), diálogos (`modals.jsx`), menu e `useLume.js` (estado, conta, sincronização e `act`) |
+| `src/features/<área>/` | Telas por funcionalidade: `account`, `library`, `progress`, `plan`, `social`, `settings`, `desktop` |
+| `src/ui/` | Componentes visuais compartilhados e ícones |
 | `src/lib/api.js` | Cliente das APIs existentes |
 | `public/domain.js` | Domínio legado e restauração dos dados, preservados |
 | `public/import-domain.js` | Regras de importação: provedores, normalização, mesclagem, progresso de aulas |

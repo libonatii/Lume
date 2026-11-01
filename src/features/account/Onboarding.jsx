@@ -3,11 +3,11 @@ import { motion } from 'motion/react';
 import {
   STUDY_RHYTHMS, STUDY_TYPES, SESSION_MINUTES, CONTINUITY_OBSTACLES, TRACKING_PREFERENCES,
   studyRhythm, startJourney, saveOnboardingAnswer, completeJourney, emptyOnboarding, addMaterial,
-} from '../../public/domain.js';
-import Icon from './Icon.jsx';
-import { Button, Glow, ease, stagger } from './ui.jsx';
-import { api, apiError } from '../lib/api.js';
-import { copyText, selectText } from '../lib/clipboard.js';
+} from '../../../public/domain.js';
+import Icon from '../../ui/Icon.jsx';
+import { Button, Glow, ease, stagger } from '../../ui/ui.jsx';
+import { api, apiError } from '../../lib/api.js';
+import { copyText, selectText } from '../../lib/clipboard.js';
 
 // Cada jornada tem a própria sequência. Não é o mesmo formulário com outro título.
 const STEPS = {

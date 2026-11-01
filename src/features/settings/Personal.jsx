@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import Atropos from 'atropos/react';
-import { PALETTES, STORAGE_KEY, STUDY_TYPES, achievements, courseProgress, courseStatus, levelInfo, localDay, nextMission, studyRhythm, totalXP, updateCourse } from '../../public/domain.js';
-import { formatSessionDuration } from '../../public/session-domain.js';
-import { XP_KIND_LABELS, completionKindForCourse, levelProgress, stepEventKey } from '../../public/xp-policy.js';
-import { mergeBackup, previewBackup, readBackup } from '../../public/backup-domain.js';
-import { api, apiError } from '../lib/api.js';
-import Icon from './Icon.jsx';
-import { AnimatedNumber, Button, Cover, Empty, Glow, Heading, Progress, Ring, stagger } from './ui.jsx';
-import { isCompleted } from '../../public/progress-domain.js';
+import { PALETTES, STORAGE_KEY, STUDY_TYPES, achievements, courseProgress, courseStatus, levelInfo, localDay, nextMission, studyRhythm, totalXP, updateCourse } from '../../../public/domain.js';
+import { formatSessionDuration } from '../../../public/session-domain.js';
+import { XP_KIND_LABELS, completionKindForCourse, levelProgress, stepEventKey } from '../../../public/xp-policy.js';
+import { mergeBackup, previewBackup, readBackup } from '../../../public/backup-domain.js';
+import { api, apiError } from '../../lib/api.js';
+import Icon from '../../ui/Icon.jsx';
+import { AnimatedNumber, Button, Cover, Empty, Glow, Heading, Progress, Ring, stagger } from '../../ui/ui.jsx';
+import { isCompleted } from '../../../public/progress-domain.js';
 
 export function Achievements({ state, account, xp }) {
   const legacy = achievements(state);

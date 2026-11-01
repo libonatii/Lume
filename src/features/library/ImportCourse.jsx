@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import Icon from './Icon.jsx';
-import { Button } from './ui.jsx';
-import { api, apiError } from '../lib/api.js';
+import Icon from '../../ui/Icon.jsx';
+import { Button } from '../../ui/ui.jsx';
+import { api, apiError } from '../../lib/api.js';
 import {
   MAX_SYLLABUS_CHARS, allLessonIds, applyCourseImport, formatDuration,
   looksLikeExamCourse, normalizeImportUrl, normalizePayload, detectProvider,
-} from '../../public/import-domain.js';
-import { completedUnitIds } from '../../public/progress-domain.js';
+} from '../../../public/import-domain.js';
+import { completedUnitIds } from '../../../public/progress-domain.js';
 
 // Fluxo curto de importação: colar link → analisar → escolher áreas → adicionar.
 // A revisão é a própria árvore de disciplinas; não existe formulário por aula.

@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import Icon from './Icon.jsx';
-import { AnimatedNumber, Logo, Progress, Ring } from './ui.jsx';
+import Icon from '../ui/Icon.jsx';
+import { AnimatedNumber, Logo, Progress, Ring } from '../ui/ui.jsx';
 import { levelInfo } from '../../public/domain.js';
 import { levelProgress } from '../../public/xp-policy.js';
 import { useResource } from '../lib/resources.js';
 import { isDesktopApp } from '../lib/desktop.js';
-import DesktopUpdate from './DesktopUpdate.jsx';
+import DesktopUpdate from '../features/desktop/DesktopUpdate.jsx';
 import SectionTabs, { SECTIONS, sectionOf } from './SectionTabs.jsx';
-import { ENTRY_ROUTES } from '../app/routes.jsx';
+import { ENTRY_ROUTES } from './routes.jsx';
 
 const desktop = isDesktopApp();
 

@@ -3,9 +3,9 @@ import { motion } from 'motion/react';
 import {
   MAX_SUBTASKS, MAX_TASKS, TASK_PRIORITIES, TASK_XP, addSubtask, addTask, completeTask, isOverdue, localDate,
   priorityLabel, removeSubtask, removeTask, reopenTask, setTaskPriority, sortTasks, toggleSubtask,
-} from '../../public/tasks-domain.js';
-import Icon from './Icon.jsx';
-import { Button, Empty, Heading, stagger } from './ui.jsx';
+} from '../../../public/tasks-domain.js';
+import Icon from '../../ui/Icon.jsx';
+import { Button, Empty, Heading, stagger } from '../../ui/ui.jsx';
 
 // Lista de tarefas de estudo para uma prova. Criar e organizar não gera XP;
 // concluir uma tarefa vale TASK_XP uma vez. O modelo ainda é o legado do
@@ -53,7 +53,7 @@ function Subtasks({ task, update }) {
   </details>;
 }
 
-export default function Tasks({ state, update, notify }) {
+export default function Tasks({ state, update, act, notify }) {
   const [title, setTitle] = useState('');
   const [courseId, setCourseId] = useState('');
   const [lessonId, setLessonId] = useState('');
@@ -95,9 +95,9 @@ export default function Tasks({ state, update, notify }) {
       notify('Tarefa reaberta. O XP da conclusão sai do total enquanto ela estiver aberta.');
       return;
     }
-    const result = completeTask(state, task.id);
+    const now = new Date().toISOString();
+    const result = act((current) => completeTask(current, task.id, now));
     if (!result.added) return;
-    update(result.state);
     notify(gamified ? `Tarefa concluída: ${task.title}. +${TASK_XP} XP de legado.` : `Tarefa concluída: ${task.title}.`);
   }
 

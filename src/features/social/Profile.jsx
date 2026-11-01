@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import Icon from './Icon.jsx';
-import { AnimatedNumber, Button, Cover, Glow, Heading, Progress, stagger } from './ui.jsx';
-import { api, apiError } from '../lib/api.js';
-import { buildProfile } from '../../public/profile-domain.js';
-import { MAX_PROFILE_BIO_LENGTH, normalizeProfileCard, studyRhythm } from '../../public/domain.js';
+import Icon from '../../ui/Icon.jsx';
+import { AnimatedNumber, Button, Cover, Glow, Heading, Progress, stagger } from '../../ui/ui.jsx';
+import { api, apiError } from '../../lib/api.js';
+import { buildProfile } from '../../../public/profile-domain.js';
+import { MAX_PROFILE_BIO_LENGTH, normalizeProfileCard, studyRhythm } from '../../../public/domain.js';
 
 // Perfil inspirado na vitrine da Steam, adaptado para estudos no Lume:
 // - Banner (header) e foto de perfil enviados ao armazenamento de objetos (Cloudflare R2

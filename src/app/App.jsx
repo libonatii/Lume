@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { useLume } from '../hooks/useLume.js';
+import { useLume } from './useLume.js';
 import Shell from './Shell.jsx';
-import { Dialog, enter, ease } from './ui.jsx';
-import { ENTRY_ROUTES, ROUTE_BY_ID, parseHash } from '../app/routes.jsx';
-import { ModalContent } from '../app/modals.jsx';
-import Icon from './Icon.jsx';
+import { Dialog, enter, ease } from '../ui/ui.jsx';
+import { ENTRY_ROUTES, ROUTE_BY_ID, parseHash } from './routes.jsx';
+import { ModalContent } from './modals.jsx';
+import Icon from '../ui/Icon.jsx';
 import { markDesktop, syncTitleBar } from '../lib/desktop.js';
 import { listenForExtension } from '../lib/extension.js';
 import { findLessonByUrl } from '../../public/import-domain.js';
@@ -93,7 +93,7 @@ export default function App() {
   return <><Shell route={route} model={model} hideTabs={hideTabs} onComfort={() => open({ type: 'comfort' })} onHelp={() => open({ type: 'help' })} onRegister={() => setAuthMode('register')} onExit={exit}><motion.div className={`page page-${route}`} key={route} {...enter}>{page}</motion.div></Shell>
     <div className="toast-region" role="status" aria-live="polite" aria-atomic="true"><AnimatePresence>{toast && <motion.div key="feedback" className="toast" initial={{ opacity: 0, y: 16, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8 }} transition={{ duration: .28, ease }}><span className="toast-icon"><Icon name="check"/></span><span>{toast.message}</span><button aria-label="Fechar aviso" className="icon-button" onClick={() => setToast(null)}><Icon name="close"/></button></motion.div>}</AnimatePresence></div>
     {modal && <Dialog onClose={close} identity={`${modal.type}:${modal.id || ''}`}>
-      <ModalContent modal={modal} state={state} update={update} open={open} close={close} notify={notify} go={go} account={model.account}/>
+      <ModalContent modal={modal} state={state} update={update} act={model.act} open={open} close={close} notify={notify} go={go} account={model.account}/>
     </Dialog>}
   </>;
 }

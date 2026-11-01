@@ -36,9 +36,9 @@ As consultas ao site publicado foram feitas em 31/10/2026 apenas com `GET` anôn
 
 | Problema | Onde aparece | Evidência no código |
 | --- | --- | --- |
-| **Duas respostas diferentes para "o que fazer agora"** | Hoje e Missões usam `nextMission` (primeira etapa pendente do curso selecionado, na ordem da biblioteca, incluindo cursos de exemplo). O Companion e o perfil usam `studyPlan` (continuidade, primeiro passo, perto do fim, sem exemplos) | `src/components/Study.jsx:15`, `src/components/Personal.jsx:14`, `public/study-plan.js`. [Lume §2](COMPANHEIRO.md) afirma que o site usa o mesmo critério, o que não é verdade |
+| **Duas respostas diferentes para "o que fazer agora"** | Hoje e Missões usam `nextMission` (primeira etapa pendente do curso selecionado, na ordem da biblioteca, incluindo cursos de exemplo). O Companion e o perfil usam `studyPlan` (continuidade, primeiro passo, perto do fim, sem exemplos) | `src/features/library/Study.jsx:15`, `src/features/settings/Personal.jsx:14`, `public/study-plan.js`. [Lume §2](COMPANHEIRO.md) afirma que o site usa o mesmo critério, o que não é verdade |
 | **"Ação focal única" cercada de sete blocos** | A Hoje tinha: foco, cartão de pausa com imagem, sessão, três métricas, jornada e lembrete de conforto | `Study.jsx` (antes da Etapa 1) |
-| **Indicadores repetidos** | Nível aparece na barra lateral e na barra superior; o estado de sincronização aparece na barra superior e no rodapé | `src/components/Shell.jsx` |
+| **Indicadores repetidos** | Nível aparece na barra lateral e na barra superior; o estado de sincronização aparece na barra superior e no rodapé | `src/app/Shell.jsx` |
 | **Métrica que mistura preparação com conclusão** | Resolvido em 01/11/2026: `weekCount` conta só conclusões não históricas e tarefas; preparação não entra | `public/domain.js` |
 | **Navegação com dez itens de mesmo peso** | Hoje, Tarefas, Biblioteca, Missões, Conquistas, Meu caminho, Amigos, Mensagens, Ranking, Configurações — mais GitHub, Perfil e Instalar fora do menu | `links` em `Shell.jsx` |
 | **Tarefas sem prioridade nem relação com o plano** | Ordem só por prazo; nada indica atraso; tarefas não aparecem na Hoje | `sortTasks` em `public/tasks-domain.js` |

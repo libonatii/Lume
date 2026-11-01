@@ -2,11 +2,11 @@ import { useMemo } from 'react';
 import {
   DAY_MINUTE_OPTIONS, WEEKDAYS, applyAvailability, buildSchedule, increaseWeekly, nextAvailableDay,
   normalizePlan, postponeLesson, setAvailability, setGoal, suggestedAvailability,
-} from '../../public/schedule-domain.js';
-import { studyPlan } from '../../public/study-plan.js';
-import { TASK_PRIORITIES, localDate } from '../../public/tasks-domain.js';
-import Icon from './Icon.jsx';
-import { Button, Empty, Heading } from './ui.jsx';
+} from '../../../public/schedule-domain.js';
+import { studyPlan } from '../../../public/study-plan.js';
+import { TASK_PRIORITIES, localDate } from '../../../public/tasks-domain.js';
+import Icon from '../../ui/Icon.jsx';
+import { Button, Empty, Heading } from '../../ui/ui.jsx';
 
 export function formatMinutes(total) {
   const value = Math.max(0, Math.round(total));

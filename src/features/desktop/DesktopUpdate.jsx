@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import Icon from './Icon.jsx';
+import Icon from '../../ui/Icon.jsx';
 
 // Botão discreto de atualização da janela do app. Fica no topo, ao lado das
 // preferências: verifica, baixa e abre o instalador sem sair do Lume.

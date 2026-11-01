@@ -1,7 +1,7 @@
 // Abas de uma seção da navegação principal. Cada aba é um hash próprio, então
 // voltar, recarregar e compartilhar o endereço continuam funcionando. As abas
 // vêm da tabela de rotas (src/app/routes.jsx).
-import { SECTIONS, sectionOf, tabsOf } from '../app/routes.jsx';
+import { SECTIONS, sectionOf, tabsOf } from './routes.jsx';
 
 export { SECTIONS, sectionOf };
 

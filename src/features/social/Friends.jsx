@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import Icon from './Icon.jsx';
-import { Button, Heading } from './ui.jsx';
-import { api, apiError } from '../lib/api.js';
-import { copyText, selectText } from '../lib/clipboard.js';
-import { CollaborationInbox } from './Collaboration.jsx';
+import Icon from '../../ui/Icon.jsx';
+import { Button, Heading } from '../../ui/ui.jsx';
+import { api, apiError } from '../../lib/api.js';
+import { copyText, selectText } from '../../lib/clipboard.js';
+import { CollaborationInbox } from '../library/Collaboration.jsx';
 
 // Amizades por convite. O convite é um código reaproveitável, válido por 7 dias;
 // não existe busca por e-mail. Ser amigo não compartilha biblioteca, progresso

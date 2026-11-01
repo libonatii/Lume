@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { api, apiError } from '../lib/api.js';
-import Icon from './Icon.jsx';
-import { Button } from './ui.jsx';
+import { api, apiError } from '../../lib/api.js';
+import Icon from '../../ui/Icon.jsx';
+import { Button } from '../../ui/ui.jsx';
 
 const STATUS_LABEL = { pending: 'aguardando', accepted: 'aceito', declined: 'recusado', cancelled: 'cancelado' };
 

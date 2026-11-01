@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { api, apiError } from '../lib/api.js';
-import { invalidateResources, mutateResource, useResource } from '../lib/resources.js';
-import { materialType } from '../../public/domain.js';
-import Icon from './Icon.jsx';
-import { Button, Empty, Heading } from './ui.jsx';
+import { api, apiError } from '../../lib/api.js';
+import { invalidateResources, mutateResource, useResource } from '../../lib/resources.js';
+import { materialType } from '../../../public/domain.js';
+import Icon from '../../ui/Icon.jsx';
+import { Button, Empty, Heading } from '../../ui/ui.jsx';
 
 function timeLabel(value) {
   if (!value) return '';

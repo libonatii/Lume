@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import Icon from './Icon.jsx';
-import { Button, Heading } from './ui.jsx';
-import { api, apiError } from '../lib/api.js';
-import { useResource } from '../lib/resources.js';
-import { copyText, selectText } from '../lib/clipboard.js';
-import { isDesktopApp } from '../lib/desktop.js';
-import { formatPairCode, presenceState } from '../../public/companion-domain.js';
+import Icon from '../../ui/Icon.jsx';
+import { Button, Heading } from '../../ui/ui.jsx';
+import { api, apiError } from '../../lib/api.js';
+import { useResource } from '../../lib/resources.js';
+import { copyText, selectText } from '../../lib/clipboard.js';
+import { isDesktopApp } from '../../lib/desktop.js';
+import { formatPairCode, presenceState } from '../../../public/companion-domain.js';
 
 // Página do app de desktop: baixar o programa e conectar a presença local.
 // O programa é o Lume inteiro (janela com o site); este painel cuida da

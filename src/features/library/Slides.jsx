@@ -4,9 +4,9 @@ import {
   MAX_SLIDE_BODY, MAX_SLIDE_TITLE, SLIDE_COMPLETION_RATIO, SLIDE_XP,
   addSlide, completeDeck, markSlideSeen, moveSlide, normalizeSlides,
   removeSlide, setSlideImage, slidePositionLabel, slidesSummary, updateSlide,
-} from '../../public/slides-domain.js';
-import Icon from './Icon.jsx';
-import { Button, Progress } from './ui.jsx';
+} from '../../../public/slides-domain.js';
+import Icon from '../../ui/Icon.jsx';
+import { Button, Progress } from '../../ui/ui.jsx';
 
 function SlideForm({ initial = { title: '', body: '' }, onSubmit, onCancel, submitLabel }) {
   const [title, setTitle] = useState(initial.title || '');
@@ -152,7 +152,7 @@ export function SlidesEditor({ course, update, notify }) {
   </section>;
 }
 
-export function SlidesViewer({ course, state, update, close, notify, account }) {
+export function SlidesViewer({ course, state, update, act, close, notify, account }) {
   const slides = normalizeSlides(course.slides);
   const summary = slidesSummary(course);
   const initial = Math.max(0, slides.findIndex((slide) => slide.id === summary.progress.lastId));
@@ -191,7 +191,8 @@ export function SlidesViewer({ course, state, update, close, notify, account }) 
   const completed = Boolean(summary.progress.completedAt);
 
   function conclude() {
-    const result = completeDeck(state, course.id);
+    const now = new Date().toISOString();
+    const result = act((current) => completeDeck(current, course.id, now));
     if (!result.completed) {
       notify(result.reason === 'coverage'
         ? `Veja pelo menos ${Math.round(SLIDE_COMPLETION_RATIO * 100)}% dos slides antes de concluir.`
@@ -200,7 +201,6 @@ export function SlidesViewer({ course, state, update, close, notify, account }) 
           : 'Esta apresentação já foi concluída.');
       return;
     }
-    update(result.state);
     notify(account
       ? 'Apresentação concluída. O XP elegível será confirmado pelo servidor na sua conta.'
       : 'Apresentação concluída nesta prévia. Entre na conta para o XP valer no ranking.');

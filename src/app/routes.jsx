@@ -2,19 +2,19 @@
 // do menu (com o rótulo da aba) e como desenhar. O menu, as abas de seção e o
 // título da janela derivam desta tabela.
 
-import { Login, Recovery } from '../components/Auth.jsx';
-import { Home, Library } from '../components/Study.jsx';
-import Onboarding from '../components/Onboarding.jsx';
-import { Achievements, History, Preferences } from '../components/Personal.jsx';
-import { Roadmap, Schedule } from '../components/Plan.jsx';
-import Friends from '../components/Friends.jsx';
-import Profile from '../components/Profile.jsx';
-import Companion from '../components/Companion.jsx';
-import Tasks from '../components/Tasks.jsx';
-import Ranking from '../components/Ranking.jsx';
-import Messages from '../components/Messages.jsx';
-import GitHub from '../components/GitHub.jsx';
-import Icon from '../components/Icon.jsx';
+import { Login, Recovery } from '../features/account/Auth.jsx';
+import { Home, Library } from '../features/library/Study.jsx';
+import Onboarding from '../features/account/Onboarding.jsx';
+import { Achievements, History, Preferences } from '../features/settings/Personal.jsx';
+import { Roadmap, Schedule } from '../features/plan/Plan.jsx';
+import Friends from '../features/social/Friends.jsx';
+import Profile from '../features/social/Profile.jsx';
+import Companion from '../features/desktop/Companion.jsx';
+import Tasks from '../features/plan/Tasks.jsx';
+import Ranking from '../features/social/Ranking.jsx';
+import Messages from '../features/social/Messages.jsx';
+import GitHub from '../features/library/GitHub.jsx';
+import Icon from '../ui/Icon.jsx';
 
 // Cinco destinos do menu; as telas secundárias são abas da seção.
 export const SECTIONS = {
@@ -43,13 +43,13 @@ export const ROUTES = [
   { id: 'recuperar', title: 'Recuperar acesso', render: (ctx) => <Recovery key="recuperar" reset={false} notify={ctx.notify} go={ctx.go}/> },
   { id: 'redefinir', title: 'Nova senha', render: (ctx) => <Recovery key={ctx.hash} reset notify={ctx.notify} go={ctx.go}/> },
 
-  { id: 'hoje', title: 'Hoje', section: 'hoje', render: (ctx) => <Home state={ctx.state} open={ctx.open} go={ctx.go} update={ctx.update} notify={ctx.notify} account={ctx.model.account} xp={ctx.model.xp}/> },
+  { id: 'hoje', title: 'Hoje', section: 'hoje', render: (ctx) => <Home state={ctx.state} open={ctx.open} go={ctx.go} update={ctx.update} act={ctx.model.act} notify={ctx.notify} account={ctx.model.account} xp={ctx.model.xp}/> },
 
   { id: 'biblioteca', title: 'Biblioteca', section: 'biblioteca', tab: 'Materiais', render: (ctx) => <Library state={ctx.state} open={ctx.open} update={ctx.update}/> },
   { id: 'github', title: 'GitHub', section: 'biblioteca', tab: 'GitHub', render: (ctx) => <GitHub state={ctx.state} update={ctx.update} account={ctx.model.account} notify={ctx.notify} go={ctx.go}/> },
 
   { id: 'plano', title: 'Plano', section: 'plano', tab: 'Cronograma', render: (ctx) => <Schedule state={ctx.state} update={ctx.update} open={ctx.open} notify={ctx.notify}/> },
-  { id: 'tarefas', title: 'Tarefas', section: 'plano', tab: 'Tarefas', render: (ctx) => <Tasks state={ctx.state} update={ctx.update} notify={ctx.notify}/> },
+  { id: 'tarefas', title: 'Tarefas', section: 'plano', tab: 'Tarefas', render: (ctx) => <Tasks state={ctx.state} update={ctx.update} act={ctx.model.act} notify={ctx.notify}/> },
   { id: 'roteiro', title: 'Roteiro', section: 'plano', tab: 'Roteiro', render: (ctx) => <Roadmap state={ctx.state} open={ctx.open}/> },
 
   { id: 'amigos', title: 'Amigos', section: 'amigos', tab: 'Contatos', render: (ctx) => <Friends account={ctx.model.account} notify={ctx.notify} go={ctx.go}/> },

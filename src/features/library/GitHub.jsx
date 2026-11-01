@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { addMaterial } from '../../public/domain.js';
-import { api, apiError } from '../lib/api.js';
-import Icon from './Icon.jsx';
-import { Button, Empty, Heading } from './ui.jsx';
+import { addMaterial } from '../../../public/domain.js';
+import { api, apiError } from '../../lib/api.js';
+import Icon from '../../ui/Icon.jsx';
+import { Button, Empty, Heading } from '../../ui/ui.jsx';
 
 export default function GitHub({ state, update, account, notify, go }) {
   const [url, setUrl] = useState('');

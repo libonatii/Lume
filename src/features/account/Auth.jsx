@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import Icon from './Icon.jsx';
-import { Button, Glow, enter, stagger } from './ui.jsx';
-import { api, apiError } from '../lib/api.js';
+import Icon from '../../ui/Icon.jsx';
+import { Button, Glow, enter, stagger } from '../../ui/ui.jsx';
+import { api, apiError } from '../../lib/api.js';
 
 const promises = [
   ['book', 'Uma biblioteca que lembra onde você parou', 'Cursos, leituras, exercícios e projetos com ponto de retomada.'],
