@@ -46,7 +46,8 @@ textos da ficha e as justificativas de permissão estão em [LOJA.md](LOJA.md); 
 
 ## Arquivos
 
-- `capture.js` — leitor da página (injetado ao clicar).
+- `src/capture.js` — fonte do leitor da página; usa o registro de provedores de `public/providers/`.
+- `capture.js` — gerado por `npm run extension:build` a partir de `src/capture.js` (injetado ao clicar). Não edite à mão.
 - `icons/` — ícones da extensão (gerados do logo do Lume); `store/` — imagens da ficha da loja.
 - `popup.html`, `popup.js` — interface do ícone.
 - `background.js` — encontra ou abre o Lume e entrega a leitura.

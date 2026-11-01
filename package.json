@@ -8,14 +8,15 @@
     "start": "npm run build && node server.js",
     "dev": "node scripts/dev.mjs",
     "build": "astro build && node scripts/headers.mjs",
-    "extension:package": "node scripts/package-extension.mjs",
+    "extension:package": "npm run extension:build && node scripts/package-extension.mjs",
     "preview": "node server.js",
-    "test": "node --test api-contract.test.js auth.test.js domain.test.js import.test.js companion.test.js session.test.js study-plan.test.js friends.test.js profile.test.js desktop.test.js companion/update.test.js companion/discord-presence.test.js tasks.test.js library.test.js xp.test.js backup.test.js merge.test.js state.test.js messages.test.js email.test.js github.test.js collaboration.test.js schedule.test.js",
+    "test": "node --test api-contract.test.js extension-build.test.js auth.test.js domain.test.js import.test.js companion.test.js session.test.js study-plan.test.js friends.test.js profile.test.js desktop.test.js companion/update.test.js companion/discord-presence.test.js tasks.test.js library.test.js xp.test.js backup.test.js merge.test.js state.test.js messages.test.js email.test.js github.test.js collaboration.test.js schedule.test.js",
     "test:e2e": "playwright test",
     "companion": "node companion/agent.mjs run",
     "companion:pair": "node companion/agent.mjs pair",
     "companion:status": "node companion/agent.mjs status",
-    "companion:app": "npm --prefix companion start"
+    "companion:app": "npm --prefix companion start",
+    "extension:build": "node scripts/build-extension.mjs"
   },
   "engines": {
     "node": ">=22.23.4"
@@ -32,6 +33,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",
+    "esbuild": "^0.28.2",
     "wrangler": "^4.156.0"
   }
 }

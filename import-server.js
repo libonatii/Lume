@@ -9,6 +9,7 @@
 // - o HTML é dado, nunca instrução: nenhum trecho da página vira prompt.
 
 import { canonicalUrl, cleanTitle, detectProvider, providerById } from './public/import-domain.js';
+import { platformNames } from './public/providers/registry.js';
 import { AppError } from './api/errors.js';
 
 export const MAX_DOCUMENT_BYTES = 2 * 1024 * 1024;
@@ -190,7 +191,7 @@ function sectionTitle(item) {
 // "Curso X | Udemy | Udemy" vira "Curso X": o sufixo é do site, não do curso.
 function tidyTitle(value, providerLabel) {
   let title = cleanTitle(value);
-  const labels = new Set([providerLabel, 'Udemy', 'Alura', 'Coursera', 'Rocketseat', 'Gran Cursos', 'Gran Cursos Online', 'Estratégia Concursos', 'DIO', 'Hotmart'].filter(Boolean));
+  const labels = new Set([providerLabel, ...platformNames()].filter(Boolean));
   for (const label of labels) {
     const pattern = new RegExp(`\\s*[|\\-–—:]\\s*${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`, 'i');
     let previous;

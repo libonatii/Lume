@@ -10,74 +10,18 @@
 //   da fonte é marcado, não apagado.
 
 import { completedUnitIds, isCompleted, recordCompletion, revertUnit, unitOrigin } from './progress-domain.js';
+import { PROVIDERS as REGISTERED_PROVIDERS, UNKNOWN_PROVIDER, providerForUrl, readsCompletion } from './providers/registry.js';
 
 const MAX_DISCIPLINES = 40;
 const MAX_MODULES = 60;
 const MAX_LESSONS = 600;
 const MAX_TITLE = 200;
 
-// Capacidades declaradas por fonte. Aceitar um link não significa que todas
-// estejam disponíveis: cada campo precisa ser verificado na fonte.
-//   syllabus: structured = dados estruturados publicados na página
-//             page       = grade parcialmente legível na página pública
-//             manual     = a grade só chega por texto/arquivo
-//             none       = nenhuma leitura automática conhecida
-export const PROVIDERS = [
-  {
-    id: 'grancursos', label: 'Gran Cursos Online', hosts: ['grancursosonline.com.br'],
-    structure: 'disciplinas e assuntos', art: 'nature',
-    syllabus: 'page',
-    note: 'A página pública costuma mostrar as disciplinas do pacote. Módulos e aulas detalhados normalmente ficam na área autenticada: abra o curso logado e use a extensão do Lume, ou copie a página e cole, ou envie o texto.',
-  },
-  {
-    id: 'estrategia', label: 'Estratégia Concursos', hosts: ['estrategiaconcursos.com.br'],
-    structure: 'disciplinas e assuntos', art: 'nature',
-    syllabus: 'page',
-    note: 'O Lume lê apenas a página pública do curso. A grade completa costuma exigir acesso à conta: abra o curso logado e use a extensão do Lume, ou copie a página e cole.',
-  },
-  {
-    id: 'alura', label: 'Alura', hosts: ['alura.com.br'],
-    structure: 'cursos, módulos e aulas', art: 'code',
-    syllabus: 'structured',
-    note: 'Cursos avulsos e formações publicam parte da ementa na página. Trilhas fechadas podem aparecer incompletas.',
-  },
-  {
-    id: 'rocketseat', label: 'Rocketseat', hosts: ['rocketseat.com.br'],
-    structure: 'trilhas, módulos e projetos', art: 'code',
-    syllabus: 'page',
-    note: 'A trilha pública lista módulos e aulas; o conteúdo em vídeo exige acesso próprio.',
-  },
-  {
-    id: 'udemy', label: 'Udemy', hosts: ['udemy.com'],
-    structure: 'seções e aulas', art: 'design',
-    syllabus: 'structured',
-    note: 'O catálogo publica título e parte do currículo em dados estruturados. Aulas pagas não são acessíveis ao Lume.',
-  },
-  {
-    id: 'coursera', label: 'Coursera', hosts: ['coursera.org'],
-    structure: 'semanas e aulas', art: 'language',
-    syllabus: 'structured',
-    note: 'Parte do programa é publicada na página do curso. A duração real pode variar por turma.',
-  },
-  {
-    id: 'dio', label: 'DIO', hosts: ['dio.me'],
-    structure: 'bootcamps e módulos', art: 'code',
-    syllabus: 'page',
-    note: 'Bootcamps públicos listam módulos; o detalhe das aulas pode exigir cadastro.',
-  },
-  {
-    id: 'hotmart', label: 'Hotmart', hosts: ['hotmart.com'],
-    structure: 'módulos e aulas', art: 'design',
-    syllabus: 'manual',
-    note: 'Páginas de produto raramente publicam a grade. Prefira colar a ementa ou enviar um arquivo.',
-  },
-];
-
-const FALLBACK_PROVIDER = {
-  id: 'unknown', label: 'Fonte não reconhecida', hosts: [], structure: 'conteúdo', art: 'nature',
-  syllabus: 'page',
-  note: 'Fonte sem adaptador próprio. O Lume tenta ler dados estruturados e a estrutura visível da página; se não bastar, use texto ou arquivo.',
-};
+// O catálogo de plataformas vive no registro de provedores
+// (public/providers/registry.js): cada uma declara capacidades, leitores e como
+// reconhecer o curso. Estes nomes continuam exportados para quem já os usa.
+export const PROVIDERS = REGISTERED_PROVIDERS;
+const FALLBACK_PROVIDER = UNKNOWN_PROVIDER;
 
 export const MAX_SYLLABUS_CHARS = 60000;
 
@@ -86,31 +30,40 @@ export function providerById(id) {
 }
 
 export function detectProvider(value) {
-  let url;
-  try { url = new URL(String(value || '').trim()); } catch { return { ...FALLBACK_PROVIDER }; }
-  if (!['http:', 'https:'].includes(url.protocol)) return { ...FALLBACK_PROVIDER };
-  const host = url.hostname.toLowerCase().replace(/^www\./, '');
-  const found = PROVIDERS.find((item) => item.hosts.some((known) => host === known || host.endsWith(`.${known}`)));
-  return { ...(found || FALLBACK_PROVIDER) };
+  return { ...providerForUrl(value) };
 }
 
-// Capacidades em formato pronto para a interface. Nunca prometemos progresso
-// automático: nenhuma fonte integrada expõe hoje leitura de aulas assistidas.
+// Capacidades em formato pronto para a interface, a partir do que o provedor
+// declara e de como esta grade foi lida. Ler a marca de concluído não é
+// acompanhar a reprodução: é o que a plataforma mostrou, confirmado pela pessoa.
 export function providerCapabilities(provider, extraction) {
+  const declared = provider?.capabilities || UNKNOWN_PROVIDER.capabilities;
+  const loggedRead = extraction === 'extension-capture' || extraction === 'page-snapshot';
   const syllabusLabel = extraction === 'extension-capture'
-    ? 'Parcial, lida pela extensão na página aberta com a sua conta'
+    ? (declared.syllabus === 'full' ? 'Sim, lida pela extensão na grade que a plataforma entrega à sua conta' : 'Parcial, lida pela extensão na página aberta com a sua conta')
     : extraction === 'page-snapshot'
-    ? 'Parcial, a partir da página que você copiou já logada'
-    : extraction === 'structured-data' || provider.syllabus === 'structured'
-      ? 'Sim, a partir dos dados publicados na página'
-      : extraction === 'page-outline'
-        ? 'Parcial, a partir da estrutura visível da página'
-        : 'Somente por texto colado ou arquivo';
+      ? 'Parcial, a partir da página que você copiou já logada'
+      : extraction === 'structured-data' || provider?.syllabus === 'structured'
+        ? 'Sim, a partir dos dados publicados na página'
+        : extraction === 'page-outline'
+          ? 'Parcial, a partir da estrutura visível da página'
+          : 'Somente por texto colado ou arquivo';
+  const flags = declared.progress === 'lesson-flags';
   return [
     { id: 'syllabus', label: 'Importar a grade', value: syllabusLabel, available: true },
-    { id: 'account', label: 'Acessar conteúdo da sua conta', value: 'Não — sem integração; você pode copiar a página aberta e o Lume organiza', available: false },
-    { id: 'progress', label: 'Consultar progresso automaticamente', value: 'Não — conclusão é registrada por você', available: false },
-    { id: 'resume', label: 'Retomar a aula na posição exata', value: 'Não — link direto quando a fonte permite', available: false },
+    {
+      id: 'account',
+      label: 'Acessar conteúdo da sua conta',
+      value: loggedRead ? 'Só o que a página aberta com a sua conta mostra; o Lume não recebe senha nem cookie' : 'Não — abra o curso logado e use a extensão, ou copie a página',
+      available: loggedRead,
+    },
+    {
+      id: 'progress',
+      label: 'Ler aulas marcadas como concluídas',
+      value: flags && loggedRead ? 'Sim, a marca que a plataforma mostra; novas conclusões pedem sua confirmação' : flags ? 'Só na leitura logada (extensão ou página copiada)' : 'Não — conclusão é registrada por você',
+      available: flags && loggedRead,
+    },
+    { id: 'resume', label: 'Retomar a aula na posição exata', value: declared.resume ? 'Sim' : 'Não — link direto quando a fonte permite', available: declared.resume === true },
   ];
 }
 
@@ -208,8 +161,11 @@ export function normalizePayload(input, { sourceUrl = '' } = {}) {
   // A extensão marca cada aula individualmente: títulos repetidos em módulos
   // diferentes ("Introdução") não podem se contaminar pela comparação por título.
   const flagged = input.completionSource === 'lesson-flags';
+  // Só provedor que declara ler conclusão pode marcar aula como concluída na
+  // fonte; numa fonte desconhecida, a marca não é confiável e é ignorada.
+  const completionAllowed = readsCompletion(provider);
   const completedTitles = new Set(
-    (Array.isArray(input.completedTitles) ? input.completedTitles : [])
+    (completionAllowed && Array.isArray(input.completedTitles) ? input.completedTitles : [])
       .map((title) => cleanTitle(title))
       .filter(Boolean),
   );
@@ -223,6 +179,7 @@ export function normalizePayload(input, { sourceUrl = '' } = {}) {
     const disciplineTitle = cleanTitle(rawDiscipline?.title);
     if (!disciplineTitle) continue;
     const disciplineId = `dis_${stableHash(`${identity}|${disciplineTitle}`)}`;
+    const disciplineExternalId = cleanTitle(rawDiscipline?.externalId, 200);
     const modules = [];
     let moduleCount = 0;
     for (const rawModule of Array.isArray(rawDiscipline.modules) ? rawDiscipline.modules : []) {
@@ -235,17 +192,23 @@ export function normalizePayload(input, { sourceUrl = '' } = {}) {
         if (lessonCount >= MAX_LESSONS) break;
         const title = cleanTitle(rawLesson?.title);
         if (!title) continue;
-        const id = `lsn_${stableHash(`${identity}|${disciplineTitle}|${moduleTitle}|${title}`)}`;
+        // Com identidade da plataforma, o id não depende do título: renomear a
+        // aula na fonte não cria outra aula nem separa o progresso.
+        const externalId = cleanTitle(rawLesson?.externalId, 200);
+        const id = externalId
+          ? `lsn_${stableHash(`${identity}|x:${externalId}`)}`
+          : `lsn_${stableHash(`${identity}|${disciplineTitle}|${moduleTitle}|${title}`)}`;
         if (seen.has(id)) continue;
         seen.add(id);
         const duration = normalizeDuration(rawLesson?.duration);
-        const completedInSource = flagged
+        const completedInSource = !completionAllowed ? false : flagged
           ? rawLesson?.completed === true
           : completedTitles.has(title)
             || (title.length >= 12 && [...completedTitles].some((candidate) => candidate.includes(title) || title.includes(candidate)));
         if (completedInSource) completedCount += 1;
         lessons.push({
           id,
+          ...(externalId ? { externalId } : {}),
           title,
           url: safeAssetUrl(rawLesson?.url),
           duration,
@@ -269,9 +232,12 @@ export function normalizePayload(input, { sourceUrl = '' } = {}) {
     }
     if (!modules.length) continue;
     disciplineCount += 1;
-    disciplines.push({ id: disciplineId, title: disciplineTitle, modules });
+    disciplines.push({ id: disciplineId, ...(disciplineExternalId ? { externalId: disciplineExternalId } : {}), title: disciplineTitle, modules });
   }
 
+  if (!completionAllowed && (flagged || (Array.isArray(input.completedTitles) && input.completedTitles.length))) {
+    warnings.push('Fonte sem adaptador próprio: as marcas de concluído da página não foram lidas.');
+  }
   if (!lessonCount) throw new Error('Nenhuma aula identificada. Cole a grade inteira ou envie um arquivo com disciplinas, módulos e aulas.');
 
   const extraction = ['structured-data', 'page-outline', 'page-snapshot', 'extension-capture', 'pasted-text', 'file-import', 'ai-assisted'].includes(input.extraction?.kind)
@@ -314,6 +280,46 @@ export function selectedCount(payload, selected) {
 // explícito no código o valor zero que a política de gamificação determina.
 export function importXp() {
   return 0;
+}
+
+// Aula que já está na biblioteca mantém o id que tem: o progresso, o XP e as
+// tarefas apontam para ele. Casa primeiro pela identidade da plataforma
+// (externalId) e, para aulas importadas antes dela existir, pelo caminho de
+// títulos (disciplina, módulo, aula); nesse caso a aula ganha o externalId.
+function adoptExistingIds(previousStructure, nextStructure) {
+  const byExternal = new Map();
+  const byPath = new Map();
+  for (const discipline of previousStructure || []) {
+    for (const module of discipline.modules || []) {
+      for (const lesson of module.lessons || []) {
+        if (lesson.externalId) byExternal.set(lesson.externalId, lesson.id);
+        else byPath.set(`${discipline.title}|${module.title}|${lesson.title}`, lesson.id);
+      }
+    }
+  }
+  const taken = new Set();
+  return nextStructure.map((discipline) => ({
+    ...discipline,
+    modules: discipline.modules.map((module) => ({
+      ...module,
+      lessons: module.lessons.map((lesson) => {
+        const known = (lesson.externalId && byExternal.get(lesson.externalId))
+          || (lesson.externalId && byPath.get(`${discipline.title}|${module.title}|${lesson.title}`));
+        if (!known || taken.has(known)) return lesson;
+        taken.add(known);
+        return { ...lesson, id: known };
+      }),
+    })),
+  }));
+}
+
+function idRemap(before, after) {
+  const map = new Map();
+  before.forEach((discipline, d) => discipline.modules.forEach((module, m) => module.lessons.forEach((lesson, l) => {
+    const next = after[d].modules[m].lessons[l].id;
+    if (next !== lesson.id) map.set(lesson.id, next);
+  })));
+  return map;
 }
 
 function mergeStructure(previousStructure, nextStructure) {
@@ -388,8 +394,11 @@ export function applyCourseImport(state, payload, { selectedLessonIds = [], now 
   }
   const existing = (state.courses || []).find((course) => course.source?.identity === payload.identity)
     || (courseId ? (state.courses || []).find((course) => course.id === courseId && course.source) : null);
-  const requested = new Set(selectedLessonIds.length ? selectedLessonIds : allLessonIds(payload));
-  const structure = existing ? mergeStructure(existing.structure, payload.disciplines) : payload.disciplines;
+  const incoming = existing ? adoptExistingIds(existing.structure, payload.disciplines) : payload.disciplines;
+  const remap = idRemap(payload.disciplines, incoming);
+  const requested = new Set((selectedLessonIds.length ? selectedLessonIds : allLessonIds(payload)).map((id) => remap.get(id) || id));
+  observedCompletionIds = observedCompletionIds.map((id) => remap.get(id) || id);
+  const structure = existing ? mergeStructure(existing.structure, incoming) : incoming;
   const selection = mergeSelection(existing?.steps, structure, requested);
   const steps = stepsFromStructure(structure, selection);
   if (!steps.length) throw new Error('Nada para importar. Escolha pelo menos uma disciplina.');

@@ -182,7 +182,8 @@ test('página copiada de um curso logado é lida sem receber a sessão', () => {
   assert.equal(payload.extraction.kind, 'page-snapshot');
   assert.equal(payload.sourceUrl, 'https://grancursosonline.com.br/curso/oab');
   assert.equal(payload.capabilities.find((item) => item.id === 'syllabus').value, 'Parcial, a partir da página que você copiou já logada');
-  assert.match(payload.capabilities.find((item) => item.id === 'account').value, /copiar a página aberta/i);
+  assert.match(payload.capabilities.find((item) => item.id === 'account').value, /página aberta com a sua conta/i);
+  assert.equal(payload.capabilities.find((item) => item.id === 'progress').available, true, 'o Gran declara ler a marca de concluído');
 
   assert.throws(() => analyzeSnapshot('<html><body><h1>Entre na sua conta</h1><p>Faça login para ver o curso.</p></body></html>', url), (error) => error.code === 'no_syllabus');
   assert.throws(() => analyzeSnapshot('<html></html>', url), (error) => error.code === 'empty_text');
@@ -463,4 +464,51 @@ test('a página aberta acha a aula pelo endereço, com complemento, sem casar a 
   assert.equal(findLessonByUrl(state, 'https://www.udemy.com/course/react'), null);
   assert.equal(findLessonByUrl(state, 'https://www.alura.com.br/course/react/learn/lecture/14'), null);
   assert.equal(findLessonByUrl(state, 'nao-e-url'), null);
+});
+
+test('fonte sem adaptador não lê marcas de concluído', () => {
+  const payload = normalizePayload({
+    title: 'Curso solto', provider: { id: 'unknown' }, sourceUrl: 'https://cursos.example.test/x',
+    completionSource: 'lesson-flags',
+    disciplines: [{ title: 'Área', modules: [{ title: 'M', lessons: [{ title: 'Aula 1', completed: true }, { title: 'Aula 2' }] }] }],
+  });
+  assert.equal(payload.completedCount, 0);
+  assert.ok(payload.warnings.some((item) => /marcas de concluído/.test(item)));
+  assert.equal(payload.capabilities.find((item) => item.id === 'progress').available, false);
+});
+
+test('aula com identidade da plataforma mantém progresso quando o título muda', () => {
+  const capture = (title, externalId = 'd1/a1') => ({
+    title: 'Curso Gran', provider: { id: 'grancursos' }, sourceUrl: 'https://www.grancursosonline.com.br/aluno/curso/video/codigo/ABC',
+    completionSource: 'lesson-flags', extraction: { kind: 'extension-capture' },
+    disciplines: [{ title: 'Direito', externalId: 'd1', modules: [{ title: 'Aulas', lessons: [{ title, externalId }, { title: 'Aula 2', externalId: 'd1/a2' }] }] }],
+  });
+  let state = applyCourseImport(createInitialState(), normalizePayload(capture('Aula 1 - Introdução')), { now: '2026-11-01T10:00:00Z' });
+  const course = state.courses[0];
+  const lessonId = course.steps[0].id;
+  state = completeLesson(state, course.id, lessonId, { now: '2026-11-01T11:00:00Z' }).state;
+  state = applyCourseImport(state, normalizePayload(capture('Aula 1 - Introdução ao Direito')), { now: '2026-11-02T10:00:00Z' });
+  const updated = state.courses[0];
+  assert.equal(updated.steps.length, 2, 'renomear não cria aula nova');
+  assert.equal(updated.steps[0].id, lessonId);
+  assert.equal(updated.steps[0].title, 'Aula 1 - Introdução ao Direito');
+  assert.ok(isCompleted(state, lessonId));
+});
+
+test('aula importada antes da identidade da plataforma adota o externalId sem perder o id', () => {
+  const base = {
+    title: 'Curso Gran', provider: { id: 'grancursos' }, sourceUrl: 'https://www.grancursosonline.com.br/aluno/curso/video/codigo/ABC',
+    extraction: { kind: 'extension-capture' },
+  };
+  const old = normalizePayload({ ...base, disciplines: [{ title: 'Direito', modules: [{ title: 'Aulas', lessons: [{ title: 'Aula 1' }, { title: 'Aula 2' }] }] }] });
+  let state = applyCourseImport(createInitialState(), old, { now: '2026-11-01T10:00:00Z' });
+  const oldId = state.courses[0].steps[0].id;
+  state = completeLesson(state, state.courses[0].id, oldId, { now: '2026-11-01T11:00:00Z' }).state;
+  const next = normalizePayload({ ...base, disciplines: [{ title: 'Direito', externalId: 'd1', modules: [{ title: 'Aulas', lessons: [{ title: 'Aula 1', externalId: 'd1/a1' }, { title: 'Aula 2', externalId: 'd1/a2' }] }] }] });
+  state = applyCourseImport(state, next, { now: '2026-11-02T10:00:00Z' });
+  const lessons = state.courses[0].structure[0].modules[0].lessons;
+  assert.equal(lessons.filter((lesson) => !lesson.removedFromSource).length, 2, 'nada some nem duplica');
+  assert.equal(lessons[0].id, oldId);
+  assert.equal(lessons[0].externalId, 'd1/a1');
+  assert.ok(isCompleted(state, oldId));
 });

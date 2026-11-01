@@ -269,3 +269,32 @@ prova de observação de reprodução estão em [Evolução §5](EVOLUCAO.md#5-i
 - A estrutura importada é guardada na cópia do estado da conta; ela não é validada no servidor como conteúdo oficial.
 - A leitura de página copiada (`analyzeSnapshot`) depende de publicar o Worker com `npx wrangler deploy`, não
   executado nesta tarefa. O limite de corpo da rota passou de 96 KB para 3 MB nos dois backends.
+
+## Provedores (desde 01/11/2026)
+
+Cada plataforma tem uma implementação própria em `public/providers/<id>.js`, registrada em
+`public/providers/registry.js`. O provedor declara:
+
+- **capacidades** — `syllabus` (`full`, `partial`, `none`), `progress` (`none` ou `lesson-flags`: lê a marca de
+  concluído que a plataforma mostra na leitura logada), `resume` e `requiresLogin`. A revisão da importação mostra
+  essas capacidades, não um texto fixo;
+- **identify(url)** — reconhece o curso a partir da página aberta (ex.: `/course/<id>` na Udemy, `/learn/<id>` no
+  Coursera, `/aluno/curso/video/codigo/<código>` no Gran) e devolve o endereço canônico, que é a identidade na
+  reimportação;
+- **leitores** — `page` (extensão, página aberta com a conta), `public` e `snapshot` (servidor).
+
+Estado atual dos leitores:
+
+| Provedor | Leitor próprio | Caminho em uso |
+| --- | --- | --- |
+| Gran | `page`: rotas JSON da página (disciplinas → aulas → vídeos), com `externalId` por aula | Extensão; DOM como reserva |
+| Estratégia, Alura, Rocketseat, Udemy, Coursera, DIO, Hotmart | Ainda não | Leitura de tela da extensão e leitor de página compartilhado do servidor (schema.org e estrutura visível) |
+| Fonte desconhecida | — | Leitor compartilhado, **sem** ler marcas de concluído |
+
+Um provedor só passa a ter leitor próprio com fixture gravada de página real (anonimizada) em
+`tests/fixtures/providers/<id>/`, teste do leitor e conferência manual datada nesta página.
+
+**Identidade das aulas.** Quando o leitor entrega `externalId`, o id da aula no Lume deriva dele, não do título:
+renomear a aula na plataforma não cria outra aula. Aulas importadas antes (id por título) mantêm o id na primeira
+reimportação com `externalId` e passam a guardá-lo; progresso, XP e tarefas continuam ligados.
+

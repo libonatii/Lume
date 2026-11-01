@@ -380,17 +380,19 @@ test('Gran: lê a grade pela API da página, uma aula do Gran por aula, sem abri
   expect(payload.completeness).toBe('complete');
   expect(payload.warnings).toEqual([]);
   expect(payload.disciplines.map((discipline) => discipline.title)).toEqual(['1ª Fase OAB - Apresentação do Curso', 'Direito Constitucional']);
+  // Cada aula leva a identidade do Gran (disciplina/aula): o título pode mudar.
+  expect(payload.disciplines[1].externalId).toBe('21718');
   expect(payload.disciplines[1].modules).toEqual([{
     title: 'Aulas',
     lessons: [
       // Um vídeo assistido de dois: a aula ainda não está concluída.
-      { title: 'Aula 1 - Teoria da Constituição', url: `${GRAN_COURSE}/v/Ccc1`, duration: 2400, completed: false },
-      { title: 'Aula 2 - Poder Constituinte', url: `${GRAN_COURSE}/v/Ddd1`, duration: 900, completed: true },
-      { title: 'Aula 3 - Controle de Constitucionalidade', url: `${GRAN_COURSE}/v/Eee1`, duration: 1800, completed: false },
+      { title: 'Aula 1 - Teoria da Constituição', externalId: '21718/1', url: `${GRAN_COURSE}/v/Ccc1`, duration: 2400, completed: false },
+      { title: 'Aula 2 - Poder Constituinte', externalId: '21718/2', url: `${GRAN_COURSE}/v/Ddd1`, duration: 900, completed: true },
+      { title: 'Aula 3 - Controle de Constitucionalidade', externalId: '21718/3', url: `${GRAN_COURSE}/v/Eee1`, duration: 1800, completed: false },
     ],
   }]);
   // O link da aula é o do primeiro vídeo, codificado como a página faz.
-  expect(payload.disciplines[0].modules[0].lessons[0]).toEqual({ title: 'Aula 1 - Análise do Edital', url: `${GRAN_COURSE}/v/ZxxT%2BCmS4Zc%3D`, duration: 2940, completed: true });
+  expect(payload.disciplines[0].modules[0].lessons[0]).toEqual({ title: 'Aula 1 - Análise do Edital', externalId: '21717/1', url: `${GRAN_COURSE}/v/ZxxT%2BCmS4Zc%3D`, duration: 2940, completed: true });
   expect(result.stats).toEqual({ lessons: 4, groups: 2, disciplines: 2, completed: 2, pending: 0, truncated: false });
   // Só leitura, nas rotas da grade; nenhuma seção da página foi aberta.
   expect(requests.every((request) => request.method === 'GET' && request.query === '?audiobooks=true')).toBe(true);
@@ -401,8 +403,8 @@ test('Gran: aula sem lista de vídeos usa a contagem do Gran, deixa a leitura pa
   await serveGran(page, GRAN_API, { fail: ['/disciplina/21718/conteudo/2', '/disciplina/21718/conteudo/3'] });
   const result = await read(page);
   const lessons = result.payload.disciplines[1].modules[0].lessons;
-  expect(lessons[1]).toEqual({ title: 'Aula 2 - Poder Constituinte', url: '', duration: null, completed: true });
-  expect(lessons[2]).toEqual({ title: 'Aula 3 - Controle de Constitucionalidade', url: '', duration: null, completed: false });
+  expect(lessons[1]).toEqual({ title: 'Aula 2 - Poder Constituinte', externalId: '21718/2', url: '', duration: null, completed: true });
+  expect(lessons[2]).toEqual({ title: 'Aula 3 - Controle de Constitucionalidade', externalId: '21718/3', url: '', duration: null, completed: false });
   expect(result.payload.completeness).toBe('partial');
   expect(result.payload.warnings.join(' ')).toMatch(/2 aulas vieram sem a lista de vídeos/);
 });
