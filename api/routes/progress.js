@@ -1,8 +1,8 @@
 // XP validado no servidor, ranking e aplicativo de desktop.
 
-import {
-  adjustEvent, getRanking, getXpSnapshot, grantBonus, grantSlide, grantStep, recordTimeSession, updateXpSettings,
-} from '../../xp.js';
+import { adjustEvent, getRanking, getXpSnapshot, recordTimeSession, updateXpSettings } from '../../xp.js';
+import { grantBonus, grantSlide, grantStep } from '../../rewards.js';
+import { applyProgressCommands } from '../../commands.js';
 import {
   authenticateDevice, clearPresence, companionSelf, createPairCode, listCompanion, redeemPairCode,
   reportPresence, revokeDevice, studySnapshot,
@@ -25,6 +25,11 @@ function withDevice(handler) {
 }
 
 export function progressRoutes(router) {
+  // Comandos de progresso: o servidor grava a conclusão com o próprio relógio e
+  // devolve o XP concedido pelas regras na mesma resposta.
+  router.add('POST', '/api/progress', { auth: 'Entre na sua conta para registrar seu progresso.', origin: true }, async (ctx) =>
+    json(await applyProgressCommands(ctx.db, ctx.user.id, await ctx.json(64 * 1024))));
+
   router
     .add('GET', '/api/xp', XP, async ({ db, user, url }) =>
       json(await getXpSnapshot(db, user.id, { timeZone: url.searchParams.get('timeZone') || '' })))

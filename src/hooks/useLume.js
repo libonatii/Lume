@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { STORAGE_KEY, createInitialState, restoreState } from '../../public/domain.js';
 import { reconcileSession } from '../../public/session-domain.js';
-import { collectCompletionCandidates } from '../../public/xp-policy.js';
 import { mergeStates } from '../../public/merge-domain.js';
 import { api, apiError } from '../lib/api.js';
 import { clearResources } from '../lib/resources.js';
+import { BATCH_SIZE, pendingCommands, readSent as readOutbox, writeSent as writeOutbox } from '../lib/outbox.js';
 
 export const PREVIEW_KEY = 'lume.preview-session.v1';
 const SENT_KEY = 'lume.xp.sent.v1';
@@ -56,6 +56,7 @@ export function useLume(notify) {
   const revisionRef = useRef(0);
   const xpBusy = useRef(false);
   const xpSent = useRef(readSent());
+  const outbox = useRef(readOutbox());
   stateRef.current = state;
 
   const saveRemote = useCallback((snapshot) => {
@@ -156,22 +157,19 @@ export function useLume(notify) {
     refreshXP();
   }, [account?.id, refreshXP]);
 
-  // O navegador só pede a concessão; o servidor revalida o estado, o tipo e a
-  // data. A marcação local evita repetir pedidos já confirmados, mas a chave
-  // única do banco é a proteção real contra recompensa duplicada.
+  // Progresso vai ao servidor como comandos (src/lib/outbox.js): o servidor grava
+  // a conclusão com o próprio relógio e as regras de recompensa respondem na
+  // mesma requisição. Sessões declaradas seguem pela rota de tempo.
   useEffect(() => {
     if (!account?.id || !ready.current || !xp?.settings?.eligibleSince) return undefined;
     const eligibleSince = xp.settings.eligibleSince;
-    const candidates = collectCompletionCandidates(state, eligibleSince);
     const isSent = (key) => Boolean(xpSent.current[`${account.id}|${key}`]);
-    const steps = candidates.steps.filter((item) => !isSent(item.key));
-    const bonuses = candidates.bonuses.filter((item) => !isSent(item.key));
-    const slides = candidates.slides.filter((item) => !isSent(item.key));
+    const commands = pendingCommands(state, account.id, outbox.current);
     const sessions = (state.studySessions || []).filter((session) => {
       if (!Number.isFinite(Date.parse(session.endedAt)) || Date.parse(session.endedAt) < Date.parse(eligibleSince)) return false;
       return !isSent(`session|${session.id}`);
     });
-    if (!steps.length && !bonuses.length && !slides.length && !sessions.length) return undefined;
+    if (!commands.length && !sessions.length) return undefined;
 
     const timerId = setTimeout(async () => {
       if (xpBusy.current) return;
@@ -179,14 +177,17 @@ export function useLume(notify) {
       const sent = (key) => { xpSent.current[`${account.id}|${key}`] = true; };
       const unsent = (key) => { delete xpSent.current[`${account.id}|${key}`]; };
       try {
+        // A biblioteca precisa estar salva: o servidor confere a aula nela.
         if (ready.current && !(await saveRemote(state))) return;
-        for (const item of [...steps, ...bonuses, ...slides]) {
-          sent(item.key);
+        for (let start = 0; start < commands.length; start += BATCH_SIZE) {
+          const batch = commands.slice(start, start + BATCH_SIZE);
           try {
-            const path = item.key.startsWith('slide|') ? '/api/xp/slides' : item.key.startsWith('bonus|') ? '/api/xp/bonus' : '/api/xp/complete';
-            const result = await api(path, { method: 'POST', body: item.body });
-            if (!result.ok && result.status >= 500) unsent(item.key);
-          } catch { unsent(item.key); }
+            const result = await api('/api/progress', { method: 'POST', body: { commands: batch.map((item) => item.command) } });
+            // Erro de servidor ou rede: tenta de novo depois. Recusa (4xx) não muda com repetição.
+            if (!result.ok && (result.status >= 500 || result.status === 0)) break;
+            batch.forEach((item) => { outbox.current[`${account.id}|${item.key}`] = true; });
+            writeOutbox(outbox.current);
+          } catch { break; }
         }
         for (const session of sessions) {
           const key = `session|${session.id}`;

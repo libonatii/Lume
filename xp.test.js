@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
+import { applyMigrations, sqliteAdapter } from './api/adapters/sqlite.js';
 import { createInitialState, restoreState } from './public/domain.js';
 import {
-  ensureXpSettings, getRanking, getXpSnapshot, grantBonus, grantSlide, grantStep,
-  recordTimeSession, updateXpSettings, adjustEvent, XpError,
+  ensureXpSettings, getRanking, getXpSnapshot, recordTimeSession, updateXpSettings, adjustEvent, XpError,
 } from './xp.js';
+import { grantBonus, grantSlide, grantStep } from './rewards.js';
 import { collectCompletionCandidates, levelProgress } from './public/xp-policy.js';
 
 const NOW = Date.parse('2026-10-31T12:00:00Z');
@@ -14,22 +15,8 @@ const DAY = '2026-10-31';
 
 function makeDb() {
   const sqlite = new DatabaseSync(':memory:');
-  for (const file of readdirSync(new URL('./migrations/', import.meta.url)).filter((name) => /^000[12469]_.*\.sql$/.test(name)).sort()) {
-    sqlite.exec(readFileSync(new URL(`./migrations/${file}`, import.meta.url), 'utf8'));
-  }
-  const db = {
-    async run(sql, params = []) {
-      const result = sqlite.prepare(sql).run(...params);
-      return Number(result.changes ?? 0);
-    },
-    async first(sql, params = []) {
-      return sqlite.prepare(sql).get(...params) ?? null;
-    },
-    async all(sql, params = []) {
-      return sqlite.prepare(sql).all(...params);
-    },
-  };
-  return { sqlite, db };
+  applyMigrations(sqlite, fileURLToPath(new URL('./migrations/', import.meta.url)));
+  return { sqlite, db: sqliteAdapter(sqlite) };
 }
 
 async function addUser(db, id, name = id) {

@@ -152,6 +152,20 @@ export async function runContract(target, t) {
     assert.equal(notDone.status, 409);
     assert.equal(notDone.data.code, 'step_not_completed');
 
+    // Comandos de progresso: a segunda aula concluída por comando recebe XP na resposta.
+    const saved2 = await browser.request('PUT', '/api/state', { body: { state, baseRevision: 1 } });
+    assert.equal(saved2.status, 200);
+    const command = await browser.request('POST', '/api/progress', { body: { commands: [
+      { id: 'step:curso-contrato-1', type: 'complete', materialId: 'curso-contrato', unitId: 'curso-contrato-1', origin: 'manual', at: new Date().toISOString() },
+      { id: 'x', type: 'complete', materialId: 'curso-contrato', unitId: 'nao-existe' },
+    ] } });
+    assert.equal(command.status, 200, JSON.stringify(command.data));
+    assert.equal(command.data.results[0].status, 'recorded');
+    assert.equal(command.data.results[1].code, 'unit_not_found');
+    assert.ok(command.data.xp.some((event) => event.kind === 'lesson'));
+    assert.equal((await browser.request('POST', '/api/progress', { body: { commands: [] } })).data.code, 'empty_commands');
+    assert.equal((await client(origin).request('POST', '/api/progress', { body: { commands: [] } })).status, 401);
+
     const settings = await browser.request('PATCH', '/api/xp/settings', { body: { rankingOptIn: true } });
     assert.equal(settings.status, 200);
     assert.ok(settings.data.settings);

@@ -1,17 +1,14 @@
-// Livro de eventos de XP e ranking — compartilhado entre o servidor Node e o
-// Worker/D1. Nenhuma função aqui confia no valor enviado pelo navegador: o tipo,
-// o material e a elegibilidade são revalidados a partir do estado sincronizado.
+// Livro de eventos de XP, resumo, tempo declarado, correção e ranking —
+// compartilhado entre o servidor Node e o Worker/D1. As regras que concedem XP
+// por conclusão ficam em rewards.js e leem o progresso registrado no servidor
+// (progress.js); nada aqui confia no valor enviado pelo navegador.
 
 import { restoreState } from './public/domain.js';
 import {
   DAILY_TIME_XP_CAP, DEFAULT_TIME_ZONE, LEVEL_XP, TIME_BLOCK_SECONDS, TIME_BLOCK_XP,
-  XP_POLICY_VERSION, XP_VALUES, bonusEventKey, bonusKindForCourse, completionKindForCourse,
-  completionTimestamp, courseGradeIsComplete, courseIsComplete, isEligibleCourse, isImportedCourse,
-  levelProgress, localDay, normalizeTimeZone, periodDays, slideEventKey, slideProgressSnapshot,
-  stepEventKey, timeEventKey,
+  XP_POLICY_VERSION, XP_VALUES, levelProgress, localDay, normalizeTimeZone, periodDays, timeEventKey,
 } from './public/xp-policy.js';
 import { AppError } from './api/errors.js';
-import { isCompleted } from './public/progress-domain.js';
 
 export class XpError extends AppError {
   constructor(message, code = 'xp_error', status = 400) {
@@ -31,7 +28,7 @@ function integer(value) {
   return Number.isInteger(parsed) ? parsed : null;
 }
 
-function serializeEvent(row) {
+export function serializeEvent(row) {
   let meta = null;
   try { meta = row.meta ? JSON.parse(row.meta) : null; } catch { meta = null; }
   return {
@@ -127,11 +124,11 @@ function findCourse(state, courseId) {
   return (state.courses || []).find((course) => course.id === courseId) || null;
 }
 
-async function findEvent(db, userId, eventKey) {
+export async function findEvent(db, userId, eventKey) {
   return db.first('SELECT * FROM xp_events WHERE user_id = ? AND event_key = ?', [userId, eventKey]);
 }
 
-async function insertEvent(db, userId, event) {
+export async function insertEvent(db, userId, event) {
   const id = event.id || crypto.randomUUID();
   try {
     await db.run(
@@ -156,7 +153,7 @@ async function insertEvent(db, userId, event) {
   }
 }
 
-async function insertAchievement(db, userId, { event, kind, title, criterion }) {
+export async function insertAchievement(db, userId, { event, kind, title, criterion }) {
   const id = crypto.randomUUID();
   await db.run(
     `INSERT OR IGNORE INTO user_achievements
@@ -168,36 +165,6 @@ async function insertAchievement(db, userId, { event, kind, title, criterion }) 
       XP_POLICY_VERSION, event.origin || 'manual', event.granted_at,
     ],
   );
-}
-
-async function achievementForStep(db, userId, event, course, step) {
-  if (event.kind === 'reading') {
-    await insertAchievement(db, userId, {
-      event,
-      kind: 'reading',
-      title: course.steps.length === 1 ? course.title : `${step.title} — ${course.title}`,
-      criterion: 'Leitura delimitada concluída',
-    });
-  } else if (event.kind === 'exercise') {
-    await insertAchievement(db, userId, {
-      event,
-      kind: 'exercise',
-      title: course.steps.length === 1 ? course.title : `${step.title} — ${course.title}`,
-      criterion: 'Lista de exercícios concluída',
-    });
-  }
-}
-
-async function achievementForBonus(db, userId, event, course) {
-  if (event.kind === 'project_bonus') {
-    await insertAchievement(db, userId, {
-      event, kind: 'project', title: course.title, criterion: 'Todas as entregas obrigatórias concluídas',
-    });
-  } else {
-    await insertAchievement(db, userId, {
-      event, kind: 'course', title: course.title, criterion: 'Todas as unidades obrigatórias concluídas',
-    });
-  }
 }
 
 export async function xpSummary(db, userId, settings = null, now = Date.now()) {
@@ -284,123 +251,6 @@ export async function getXpSnapshot(db, userId, { now = Date.now(), timeZone = '
     events: events.map(serializeEvent),
     achievements: achievements.map(serializeAchievement),
   };
-}
-
-// Concessão de uma unidade de estudo (aula, leitura, exercício ou entrega).
-// O cliente informa apenas o material e a etapa; tipo e valor são derivados do
-// estado, nunca do corpo da requisição.
-export async function grantStep(db, userId, { courseId, stepId }, { now = Date.now() } = {}) {
-  if (typeof courseId !== 'string' || !courseId || courseId.length > 120) {
-    throw new XpError('Material inválido.', 'invalid_material', 400);
-  }
-  if (typeof stepId !== 'string' || !stepId || stepId.length > 160) {
-    throw new XpError('Etapa inválida.', 'invalid_step', 400);
-  }
-  const settings = await ensureXpSettings(db, userId, { now });
-  const state = await loadState(db, userId);
-  const course = findCourse(state, courseId);
-  if (!course || !isEligibleCourse(course)) {
-    throw new XpError('Este material não participa da política de XP.', 'material_not_eligible', 409);
-  }
-  const step = course.steps.find((item) => item.id === stepId);
-  if (!step) throw new XpError('Etapa não encontrada.', 'step_not_found', 404);
-  if (!isCompleted(state, stepId)) {
-    throw new XpError('Conclua a etapa antes de registrar o XP.', 'step_not_completed', 409);
-  }
-  const at = completionTimestamp(state, course, stepId);
-  if (!Number.isFinite(at) || at < Date.parse(settings.eligible_since)) {
-    throw new XpError('Este progresso é anterior à política atual e permanece como saldo legado.', 'legacy_progress', 409);
-  }
-  const kind = completionKindForCourse(course);
-  const key = stepEventKey(kind, course.id, step.id);
-  const existing = await findEvent(db, userId, key);
-  if (existing) return { added: false, duplicate: true, event: serializeEvent(existing) };
-  const event = await insertEvent(db, userId, {
-    key, kind, xp: XP_VALUES[kind],
-    materialId: course.id, materialTitle: course.title,
-    stepId: step.id, stepTitle: step.title,
-    origin: 'manual', day: localDay(settings.time_zone, new Date(now)), at: iso(now),
-  });
-  await achievementForStep(db, userId, event, course, step);
-  return { added: true, duplicate: false, event: serializeEvent(event) };
-}
-
-// Bônus de contêiner: apenas quando todas as unidades obrigatórias foram
-// concluídas depois do marco da política. Curso parcial não conclui o curso.
-export async function grantBonus(db, userId, { courseId }, { now = Date.now() } = {}) {
-  if (typeof courseId !== 'string' || !courseId || courseId.length > 120) {
-    throw new XpError('Material inválido.', 'invalid_material', 400);
-  }
-  const settings = await ensureXpSettings(db, userId, { now });
-  const state = await loadState(db, userId);
-  const course = findCourse(state, courseId);
-  if (!course || !isEligibleCourse(course)) {
-    throw new XpError('Este material não participa da política de XP.', 'material_not_eligible', 409);
-  }
-  if (!courseGradeIsComplete(course)) {
-    throw new XpError('Uma grade parcial não conclui o curso inteiro.', 'partial_grade', 409);
-  }
-  if (!courseIsComplete(state, course)) {
-    throw new XpError('Ainda há unidades obrigatórias em aberto.', 'course_not_complete', 409);
-  }
-  const minimum = course.type === 'project' ? 1 : 2;
-  if (!isImportedCourse(course) && course.steps.length < minimum) {
-    throw new XpError('Um material de uma única etapa não recebe bônus de conclusão.', 'too_short', 409);
-  }
-  for (const step of course.steps) {
-    const at = completionTimestamp(state, course, step.id);
-    if (!Number.isFinite(at) || at < Date.parse(settings.eligible_since)) {
-      throw new XpError('A conclusão inclui etapas anteriores à política atual; o bônus não é retroativo.', 'legacy_progress', 409);
-    }
-  }
-  const kind = bonusKindForCourse(course);
-  const key = bonusEventKey(kind, course.id);
-  const existing = await findEvent(db, userId, key);
-  if (existing) return { added: false, duplicate: true, event: serializeEvent(existing) };
-  const event = await insertEvent(db, userId, {
-    key, kind, xp: XP_VALUES[kind],
-    materialId: course.id, materialTitle: course.title,
-    stepId: '', stepTitle: '',
-    origin: 'manual', day: localDay(settings.time_zone, new Date(now)), at: iso(now),
-  });
-  await achievementForBonus(db, userId, event, course);
-  return { added: true, duplicate: false, event: serializeEvent(event) };
-}
-
-// Apresentação interna: XP único quando a pessoa viu pelo menos 80% dos
-// slides, chegou ao último e confirmou a conclusão. Abrir ou pular direto para
-// o fim não satisfaz o critério; o servidor revalida o progresso salvo.
-export async function grantSlide(db, userId, { courseId }, { now = Date.now() } = {}) {
-  if (typeof courseId !== 'string' || !courseId || courseId.length > 120) {
-    throw new XpError('Material inválido.', 'invalid_material', 400);
-  }
-  const settings = await ensureXpSettings(db, userId, { now });
-  const state = await loadState(db, userId);
-  const course = findCourse(state, courseId);
-  if (!course || !isEligibleCourse(course)) {
-    throw new XpError('Este material não participa da política de XP.', 'material_not_eligible', 409);
-  }
-  const deck = slideProgressSnapshot(course);
-  if (!deck.total) throw new XpError('Este material ainda não tem slides.', 'slides_missing', 409);
-  if (!deck.nearEnd || !deck.lastSeen || !deck.completedAt) {
-    throw new XpError('Conclua a apresentação com pelo menos 80% dos slides vistos e o último slide aberto.', 'deck_not_complete', 409);
-  }
-  if (Date.parse(deck.completedAt) < Date.parse(settings.eligible_since)) {
-    throw new XpError('Esta apresentação foi concluída antes da política atual e permanece como histórico legado.', 'legacy_progress', 409);
-  }
-  const key = slideEventKey(course.id);
-  const existing = await findEvent(db, userId, key);
-  if (existing) return { added: false, duplicate: true, event: serializeEvent(existing) };
-  const event = await insertEvent(db, userId, {
-    key, kind: 'slide', xp: XP_VALUES.slide,
-    materialId: course.id, materialTitle: course.title,
-    stepId: '', stepTitle: '',
-    origin: 'manual', day: localDay(settings.time_zone, new Date(now)), at: iso(now),
-  });
-  await insertAchievement(db, userId, {
-    event, kind: 'slide', title: course.title, criterion: 'Apresentação concluída com cobertura do deck',
-  });
-  return { added: true, duplicate: false, event: serializeEvent(event) };
 }
 
 // Correção assistida: um evento negativo vinculado ao original, com motivo.
