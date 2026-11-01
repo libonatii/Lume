@@ -9,6 +9,7 @@ Antes de propor ou alterar comportamento do produto, leia nesta ordem:
 5. [Lume](docs/COMPANHEIRO.md), antes de mexer no aplicativo de desktop (o Lume completo numa janela), na presença ou no roteiro por prioridade.
 6. [Diagnóstico e plano de evolução](docs/EVOLUCAO.md): cargos, desbloqueios, integrações, navegação e tom de voz propostos, com o que cada etapa já entregou.
 7. [O que falta implementar](docs/IMPLEMENTACAO.md): lacunas principais, mapa do que existe, configuração de produção e decisões pendentes. Comece por aqui para saber o que ainda não funciona.
+8. [Plano de refatoração](docs/REFATORACAO_01112026.md), antes de mexer na estrutura da API, do estado, do XP, da importação, do cliente React ou do CSS: frentes aprovadas, ordem de execução e decisões pendentes.
 
 Esses documentos descrevem o destino do Lume. O código atual é um protótipo e contém regras antigas que não representam mais o produto desejado. Prevalência: instrução explícita da pessoa responsável > `docs/` > código e testes antigos. Mantenha a documentação coerente com novas decisões.
 

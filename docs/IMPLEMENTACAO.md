@@ -287,6 +287,9 @@ Configurações não têm tela correspondente no Stitch. As telas exportadas em 
 
 ## 10. Dívida técnica
 
+A reestruturação que trata estes itens e as causas de arquitetura por trás de várias lacunas acima está em
+[Plano de refatoração](REFATORACAO_01112026.md).
+
 ### D1 — CSS legado
 `public/entry.css`, `neurofocus.css`, `styles.css`, `stitch.css` e `motion.css` não são carregados por nenhuma
 página, mas continuam sendo publicados. `public/lume.css` acumula regras antigas sobrescritas pelas camadas
