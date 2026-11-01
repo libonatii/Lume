@@ -103,8 +103,8 @@ dela**, quando ela clica no ícone. Ver [extension/LEIAME.md](../extension/LEIAM
   entra no `studyLog` com origem `integration` e o servidor decide o XP pela política vigente (100 XP por aula,
   teto diário). Aula do histórico nunca é convertida em XP. É uma observação da plataforma confirmada pela pessoa,
   não prova de que a aula foi assistida.
-- **Estrutura completa:** a leitura abre seções dentro de seções (disciplina → aula → vídeos, até cinco rodadas e 400 cliques)
-  e lê hierarquia, contagem e conclusão sem que a pessoa abra nada. Uma seção que não abriu entra como um item só, com o
+- **Estrutura completa:** a leitura abre seções dentro de seções (disciplina → aula → vídeos, até 600 cliques e 4 minutos). Quando abrir uma seção fecha as outras (como o Gran faz com as disciplinas), lê uma por vez e junta o que cada uma mostra; espera os vídeos chegarem por rede antes de ler; filtra atalhos como "Conteúdo" e "Retomar". Em cursos grandes leva um ou dois minutos
+  e lê hierarquia, contagem e conclusão sem que a pessoa abra nada. Uma seção que não abriu entra como um item só (num módulo "Aulas cujos vídeos não foram lidos" por disciplina, sem repetir o nome), com o
   selo de concluída que a página mostrar, e a leitura avisa quantas ficaram assim; quando os vídeos forem lidos depois,
   esse item aparece como removido da fonte e preserva a conclusão. Testado com uma página de exemplo que só cria os
   filhos ao clicar; no site real do Gran ainda não foi exercitada.

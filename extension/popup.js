@@ -66,5 +66,8 @@ async function complete() {
   }
 }
 
+// A leitura de um curso grande leva um ou dois minutos: mostra onde está.
+chrome.runtime.onMessage.addListener((message) => { if (message?.type === 'lume-progress' && button.disabled) say(message.text); });
+
 button.addEventListener('click', read);
 completeButton.addEventListener('click', complete);

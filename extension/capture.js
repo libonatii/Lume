@@ -35,7 +35,7 @@
   const ITEM_DATA = '[data-purpose^="curriculum-item"], [data-testid*="lesson" i], [data-testid*="lecture" i], [data-testid*="aula" i], [role="treeitem"]';
   const HEADER_SELECTOR = 'h1, h2, h3, h4, h5, h6, [role="heading"], summary, [aria-expanded], [data-purpose*="section-heading"], [data-testid*="module" i], [data-testid*="section" i], [data-testid*="week" i]';
 
-  const NOISE_WORD = /^(entrar|login|cadastr\w*|inscrev\w*|carrinho|menu|in[ií]cio|home|perfil|minha conta|configura\w*|ajuda|suporte|buscar|pesquis\w*|search|sair|logout|voltar|compartilh\w*|favorit\w*|vis[aã]o geral|overview|resumo|notas?|anota[cç][õo]es|perguntas|d[úu]vidas|avalia[cç][õo]es|certificado|download|baixar|idioma|notifica[cç][õo]es|conte[úu]do do curso|course content)$/i;
+  const NOISE_WORD = /^(entrar|login|cadastr\w*|inscrev\w*|carrinho|menu|in[ií]cio|home|perfil|minha conta|configura\w*|ajuda|suporte|buscar|pesquis\w*|search|sair|logout|voltar|compartilh\w*|favorit\w*|vis[aã]o geral|overview|resumo|notas?|anota[cç][õo]es|perguntas|d[úu]vidas|avalia[cç][õo]es|certificado|download|baixar|idioma|notifica[cç][õo]es|conte[úu]do( do curso)?|course content|retomar|continuar|assistir|iniciar|come[cç]ar|ver aula|pr[óo]xima aula)$/i;
   const NOISE_START = /^(pr[óo]xim\w*|anterior|next|previous|continuar assistindo)\b/i;
   const NOT_A_MENU = /\b(menu|perfil|conta|idioma|language|notifica|busca|search|carrinho|cart|usu[aá]rio|user)\b/i;
 
@@ -210,14 +210,18 @@
 
   // O grupo dominante de itens parecidos é a lista de aulas; menus e listas de
   // outros cursos têm outra assinatura e ficam de fora.
-  function lessonRegion(rows) {
+  function lessonRegion(rows, known = null) {
     const bySignature = new Map();
     for (const row of rows) {
       const key = signature(row);
       bySignature.set(key, [...(bySignature.get(key) || []), row]);
     }
     const dominant = [...bySignature.values()].sort((a, b) => b.length - a.length)[0] || [];
-    if (dominant.length < 3) return null;
+    // Uma disciplina com poucas aulas, lida depois de outras, tem menos de três
+    // itens; vale se o formato já foi reconhecido antes na mesma leitura.
+    const recognised = dominant.length > 0 && known?.has(signature(dominant[0]));
+    if (dominant.length < 3 && !recognised) return null;
+    known?.add(signature(dominant[0]));
     const region = commonAncestor(dominant);
     return { region, rows: rows.filter((row) => region.contains(row)) };
   }
@@ -309,7 +313,7 @@
     // Com uma só disciplina aberta, o botão dela fica fora da região das aulas:
     // procuramos um pouco acima, mas só aceitamos ali cabeçalhos de disciplina.
     let root = region;
-    for (let level = 0; level < 3 && root.parentElement && root.parentElement !== document.body; level += 1) root = root.parentElement;
+    for (let level = 0; level < 8 && root.parentElement && root.parentElement !== document.body; level += 1) root = root.parentElement;
     const headers = [];
     for (const element of root.querySelectorAll(HEADER_SELECTOR)) {
       if (element.tagName === 'H1') continue;
@@ -391,8 +395,36 @@
   // ---------- Seções fechadas ----------
 
   const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+  const MAX_CLICKS = 600;
+  const OVERALL_MS = 240000;
 
-  const MAX_CLICKS = 400;
+  // Espera a página parar de mudar: os vídeos de uma seção costumam chegar por
+  // rede depois do clique. `cap` impede esperar para sempre por uma animação.
+  function settle({ quiet = 350, min = 150, cap = 7000, until = null } = {}) {
+    return new Promise((resolve) => {
+      const start = Date.now();
+      let last = start;
+      const observer = new MutationObserver(() => { last = Date.now(); });
+      observer.observe(document.body, { childList: true, subtree: true });
+      const tick = () => {
+        const now = Date.now();
+        if ((now - start >= min && now - last >= quiet && (!until || until())) || now - start >= cap) { observer.disconnect(); resolve(); } else setTimeout(tick, 60);
+      };
+      setTimeout(tick, 60);
+    });
+  }
+
+  async function waitFor(condition, cap) {
+    const start = Date.now();
+    while (Date.now() - start < cap) {
+      if (condition()) return true;
+      await wait(100);
+    }
+    return condition();
+  }
+
+  const linkCount = () => lessonLinkCount(document.body);
+  const textLength = () => (document.body.innerText || '').length;
 
   function collapsedToggles() {
     return [...document.querySelectorAll('[aria-expanded="false"]')].filter((element) => {
@@ -403,35 +435,146 @@
     });
   }
 
-  // Abre as seções fechadas para ler os nomes das aulas e as fecha de novo.
-  // É o mesmo clique que a pessoa daria; nada além disso é acionado. Seções
-  // dentro de seções aparecem só depois de abrir a de fora, por isso as rodadas.
-  async function expandSections() {
-    const opened = new Set();
-    for (let round = 0; round < 5; round += 1) {
-      const toggles = collapsedToggles().filter((element) => !opened.has(element)).slice(0, MAX_CLICKS - opened.size);
-      if (!toggles.length) break;
-      for (const element of toggles) { opened.add(element); element.click(); }
-      await wait(300);
+  // ---------- Acúmulo entre leituras parciais ----------
+  // Alguns sites (o Gran, por exemplo) fecham as outras seções ao abrir uma. Por
+  // isso lemos depois de cada seção e juntamos tudo aqui.
+
+  function mergeDisciplines(accumulated, found) {
+    for (const discipline of found) {
+      let target = accumulated.find((entry) => entry.title === discipline.title);
+      if (!target) { target = { title: discipline.title, modules: [] }; accumulated.push(target); }
+      for (const entry of discipline.modules) {
+        let module = target.modules.find((item) => item.title === entry.title);
+        if (!module) { module = { title: entry.title, lessons: [], pending: null }; target.modules.push(module); }
+        for (const lesson of entry.lessons) {
+          if (lesson.pending) { module.pending = module.pending || lesson; continue; }
+          const key = lesson.url || lesson.title;
+          const same = module.lessons.find((item) => (item.url || item.title) === key);
+          if (!same) module.lessons.push(lesson);
+          else if (lesson.completed) same.completed = true;
+        }
+      }
     }
-    return async () => {
-      for (const element of [...opened].reverse()) {
-        if (element.isConnected && element.getAttribute('aria-expanded') === 'true') element.click();
+  }
+
+  // Seção que nunca abriu vira um item dela mesma, mas num módulo só por
+  // disciplina, para a lista não repetir "Aula 2" como módulo e como aula.
+  function finalizeDisciplines(accumulated) {
+    const result = [];
+    for (const discipline of accumulated) {
+      const modules = [];
+      const unread = [];
+      for (const module of discipline.modules) {
+        if (module.lessons.length) modules.push({ title: module.title, lessons: module.lessons });
+        else if (module.pending) unread.push({ ...module.pending, title: module.title });
+      }
+      if (unread.length) modules.push({ title: 'Aulas cujos vídeos não foram lidos', lessons: unread });
+      if (modules.length) result.push({ title: discipline.title, modules });
+    }
+    return result;
+  }
+
+  // Abre as seções, uma disciplina por vez quando o site fecha as outras, lê
+  // depois de cada uma e devolve a página ao estado em que estava.
+  async function sweep(skipTitle, report) {
+    const accumulated = [];
+    const knownSignatures = new Set();
+    const harvest = () => {
+      const found = lessonRegion(findRows(document.body), knownSignatures);
+      if (found) mergeDisciplines(accumulated, buildGroups(found.region, found.rows, skipTitle));
+    };
+    const initiallyOpen = [...document.querySelectorAll('[aria-expanded="true"]')];
+    const opened = new Set();
+    const deadline = Date.now() + OVERALL_MS;
+    let clicks = 0;
+    const open = (element) => {
+      if (opened.has(element) || clicks >= MAX_CLICKS || !element.isConnected) return false;
+      opened.add(element);
+      clicks += 1;
+      element.click();
+      return true;
+    };
+    const innerToggles = (scope) => collapsedToggles().filter((element) => scope.contains(element) && !opened.has(element));
+    // Seções dentro da seção que acabou de abrir (aulas dentro da disciplina). O
+    // conteúdo pode chegar por rede, então espera aparecer antes de desistir.
+    const openInside = async (scope, baseline) => {
+      await waitFor(() => linkCount() > baseline || innerToggles(scope).length > 0, 3500);
+      for (let round = 0; round < 3 && Date.now() < deadline; round += 1) {
+        const inner = innerToggles(scope);
+        if (!inner.length) return;
+        const before = linkCount();
+        for (const element of inner) open(element);
+        await settle({ until: () => linkCount() > before, cap: 6000 });
       }
     };
+
+    harvest();
+    let exclusive = null;
+    let previous = null;
+    for (let round = 0; round < 3 && Date.now() < deadline; round += 1) {
+      const toggles = collapsedToggles().filter((element) => !opened.has(element));
+      if (!toggles.length) break;
+      let index = 0;
+      while (index < toggles.length && Date.now() < deadline && clicks < MAX_CLICKS) {
+        const element = toggles[index];
+        index += 1;
+        const baseline = linkCount();
+        const text = textLength();
+        if (!open(element)) continue;
+        report?.(`Lendo a seção ${index} de ${toggles.length}…`);
+        await settle({ until: () => textLength() !== text || linkCount() !== baseline, cap: 4000 });
+        await openInside(element.parentElement || element, baseline);
+        harvest();
+        // Se abrir esta seção fechou a anterior, o site é exclusivo: uma por vez.
+        if (exclusive === null && previous?.isConnected) exclusive = previous.getAttribute('aria-expanded') !== 'true';
+        previous = element;
+        if (exclusive === false) {
+          // Seções independentes: abre as restantes de uma vez e lê no fim.
+          const before = linkCount();
+          for (; index < toggles.length; index += 1) open(toggles[index]);
+          await settle({ until: () => linkCount() > before, cap: 7000 });
+          await openInside(document.body, before);
+          harvest();
+          break;
+        }
+      }
+    }
+
+    // Devolve a página como estava: fecha o que abrimos e reabre o que estava aberto.
+    const restore = async () => {
+      for (const element of [...opened].reverse()) {
+        if (element.isConnected && element.getAttribute('aria-expanded') === 'true' && !initiallyOpen.includes(element)) element.click();
+      }
+      await wait(100);
+      for (const element of initiallyOpen) {
+        if (element.isConnected && element.getAttribute('aria-expanded') === 'false') element.click();
+      }
+    };
+    return { disciplines: finalizeDisciplines(accumulated), restore, clicks };
   }
 
   // ---------- Entrada ----------
 
+  const report = (text) => { try { chrome.runtime.sendMessage({ type: 'lume-progress', text }); } catch { /* fora da extensão */ } };
+
   async function run({ pageUrl = location.href, pageTitle = '', expand = true } = {}) {
     let restore = async () => {};
     try {
-      if (expand) restore = await expandSections();
-      const found = lessonRegion(findRows(document.body));
-      if (!found) return { ok: false, reason: 'no_lessons' };
-
       const { title, code } = courseIdentity(pageTitle);
-      let disciplines = buildGroups(found.region, found.rows, title);
+      let disciplines;
+      if (expand) {
+        const result = await sweep(title, report);
+        restore = result.restore;
+        disciplines = result.disciplines;
+      } else {
+        const found = lessonRegion(findRows(document.body));
+        if (!found) return { ok: false, reason: 'no_lessons' };
+        const accumulated = [];
+        mergeDisciplines(accumulated, buildGroups(found.region, found.rows, title));
+        disciplines = finalizeDisciplines(accumulated);
+      }
+      if (!disciplines.length) return { ok: false, reason: 'no_lessons' };
+
       let truncated = false;
       if (disciplines.length > MAX_DISCIPLINES) { disciplines = disciplines.slice(0, MAX_DISCIPLINES); truncated = true; }
       let budget = MAX_LESSONS;

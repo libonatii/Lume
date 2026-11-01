@@ -233,9 +233,10 @@ test('Gran: lê disciplina, aulas e vídeos do painel real, com duração e cód
 // Estrutura que só existe depois de abrir: disciplina → aula → vídeos, criada sob
 // demanda (como um app Vue/React que não renderiza o que está fechado).
 const LAZY = `<!doctype html><html><head><title>Curso</title></head><body>
-<p role="heading" aria-level="1">Curso preguiçoso (Código: 77)</p><div id="root"></div>
+<p role="heading" aria-level="1">Curso preguiçoso (Código: 77)</p><button role="tab">Conteúdo</button><a href="/aluno/curso/video/codigo/XYZ/v/9/c/1">Retomar</a><div id="root"></div>
 <script>
 const data = { 'Direito A': [['Aula 1 - Tema um', ['1 - Parte um 00:10:00', '2 - Parte dois 00:20:00'], false], ['Aula 2 - Tema dois', ['1 - Outra 00:05:00', '2 - Mais uma 00:06:00', '3 - Fim 00:07:00'], true]], 'Direito B': [['Aula 1 - Tema tres', ['1 - B um 00:01:00', '2 - B dois 00:02:00'], false]] };
+const EXCLUSIVE = false, DELAY = 0;
 const root = document.getElementById('root');
 const el = (html) => { const t = document.createElement('div'); t.innerHTML = html; return t.firstElementChild; };
 for (const [name, topics] of Object.entries(data)) {
@@ -244,6 +245,7 @@ for (const [name, topics] of Object.entries(data)) {
   const body = el('<div></div>');
   head.addEventListener('click', () => {
     const open = head.getAttribute('aria-expanded') === 'true';
+    if (EXCLUSIVE && !open) document.querySelectorAll('[aria-label^="Disciplina"]').forEach((other) => { if (other !== head && other.getAttribute('aria-expanded') === 'true') other.click(); });
     head.setAttribute('aria-expanded', String(!open));
     body.replaceChildren();
     if (open) return;
@@ -255,7 +257,7 @@ for (const [name, topics] of Object.entries(data)) {
         th.setAttribute('aria-expanded', String(!o));
         tb.replaceChildren();
         if (o) return;
-        videos.forEach((v, i) => tb.append(el('<div><button aria-label="Marcar aula como Assistida"></button><a href="/aluno/curso/video/codigo/XYZ/v/' + name + '-' + topic + '-' + i + '"><p>' + v.slice(0, -9) + '</p></a><span>' + v.slice(-8) + '</span></div>')));
+        setTimeout(() => videos.forEach((v, i) => tb.append(el('<div><button aria-label="Marcar aula como Assistida"></button><a href="/aluno/curso/video/codigo/XYZ/v/' + name + '-' + topic + '-' + i + '"><p>' + v.slice(0, -9) + '</p></a><span>' + v.slice(-8) + '</span></div>'))), DELAY);
       });
       body.append(th, tb);
     }
@@ -286,8 +288,10 @@ test('seção sem vídeos carregados entra como um item só, com o selo, e a lei
   const result = await read(page);
   expect(result.ok).toBe(true);
   expect(result.stats).toMatchObject({ lessons: 8, pending: 1 });
-  const empty = result.payload.disciplines[0].modules.find((module) => module.title === 'Aula 3 - Sem video');
+  const empty = result.payload.disciplines[0].modules.find((module) => module.title === 'Aulas cujos vídeos não foram lidos');
   expect(empty.lessons).toEqual([{ title: 'Aula 3 - Sem video', url: '', duration: null, completed: true }]);
+  // O módulo não repete o nome da aula: nada aparece duas vezes.
+  expect(result.payload.disciplines[0].modules.some((module) => module.title === 'Aula 3 - Sem video')).toBe(false);
   expect(result.payload.warnings.join(' ')).toMatch(/1 seção não abriu/);
 });
 
@@ -320,4 +324,19 @@ test('"Concluí esta aula" fora dos cursos importados é recusado sem abrir nada
   const course = await deliver(page, { url: 'https://www.udemy.com/course/react-do-zero' }, 'concluir-3', 'complete');
   expect(course).toMatchObject({ accepted: false, reason: 'not_found' });
   await expect(page.getByRole('button', { name: 'Concluí esta aula' })).toHaveCount(0);
+});
+
+test('site que fecha as outras disciplinas e entrega os vídeos com atraso: lê todas, uma por vez', async ({ page }) => {
+  const exclusive = LAZY.replace('const EXCLUSIVE = false, DELAY = 0;', 'const EXCLUSIVE = true, DELAY = 600;');
+  await serve(page, 'https://www.grancursosonline.com.br/aluno/curso/video/codigo/XYZ/v/1', exclusive);
+  const result = await read(page);
+  expect(result.ok).toBe(true);
+  expect(result.stats).toMatchObject({ lessons: 7, disciplines: 2, pending: 0 });
+  expect(result.payload.disciplines.map((discipline) => discipline.title)).toEqual(['Direito A', 'Direito B']);
+  const titles = result.payload.disciplines.flatMap((discipline) => discipline.modules.flatMap((module) => module.lessons.map((lesson) => lesson.title)));
+  // "Conteúdo" (aba) e "Retomar" (atalho) não são aulas, e nada se repete.
+  expect(titles).not.toContain('Retomar');
+  expect(titles).not.toContain('Conteúdo');
+  expect(new Set(titles.map((title, index) => `${title}${index}`)).size).toBe(7);
+  expect(result.payload.disciplines[1].modules[0].lessons.map((lesson) => lesson.title)).toEqual(['1 - B um', '2 - B dois']);
 });
