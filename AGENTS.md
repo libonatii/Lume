@@ -6,8 +6,9 @@ Antes de propor ou alterar comportamento do produto, leia nesta ordem:
 2. [Gamificação e conquistas](docs/GAMIFICACAO.md).
 3. [Estado atual e plano de evolução](docs/CONTINUIDADE.md) — matriz do que existe × planejado; atualize-a ao implementar.
 4. [Importação de cursos por link](docs/IMPORTACAO.md), antes de mexer em fontes, extração ou progresso de aulas importadas.
-5. [Lume](docs/COMPANHEIRO.md), antes de mexer no programa de desktop, presença ou roteiro por prioridade.
+5. [Lume](docs/COMPANHEIRO.md), antes de mexer no aplicativo de desktop (o Lume completo numa janela), na presença ou no roteiro por prioridade.
 6. [Diagnóstico e plano de evolução](docs/EVOLUCAO.md): cargos, desbloqueios, integrações, navegação e tom de voz propostos, com o que cada etapa já entregou.
+7. [O que falta implementar](docs/IMPLEMENTACAO.md): lacunas principais, mapa do que existe, configuração de produção e decisões pendentes. Comece por aqui para saber o que ainda não funciona.
 
 Esses documentos descrevem o destino do Lume. O código atual é um protótipo e contém regras antigas que não representam mais o produto desejado. Prevalência: instrução explícita da pessoa responsável > `docs/` > código e testes antigos. Mantenha a documentação coerente com novas decisões.
 
@@ -53,9 +54,13 @@ No CI, `PLAYWRIGHT_CHANNEL=bundled` força o Chromium baixado; localmente o padr
 - Senhas novas: bcrypt até 72 bytes UTF-8, sem truncamento. Hashes PBKDF2 legados são preservados e migram só na redefinição de senha.
 - `data/` é local e ignorado no Git (`data/lume.db` guarda as contas); não apague nem versione. Os e2e usam `data/e2e-<timestamp>`.
 
-## Companion (app de desktop)
+## Aplicativo de desktop (pacote `companion/`)
 
-Pacote npm separado em `companion/` (Electron + electron-builder, lockfile próprio): `npm install --prefix companion` uma vez; `npm run companion:app` abre a janela/bandeja e `npm run companion` roda o agente de terminal. `lume.cmd` na raiz é o iniciador. Configuração do usuário em `%APPDATA%\Lume\companion.json`, fora do repositório. `npm test` inclui `companion/update.test.js`; o CI também roda `node --check` nos arquivos do Companion. Release: suba `companion/package.json` e crie a tag `companion-v<versão>` — se não bater, o workflow falha. Detalhes em [Publicação e CI](docs/RELEASE.md); o que falta implementar está em [Funcionalidades pendentes](docs/IMPLEMENTACAO.md).
+O aplicativo de desktop **é o Lume completo numa janela Electron**, com bandeja, presença opcional e atualização; presença não é o propósito dele. "Companion" é só o nome técnico (pasta, tags, endpoints). Em textos de produto, chame de "Lume" ou "aplicativo de desktop". Pacote npm separado em `companion/` (Electron + electron-builder, lockfile próprio): `npm install --prefix companion` uma vez; `npm run companion:app` abre a janela/bandeja e `npm run companion` roda o agente de terminal. `lume.cmd` na raiz é o iniciador. Configuração do usuário em `%APPDATA%\Lume\companion.json`, fora do repositório. `npm test` inclui `companion/update.test.js`; o CI também roda `node --check` nos arquivos do Companion. Release: suba `companion/package.json` e crie a tag `companion-v<versão>` — se não bater, o workflow falha. Detalhes em [Publicação e CI](docs/RELEASE.md); o que falta implementar está em [Funcionalidades pendentes](docs/IMPLEMENTACAO.md).
+
+## Extensão do navegador (`extension/`)
+
+Extensão MV3 sem build: leitor de curso que o usuário aciona na página da plataforma (`activeTab`). `capture.js` é script clássico (sem `import`) e devolve o formato de `normalizePayload` com `extraction.kind: 'extension-capture'` e `completionSource: 'lesson-flags'`; o Lume recebe por `postMessage` (`src/lib/extension.js`, ouvinte em `App.jsx`) e abre a revisão do `ImportCourse`. Não há endpoint novo. Conclusões lidas na primeira importação são histórico sem XP; só leituras posteriores, confirmadas na revisão, viram `origin: 'integration'` (`observedCompletionIds` em `applyCourseImport`). Testes em `tests/e2e/capture.spec.js` (páginas de exemplo, não reais). Instalação e limites em [extension/LEIAME.md](extension/LEIAME.md). Em scripts Python de edição, não escreva `` em strings comuns: vira backspace.
 
 ## Publicação
 

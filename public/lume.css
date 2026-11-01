@@ -1893,6 +1893,76 @@ html[data-theme='light'] .mission-spotlight {
   box-shadow: var(--shadow-sm);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
+.course-card-wrap {
+  position: relative;
+  display: flex;
+}
+.course-card-wrap > .course-card {
+  flex: 1;
+  width: 100%;
+}
+.course-menu {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  z-index: 3;
+}
+.course-menu-button {
+  display: grid;
+  place-items: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-glass);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  cursor: pointer;
+}
+.course-menu-button:hover,
+.course-menu-button[aria-expanded="true"] {
+  background: color-mix(in srgb, var(--lume) 22%, var(--surface));
+}
+.course-menu-list {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  min-width: 11rem;
+  padding: 0.3rem;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-sm);
+}
+.course-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius-md);
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.course-menu-item:hover,
+.course-menu-item:focus-visible {
+  background: color-mix(in srgb, var(--danger) 16%, var(--surface));
+}
+.course-menu-item.danger {
+  color: var(--danger);
+}
+.course-card-wrap .course-slide-chip {
+  right: 3.2rem;
+}
+.course-card-wrap .course-source-chip {
+  max-width: calc(100% - 4.4rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .course-card:hover {
   border-color: var(--border-strong);
 }
@@ -2837,6 +2907,17 @@ html[data-theme='light'] .import-badge.tone-warn {
   padding: 0.1rem 0.4rem;
   border-radius: var(--radius-pill);
   background: var(--surface-3);
+}
+.import-observed {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  cursor: pointer;
+}
+.import-observed input {
+  flex: none;
+  margin-top: 0.2rem;
+  accent-color: var(--lume);
 }
 .import-flag {
   display: inline-block;

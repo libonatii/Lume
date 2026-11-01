@@ -28,7 +28,7 @@ Legenda de estado usada em todo o documento:
 | Importação por link, texto e página copiada | Local verificado; extração real conferida em Coursera e Alura (parcial) | `import-server.js`, `import.test.js`, [Importação §4](IMPORTACAO.md) |
 | Revisão otimista do estado entre dispositivos | Local verificado | `state.js`, `merge.test.js`, `tests/e2e/state-conflict.spec.js` |
 | Roteiro por prioridade explícita | Local verificado | `public/study-plan.js`, `study-plan.test.js` |
-| Desktop (Electron) com presença por allowlist | Verificado por checagem de sintaxe e Chromium; bandeja validada manualmente | [Lume §9](COMPANHEIRO.md) |
+| Aplicativo de desktop (Electron): o Lume completo, bandeja e presença por allowlist | Verificado por checagem de sintaxe e Chromium; bandeja validada manualmente | [Lume §9](COMPANHEIRO.md) |
 
 As consultas ao site publicado foram feitas em 31/10/2026 apenas com `GET` anônimo: elas mostram que as rotas existem, não que os fluxos autenticados funcionam em produção.
 
@@ -215,6 +215,11 @@ Regras: desbloqueios são permanentes; ficam registrados no servidor (`user_unlo
 | Janela do desktop observando o player | Login da plataforma dentro do Electron | Electron | Alta; risco de violar termos | Não recomendado agora |
 
 A extensão **não** consegue observar players desenhados em `canvas`, players em iframe sem permissão para a origem ou aplicativos nativos. Ela nunca envia cookies, senhas, URLs de mídia ou conteúdo: só identificadores da aula e intervalos de tempo.
+
+**Estado (31/10/2026):** a primeira parte da extensão existe em `extension/`: **leitura de grade e de conclusões**
+na página aberta pela pessoa, com entrega ao Lume e revisão obrigatória (ver
+[Importação](IMPORTACAO.md#extensão-do-navegador-leitura-na-sessão-da-pessoa)). A **observação de vídeo** (5.4)
+continua proposta. A leitura foi testada com páginas de exemplo, não com contas reais das plataformas.
 
 ### 5.4 Algoritmo de acompanhamento de vídeo (proposta)
 

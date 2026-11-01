@@ -16,6 +16,7 @@ const EXTRACTION_LABEL = {
   'structured-data': 'Dados estruturados da página',
   'page-outline': 'Estrutura visível da página',
   'page-snapshot': 'Página copiada da sua conta',
+  'extension-capture': 'Lido pela extensão na sua conta',
   'pasted-text': 'Texto colado',
   'file-import': 'Arquivo enviado',
   'ai-assisted': 'Organizado por IA',
@@ -56,16 +57,22 @@ function clipboardPage(event) {
 export default function ImportCourse({ state, update, close, notify, go, open, modal = {} }) {
   const updating = Boolean(modal.courseId);
   const existing = updating ? state.courses.find((course) => course.id === modal.courseId) : null;
-  const [phase, setPhase] = useState('link');
+  // Leitura enviada pela extensão: já chega estruturada, então vai direto à revisão.
+  const captured = useMemo(() => {
+    if (!modal.capture) return null;
+    try { return { payload: normalizePayload(modal.capture) }; } catch (exception) { return { error: exception.message }; }
+  }, []);
+  const [phase, setPhase] = useState(captured?.payload ? 'review' : captured ? 'error' : 'link');
   const [mode, setMode] = useState('link');
   const [url, setUrl] = useState(existing?.source?.canonicalUrl || existing?.url || '');
   const [text, setText] = useState('');
   const [title, setTitle] = useState('');
-  const [payload, setPayload] = useState(null);
-  const [selected, setSelected] = useState(() => new Set());
-  const [expanded, setExpanded] = useState(() => new Set());
+  const [payload, setPayload] = useState(captured?.payload || null);
+  const [selected, setSelected] = useState(() => new Set(captured?.payload ? allLessonIds(captured.payload) : []));
+  const [expanded, setExpanded] = useState(() => new Set(captured?.payload ? captured.payload.disciplines.slice(0, 2).map((discipline) => discipline.id) : []));
   const [ai, setAi] = useState(null);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState(captured?.error ? { message: captured.error, code: 'unparsed_text' } : null);
+  const [recordNew, setRecordNew] = useState(true);
   const [edition, setEdition] = useState(existing?.edital?.edition || '');
   const [examPhase, setExamPhase] = useState(existing?.edital?.phase || '');
   const [imported, setImported] = useState(null);
@@ -84,6 +91,18 @@ export default function ImportCourse({ state, update, close, notify, go, open, m
 
   const total = payload ? allLessonIds(payload).length : 0;
   const chosen = payload ? allLessonIds(payload).filter((id) => selected.has(id)).length : 0;
+  // Curso que já está na biblioteca: aulas concluídas na plataforma desde a
+  // última leitura podem ser registradas por você; as que já constavam
+  // continuam como histórico sem XP.
+  const matched = useMemo(() => (payload ? state.courses.find((course) => course.source?.identity === payload.identity) : null), [payload, state.courses]);
+  const newlyDone = useMemo(() => {
+    if (!payload || !matched) return [];
+    const known = new Set((matched.steps || []).map((step) => step.id));
+    const done = new Set(state.completed || []);
+    return payload.disciplines
+      .flatMap((discipline) => discipline.modules.flatMap((module) => module.lessons))
+      .filter((lesson) => lesson.completedInSource && known.has(lesson.id) && !done.has(lesson.id));
+  }, [payload, matched, state.completed]);
   const examLike = useMemo(() => payload && looksLikeExamCourse(payload), [payload]);
   const detectedProvider = useMemo(() => {
     const normalized = normalizeImportUrl(url);
@@ -242,6 +261,7 @@ export default function ImportCourse({ state, update, close, notify, go, open, m
         selectedLessonIds: ids,
         mode: updating ? 'update' : 'create',
         courseId: updating ? modal.courseId : null,
+        observedCompletionIds: recordNew ? newlyDone.map((lesson) => lesson.id) : [],
         edital: looksLikeExamCourse(normalized) && (edition || examPhase) ? { exam: 'OAB', edition: edition.trim(), phase: examPhase, checkedAt: new Date().toISOString() } : null,
       });
       const course = next.courses.find((item) => item.source?.identity === normalized.identity) || next.courses.at(-1);
@@ -254,6 +274,7 @@ export default function ImportCourse({ state, update, close, notify, go, open, m
         added: record?.added ?? ids.length,
         kept: (existing?.steps?.length || 0),
         sourceCompleted: record?.sourceCompleted ?? normalized.completedCount ?? 0,
+        observed: record?.observed ?? 0,
         auto,
         partial: normalized.completeness === 'partial',
       });
@@ -274,7 +295,7 @@ export default function ImportCourse({ state, update, close, notify, go, open, m
   const linkStep = phase === 'link' && <>
     <span className="eyebrow">Uma entrada só · o link ou a página</span>
     <h2 id="dialog-title" className="headline" ref={heading}>{updating ? 'Atualizar a grade do curso' : 'Cole o link do que você quer estudar'}</h2>
-    <p className="muted-text">O Lume identifica a plataforma e lê o que a página pública mostra. Curso que só aparece depois do login? Abra na plataforma com a sua conta, copie a página e cole na aba “Colar a grade”: a sua sessão não é enviada.</p>
+    <p className="muted-text">O Lume identifica a plataforma e lê o que a página pública mostra. Curso que só aparece depois do login? Use a extensão do Lume na página do curso, aberta com a sua conta, ou copie a página e cole na aba “Colar a grade”: a sua sessão não é enviada.</p>
     <div className="import-mode" role="tablist" aria-label="Forma de importar">
       <button role="tab" aria-selected={mode === 'link'} className="filter-btn" onClick={() => setMode('link')}><span>Link do curso</span></button>
       <button role="tab" aria-selected={mode === 'paste'} className="filter-btn" onClick={() => setMode('paste')}><span>Colar a grade</span></button>
@@ -285,6 +306,7 @@ export default function ImportCourse({ state, update, close, notify, go, open, m
           <input name="import-url" type="text" inputMode="url" maxLength={2000} value={url} onChange={(event) => setUrl(event.target.value)} onPaste={handleUrlPaste} placeholder="https://…" autoComplete="off" required/>
         </label>
         {detectedProvider && detectedProvider.id !== 'unknown' && <p className="inline-note"><Icon name="check"/><span>{detectedProvider.label} detectado. Ao colar um link, a análise começa sozinha.</span></p>}
+        {detectedProvider && ['grancursos', 'estrategia'].includes(detectedProvider.id) && <p className="inline-note"><Icon name="help"/><span>{detectedProvider.label} só mostra as aulas depois do login, então o link sozinho não traz a grade. Use a extensão do Lume na página do curso, com a sua conta.</span></p>}
         <p className="quiet-note">Funciona com Gran Cursos, Estratégia, Alura, Rocketseat, Udemy, Coursera e outras fontes. A revisão mostra o que a página pública permitiu ler; o resto pode ser colado.</p>
         <Button className="full-width" type="submit"><Icon name="search"/>Analisar link</Button>
         <Button secondary className="full-width" type="button" onClick={detectAndAdd} disabled={!normalizeImportUrl(url)}><Icon name="spark"/>Detectar e adicionar</Button>
@@ -330,7 +352,12 @@ export default function ImportCourse({ state, update, close, notify, go, open, m
       </span>
       <span className="import-badge neutral"><Icon name="book"/>{payload.disciplines.length} {payload.disciplines.length === 1 ? 'área' : 'áreas'} · {total} aulas</span>
     </div>
-    {payload.completedCount > 0 && <p className="inline-note"><Icon name="check"/><span>{payload.completedCount} {payload.completedCount === 1 ? 'aula aparece concluída' : 'aulas aparecem concluídas'} na página copiada. Isso entra como histórico da fonte e não gera XP.</span></p>}
+    {payload.completedCount > 0 && <p className="inline-note"><Icon name="check"/><span>{payload.completedCount} {payload.completedCount === 1 ? 'aula aparece concluída' : 'aulas aparecem concluídas'} na página lida. {newlyDone.length ? 'As que o Lume já conhecia entram como histórico, sem XP; veja abaixo as novas.' : 'Isso entra como histórico da fonte e não gera XP.'}</span></p>}
+    {matched && newlyDone.length > 0 && <label className="inline-note import-observed">
+      <input type="checkbox" checked={recordNew} onChange={(event) => setRecordNew(event.target.checked)}/>
+      <span><strong>Registrar {newlyDone.length} {newlyDone.length === 1 ? 'aula concluída' : 'aulas concluídas'} na plataforma desde a última leitura.</strong> Elas entram com origem “plataforma” e podem gerar XP, que o servidor confere e limita por dia. Desmarque para guardá-las só como histórico.</span>
+    </label>}
+    {matched && !updating && <p className="inline-note"><Icon name="return"/><span>Este curso já está na sua biblioteca: a leitura atualiza a grade e preserva o seu progresso.</span></p>}
     {payload.warnings.length > 0 && <ul className="import-warning-list">{payload.warnings.map((warning) => <li key={warning}><Icon name="help"/><span>{warning}</span></li>)}</ul>}
     {payload.demo && <p className="inline-note"><Icon name="help"/><span>Dados de demonstração: esta grade não veio de uma análise real.</span></p>}
 
@@ -407,11 +434,20 @@ export default function ImportCourse({ state, update, close, notify, go, open, m
     <h2 id="dialog-title" className="headline" ref={heading}>{errorTitle(error?.code)}</h2>
     <p className="dialog-text">{error?.message}</p>
     {error?.code === 'protected' || error?.code === 'no_syllabus' || error?.code === 'unparsed_text'
-      ? <p className="quiet-note">O Lume não contorna login nem controles de acesso. Abra o curso na plataforma com a sua conta, copie a página (Ctrl+A, Ctrl+C) e cole na aba de texto: a sessão não é enviada.</p>
+      ? <div className="import-extension-help">
+        <p className="quiet-note">O Lume não contorna login nem controles de acesso, e o servidor só enxerga a página pública. Para ler as aulas de um curso logado, use a <strong>extensão do Lume</strong>:</p>
+        <ol className="quiet-note">
+          <li>Instale a extensão (pasta <code>extension/</code>; passo a passo em <code>extension/LEIAME.md</code>).</li>
+          <li>Abra a lista de aulas do curso na plataforma, com a sua conta.</li>
+          <li>Clique no ícone da extensão e em “Ler esta página e enviar”. A revisão abre aqui.</li>
+        </ol>
+        <p className="quiet-note">Sem a extensão, copie a página aberta (Ctrl+A, Ctrl+C) e cole na aba “Colar a grade”, ou cadastre o curso à mão.</p>
+      </div>
       : <p className="quiet-note">O link e o que você já escolheu continuam guardados nesta janela.</p>}
     <div className="dialog-actions">
       <Button onClick={() => runAnalysis(lastSource.current || (mode === 'paste' ? { kind: 'text', text, title, url: url.trim() } : { kind: 'url', url: url.trim() }))}><Icon name="return"/>Tentar de novo</Button>
       <Button secondary onClick={() => { setMode('paste'); setPhase('link'); }}><Icon name="book"/>Colar a página aberta na conta</Button>
+      {(error?.code === 'protected' || error?.code === 'no_syllabus') && <Button secondary onClick={() => open({ type: 'manual' })}><Icon name="plus"/>Cadastrar à mão</Button>}
     </div>
     <button className="text-button centered" onClick={close}>Fechar e continuar depois</button>
   </div>;
@@ -422,7 +458,8 @@ export default function ImportCourse({ state, update, close, notify, go, open, m
     <h2 id="dialog-title" className="headline" ref={heading}>{imported?.course.title || payload?.title}</h2>
     <p className="muted-text">{chosen} {chosen === 1 ? 'aula adicionada' : 'aulas adicionadas'} à sua biblioteca{updating ? '. Conclusões e marcadores anteriores foram preservados.' : '.'}</p>
     {imported?.auto && <p className="inline-note"><Icon name="spark"/><span>Detectado e adicionado automaticamente. {imported.partial ? 'A grade é parcial: confira as aulas na Biblioteca.' : 'Confira o curso na Biblioteca quando quiser.'}</span></p>}
-    {imported?.sourceCompleted > 0 && <p className="inline-note"><Icon name="check"/><span>{imported.sourceCompleted} {imported.sourceCompleted === 1 ? 'aula já constava como concluída' : 'aulas já constavam como concluídas'} na fonte. O progresso entrou no histórico sem conceder XP.</span></p>}
+    {imported?.observed > 0 && <p className="inline-note"><Icon name="spark"/><span>{imported.observed} {imported.observed === 1 ? 'conclusão registrada' : 'conclusões registradas'} com origem na plataforma. O XP, se houver, é calculado pelo servidor.</span></p>}
+    {imported?.sourceCompleted - (imported?.observed || 0) > 0 && <p className="inline-note"><Icon name="check"/><span>{imported.sourceCompleted - (imported.observed || 0)} {imported.sourceCompleted - (imported.observed || 0) === 1 ? 'aula já constava como concluída' : 'aulas já constavam como concluídas'} na fonte. O progresso entrou no histórico sem conceder XP.</span></p>}
     <ul className="import-summary">
       <li><Icon name="book"/><span>{payload?.provider.id === 'unknown' ? `Origem: ${EXTRACTION_LABEL[payload?.extraction.kind] || 'conteúdo enviado'}` : `Plataforma: ${payload?.provider.label}`}</span></li>
       <li><Icon name="spark"/><span>Conteúdo identificado: {payload?.provider.id === 'unknown' ? 'grade fornecida por você' : EXTRACTION_LABEL[payload?.extraction.kind]}{payload?.completeness === 'partial' ? ' (grade parcial)' : ''}</span></li>

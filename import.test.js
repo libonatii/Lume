@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  allLessonIds, applyCourseImport, canonicalUrl, completeLesson, courseSummary,
+  allLessonIds, applyCourseImport, canonicalUrl, completeLesson, courseSummary, findLessonByUrl,
   deliveryCandidates, detectProvider, editalCoverage, lessonOrigin, normalizeImportUrl, normalizePayload,
   providerCapabilities, revertLessonCompletion,
 } from './public/import-domain.js';
@@ -389,4 +389,74 @@ test('link colado é normalizado antes da detecção, sem inventar URL', () => {
   assert.equal(normalizeImportUrl('https://user:senha@exemplo.com/curso'), null);
   assert.equal(normalizeImportUrl('javascript:alert(1)'), null);
   assert.equal(normalizeImportUrl('cole aqui https://exemplo.com/curso'), null);
+});
+
+// Leitura enviada pela extensão: cada aula traz a própria marca de concluída.
+function extensionCapture(done) {
+  const lesson = (title, completed) => ({ title, url: `https://www.udemy.com/course/react/learn/lecture/${title.length}`, duration: 300, completed });
+  return {
+    title: 'React do zero',
+    provider: { id: 'udemy' },
+    sourceUrl: 'https://www.udemy.com/course/react',
+    completionSource: 'lesson-flags',
+    disciplines: [{
+      title: 'Conteúdo do curso',
+      modules: [
+        { title: 'Começando', lessons: [lesson('Introdução', done.has('a')), lesson('Instalação', done.has('b'))] },
+        { title: 'Componentes', lessons: [lesson('Introdução', done.has('c')), lesson('Props e estado', done.has('d'))] },
+      ],
+    }],
+    extraction: { kind: 'extension-capture', confidence: 'medium', notes: [] },
+    completeness: 'partial',
+  };
+}
+
+test('leitura da extensão marca a conclusão por aula, mesmo com títulos repetidos', () => {
+  const payload = normalizePayload(extensionCapture(new Set(['a'])));
+  assert.equal(payload.extraction.kind, 'extension-capture');
+  assert.equal(payload.lessonCount, 4);
+  assert.equal(payload.completedCount, 1, 'a outra "Introdução" não pode herdar a marca');
+  assert.match(payload.capabilities[0].value, /extensão/);
+});
+
+test('primeira leitura da extensão é histórico sem XP; conclusões novas confirmadas entram como plataforma', () => {
+  const first = normalizePayload(extensionCapture(new Set(['a'])));
+  const imported = applyCourseImport(createInitialState(), first, {
+    now: '2026-10-31T12:00:00Z', observedCompletionIds: allLessonIds(first),
+  });
+  const course = imported.courses[0];
+  assert.equal(imported.studyLog.length, 1);
+  assert.equal(imported.studyLog[0].origin, 'import', 'em curso novo, nada é registrado como conclusão elegível');
+  assert.equal(imported.studyLog[0].historical, true);
+
+  const second = normalizePayload(extensionCapture(new Set(['a', 'b', 'd'])));
+  const newIds = second.disciplines[0].modules.flatMap((module) => module.lessons)
+    .filter((lesson) => lesson.completedInSource && !imported.completed.includes(lesson.id)).map((lesson) => lesson.id);
+  assert.equal(newIds.length, 2);
+
+  const confirmed = applyCourseImport(imported, second, { now: '2026-11-01T12:00:00Z', observedCompletionIds: newIds });
+  assert.equal(confirmed.courses.length, 1, 'mesma identidade: atualiza sem duplicar');
+  assert.equal(confirmed.imports.at(-1).observed, 2);
+  for (const id of newIds) {
+    assert.equal(lessonOrigin(confirmed, id), 'integration');
+    assert.equal(confirmed.studyLog.find((entry) => entry.stepId === id).historical, undefined);
+  }
+  assert.equal(confirmed.studyLog.filter((entry) => entry.origin === 'import').length, 1, 'o histórico anterior não é reescrito');
+
+  // Sem confirmação, a mesma leitura vira só histórico.
+  const declined = applyCourseImport(imported, second, { now: '2026-11-01T12:00:00Z' });
+  assert.equal(declined.imports.at(-1).observed, 0);
+  assert.ok(newIds.every((id) => lessonOrigin(declined, id) === 'import'));
+  assert.ok(course.id);
+});
+
+test('a página aberta acha a aula pelo endereço, com complemento, sem casar a página do curso com todas', () => {
+  const payload = normalizePayload(extensionCapture(new Set()));
+  const state = applyCourseImport(createInitialState(), payload, { now: '2026-10-31T12:00:00Z' });
+  const found = findLessonByUrl(state, 'https://udemy.com/course/react/learn/lecture/14/extra?x=1#t');
+  assert.equal(found?.lesson.title, 'Props e estado');
+  assert.equal(found?.course.title, 'React do zero');
+  assert.equal(findLessonByUrl(state, 'https://www.udemy.com/course/react'), null);
+  assert.equal(findLessonByUrl(state, 'https://www.alura.com.br/course/react/learn/lecture/14'), null);
+  assert.equal(findLessonByUrl(state, 'nao-e-url'), null);
 });

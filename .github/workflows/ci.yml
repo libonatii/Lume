@@ -83,6 +83,16 @@ jobs:
           }
           Write-Host "Sintaxe do Companion ok"
 
+      - name: Conferir a sintaxe da extensão do navegador
+        shell: pwsh
+        run: |
+          foreach ($file in @("extension/capture.js", "extension/bridge.js", "extension/background.js", "extension/popup.js")) {
+            node --check $file
+            if ($LASTEXITCODE -ne 0) { throw "Sintaxe inválida em $file" }
+          }
+          node -e "JSON.parse(require('fs').readFileSync('extension/manifest.json','utf8'))"
+          Write-Host "Extensão ok"
+
       - name: Ler o contrato de presença sem rede
         shell: pwsh
         run: |

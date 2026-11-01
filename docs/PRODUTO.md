@@ -116,10 +116,10 @@ A pessoa cola o link do curso, o Lume identifica a plataforma e apresenta as ár
 - O XP da tarefa é declarado no navegador no protótipo e não vale para ranking até existir validação no servidor. A migração proposta (tarefa vinculada a aula conclui a aula; tarefa sem vínculo é organizacional) está em [Evolução §4.6](EVOLUCAO.md#46-transição-sem-apagar-histórico) e depende de aprovação.
 - Tarefas não concluem curso, não criam conquista por material e não substituem a sessão de estudo declarada.
 
-### Sessão declarada e Lume Companion (implementados)
+### Sessão declarada e aplicativo de desktop (implementados)
 
 - A pessoa inicia, pausa e encerra uma sessão de estudo vinculada ao material. O tempo é declarado, sobrevive ao recarregamento e não é observação de atividade.
-- O Lume Companion é um programa de desktop opcional que informa qual aplicativo autorizado está aberto, mostra quantas aulas faltam e apresenta um roteiro por prioridade de continuidade.
+- O aplicativo de desktop do Lume (nome técnico: Companion) é o próprio Lume em uma janela própria, opcional, com bandeja do sistema. Além do site completo, ele pode informar qual aplicativo autorizado está aberto, mostra quantas aulas faltam e apresenta um roteiro por prioridade de continuidade. A presença é um recurso dele, não a sua razão de existir.
 - Presença no programa não é estudo comprovado: não concede XP, não conclui aula e não entra no histórico de progresso.
 - O programa recebe um acesso próprio por dispositivo, revogável, que só relata presença e lê o roteiro.
 - Bandeja, janela com o site, painel de presença e instalador do programa Windows já existem. Assinatura de código, início com o Windows e recursos sociais dentro do programa continuam pendentes.
@@ -227,12 +227,13 @@ As regras detalhadas estão em [Gamificação](GAMIFICACAO.md).
 | Organização | Anotações, listas de aulas e entregas, quadro de projetos e modelos básicos |
 | Amigos e mensagens | Comunicação, compartilhamento e colaboração. Convites, lista de amigos, mensagens diretas, bloqueio, colaboração em entregas e ranking de amigos já existem |
 | Perfil entre amigos | Projeção da biblioteca, da fila, do progresso e do XP que cada pessoa escolheu compartilhar; exige amizade |
-| Instalar aplicativo | Página do programa de desktop: baixa o instalador da última release e gera o código de conexão |
+| Instalar aplicativo | Página do aplicativo de desktop: baixa o instalador da última release e gera o código de conexão |
 | Placares | Comparação opcional dentro de períodos e regras definidos |
 | Minhas conquistas | Vitrine personalizada de conclusões |
 | Meu caminho | Histórico de estudo e explicação do XP |
 | Integrações | GitHub e fontes compatíveis; permissões e estado de conexão |
-| Lume Companion | Programa de desktop com bandeja, janela do site completo e painel de presença: presença local, aulas restantes e roteiro por prioridade, sem XP |
+| Aplicativo de desktop (Companion) | O Lume completo numa janela própria, com bandeja e painel de presença: presença local opcional, aulas restantes e roteiro por prioridade, sem XP |
+| Extensão do navegador | Protótipo: lê, na página aberta pela pessoa com a conta dela, as aulas e o que aparece concluído, e envia ao Lume para revisão. Não gera XP por si; detalhes em [Importação](IMPORTACAO.md) |
 | Configurações e conforto | Acessibilidade, ritmo, privacidade e notificações |
 
 ## 10. Escopo que não deve ser confundido com a proposta

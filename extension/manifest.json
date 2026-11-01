@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Lume — leitor de curso",
+  "description": "Lê, na página aberta com a sua conta, os nomes das aulas e o que aparece como concluído, e envia ao Lume. Não lê senha, cookie nem vídeo.",
+  "version": "0.1.0",
+  "minimum_chrome_version": "110",
+  "action": { "default_title": "Enviar este curso ao Lume", "default_popup": "popup.html" },
+  "background": { "service_worker": "background.js" },
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": [
+    "https://lume.lume-prototype.workers.dev/*",
+    "http://localhost:4173/*",
+    "http://127.0.0.1:4173/*",
+    "http://localhost:4321/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://lume.lume-prototype.workers.dev/*",
+        "http://localhost:4173/*",
+        "http://127.0.0.1:4173/*",
+        "http://localhost:4321/*"
+      ],
+      "js": ["bridge.js"],
+      "run_at": "document_start"
+    }
+  ]
+}

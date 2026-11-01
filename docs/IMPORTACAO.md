@@ -43,7 +43,7 @@ Cada adaptador declara o que consegue fazer. Aceitar o link não significa que t
 | Capacidade | Situação atual |
 | --- | --- |
 | Identificar curso e importar a grade | Depende da fonte: dados estruturados, estrutura visível da página, ou texto/arquivo |
-| Acessar conteúdo da conta | Não implementado como integração — o Lume não pede senha nem cookie. Quando a pessoa copia a página já logada, a grade vem do conteúdo copiado |
+| Acessar conteúdo da conta | Não implementado como integração — o Lume não pede senha nem cookie. A grade vem da página copiada pela pessoa ou lida pela extensão na sessão dela (ver abaixo) |
 | Consultar progresso automaticamente | Não implementado por API. A página copiada da conta pode trazer aulas marcadas como concluídas, importadas como histórico sem XP |
 | Retomar a aula na posição exata | Não implementado — há link direto quando a fonte publica um |
 
@@ -77,6 +77,40 @@ esse HTML ao próprio servidor do Lume, que o trata como dado.
   três itens. A revisão continua obrigatória.
 - O resultado é marcado como **página copiada da sua conta**, sempre **parcial**.
 - Sem o link informado, a reimportação usa o título como identidade; informar o link evita duplicata.
+
+### Extensão do navegador (leitura na sessão da pessoa)
+
+Para cursos logados, colar a página é frágil: plataformas montam a grade por JavaScript e escondem módulos
+fechados. A extensão (`extension/`, Chrome/Edge, Manifest V3) lê a página **já aberta pela pessoa, com a conta
+dela**, quando ela clica no ícone. Ver [extension/LEIAME.md](../extension/LEIAME.md).
+
+- **Permissões mínimas:** `activeTab` (só a aba em que a pessoa clicou, só naquele momento), `scripting`, `storage`
+  e acesso às origens do próprio Lume. Não há permissão permanente sobre Udemy, Alura, Coursera, Gran etc.
+- **O que lê:** título do curso, grupos (módulos/seções), nome, link e duração de cada aula e a marca de
+  concluída visível. Abre as seções fechadas (o mesmo clique que a pessoa daria) e as fecha de novo.
+  Não lê cookie, senha, token, URL de mídia nem o conteúdo das aulas, e não chama a API da plataforma.
+- **Como funciona:** leitor genérico sobre o DOM (itens com rota de aula, dados `data-*`, listas com duração;
+  agrupa pelo título anterior; reconhece conclusão por checkbox marcado, `aria-checked`, rótulos de acessibilidade,
+  ícones com título e classes como `completed`/`done`/`concluido`), mais regras de URL por plataforma para
+  identificar o curso (Udemy, Coursera, Alura, Rocketseat, Gran, Estratégia, DIO, Hotmart; outras entram como fonte
+  não reconhecida, com o mesmo leitor).
+- **Entrega ao Lume:** o service worker acha (ou abre) a aba do Lume e um script de ponte repassa a leitura à página
+  por `postMessage` na mesma origem, repetindo até a página confirmar. A leitura passa por `normalizePayload` e a
+  pessoa **sempre revisa** antes de adicionar; a extensão nunca adiciona sozinha. Nenhum endpoint novo foi criado.
+- **Progresso e XP:** a primeira leitura de um curso importa as conclusões visíveis como **histórico sem XP**.
+  Nas leituras seguintes do mesmo curso (mesma identidade), aulas que aparecem concluídas e que o Lume ainda não
+  tinha são oferecidas em uma caixa **marcada por padrão**, que a pessoa pode desmarcar. Se confirmada, a conclusão
+  entra no `studyLog` com origem `integration` e o servidor decide o XP pela política vigente (100 XP por aula,
+  teto diário). Aula do histórico nunca é convertida em XP. É uma observação da plataforma confirmada pela pessoa,
+  não prova de que a aula foi assistida.
+- **Estrutura completa:** a leitura abre seções dentro de seções (disciplina → aula → vídeos, até cinco rodadas e 400 cliques)
+  e lê hierarquia, contagem e conclusão sem que a pessoa abra nada. Uma seção que não abriu entra como um item só, com o
+  selo de concluída que a página mostrar, e a leitura avisa quantas ficaram assim; quando os vídeos forem lidos depois,
+  esse item aparece como removido da fonte e preserva a conclusão. Testado com uma página de exemplo que só cria os
+  filhos ao clicar; no site real do Gran ainda não foi exercitada.
+- **Limites:** lista virtualizada ou carregada sob demanda só traz o que estava na tela; player ou índice em iframe de
+  outra origem pode ficar fora; seção que não abre não é lida. A marca de conclusão depende de a plataforma
+  mostrá-la.
 
 ## 4. O que foi realmente verificado nesta rodada
 
@@ -202,6 +236,17 @@ A matriz de viabilidade por plataforma (Alura, Coursera, Gran, Estratégia), as 
 prova de observação de reprodução estão em [Evolução §5](EVOLUCAO.md#5-integrações-com-cursos-externos).
 
 ## 12. Pendências conhecidas
+
+- **Extensão:** o leitor foi testado contra páginas de exemplo no formato esperado (`tests/e2e/capture.spec.js`) e,
+  para o Gran, contra um trecho real do painel do curso (`tests/fixtures/gran-painel.html`: disciplina → aula →
+  vídeo, com duração, código do curso e endereço). Do Gran falta ver como um vídeo **assistido** aparece (o
+  arquivo analisado não tinha nenhum); a leitura supõe ícone `circle-check` ou selo "Concluído" na aula. Udemy,
+  Alura, Coursera e Rocketseat não foram testadas com páginas reais.
+- **Tamanho:** o Lume aceita até 600 aulas por importação e 320 KB de estado por conta; um curso grande do Gran
+  (31 disciplinas) pode passar disso. A leitura avisa e corta; elevar o limite é decisão de produto pendente.
+- **Extensão, o que falta:** conferir o DOM real de cada plataforma (ícones e classes de conclusão incluídos) e
+  ajustar as regras. A extensão também não foi carregada no Chrome como extensão; a ponte e a entrega pelo service worker não têm teste automatizado.
+  Publicação na Chrome Web Store, ícones e configuração de outro endereço do Lume não existem.
 
 - Validar o caso Gran/OAB com a URL real, incluindo o que a página pública mostra de disciplinas.
 - Cadastrar edital oficial com fonte e data antes de qualquer comparação de cobertura.

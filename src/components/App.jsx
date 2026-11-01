@@ -18,6 +18,8 @@ import StudyDialog from './StudyDialog.jsx';
 import { Button, Dialog, enter, ease } from './ui.jsx';
 import Icon from './Icon.jsx';
 import { markDesktop, syncTitleBar } from '../lib/desktop.js';
+import { listenForExtension } from '../lib/extension.js';
+import { findLessonByUrl } from '../../public/import-domain.js';
 
 // Marca o documento antes do primeiro desenho: no app, a barra de título ocupa
 // o topo; no navegador, nada muda.
@@ -50,6 +52,26 @@ export default function App() {
   const checkingSession = model.accountStatus === 'checking' && !signedIn && !model.preview;
   const previousRoute = useRef(null);
   const go = useCallback(destination => { location.hash = destination; }, []);
+  // Leitura de curso enviada pela extensão: abre a revisão da importação.
+  const captureReady = useRef(false);
+  captureReady.current = signedIn || Boolean(model.preview);
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  useEffect(() => listenForExtension({
+    capture: payload => {
+      if (!captureReady.current) { notify('Entre na sua conta do Lume e envie a leitura de novo pela extensão.'); return false; }
+      setModal({ type: 'import', capture: payload });
+      return true;
+    },
+    // "Concluí esta aula" na página da plataforma: abre a aula certa para a pessoa confirmar.
+    complete: payload => {
+      if (!captureReady.current) { notify('Entre na sua conta do Lume e tente de novo pela extensão.'); return false; }
+      const found = findLessonByUrl(stateRef.current, payload?.url);
+      if (!found) { notify('Não encontrei esta aula nos seus cursos. Importe o curso pela extensão antes.'); return 'not_found'; }
+      setModal({ type: 'session', id: found.course.id, stepId: found.lesson.id });
+      return true;
+    },
+  }), [notify]);
   useEffect(() => {
     const change = () => { setHash(location.hash); setModal(null); };
     window.addEventListener('hashchange', change);

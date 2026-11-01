@@ -1,25 +1,56 @@
-# Lume — programa de desktop
+# Lume — aplicativo de desktop
 
-Status: **em desenvolvimento**. O app de desktop abre o Lume completo em uma
-janela, mantém a bandeja com a presença local e verifica/instala atualizações a
-pedido. O agente de linha de comando continua disponível para diagnóstico. O
-instalador é publicado pelo GitHub Actions e ainda não tem assinatura digital
-(ver seção 8).
+Status: **em desenvolvimento**. O aplicativo é o **próprio Lume em uma janela
+de desktop**: conta, biblioteca, plano, amigos, mensagens, ranking e perfil são
+os mesmos do site. Em volta dessa janela ele acrescenta o que um site não faz:
+bandeja do sistema, presença opcional do aplicativo autorizado em uso, roteiro
+visível sem abrir a janela e atualização pelo próprio programa. O agente de
+linha de comando continua disponível para diagnóstico. O instalador é publicado
+pelo GitHub Actions e ainda não tem assinatura digital (ver seção 8).
 
-Este documento descreve o Companion como o **produto principal** de uso diário:
-o site continua sendo a conta, a biblioteca e o lugar de organizar; o programa
-é o que fica aberto com você enquanto estuda.
+**Nome.** Na interface e nos textos de produto ele é "o Lume" ou "o aplicativo
+de desktop". "Companion" é só o nome técnico do pacote (`companion/`), das tags
+de release (`companion-v*`), dos endpoints (`/api/companion/*`) e do arquivo
+de configuração; o arquivo deste documento mantém o nome antigo para não
+quebrar links.
 
-## 1. Por que um programa
+**Presença não é o produto.** A presença é um recurso do aplicativo entre
+outros. O aplicativo existe para que o Lume inteiro fique à mão enquanto se
+estuda; a presença, o roteiro e a bandeja são o que ele faz além do site.
 
-O Discord consegue mostrar "jogando X há 40 minutos" porque é um aplicativo
-nativo, com permissão para ler processos do sistema. Um site não tem essa
-permissão. O Companion existe para ocupar esse espaço com uma regra diferente:
-**ler apenas o que a pessoa autorizou**, sem capturar tela, teclado ou títulos
-de janela.
+## 1. Por que um aplicativo
 
-O programa não substitui o site: ele mostra o que está acontecendo agora e
-retoma o que já está na conta.
+- **O Lume completo fora da aba do navegador.** Uma janela própria, que mantém a
+  sessão e fica na bandeja em vez de se perder entre abas.
+- **O que um site não tem permissão de fazer.** O Discord mostra "jogando X há
+  40 minutos" porque é um aplicativo nativo, com permissão para ler processos
+  do sistema. O aplicativo do Lume faz o equivalente com uma regra diferente:
+  **ler apenas o que a pessoa autorizou**, sem capturar tela, teclado ou
+  títulos de janela.
+- **O mesmo roteiro do site.** A bandeja e a janela indicam a mesma próxima
+  aula que a página Hoje.
+
+O aplicativo não é uma segunda conta nem um segundo produto: não tem banco
+local e o que ele mostra vem da mesma API.
+
+### Aplicativo e extensão do navegador
+
+São dois programas diferentes, que se complementam:
+
+| | Aplicativo de desktop | Extensão do navegador |
+| --- | --- | --- |
+| O que é | O Lume completo numa janela, mais bandeja, presença e atualização | Leitor de curso dentro da página da plataforma (`extension/`) |
+| Onde age | No computador (processos autorizados, janela do Lume) | Na aba da plataforma que a pessoa abriu com a conta dela |
+| Para que serve | Usar o Lume; saber o que está aberto; roteiro na bandeja | Trazer ao Lume aulas, durações e conclusões de cursos que só existem logados |
+| Aciona-se | Fica aberto | Só quando a pessoa clica no ícone |
+| Estado | Implementado (instalador sem assinatura) | Protótipo; não está na loja |
+
+O aplicativo não enxerga o que há dentro do navegador: ele não lê título de
+janela nem site. **A presença de "estou numa aula do Gran" no navegador não
+existe.** A proposta é a extensão relatar essa presença, só para aulas de
+cursos que a pessoa importou, com um token de pareamento e permissão opcional
+por plataforma, e a mesma regra de nunca gerar XP; isso ainda não foi
+implementado nem decidido. Ver [Importação](IMPORTACAO.md).
 
 ## 2. O que já existe
 
@@ -42,10 +73,10 @@ A página Hoje do site usa o mesmo critério (`nextAction`, derivado de
 Roteiro do Plano (antiga Missões) lista a próxima aula de cada curso com o
 mesmo critério.
 
-## 3. Presença rica (rich presence)
+## 3. Presença (recurso opcional do aplicativo)
 
-O que o Lume mostra: **aplicativo**, **categoria**, **desde quando** e **em qual
-computador**. Nada além disso.
+Quando a pessoa autoriza, o aplicativo mostra: **aplicativo**, **categoria**,
+**desde quando** e **em qual computador**. Nada além disso.
 
 Exemplo de presença:
 
@@ -60,7 +91,8 @@ Regras:
 - Não entra no histórico, não conclui aula e não gera XP.
 - A lista de aplicativos é sua; nada fora dela é enviado.
 - Não há leitura de títulos de janela — um PDF aberto não revela o nome do
-  arquivo, e um navegador não revela o site.
+  arquivo, e um navegador não revela o site. Cursos abertos no navegador só
+  poderiam aparecer pela extensão (ver seção 1); hoje não aparecem.
 
 Categorias: `study`, `project`, `reading`, `break`, `game`, `other`. A categoria
 `game` existe para presença social honesta ("estou jogando"), nunca para XP.
@@ -258,5 +290,6 @@ Ou, sem janela: `npm run companion` (agente de terminal).
 - Sem leitura de progresso automático das plataformas: a conclusão continua
   manual e identificada.
 - Sem integração com Discord: o Lume não lê a atividade de outros programas.
+- Sem presença de cursos abertos no navegador (depende da extensão, ainda não implementada).
 - Presença não vira tempo elegível de XP; a política exige validação no servidor.
 - Amigos, mensagens diretas e ranking de amigos existem no site; presença social e feed continuam pendentes; grupos, comunidades e canais estão fora do escopo desta etapa.

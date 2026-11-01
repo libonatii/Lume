@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { achievements, completeMission, courseProgress, hasPreparation, materialType, nextMission } from '../../public/domain.js';
+import { achievements, completeMission, courseProgress, deleteCourse, hasPreparation, materialType, nextMission } from '../../public/domain.js';
 import {
   completeLesson, courseSummary, editalCoverage, formatDuration, isImportedCourse,
   lessonOrigin, looksLikeExamCourse, revertLessonCompletion, sourceLabel,
@@ -42,7 +42,7 @@ export default function StudyDialog({ modal, state, update, open, close, notify,
   const course = state.courses.find(course => course.id === modal.id);
 
   if (modal.type === 'new' || modal.type === 'import') {
-    return <ImportCourse state={state} update={update} close={close} notify={notify} go={go} open={open} modal={{ courseId: modal.type === 'import' ? modal.id : null }}/>;
+    return <ImportCourse state={state} update={update} close={close} notify={notify} go={go} open={open} modal={{ courseId: modal.type === 'import' ? modal.id : null, capture: modal.capture }}/>;
   }
   if (modal.type === 'manual') {
     return <ManualCourseForm state={state} update={update} close={close} notify={notify} open={open}/>;
@@ -64,6 +64,7 @@ export default function StudyDialog({ modal, state, update, open, close, notify,
 
   if (!course) return <div className="dialog-content"><h2 id="dialog-title" className="title">Este curso não está disponível.</h2><Button onClick={close}>Voltar</Button></div>;
 
+  if (modal.type === 'delete') return <DeleteCourse course={course} update={update} close={close} notify={notify}/>;
   if (modal.type === 'edit') return <CourseEditor course={course} state={state} update={update} close={close} notify={notify}/>;
   if (modal.type === 'slides') return <SlidesViewer course={course} state={state} update={update} close={close} notify={notify} account={account}/>;
 
@@ -142,6 +143,25 @@ function CapabilityPanel({ capabilities }) {
       </li>)}
     </ul>
   </details>;
+}
+
+function DeleteCourse({ course, update, close, notify }) {
+  const imported = isImportedCourse(course);
+  function remove() {
+    update((previous) => deleteCourse(previous, course.id));
+    notify(`"${course.title}" foi excluído. O XP já confirmado permanece no extrato.`);
+    close();
+  }
+  return <div className="dialog-content">
+    <span className="dialog-emblem tone-warn"><Icon name="close"/></span>
+    <h2 id="dialog-title" className="headline">Excluir este curso?</h2>
+    <p className="dialog-text"><strong>{course.title}</strong>{imported ? ' · curso importado' : ''}</p>
+    <p className="muted-text">Remove o curso, as aulas e o progresso registrado nele neste aparelho e na sua conta. O XP já confirmado pelo servidor permanece no extrato e nas conquistas. Você pode importar o curso de novo depois, mas as conclusões não voltam.</p>
+    <div className="dialog-actions">
+      <Button className="danger-button full-width" onClick={remove}><Icon name="close"/>Sim, excluir curso</Button>
+      <Button secondary onClick={close}>Manter curso</Button>
+    </div>
+  </div>;
 }
 
 function ImportedSession({ course, state, update, open, close, notify, stepId, account }) {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import Atropos from 'atropos/react';
 import { studyRhythm, nextMission, hasPreparation, courseProgress, courseStatus, addMaterial, materialType } from '../../public/domain.js';
@@ -185,6 +185,27 @@ function StudySession({ state, update, mission, notify, account }) {
 
 const statuses = { all: 'Todos', active: 'Em andamento', new: 'Para começar', paused: 'Em pausa', completed: 'Concluídos' };
 
+// Menu "…" no canto do cartão. Fica ao lado do cartão (e não dentro dele) porque
+// um botão não pode conter outro botão.
+function CourseMenu({ course, open }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const root = useRef(null);
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const outside = (event) => { if (!root.current?.contains(event.target)) setMenuOpen(false); };
+    const escape = (event) => { if (event.key === 'Escape') setMenuOpen(false); };
+    document.addEventListener('pointerdown', outside);
+    document.addEventListener('keydown', escape);
+    return () => { document.removeEventListener('pointerdown', outside); document.removeEventListener('keydown', escape); };
+  }, [menuOpen]);
+  return <div className="course-menu" ref={root}>
+    <button type="button" className="course-menu-button" aria-label={`Mais ações de ${course.title}`} aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => setMenuOpen((value) => !value)}><Icon name="more"/></button>
+    {menuOpen && <div className="course-menu-list" role="menu">
+      <button type="button" role="menuitem" className="course-menu-item danger" onClick={() => { setMenuOpen(false); open({ type: 'delete', id: course.id }); }}><Icon name="close"/>Excluir curso</button>
+    </div>}
+  </div>;
+}
+
 export function CourseCard({ course, state, open }) {
   const progress = courseProgress(state, course);
   const status = courseStatus(state, course);
@@ -193,7 +214,7 @@ export function CourseCard({ course, state, open }) {
   const summary = imported ? courseSummary(state, course) : null;
   const scope = imported ? `${summary.done} de ${summary.total} aulas` : `${progress.done} de ${progress.total} etapas`;
   const deck = slidesSummary(course);
-  return <motion.button {...enter} whileHover={{ y: -4 }} whileTap={{ scale: .99 }} className={`course-card ${state.selectedCourseId === course.id ? 'selected-course' : ''}`} onClick={() => open({ type: 'course', id: course.id })} aria-label={`${course.title}, ${statuses[status]}, ${scope}`}>
+  return <div className="course-card-wrap"><motion.button {...enter} whileHover={{ y: -4 }} whileTap={{ scale: .99 }} className={`course-card ${state.selectedCourseId === course.id ? 'selected-course' : ''}`} onClick={() => open({ type: 'course', id: course.id })} aria-label={`${course.title}, ${statuses[status]}, ${scope}`}>
     <div className="course-image">
       <Cover art={art}/>
       <span className={`course-status status-${status}`}>{statuses[status]}</span>
@@ -207,7 +228,7 @@ export function CourseCard({ course, state, open }) {
       <div className="course-progress-label"><span>{scope}</span><strong>{progress.percent}%</strong></div>
       <Progress value={progress.percent} tone={status === 'completed' ? 'mint' : 'lume'} label={`Progresso de ${course.title}`}/>
     </div>
-  </motion.button>;
+  </motion.button><CourseMenu course={course} open={open}/></div>;
 }
 
 export function Library({ state, open, update }) {
