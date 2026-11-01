@@ -25,7 +25,7 @@ Em ordem de impacto para quem usa o site publicado.
 | 1 | **Recuperação de senha não funciona em produção** | Requisito obrigatório do produto. O Worker não tem nenhum segredo configurado (`wrangler secret list` vazio em 01/11): sem provedor de e-mail, o pedido é registrado, mas o link não é enviado nem exibido (`SHOW_RESET_LINK=false`) | Só local | [C1](#c1--recuperação-de-acesso) |
 | 2 | **Imagens indisponíveis em produção** | Foto de perfil, capa e imagens de slides respondem 503: o binding R2 `MEDIA` está comentado em `wrangler.jsonc` porque o R2 não está habilitado na conta | Só local | [C6](#c6--imagens-de-perfil-e-de-slides) |
 | 3 | **Nenhum fluxo com conta foi verificado em produção** | XP, ranking, mensagens, colaboração, sincronização e Companion só foram exercitados no servidor local e nos e2e. Em produção, apenas `GET` anônimos confirmam que as rotas existem. O custo de bcrypt 6 no Worker também não foi medido | Só local | [O1](#o1--verificação-em-produção) |
-| 4 | **Progresso de aulas externas é manual** | É o problema central declarado: não há observação de reprodução, consulta de progresso nem retomada automática em Alura, Coursera, Gran ou Estratégia. Cada aula é marcada à mão | Parcial | [I2](#i2--progresso-e-reprodução-de-aulas-externas) |
+| 4 | **Acompanhamento de aulas externas ainda não foi provado** | É o problema central declarado. A extensão do navegador lê a grade e as conclusões que a plataforma mostra, mas só foi testada com páginas de exemplo e um trecho salvo do Gran; nunca rodou num Chrome real nem numa conta real. Não há observação de reprodução nem retomada automática, e um curso grande do Gran ultrapassa o limite de 600 aulas | Protótipo | [I2](#i2--progresso-e-reprodução-de-aulas-externas), [I6](#i6--limite-de-tamanho-de-cursos-grandes) |
 | 5 | **Nível sem consequência** | Não existem cargos nem desbloqueios; a pessoa não escolhe quais conquistas aparecem no perfil | Não implementado | [G2](#g2--cargos-e-desbloqueios), [G3](#g3--conquistas-no-perfil) |
 | 6 | **XP de tarefas fora do servidor** | Concluir uma tarefa de prova vale 10 XP calculados no navegador (saldo antigo), fora do nível, do ranking e do livro de eventos. A migração depende de decisão | Parcial (transitório) | [G4](#g4--xp-das-tarefas-de-prova) |
 | 7 | **Social sem segurança nem reconhecimento** | Não há denúncia de abuso (exigida em Produto §7), compartilhamento de aprendizados nem reconhecimento a conquistas de amigos. Colaboração não registra contribuição. Mensagens chegam por consulta periódica, sem notificação | Parcial | [S2](#s2--segurança-social-e-moderação)–[S5](#s5--colaboração-com-contribuição-identificável) |
@@ -57,7 +57,7 @@ Visão rápida para saber de onde partir. "Verificado" indica onde o fluxo foi e
 | Colaboração em entregas | Parcial | `collaboration.js` | unitário local |
 | GitHub (leitura pública) | Parcial | `github.js`, `GitHub.jsx` | unitário com resposta simulada |
 | Aplicativo de desktop | Parcial | `companion/` | CI (sintaxe e contrato); janela e bandeja só manualmente |
-| Extensão do navegador | Em andamento | `extension/`, `src/lib/extension.js` | outra sessão de trabalho, sem commit em 01/11 |
+| Extensão do navegador | Protótipo | `extension/`, `src/lib/extension.js`, `ImportCourse.jsx` | e2e com páginas de exemplo e trecho salvo do Gran; nunca carregada no Chrome |
 | Aparência (Azul e Roxo, escuro e claro) | Implementado | `public/lume.css`, `Personal.jsx` | e2e local |
 
 Os dois backends (`server.js` e `worker.js`) expõem as mesmas rotas `/api/*` (conferido em 01/11). Tabelas
@@ -147,18 +147,33 @@ Não é observação de atividade, e isso está dito na interface.
 ### I1 — Leitura da grade por plataforma
 **Parcial.** Coursera e Alura (parcial) foram conferidas com páginas reais em 31/10; Udemy responde 403;
 Rocketseat e DIO não publicam títulos de aula; Gran e Estratégia exigem login e dependem da página copiada.
-Os testes do último commit usam HTML sintético. A extensão em andamento foi testada contra um trecho real do painel do Gran (fixture salva pela outra sessão), mas não no site do Gran com uma conta; o caso Gran/OAB por link nunca foi validado.
+Os testes da importação por link usam HTML sintético. O leitor da extensão foi testado contra páginas de exemplo e um trecho real do painel do Gran (`tests/fixtures/gran-painel.html`), mas não no site com uma conta; Udemy, Alura, Coursera e Rocketseat não foram testadas com páginas reais. O caso Gran/OAB por link nunca foi validado.
 
 ### I2 — Progresso e reprodução de aulas externas
-**Parcial.** Hoje existe apenas: (a) aulas marcadas como concluídas na página copiada, que entram como histórico
-sem XP; (b) uma extensão de navegador **em andamento** em outra sessão de trabalho, que lê a página do curso
-aberta com a conta. Não existe:
+**Protótipo.** Hoje existem dois caminhos, ambos acionados pela pessoa:
+(a) a página copiada, cujas aulas marcadas como concluídas entram como histórico sem XP;
+(b) a extensão do navegador (Chrome/Edge, Manifest V3; ver [Importação](IMPORTACAO.md#extensão-do-navegador-leitura-na-sessão-da-pessoa)),
+que lê a página do curso aberta com a conta, sem cookie nem senha. Na primeira leitura, as conclusões visíveis viram
+histórico sem XP; nas seguintes, aulas que passaram a aparecer concluídas são oferecidas para confirmação e, se a
+pessoa confirmar, entram com origem `integration` e o servidor concede XP pela política vigente. Isso é uma
+observação da plataforma confirmada pela pessoa, não prova de que a aula foi assistida.
+
+Falta na extensão: carregá-la num Chrome real; conferir o DOM real de cada plataforma, inclusive como o Gran
+mostra uma aula assistida; teste automatizado da ponte e da entrega pelo service worker; ícones; publicação na
+Chrome Web Store; configurar outro endereço do Lume.
+
+Não existe:
 - observação de reprodução de vídeo (tempo assistido, velocidade, saltos, cobertura);
 - consulta de progresso por API (nenhuma das quatro plataformas oferece API pública individual; ver
   [Evolução §5](EVOLUCAO.md#5-integrações-com-cursos-externos));
 - retomada da posição da aula.
 - Pronto quando: os cinco critérios da prova técnica de [Evolução §5.5](EVOLUCAO.md#55-primeira-prova-técnica-recomendada)
   passam com uma aula real autorizada.
+
+### I6 — Limite de tamanho de cursos grandes
+**Decisão pendente.** O Lume aceita até 600 aulas por importação e 320 KB de estado por conta. Um curso grande do
+Gran (31 disciplinas) passa disso; a leitura avisa e corta. Elevar o limite exige rever o tamanho do estado
+sincronizado e a validação nos dois backends.
 
 ### I3 — Edital e cobertura
 **Parcial.** O registro de editais verificados (`EDITAL_SOURCES`) está vazio de propósito; a comparação de
@@ -297,9 +312,9 @@ Não há rotina documentada de backup ou exportação do D1 de produção.
 
 ### O3 — Comandos de verificação
 ```sh
-npm test          # 163 testes Node no último commit (01/11/2026)
+npm test          # 166 testes Node (01/11/2026, commit da extensão incluído)
 npm run build     # Astro + CSP
-npm run test:e2e  # 62 cenários (31 desktop + 31 celular) no último commit
+npm run test:e2e  # 90 cenários (45 desktop + 45 celular)
 ```
 - Não rode dois Playwright ao mesmo tempo no mesmo diretório: compartilham `test-results/` e a porta 4187.
 - A análise por link nos e2e é simulada; não prova extração real de plataformas.
@@ -320,6 +335,8 @@ npm run test:e2e  # 62 cenários (31 desktop + 31 celular) no último commit
 | Nomes e requisitos dos cargos | G2 |
 | Manter ou escurecer o *hover* dos botões | V3 |
 | Publicar a versão 0.5.1 do aplicativo de desktop | §8 |
+| Elevar o limite de 600 aulas e 320 KB por conta | I6 |
+| Publicar a extensão na Chrome Web Store | I2 |
 
 ## 13. Fora do escopo (decisões tomadas)
 
