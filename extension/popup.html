@@ -26,8 +26,9 @@
   <button id="read" type="button">Ler esta página e enviar</button>
   <button id="complete" type="button" class="secondary">Concluí esta aula</button>
   <p id="status" role="status" aria-live="polite"></p>
-  <p class="muted">Não lê senha, cookie nem vídeo, e só age quando você clica. Para ler as seções fechadas, a extensão abre e fecha as que encontrar, uma por vez; em cursos grandes isso leva um ou dois minutos. Não feche o popup nem troque de aba até terminar.</p>
-  <label>Lume que recebe a leitura
+  <p class="muted">Não lê senha, cookie nem vídeo, e só age quando você clica. No Gran, pede a grade às mesmas rotas que a página do curso usa. Nas outras plataformas, abre e fecha as seções que encontrar, uma por vez; em cursos grandes isso leva um ou dois minutos. Não feche o popup nem troque de aba até terminar.</p>
+  <!-- Some no pacote da loja (scripts/package-extension.mjs): lá só existe o Lume publicado. -->
+  <label data-dev>Lume que recebe a leitura
     <select id="target">
       <option value="published">Lume publicado</option>
       <option value="local">Lume local (localhost:4173)</option>

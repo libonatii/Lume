@@ -4,8 +4,11 @@ const target = document.getElementById('target');
 
 const say = (text) => { status.textContent = text; };
 
-chrome.storage.local.get('lumeTarget').then(({ lumeTarget }) => { if (lumeTarget) target.value = lumeTarget; });
-target.addEventListener('change', () => chrome.storage.local.set({ lumeTarget: target.value }));
+// O pacote da loja não tem a escolha de destino: vale sempre o Lume publicado.
+if (target) {
+  chrome.storage.local.get('lumeTarget').then(({ lumeTarget }) => { if (lumeTarget) target.value = lumeTarget; });
+  target.addEventListener('change', () => chrome.storage.local.set({ lumeTarget: target.value }));
+}
 
 const REASONS = {
   no_lessons: 'Não achei uma lista de aulas nesta página. Abra a tela com o índice do curso (módulos e aulas) e tente de novo.',

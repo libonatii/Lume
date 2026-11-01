@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacidade da extensão do Lume</title>
+  <meta name="description" content="O que a extensão Lume — leitor de curso lê, para onde envia e o que não faz.">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/privacidade.css">
+</head>
+<body>
+  <main>
+    <p class="eyebrow">Lume — leitor de curso</p>
+    <h1>Política de privacidade da extensão</h1>
+    <p class="updated">Atualizada em 1º de novembro de 2026.</p>
+
+    <p>A extensão Lume — leitor de curso lê a lista de aulas de um curso que você abriu na plataforma, com a sua
+      própria conta, e entrega essa lista ao Lume aberto no seu navegador, para você revisar antes de adicionar.
+      Esta página descreve tudo o que ela lê, para onde envia e o que ela não faz.</p>
+
+    <h2>Quando ela age</h2>
+    <p>Só quando você clica no ícone da extensão e em um dos botões. Ela usa a permissão <code>activeTab</code>: tem
+      acesso apenas à aba em que você clicou, só naquele momento. Não há acesso permanente às plataformas de curso
+      nem leitura em segundo plano.</p>
+
+    <h2>O que ela lê</h2>
+    <ul>
+      <li>Nome do curso e, quando a página mostra, o código dele na plataforma.</li>
+      <li>Disciplinas, módulos ou seções, o nome, o link e a duração de cada aula.</li>
+      <li>Quais aulas aparecem como concluídas ou assistidas.</li>
+      <li>No botão “Concluí esta aula”, só o endereço e o título da aba aberta.</li>
+    </ul>
+    <p>Na maioria das plataformas, a extensão lê esses dados do que está na página e pode abrir e fechar seções
+      recolhidas, como você faria. No Gran Cursos Online, ela pede a grade do curso às mesmas rotas que a página do
+      curso já consulta, apenas para leitura. Nesses pedidos, quem envia a sua sessão é o próprio navegador; a
+      extensão não lê nem guarda o cookie.</p>
+
+    <h2>O que ela não lê nem faz</h2>
+    <ul>
+      <li>Não lê senha, cookie, token, dados de pagamento, histórico de navegação nem o conteúdo das aulas (vídeos,
+        PDFs, textos).</li>
+      <li>Não altera nada na plataforma: não marca aulas, não envia respostas, não muda a sua conta.</li>
+      <li>Não registra conclusões sozinha. Tudo passa pela tela de revisão do Lume, onde você decide o que entra.</li>
+      <li>Não usa os dados para publicidade, não os vende e não os compartilha com terceiros.</li>
+    </ul>
+
+    <h2>Para onde os dados vão</h2>
+    <p>A leitura vai direto da aba da plataforma para a aba do Lume (<code>lume.lume-prototype.workers.dev</code>) no
+      seu navegador. A extensão não tem servidor próprio e não envia nada a outro endereço.</p>
+    <p>Se você confirmar a importação, o curso passa a fazer parte dos seus dados no Lume: fica no armazenamento do
+      navegador e, se você estiver com a conta conectada, numa cópia sincronizada com o servidor do Lume, como o
+      restante do seu progresso. Você pode excluir o curso da biblioteca a qualquer momento.</p>
+
+    <h2>O que fica guardado na extensão</h2>
+    <p>Nada da leitura fica guardado na extensão depois do envio. Na versão de desenvolvimento, ela guarda só a
+      escolha entre o Lume publicado e o Lume local (<code>chrome.storage.local</code>).</p>
+
+    <h2>Limites</h2>
+    <p>O que a extensão lê é o que a plataforma mostra para a sua conta. Uma aula marcada como assistida na
+      plataforma não comprova que ela foi estudada ou compreendida, e o Lume não a trata assim.</p>
+
+    <h2>Contato</h2>
+    <p>Dúvidas e pedidos sobre esta política podem ser enviados pelo e-mail de contato do editor, na página da
+      extensão na Chrome Web Store.</p>
+
+    <p class="back"><a href="/">Voltar ao Lume</a></p>
+  </main>
+</body>
+</html>

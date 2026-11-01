@@ -159,8 +159,9 @@ pessoa confirmar, entram com origem `integration` e o servidor concede XP pela p
 observação da plataforma confirmada pela pessoa, não prova de que a aula foi assistida.
 
 Falta na extensão: carregá-la num Chrome real; conferir o DOM real das outras plataformas; no Gran, "Concluí
-esta aula" só reconhece a página do primeiro vídeo de cada aula, e cursos de pós/graduação não foram vistos; teste automatizado da ponte e da entrega pelo service worker; ícones; publicação na
-Chrome Web Store; configurar outro endereço do Lume.
+esta aula" só reconhece a página do primeiro vídeo de cada aula, e cursos de pós/graduação não foram vistos; teste automatizado da ponte e da entrega pelo service worker; enviar à Chrome Web Store (o pacote,
+os ícones, as imagens, a ficha e a política de privacidade estão prontos; ver [extension/LOJA.md](../extension/LOJA.md));
+configurar outro endereço do Lume.
 
 Não existe:
 - observação de reprodução de vídeo (tempo assistido, velocidade, saltos, cobertura);

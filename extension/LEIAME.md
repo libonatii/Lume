@@ -38,9 +38,16 @@ por padrão, que você pode desmarcar); as que já constavam continuam como hist
 Os endereços aceitos estão em `manifest.json` (`host_permissions` e `content_scripts.matches`) e em
 `background.js`. Para um domínio próprio, acrescente-o nos três lugares e recarregue a extensão.
 
+## Publicar na Chrome Web Store
+
+`npm run extension:package` gera o `.zip` da loja em `dist-extension/`, só com o Lume publicado. O roteiro, os
+textos da ficha e as justificativas de permissão estão em [LOJA.md](LOJA.md); a política de privacidade é
+`public/privacidade-extensao.html`.
+
 ## Arquivos
 
 - `capture.js` — leitor da página (injetado ao clicar).
+- `icons/` — ícones da extensão (gerados do logo do Lume); `store/` — imagens da ficha da loja.
 - `popup.html`, `popup.js` — interface do ícone.
 - `background.js` — encontra ou abre o Lume e entrega a leitura.
 - `bridge.js` — roda no Lume e repassa a leitura à página.
