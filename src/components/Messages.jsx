@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { api, apiError } from '../lib/api.js';
+import { invalidateResources, mutateResource, useResource } from '../lib/resources.js';
 import { materialType } from '../../public/domain.js';
 import Icon from './Icon.jsx';
 import { Button, Empty, Heading } from './ui.jsx';
@@ -21,68 +22,45 @@ function referenceLabel(reference) {
 }
 
 export default function Messages({ account, state, notify, go, contactId = '' }) {
-  const [conversations, setConversations] = useState([]);
   const [selected, setSelected] = useState(contactId || '');
-  const [thread, setThread] = useState(null);
   const [text, setText] = useState('');
   const [referenceId, setReferenceId] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [notifications, setNotifications] = useState(true);
+  const [notificationsOverride, setNotificationsOverride] = useState(null);
   const threadEnd = useRef(null);
 
-  const loadConversations = useCallback(async () => {
-    if (!account) return;
-    const result = await api('/api/messages');
-    if (result.ok) setConversations(result.data.conversations || []);
-    else setError(apiError(result));
-  }, [account]);
+  // Lista, conversa aberta e preferências vêm do cache compartilhado; a lista e
+  // a conversa se atualizam a cada 45 s enquanto a tela está aberta.
+  const conversationsResource = useResource('/api/messages', { interval: 45000, enabled: Boolean(account) });
+  const threadPath = selected ? `/api/messages/${encodeURIComponent(selected)}` : '';
+  const threadResource = useResource(threadPath, { interval: 45000, enabled: Boolean(account && selected) });
+  const settingsResource = useResource('/api/messages/settings', { enabled: Boolean(account) });
+  const conversations = conversationsResource.data?.conversations || [];
+  const thread = selected && threadResource.data ? threadResource.data : null;
+  const loading = Boolean(selected) && threadResource.loading && !threadResource.data;
+  const notifications = notificationsOverride ?? settingsResource.data?.notifications !== false;
+  const loadError = conversationsResource.error || (selected ? threadResource.error : '');
 
-  const loadThread = useCallback(async (friendId) => {
-    if (!account || !friendId) { setThread(null); return; }
-    setLoading(true);
-    setError('');
-    const result = await api(`/api/messages/${encodeURIComponent(friendId)}`);
-    if (!result.ok) {
-      setError(apiError(result));
-      setThread(null);
-      setLoading(false);
-      return;
-    }
-    setThread(result.data);
-    setLoading(false);
-    const read = await api(`/api/messages/${encodeURIComponent(friendId)}/read`, { method: 'POST' });
-    if (read.ok) {
-      setConversations((previous) => previous.map((item) => item.id === friendId ? { ...item, unread: 0 } : item));
-    }
-  }, [account]);
-
-  useEffect(() => { loadConversations(); }, [loadConversations]);
   useEffect(() => {
     if (contactId && contactId !== selected) setSelected(contactId);
   }, [contactId, selected]);
-  useEffect(() => { if (selected) loadThread(selected); }, [selected, loadThread]);
+  // Abrir (ou receber novas mensagens na) conversa marca como lida e atualiza
+  // o contador do menu, que usa o mesmo cache.
+  const lastMessageId = thread?.messages?.at(-1)?.id || '';
   useEffect(() => {
-    if (!account) return undefined;
+    if (!account || !selected || !threadResource.data) return;
     let alive = true;
-    (async () => {
-      const result = await api('/api/messages/settings');
-      if (alive && result.ok) setNotifications(result.data.notifications !== false);
-    })();
+    api(`/api/messages/${encodeURIComponent(selected)}/read`, { method: 'POST' }).then((read) => {
+      if (!alive || !read.ok) return;
+      mutateResource('/api/messages', (previous) => previous ? { ...previous, conversations: (previous.conversations || []).map((item) => item.id === selected ? { ...item, unread: 0 } : item) } : previous);
+      invalidateResources('/api/messages/unread');
+    });
     return () => { alive = false; };
-  }, [account]);
+  }, [account, selected, lastMessageId, Boolean(threadResource.data)]);
   useEffect(() => {
     threadEnd.current?.scrollIntoView({ block: 'nearest' });
   }, [thread?.messages?.length, selected]);
-  useEffect(() => {
-    if (!account) return undefined;
-    const timer = setInterval(() => {
-      loadConversations();
-      if (selected) loadThread(selected);
-    }, 45000);
-    return () => clearInterval(timer);
-  }, [account, selected, loadConversations, loadThread]);
 
   async function send(event) {
     event.preventDefault();
@@ -99,10 +77,10 @@ export default function Messages({ account, state, notify, go, contactId = '' })
         body: { body, reference },
       });
       if (!result.ok) throw new Error(apiError(result));
-      setThread((previous) => previous ? { ...previous, messages: [...previous.messages, result.data.message] } : previous);
+      threadResource.mutate((previous) => previous ? { ...previous, messages: [...previous.messages, result.data.message] } : previous);
       setText('');
       setReferenceId('');
-      await loadConversations();
+      await conversationsResource.refresh();
     } catch (exception) {
       setError(exception.message);
     } finally {
@@ -119,8 +97,7 @@ export default function Messages({ account, state, notify, go, contactId = '' })
       const result = await api(`/api/blocks/${encodeURIComponent(selected)}`, { method: blocked ? 'DELETE' : 'POST' });
       if (!result.ok) throw new Error(apiError(result));
       notify(blocked ? 'Contato desbloqueado. A conversa pode continuar.' : 'Contato bloqueado. O histórico foi preservado.');
-      await loadThread(selected);
-      await loadConversations();
+      await Promise.all([threadResource.refresh(), conversationsResource.refresh()]);
     } catch (exception) {
       setError(exception.message);
     } finally {
@@ -130,13 +107,16 @@ export default function Messages({ account, state, notify, go, contactId = '' })
 
   async function toggleNotifications() {
     const next = !notifications;
-    setNotifications(next);
+    setNotificationsOverride(next);
     const result = await api('/api/messages/settings', { method: 'PATCH', body: { notifications: next } });
     if (!result.ok) {
-      setNotifications(!next);
+      setNotificationsOverride(!next);
       notify(apiError(result));
       return;
     }
+    settingsResource.mutate({ notifications: next });
+    setNotificationsOverride(null);
+    invalidateResources('/api/messages/unread');
     notify(next ? 'Notificações de mensagens ativadas.' : 'Notificações de mensagens silenciadas. As mensagens continuam guardadas.');
   }
 
@@ -155,7 +135,7 @@ export default function Messages({ account, state, notify, go, contactId = '' })
       Conversas individuais com quem está na sua lista de amigos. Compartilhar um material não concede acesso ao conteúdo privado, e mensagens não geram XP.
     </Heading>
 
-    {error && <p className="form-error" role="alert">{error}</p>}
+    {(error || loadError) && <p className="form-error" role="alert">{error || loadError}</p>}
     <div className="messages-layout">
       <aside className="card-surface messages-list" aria-label="Conversas">
         <div className="messages-list-head">

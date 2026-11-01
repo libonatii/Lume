@@ -4,6 +4,7 @@ import { reconcileSession } from '../../public/session-domain.js';
 import { collectCompletionCandidates } from '../../public/xp-policy.js';
 import { mergeStates } from '../../public/merge-domain.js';
 import { api, apiError } from '../lib/api.js';
+import { clearResources } from '../lib/resources.js';
 
 export const PREVIEW_KEY = 'lume.preview-session.v1';
 const SENT_KEY = 'lume.xp.sent.v1';
@@ -283,6 +284,7 @@ export function useLume(notify) {
       ready.current = false;
       syncGeneration.current += 1;
       revisionRef.current = 0;
+      clearResources();
       setAccount(null);
       setState(createInitialState());
       setSyncStatus('local');

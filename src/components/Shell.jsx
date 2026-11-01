@@ -4,10 +4,11 @@ import Icon from './Icon.jsx';
 import { AnimatedNumber, Logo, Progress, Ring } from './ui.jsx';
 import { levelInfo } from '../../public/domain.js';
 import { levelProgress } from '../../public/xp-policy.js';
-import { api } from '../lib/api.js';
+import { useResource } from '../lib/resources.js';
 import { isDesktopApp } from '../lib/desktop.js';
 import DesktopUpdate from './DesktopUpdate.jsx';
 import SectionTabs, { SECTIONS, sectionOf } from './SectionTabs.jsx';
+import { ENTRY_ROUTES } from '../app/routes.jsx';
 
 const desktop = isDesktopApp();
 
@@ -18,9 +19,8 @@ const syncLabels = { saving: 'Salvando na conta…', saved: 'Progresso salvo na 
 export default function Shell({ route, model, children, hideTabs = false, onComfort, onHelp, onRegister, onExit }) {
   const section = sectionOf(route);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [unread, setUnread] = useState(0);
   const menuRef = useRef(null);
-  const entry = ['login', 'inicio', 'recuperar', 'redefinir'].includes(route);
+  const entry = ENTRY_ROUTES.has(route);
   const summary = model.xp?.summary;
   const level = model.account
     ? (summary ? levelProgress(summary.totalXP) : { level: 1, current: 0, next: 500, total: 0 })
@@ -35,19 +35,10 @@ export default function Shell({ route, model, children, hideTabs = false, onComf
     setMenuOpen(false);
   }, [route]);
 
-  useEffect(() => {
-    if (!model.account) { setUnread(0); return undefined; }
-    let alive = true;
-    const load = async () => {
-      const result = await api('/api/messages/unread');
-      if (!alive) return;
-      if (result.ok && result.data.notifications !== false) setUnread(Number(result.data.unread) || 0);
-      else setUnread(0);
-    };
-    load();
-    const timer = setInterval(load, 45000);
-    return () => { alive = false; clearInterval(timer); };
-  }, [model.account, route]);
+  // Mesmo recurso da tela de Mensagens: um intervalo só, e ler uma conversa
+  // atualiza o contador na hora.
+  const unreadSummary = useResource('/api/messages/unread', { interval: 45000, enabled: Boolean(model.account) });
+  const unread = model.account && unreadSummary.data?.notifications !== false ? Number(unreadSummary.data?.unread) || 0 : 0;
 
   useEffect(() => {
     if (!menuOpen) return undefined;

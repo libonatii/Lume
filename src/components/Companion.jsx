@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import Icon from './Icon.jsx';
 import { Button, Heading } from './ui.jsx';
 import { api, apiError } from '../lib/api.js';
+import { useResource } from '../lib/resources.js';
 import { copyText, selectText } from '../lib/clipboard.js';
 import { isDesktopApp } from '../lib/desktop.js';
 import { formatPairCode, presenceState } from '../../public/companion-domain.js';
@@ -51,28 +52,14 @@ function relativeSeen(value) {
 }
 
 export default function Companion({ account, notify, go }) {
-  const [data, setData] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  const [actionError, setError] = useState('');
   const [pairing, setPairing] = useState(null);
-  const alive = useRef(true);
-
-  const load = useCallback(async (signal) => {
-    if (!account) return;
-    const result = await api('/api/companion', { signal });
-    if (!alive.current) return;
-    if (!result.ok) { setError(apiError(result)); return; }
-    setError('');
-    setData(result.data);
-  }, [account]);
-
-  useEffect(() => {
-    alive.current = true;
-    const controller = new AbortController();
-    load(controller.signal).catch(() => {});
-    const timer = setInterval(() => { load(controller.signal).catch(() => {}); }, 20000);
-    return () => { alive.current = false; controller.abort(); clearInterval(timer); };
-  }, [load]);
+  // Dispositivos e presença se atualizam a cada 20 s enquanto a tela está aberta.
+  const companion = useResource('/api/companion', { interval: 20000, enabled: Boolean(account) });
+  const data = companion.data ?? null;
+  const error = actionError || companion.error;
+  const load = companion.refresh;
 
   async function connect() {
     setBusy(true); setError('');
