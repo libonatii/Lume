@@ -1,0 +1,112 @@
+/* Amigos por convite e instalação do aplicativo. */
+
+/* ============================================================
+   Amigos por convite
+   ============================================================ */
+
+.friends-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+.friends-column {
+  display: grid;
+  gap: 1rem;
+}
+.friend-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+.friend-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.friend-copy {
+  display: grid;
+  min-width: 0;
+  margin-right: auto;
+}
+.friend-copy strong {
+  font-size: 0.88rem;
+}
+.friend-copy small {
+  color: var(--text-subtle);
+  font-size: 0.72rem;
+}
+.invite-history {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.3rem;
+}
+.invite-history li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--border);
+}
+.invite-history li:last-child {
+  border-bottom: 0;
+}
+.invite-status {
+  padding: 0.12rem 0.45rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+.invite-status.is-open {
+  background: var(--mint-soft);
+  color: var(--mint);
+}
+.invite-status.is-used {
+  background: var(--lume-soft);
+  color: var(--lume);
+}
+.invite-status.is-expired {
+  background: var(--surface-3);
+  color: var(--text-subtle);
+}
+@media (max-width: 900px) {
+  .friends-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Bloco de instalação do Lume Companion no painel de configurações */
+.companion-install {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+}
+.companion-install strong {
+  font-size: 0.92rem;
+}
+.companion-install .button {
+  justify-content: center;
+}
+.companion-steps summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.companion-steps details {
+  display: grid;
+  gap: 0.4rem;
+}

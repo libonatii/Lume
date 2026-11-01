@@ -1,0 +1,40 @@
+/* Barra de título e atualização na janela do aplicativo. */
+
+/* Barra de titulo do app de desktop: o topo do site vira a area de arrastar e
+   os botoes nativos da janela ficam sobre ele, com as cores do tema. */
+html[data-desktop="true"] .topbar,
+html[data-desktop="true"] .entry-header {
+  -webkit-app-region: drag;
+  padding-right: 150px;
+  min-height: 36px;
+}
+html[data-desktop="true"] .topbar a,
+html[data-desktop="true"] .topbar button,
+html[data-desktop="true"] .topbar select,
+html[data-desktop="true"] .topbar input,
+html[data-desktop="true"] .entry-header a,
+html[data-desktop="true"] .entry-header button {
+  -webkit-app-region: no-drag;
+}
+
+/* Botao pequeno de atualizacao, so na janela do app. */
+.desktop-update {
+  position: relative;
+}
+.desktop-update.is-available {
+  color: var(--lume);
+}
+.desktop-update-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--lume);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+.desktop-update:disabled {
+  opacity: 0.55;
+  cursor: default;
+}

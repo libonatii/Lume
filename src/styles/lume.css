@@ -1,0 +1,35 @@
+/* Folha do Lume, dividida por seção. A ordem dos @import é a ordem da
+   cascata: camadas posteriores sobrescrevem as anteriores (o Redesign Moderno
+   vem por último). Ao redesenhar uma tela, mova as regras dela para o arquivo
+   da seção e apague as que ficaram sobrescritas. Cores sempre por token
+   (00-tokens.css), nunca fixas. */
+
+@import './00-tokens.css';
+@import './01-shader.css';
+@import './02-base.css';
+@import './10-entrada.css';
+@import './11-onboarding.css';
+@import './12-perfil-compartilhado.css';
+@import './20-shell.css';
+@import './30-hoje.css';
+@import './31-biblioteca.css';
+@import './32-pessoal.css';
+@import './40-dialogos.css';
+@import './41-responsivo.css';
+@import './50-importacao.css';
+@import './51-desktop.css';
+@import './52-sessao.css';
+@import './53-amigos.css';
+@import './54-perfil.css';
+@import './55-janela-desktop.css';
+@import './60-tarefas.css';
+@import './61-biblioteca-materiais.css';
+@import './62-xp-ranking.css';
+@import './63-restauracao.css';
+@import './64-mensagens.css';
+@import './65-slides.css';
+@import './66-correcao-xp.css';
+@import './67-github-colaboracao.css';
+@import './70-hoje-acao.css';
+@import './71-plano.css';
+@import './80-redesign-moderno.css';

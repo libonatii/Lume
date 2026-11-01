@@ -1,0 +1,277 @@
+/* Tipografia, luz ambiente, botões, progresso, capas e superfícies. */
+
+/* Tipografia Editorial */
+.display {
+  font-family: var(--font-serif);
+  font-weight: 560;
+  font-size: clamp(2rem, 3.3vw, 3.1rem);
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  margin: 0.35rem 0 0;
+  font-variation-settings: 'opsz' 72, 'SOFT' 50;
+}
+.display em, .headline em {
+  font-style: italic;
+  color: var(--lume);
+  font-weight: 520;
+}
+.headline {
+  font-family: var(--font-serif);
+  font-weight: 560;
+  font-size: clamp(1.45rem, 2.2vw, 2rem);
+  line-height: 1.16;
+  letter-spacing: -0.02em;
+  margin: 0;
+  font-variation-settings: 'opsz' 48;
+}
+.title {
+  font-family: var(--font-serif);
+  font-weight: 560;
+  font-size: 1.22rem;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.lead {
+  font-size: 1.06rem;
+  color: var(--text-muted);
+  max-width: 62ch;
+  margin: 0.65rem 0 0;
+}
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+  color: var(--lume);
+}
+.eyebrow.on-glow {
+  padding: 0.28rem 0.7rem;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--bg) 55%, transparent);
+  border: 1px solid rgba(158, 198, 255, 0.22);
+  color: #cfe4ff;
+  backdrop-filter: blur(8px);
+  width: fit-content;
+}
+html[data-theme='light'] .eyebrow.on-glow {
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--lume-2);
+  border-color: color-mix(in srgb, var(--lume) 22%, transparent);
+}
+
+.muted-text {
+  color: var(--text-muted);
+  margin: 0;
+  font-size: 0.95rem;
+}
+.quiet-note {
+  color: var(--text-subtle);
+  font-size: 0.82rem;
+  margin: 0;
+}
+
+/* Luz Ambiente (Paper Shaders + fallback CSS) */
+.glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: inherit;
+  z-index: 0;
+  opacity: 0.44;
+  background:
+    radial-gradient(circle at 18% 20%, color-mix(in srgb, var(--lume) 44%, transparent), transparent 55%),
+    radial-gradient(circle at 82% 75%, color-mix(in srgb, var(--lume) 30%, transparent), transparent 55%),
+    radial-gradient(circle at 60% 15%, color-mix(in srgb, var(--lilac) 34%, transparent), transparent 60%);
+}
+.glow-mint {
+  background:
+    radial-gradient(circle at 20% 25%, color-mix(in srgb, var(--mint) 36%, transparent), transparent 55%),
+    radial-gradient(circle at 85% 75%, color-mix(in srgb, var(--lume) 30%, transparent), transparent 55%);
+}
+html[data-theme='light'] .glow {
+  opacity: 0.2;
+}
+.glow-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+/* Botões e controles */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 0.72rem 1.2rem;
+  border-radius: var(--radius-md);
+  font-weight: 650;
+  font-size: 0.94rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: filter 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+  white-space: nowrap;
+}
+.button.large {
+  padding: 0.88rem 1.4rem;
+  font-size: 1rem;
+}
+.button.primary {
+  background: linear-gradient(135deg, var(--lume) 0%, var(--lume-2) 100%);
+  color: var(--lume-ink);
+  box-shadow: 0 10px 26px -10px color-mix(in srgb, var(--lume-2) 55%, transparent), 0 1px 0 0 rgba(255, 255, 255, 0.32) inset;
+}
+.button.primary:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+.button.secondary {
+  background: var(--surface-2);
+  color: var(--text);
+  border-color: var(--border);
+}
+.button.secondary:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  background: var(--surface-3);
+}
+.button.ghost {
+  background: transparent;
+  color: var(--text-muted);
+}
+.button:disabled {
+  opacity: 0.52;
+  cursor: not-allowed;
+}
+.full-width {
+  width: 100%;
+}
+
+.chip-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.48rem 0.9rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+.chip-button:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-3);
+}
+
+.text-button, .text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: none;
+  border: none;
+  padding: 0.25rem 0;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: color 0.16s ease;
+}
+.text-button:hover, .text-link:hover, .text-button.accent, .text-link {
+  color: var(--lume);
+}
+.centered {
+  justify-content: center;
+  width: 100%;
+}
+
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.16s ease, border-color 0.16s ease;
+}
+.icon-button:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+/* Barras e Anéis de Progresso */
+.progress {
+  width: 100%;
+  height: 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--track);
+  overflow: hidden;
+  position: relative;
+}
+.progress > span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-origin: left center;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--mint), var(--lume));
+}
+.progress.tone-lume > span {
+  background: linear-gradient(90deg, var(--lume), var(--lume-2));
+}
+
+.ring {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.ring svg {
+  width: 100%;
+  height: 100%;
+}
+.ring-track {
+  fill: none;
+  stroke: var(--border);
+}
+.ring-content {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-serif);
+  font-size: 0.95rem;
+}
+
+/* Capas e Superfícies */
+.card-surface {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.35rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.cover {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  aspect-ratio: 16 / 10;
+}
+.cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}

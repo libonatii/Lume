@@ -1,0 +1,116 @@
+/* GitHub, sugestões de entrega e colaboração. */
+
+/* --- GitHub e sugestões de entrega --- */
+.github-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  margin: 1rem 0;
+}
+.github-form .field {
+  flex: 1 1 20rem;
+}
+.github-result {
+  display: grid;
+  gap: 1rem;
+}
+.github-repo-card {
+  display: grid;
+  gap: 0.35rem;
+}
+.github-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+.github-meta > span,
+.github-meta > a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.github-suggestion-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+.github-suggestion {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  cursor: pointer;
+}
+.github-suggestion input {
+  margin-top: 0.2rem;
+}
+.github-suggestion span {
+  display: grid;
+  gap: 0.1rem;
+}
+.github-suggestion small {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+/* --- Colaboração em entregas --- */
+.collab-panel {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 1rem;
+  padding: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+}
+.collab-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+.collab-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.collab-icon {
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--lume-soft);
+  color: var(--lume);
+}
+.collab-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  gap: 0.1rem;
+}
+.collab-copy small {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+.collab-actions {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}

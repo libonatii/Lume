@@ -1,0 +1,49 @@
+/* Correção de XP e revisão de materiais antigos. */
+
+/* --- Correção de XP --- */
+.xp-event {
+  display: grid;
+  gap: 0.6rem;
+}
+.xp-event-main {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+.xp-event.is-adjustment {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 7%, var(--surface));
+}
+.xp-event.is-adjustment .xp-event-value {
+  color: var(--danger);
+}
+.xp-adjust-form {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+
+/* --- Revisão de materiais antigos --- */
+.legacy-review-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+.legacy-review-list > li {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.setting-row.compact {
+  padding-top: 0;
+  border-top: 0;
+  align-items: flex-end;
+}

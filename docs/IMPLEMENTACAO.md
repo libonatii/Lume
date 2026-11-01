@@ -58,7 +58,7 @@ Visão rápida para saber de onde partir. "Verificado" indica onde o fluxo foi e
 | GitHub (leitura pública) | Parcial | `github.js`, `GitHub.jsx` | unitário com resposta simulada |
 | Aplicativo de desktop | Parcial | `companion/` | CI (sintaxe e contrato); janela e bandeja só manualmente |
 | Extensão do navegador | Protótipo | `extension/`, `src/lib/extension.js`, `ImportCourse.jsx` | e2e com páginas de exemplo e trecho salvo do Gran; nunca carregada no Chrome |
-| Aparência (Azul e Roxo, escuro e claro) | Implementado | `public/lume.css`, `Personal.jsx` | e2e local |
+| Aparência (Azul e Roxo, escuro e claro) | Implementado | `src/styles/` (`00-tokens.css` e seções), `Personal.jsx` | e2e local |
 
 Os dois ambientes (`server.js` e `worker.js`) servem o mesmo app de `api/`; `api-contract.test.js` confere as rotas `/api/*` nos dois. Tabelas
 existentes: `users`, `sessions`, `password_resets`, `rate_limits`, `user_state`, `companion_*`, `friend*`,
@@ -291,8 +291,8 @@ A reestruturação que trata estes itens e as causas de arquitetura por trás de
 [Plano de refatoração](REFATORACAO_01112026.md).
 
 ### D1 — CSS legado
-`public/lume.css` acumula regras antigas sobrescritas pelas camadas novas (Plano e Redesign Moderno) no fim do
-arquivo. As cinco folhas sem uso foram removidas em 01/11/2026; a divisão por funcionalidade está em
+`src/styles/` divide a folha por seção desde 01/11/2026, mas as camadas finais (`70-*`, `71-*`, `80-redesign-moderno.css`)
+ainda sobrescrevem regras antigas das seções anteriores. As cinco folhas sem uso foram removidas em 01/11/2026; a divisão por funcionalidade está em
 [Refatoração F7](REFATORACAO_01112026.md#f7--css-por-componente-sobre-tokens).
 
 ### D2 — Regras antigas ainda em uso

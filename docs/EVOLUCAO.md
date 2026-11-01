@@ -44,7 +44,7 @@ As consultas ao site publicado foram feitas em 31/10/2026 apenas com `GET` anôn
 | **Tarefas sem prioridade nem relação com o plano** | Ordem só por prazo; nada indica atraso; tarefas não aparecem na Hoje | `sortTasks` em `public/tasks-domain.js` |
 | **Duração conhecida descartada** | A importação guarda `duration` por aula, mas nenhuma tela usa esse dado para dizer quanto tempo reservar | `normalizeDuration` em `public/import-domain.js:165` |
 | **Nível sem consequência** | Subir de nível não muda nada além do número; não existem cargos nem desbloqueios | Busca por `cargo`/`desbloque` não encontra regra de produto |
-| **Paleta monocromática** | Fundo, superfícies, bordas e ação principal são variações do mesmo azul; verde (`--mint`) aparece só em detalhes | Tokens em `public/lume.css:21-72` |
+| **Paleta monocromática** | Fundo, superfícies, bordas e ação principal são variações do mesmo azul; verde (`--mint`) aparece só em detalhes | Tokens em `src/styles/00-tokens.css` |
 | **Tom condescendente** | "O começo pode ser pequeno", "Se hoje não der, você pode descansar", "Pausar sem culpa", "Que bom ter você aqui" | Seção 8 deste documento |
 
 ### 1.3 Contradições na documentação (corrigidas nesta rodada)

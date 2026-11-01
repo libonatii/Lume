@@ -1,0 +1,223 @@
+/* Biblioteca: edição, slides e materiais tipados. */
+
+/* --- Biblioteca: edição, slides e materiais tipados --- */
+.course-slide-chip {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-glass);
+  border: 1px solid var(--border-strong);
+  color: var(--lume);
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+.course-steps-editor {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 0.5rem;
+}
+.course-steps-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.course-steps-edit-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+.course-step-edit {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.course-step-edit input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.step-edit-actions {
+  display: flex;
+  gap: 0.15rem;
+}
+.step-edit-actions .icon-button:disabled,
+.slide-editor-actions .icon-button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.danger-zone {
+  margin-top: 1.4rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.danger-zone > div:first-child {
+  max-width: 34rem;
+}
+.danger-button {
+  background: var(--danger);
+  color: #1a0508;
+}
+.dialog-actions.inline-actions {
+  justify-content: flex-start;
+  margin-top: 0.2rem;
+}
+.slides-details {
+  margin-top: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 0.7rem 0.9rem;
+  background: var(--surface-2);
+}
+.slides-details > summary {
+  cursor: pointer;
+  font-weight: 650;
+  color: var(--lume);
+}
+.slides-editor {
+  display: grid;
+  gap: 0.9rem;
+  padding-top: 0.8rem;
+}
+.slides-editor-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.slides-empty {
+  display: grid;
+  justify-items: start;
+  gap: 0.5rem;
+  padding: 1rem;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+}
+.slides-empty > .icon {
+  color: var(--lume);
+  width: 1.6rem;
+  height: 1.6rem;
+}
+.slides-editor-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+.slide-editor-item {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.slide-number {
+  font-family: var(--font-serif);
+  color: var(--lume);
+  font-size: 1.1rem;
+  min-width: 1.7rem;
+}
+.slide-editor-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.slide-editor-copy p {
+  margin: 0.15rem 0 0;
+  font-size: 0.84rem;
+}
+.slide-editor-actions {
+  display: flex;
+  gap: 0.1rem;
+}
+.slide-form {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.85rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.slides-viewer {
+  display: grid;
+  gap: 1rem;
+  padding: 0.2rem 0.2rem 0.5rem;
+}
+.slides-viewer-top {
+  display: grid;
+  gap: 0.35rem;
+}
+.slide-canvas {
+  position: relative;
+  min-height: 15rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.9rem;
+  padding: 2rem 1.6rem;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-strong);
+  background:
+    radial-gradient(circle at 85% 15%, var(--lume-soft), transparent 55%),
+    var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.slide-counter {
+  position: absolute;
+  top: 0.8rem;
+  right: 1rem;
+  font-size: 0.78rem;
+  color: var(--text-subtle);
+  letter-spacing: 0.08em;
+}
+.slide-title {
+  font-family: var(--font-serif);
+  font-size: clamp(1.5rem, 4vw, 2.2rem);
+  line-height: 1.15;
+  margin: 0;
+}
+.slide-body {
+  white-space: pre-wrap;
+  font-size: 1.02rem;
+  line-height: 1.65;
+  color: var(--text-muted);
+  margin: 0;
+  max-width: 60ch;
+}
+.slide-completed {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--mint);
+  font-weight: 650;
+  font-size: 0.85rem;
+}
+.slides-viewer-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.slides-viewer-actions .quiet-note {
+  flex: 1 1 100%;
+}

@@ -1,0 +1,145 @@
+/* Plano e subtarefas. */
+
+/* Plano: cronograma, ajustes e roteiro. */
+.plan-root {
+  display: grid;
+  gap: 1.1rem;
+}
+.plan-conflict {
+  border-color: var(--warning);
+  background: linear-gradient(var(--warning-soft), var(--warning-soft)), var(--surface);
+}
+.plan-conflict .title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.plan-conflict .title .icon {
+  color: var(--warning);
+}
+.plan-day-list,
+.plan-items,
+.roadmap-list,
+.subtask-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+.plan-day-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+}
+.plan-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--border);
+}
+.plan-item-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  gap: 0.15rem;
+}
+.availability-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: 0.6rem;
+}
+.availability-day select,
+.goal-row select,
+.goal-row input {
+  width: 100%;
+}
+.goal-list {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.4rem;
+}
+.goal-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: end;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+.goal-title {
+  display: grid;
+  gap: 0.15rem;
+  align-self: center;
+}
+
+/* Subtarefas */
+.todo-item {
+  flex-wrap: wrap;
+}
+.todo-subtasks {
+  flex: 1 0 100%;
+  margin-left: 2.75rem;
+  font-size: 0.9rem;
+}
+.todo-subtasks summary {
+  cursor: pointer;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.subtask-list {
+  gap: 0.3rem;
+  margin: 0.5rem 0;
+}
+.subtask-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.subtask {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.subtask .is-done {
+  text-decoration: line-through;
+  color: var(--text-subtle);
+}
+.subtask-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+.subtask-form input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
+}
+
+@media (max-width: 820px) {
+  .availability-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .goal-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .goal-title {
+    grid-column: 1 / -1;
+  }
+  .plan-item {
+    flex-wrap: wrap;
+  }
+  .todo-subtasks {
+    margin-left: 0;
+  }
+  .section-tabs {
+    width: 100%;
+  }
+}
