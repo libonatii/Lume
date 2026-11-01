@@ -230,3 +230,14 @@ test('exemplos antigos sem uso saem da biblioteca; com progresso permanecem', ()
   assert.equal(kept.completed.includes('design-1'), true);
   assert.equal(kept.selectedCourseId, 'design');
 });
+test('paleta da Aparência começa no Redesign Moderno e valores desconhecidos voltam ao padrão', () => {
+  assert.equal(createInitialState().preferences.palette, 'moderno');
+  const chosen = createInitialState();
+  chosen.preferences.palette = 'variante2';
+  assert.equal(restoreState(JSON.stringify(chosen)).preferences.palette, 'variante2');
+  chosen.preferences.palette = 'neon';
+  assert.equal(restoreState(JSON.stringify(chosen)).preferences.palette, 'moderno');
+  const old = createInitialState();
+  delete old.preferences.palette;
+  assert.equal(restoreState(JSON.stringify(old)).preferences.palette, 'moderno');
+});

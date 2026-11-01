@@ -131,6 +131,13 @@ export function positionLabel(type, position) {
 
 export const SESSION_MINUTES = [10, 20, 30, 45];
 
+// Paletas da Aparência. Os ids são internos (moderno = tela "Redesign Moderno" do Stitch,
+// variante2 = "Variante 2"); para quem usa, os nomes são só Azul e Roxo. O logo não muda.
+export const PALETTES = [
+  { id: 'moderno', title: 'Azul', detail: 'Azul com destaques em âmbar · padrão', swatches: ['#090d1f', '#0f172a', '#2563eb', '#f59e0b'] },
+  { id: 'variante2', title: 'Roxo', detail: 'Roxo com lavanda e destaques em âmbar', swatches: ['#0b0b18', '#13132b', '#7c3aed', '#f59e0b'] },
+];
+
 export const CONTINUITY_OBSTACLES = [
   { id: 'choose', title: 'Escolher entre materiais' },
   { id: 'where', title: 'Esquecer onde parei' },
@@ -300,7 +307,7 @@ export function createInitialState() {
     challenges: [],
     supports: [],
     profile: emptyProfileCard(),
-    preferences: { essential: false, gamification: true, theme: 'dark', textSize: 'normal', weeklyGoal: 3, weeklyGoalSource: 'suggested', sharing: { library: true, queue: true, progress: true, xp: true } },
+    preferences: { essential: false, gamification: true, theme: 'dark', palette: 'moderno', textSize: 'normal', weeklyGoal: 3, weeklyGoalSource: 'suggested', sharing: { library: true, queue: true, progress: true, xp: true } },
     onboarding: emptyOnboarding(),
     courses: [],
     completed: [],
@@ -699,6 +706,7 @@ export function restoreState(raw) {
         essential: preferences.essential === true,
         gamification: preferences.gamification !== false,
         theme: preferences.theme === 'light' ? 'light' : 'dark',
+        palette: PALETTES.some((item) => item.id === preferences.palette) ? preferences.palette : 'moderno',
         textSize: preferences.textSize === 'large' ? 'large' : 'normal',
         weeklyGoal: Number.isInteger(preferences.weeklyGoal) && preferences.weeklyGoal >= 1 && preferences.weeklyGoal <= 7 ? preferences.weeklyGoal : 3,
         weeklyGoalSource: preferences.weeklyGoalSource === 'manual' ? 'manual' : 'suggested',

@@ -28,7 +28,8 @@ export default function Shell({ route, model, children, hideTabs = false, onComf
   const xpLabel = model.account ? 'XP elegível' : 'prévia local';
   const gamified = model.state.preferences.gamification;
   const name = model.account?.name || 'Prévia';
-  const today = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+  const todayLabel = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+  const today = todayLabel.charAt(0).toUpperCase() + todayLabel.slice(1);
 
   useEffect(() => {
     setMenuOpen(false);
@@ -87,10 +88,10 @@ export default function Shell({ route, model, children, hideTabs = false, onComf
       <header className="topbar">
         <div className="topbar-left"><span className="today">{today}</span></div>
         <div className="topbar-right">
-          {gamified && <div className="level-chip" title={model.account ? 'XP confirmado pelo servidor; o saldo legado fica fora do nível.' : 'Prévia local: este XP não vale para ranking.'}><Icon name="spark"/><span>Nível {level.level} · <strong>{level.current} / {level.next} XP</strong> {model.account ? 'elegível' : 'na prévia'}</span><Progress value={level.current} max={level.next} tone="lume" label="Experiência até o próximo nível"/></div>}
+          {gamified && <div className="level-chip" title={model.account ? 'XP confirmado pelo servidor; o saldo legado fica fora do nível.' : 'Prévia local: este XP não vale para ranking.'}><Icon name="spark"/><span>Nível {level.level} · <strong>{level.current} / {level.next} XP</strong> {model.account ? 'elegível' : 'na prévia'}</span><Progress value={level.current} max={level.next} tone="reward" label="Experiência até o próximo nível"/></div>}
           {(!model.account || model.syncStatus !== 'saved') && <span className={`sync-chip sync-${model.account ? model.syncStatus : 'local'}`} role="status"><Icon name="cloud"/>{model.account ? syncLabels[model.syncStatus] || 'Conta conectada' : 'Prévia · progresso neste navegador'}</span>}
           {desktop && <DesktopUpdate/>}
-          <a className="icon-button" href="#configuracoes" aria-label="Abrir minhas preferências"><Icon name="settings"/></a>
+          <a className="appearance-chip" href="#configuracoes" title="Paleta de cores, tema e tamanho do texto"><Icon name="sun"/><span>Aparência</span></a>
           <div className="user-menu-wrap" ref={menuRef}>
             <button
               type="button"

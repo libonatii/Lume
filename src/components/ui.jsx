@@ -56,14 +56,23 @@ function supportsWebGL() {
 }
 
 // Luz ambiente com o MeshGradient da Paper Shaders (FGLibs). Sem WebGL, fica o gradiente em CSS.
+// As cores acompanham a paleta escolhida em Aparência (html[data-palette]).
 const glowPalettes = {
-  lume: ['#101417', '#63a0ff', '#2ed3a2', '#1c3d70'],
-  dusk: ['#101417', '#3f80f2', '#2ed3a2', '#1f5a4a'],
-  mint: ['#101417', '#2ed3a2', '#63a0ff', '#21503f'],
+  moderno: {
+    lume: ['#090d1f', '#3b82f6', '#60a5fa', '#1e295d'],
+    dusk: ['#090d1f', '#2563eb', '#f59e0b', '#172346'],
+    mint: ['#090d1f', '#60a5fa', '#fbbf24', '#0f172a'],
+  },
+  variante2: {
+    lume: ['#0b0b18', '#8b5cf6', '#c084fc', '#26244d'],
+    dusk: ['#0b0b18', '#7c3aed', '#f59e0b', '#1c1c3d'],
+    mint: ['#0b0b18', '#c084fc', '#fbbf24', '#13132b'],
+  },
 };
 export function Glow({ palette = 'lume', speed = 0, className = '' }) {
   const enabled = typeof document !== 'undefined' && supportsWebGL();
-  return <div className={`glow glow-${palette} ${className}`} aria-hidden="true">{enabled && <MeshGradient className="glow-canvas" colors={glowPalettes[palette]} distortion={.85} swirl={.2} speed={speed} maxPixelCount={640 * 640} minPixelRatio={1}/>}</div>;
+  const scheme = glowPalettes[typeof document !== 'undefined' && document.documentElement.dataset.palette === 'variante2' ? 'variante2' : 'moderno'];
+  return <div className={`glow glow-${palette} ${className}`} aria-hidden="true">{enabled && <MeshGradient className="glow-canvas" colors={scheme[palette] || scheme.lume} distortion={.85} swirl={.2} speed={speed} maxPixelCount={640 * 640} minPixelRatio={1}/>}</div>;
 }
 
 export function Logo({ size = 36 }) {

@@ -24,15 +24,17 @@ export function Home({ state, open, go, update, notify, account, xp }) {
   const course = action ? state.courses.find((item) => item.id === action.courseId) : null;
   return <div className="study-root today-root">
     <Heading
+      eyebrow="Visão diária"
       title="Hoje"
       actions={<button className="chip-button" onClick={() => go('inicio')}><Icon name="settings"/>Ritmo: {plan.title}</button>}
     >{action
       ? <>Sua próxima {unit} é <strong>{action.title}</strong>. Reserve {action.minutes} minutos para avançar.</>
       : 'Adicione um curso ou material à biblioteca para receber a próxima ação.'}</Heading>
 
+    <div className="today-bento">
     <section className="card-surface next-action" aria-labelledby="next-title">
       {action ? <>
-        <span className="eyebrow">Próxima ação · {action.courseTitle}</span>
+        <span className="pill"><Icon name="focus"/>Próxima ação · {action.courseTitle}</span>
         <h2 id="next-title" className="headline">{action.title}</h2>
         {(action.discipline || action.module) && <p className="muted-text">{[action.discipline, action.module].filter(Boolean).join(' · ')}</p>}
         <dl className="next-facts">
@@ -53,7 +55,7 @@ export function Home({ state, open, go, update, notify, account, xp }) {
         </div>
         {!action.imported && <p className="quiet-note">Preparar ou dividir organiza o caminho; o XP vem ao concluir a etapa.</p>}
       </> : <>
-        <span className="eyebrow">Próxima ação</span>
+        <span className="pill"><Icon name="focus"/>Próxima ação</span>
         <h2 id="next-title" className="headline">Nenhum material em andamento.</h2>
         <p className="muted-text">Importe um curso por link ou crie um material. A próxima aula aparece aqui, com o tempo a reservar.</p>
         <div className="action-row"><Button onClick={() => go('biblioteca')}><Icon name="plus"/>Ir para a biblioteca</Button></div>
@@ -61,10 +63,11 @@ export function Home({ state, open, go, update, notify, account, xp }) {
     </section>
 
     <StudySession state={state} update={update} mission={action ? { course: { id: action.courseId }, step: { id: action.lessonId, title: action.title } } : null} notify={notify} account={account}/>
+    </div>
 
     <div className="today-grid">
       <section className="card-surface today-tasks" aria-labelledby="today-tasks-title">
-        <div className="shelf-header"><h2 id="today-tasks-title" className="title">Tarefas</h2><a className="text-link" href="#tarefas">Abrir lista<Icon name="arrow"/></a></div>
+        <div className="card-heading"><div><span className="card-icon"><Icon name="list"/></span><h2 id="today-tasks-title" className="title">Tarefas</h2></div><a className="text-link" href="#tarefas">Abrir lista<Icon name="arrow"/></a></div>
         {agenda.overdue > 0 && <p className="inline-note todo-overdue-note" role="status"><Icon name="flag"/><span>{overdueMessage(agenda.overdue)}</span></p>}
         {agenda.next.length
           ? <ul className="today-task-list">{agenda.next.map((task) => <li key={task.id} className="todo-item">
@@ -108,8 +111,9 @@ function taskMeta(task) {
 
 // Evolução: nível e a última recompensa confirmada, sempre com o material de origem.
 function Evolution({ state, account, xp }) {
+  const heading = <div className="card-heading"><div><span className="card-icon tone-reward"><Icon name="spark"/></span><h2 id="evolution-title" className="title">Evolução</h2></div>{state.preferences.gamification && <a className="text-link" href="#historico">Ver extrato<Icon name="arrow"/></a>}</div>;
   if (!state.preferences.gamification) return <section className="card-surface today-evolution" aria-labelledby="evolution-title">
-    <h2 id="evolution-title" className="title">Evolução</h2>
+    {heading}
     <p className="muted-text">Os indicadores de XP estão ocultos nas preferências. Seu progresso continua registrado.</p>
   </section>;
   const summary = xp?.summary;
@@ -117,11 +121,14 @@ function Evolution({ state, account, xp }) {
   const last = account ? (xp?.events || []).find((event) => event.xp > 0 && event.kind !== 'adjustment') : null;
   const achievement = account ? xp?.achievements?.[0] : null;
   return <section className="card-surface today-evolution" aria-labelledby="evolution-title">
-    <div className="shelf-header"><h2 id="evolution-title" className="title">Evolução</h2><a className="text-link" href="#historico">Ver extrato<Icon name="arrow"/></a></div>
+    {heading}
     {account
       ? (summary ? <>
-        <p className="evolution-level"><strong>Nível {level.level}</strong> · {level.current} / {level.next} XP · faltam {level.next - level.current} XP para o nível {level.level + 1}</p>
-        <Progress value={level.current} max={level.next} tone="lume" label="Experiência até o próximo nível"/>
+        <div className="xp-box">
+          <p className="xp-row evolution-level"><strong className="xp-level">Nível {level.level}</strong><span className="xp-total">{level.current} / {level.next} XP</span></p>
+          <Progress value={level.current} max={level.next} tone="reward" label="Experiência até o próximo nível"/>
+          <p className="xp-note"><span>Faltam {level.next - level.current} XP para o nível {level.level + 1}</span></p>
+        </div>
         {last
           ? <p className="muted-text">Última recompensa: <strong>+{last.xp} XP</strong> · {XP_KIND_LABELS[last.kind] || 'Evento'}{last.stepTitle || last.materialTitle ? ` · ${last.stepTitle || last.materialTitle}` : ''}</p>
           : <p className="muted-text">Conclua uma aula, leitura ou entrega para receber o primeiro XP validado.</p>}

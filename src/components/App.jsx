@@ -64,18 +64,19 @@ export default function App() {
   }, [model.account, requested, state.onboarded]);
   useLayoutEffect(() => {
     document.documentElement.dataset.theme = state.preferences.theme;
+    document.documentElement.dataset.palette = state.preferences.palette || 'moderno';
     syncTitleBar(state.preferences.theme);
     document.documentElement.dataset.text = state.preferences.textSize;
     document.documentElement.dataset.page = route;
     document.documentElement.removeAttribute('data-essential');
-    document.querySelector('meta[name="theme-color"]').content = state.preferences.theme === 'light' ? '#f5f6f4' : '#0e1113';
+    document.querySelector('meta[name="theme-color"]').content = state.preferences.theme === 'light' ? '#f4f6fb' : (state.preferences.palette === 'variante2' ? '#0b0b18' : '#090d1f');
     document.title = `${titles[route]} · Lume`;
     if (previousRoute.current && previousRoute.current !== route) {
       document.querySelector('#main')?.focus({ preventScroll: true });
       window.scrollTo({ top: 0, behavior: 'instant' });
     }
     previousRoute.current = route;
-  }, [route, state.preferences.theme, state.preferences.textSize]);
+  }, [route, state.preferences.theme, state.preferences.palette, state.preferences.textSize]);
   const open = useCallback(value => setModal(value), []);
   const close = useCallback(() => setModal(null), []);
   async function exit() {

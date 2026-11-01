@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import Atropos from 'atropos/react';
-import { STORAGE_KEY, STUDY_TYPES, achievements, courseProgress, courseStatus, levelInfo, localDay, nextMission, studyRhythm, totalXP, updateCourse } from '../../public/domain.js';
+import { PALETTES, STORAGE_KEY, STUDY_TYPES, achievements, courseProgress, courseStatus, levelInfo, localDay, nextMission, studyRhythm, totalXP, updateCourse } from '../../public/domain.js';
 import { formatSessionDuration } from '../../public/session-domain.js';
 import { XP_KIND_LABELS, completionKindForCourse, levelProgress, stepEventKey } from '../../public/xp-policy.js';
 import { mergeBackup, previewBackup, readBackup } from '../../public/backup-domain.js';
@@ -295,12 +295,20 @@ export function Preferences({ state, update, notify, onPersonalize, account, go,
     setBackupName('');
   }
   return <div className="personal-root">
-    <Heading eyebrow="Autonomia & conforto" title="Do seu jeito">
-      Escolha o que ajuda. Desative o que atrapalha.
+    <Heading eyebrow="Perfil" title="Configurações">
+      Aparência, ritmo, privacidade, ranking e mensagens.
     </Heading>
     <div className="settings-layout">
-      <section className="card-surface settings-panel">
-        <div className="panel-title"><span className="pace-icon"><Icon name="sun"/></span><div><h2 className="title">Aparência e conforto</h2><p className="muted-text">Ajuste o espaço para estudar com tranquilidade.</p></div></div>
+      <section className="card-surface settings-panel" aria-labelledby="appearance-title">
+        <div className="panel-title"><span className="pace-icon"><Icon name="sun"/></span><div><h2 className="title" id="appearance-title">Aparência</h2><p className="muted-text">Paleta de cores, tema e tamanho do texto. A escolha fica salva na sua conta.</p></div></div>
+        <fieldset className="palette-options">
+          <legend>Paleta de cores</legend>
+          {PALETTES.map((palette) => <label key={palette.id} className={`palette-option ${state.preferences.palette === palette.id ? 'is-selected' : ''}`}>
+            <input type="radio" name="palette" value={palette.id} checked={state.preferences.palette === palette.id} onChange={() => preference('palette', palette.id)}/>
+            <span className="palette-swatches" aria-hidden="true">{palette.swatches.map((color) => <span key={color} style={{ background: color }}/>)}</span>
+            <span className="palette-copy"><strong>{palette.title}</strong><small>{palette.detail}</small></span>
+          </label>)}
+        </fieldset>
         <label className="setting-row">
           <span><strong>Mostrar XP e conquistas</strong><span>Ocultar não apaga seu histórico.</span></span>
           <input className="switch" type="checkbox" checked={state.preferences.gamification} onChange={event => preference('gamification', event.target.checked)}/>
