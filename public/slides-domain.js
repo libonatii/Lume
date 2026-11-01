@@ -6,7 +6,7 @@
 // confirmação explícita. O servidor revalida tudo em xp.js.
 
 import { XP_VALUES, slideProgressSnapshot } from './xp-policy.js';
-import { sanitizeSlideImage } from '../media.js';
+import { sanitizeSlideImage } from '../api/domain/media.js';
 
 export const MAX_SLIDES = 60;
 export const MAX_SLIDE_TITLE = 120;

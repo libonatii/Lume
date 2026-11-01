@@ -3,8 +3,8 @@
 import {
   RESET_TTL_MS, clearedSessionCookie, createSessionToken, hashPassword, hashSessionToken,
   normalizeEmail, sessionCookie, validateEmail, validateName, validatePassword, verifyPassword,
-} from '../../auth.js';
-import { sendPasswordResetEmail } from '../../email.js';
+} from '../domain/auth.js';
+import { sendPasswordResetEmail } from '../domain/email.js';
 import { LIMITS } from '../config.js';
 import { empty, json } from '../http.js';
 import { publicUser, sessionTokenFrom, startSession } from '../session.js';

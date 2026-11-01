@@ -1,8 +1,8 @@
 // Configuração lida do ambiente com os mesmos nomes no Node e no Worker.
 // Os nomes antigos do servidor local (LUME_*) continuam aceitos como apelidos.
 
-import { bcryptRounds } from '../auth.js';
-import { MAX_MEDIA_BYTES } from '../media.js';
+import { bcryptRounds } from './domain/auth.js';
+import { MAX_MEDIA_BYTES } from './domain/media.js';
 
 export const LIMITS = Object.freeze({
   body: 16 * 1024,

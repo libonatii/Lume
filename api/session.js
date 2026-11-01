@@ -1,7 +1,7 @@
 // Sessão por cookie e limite de tentativas, sobre o adaptador de banco
 // ({ run, first, all, batch }) — o mesmo código no SQLite local e no D1.
 
-import { SESSION_TTL_MS, createSessionToken, hashSessionToken, parseCookies } from '../auth.js';
+import { SESSION_TTL_MS, createSessionToken, hashSessionToken, parseCookies } from './domain/auth.js';
 import { ATTEMPT_CLEANUP_MS, ATTEMPT_WINDOW_MS } from './config.js';
 
 export function sessionTokenFrom(request) {

@@ -1,9 +1,9 @@
 // Documento de estado, importação de cursos e leitura de repositórios do GitHub.
 
-import { analyzeRepository } from '../../github.js';
-import { ImportError, analyzeSnapshot, analyzeText, analyzeUrl } from '../../import-server.js';
+import { analyzeRepository } from '../domain/github.js';
+import { ImportError, analyzeSnapshot, analyzeText, analyzeUrl } from '../domain/import-server.js';
 import { detectProvider, normalizePayload } from '../../public/import-domain.js';
-import { parseStateBody, readState, writeState } from '../../state.js';
+import { parseStateBody, readState, writeState } from '../domain/state.js';
 import { LIMITS } from '../config.js';
 import { json } from '../http.js';
 

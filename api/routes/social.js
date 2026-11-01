@@ -3,11 +3,11 @@
 import {
   blockContact, getThread, listBlocks, listConversations, markThreadRead, messagePreferences,
   sendMessage, unblockContact, unreadSummary, updateMessagePreferences, MESSAGE_WINDOW_LIMIT,
-} from '../../messages.js';
-import { acceptInvite, createInvite, listFriends, readFriendProfile, removeFriend } from '../../friends.js';
+} from '../domain/messages.js';
+import { acceptInvite, createInvite, listFriends, readFriendProfile, removeFriend } from '../domain/friends.js';
 import {
   cancelCollaborationInvite, createCollaborationInvite, listCollaborationInvites, respondCollaborationInvite,
-} from '../../collaboration.js';
+} from '../domain/collaboration.js';
 import { LIMITS } from '../config.js';
 import { json } from '../http.js';
 

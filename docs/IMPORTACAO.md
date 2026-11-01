@@ -206,7 +206,7 @@ Reimportação:
   `historical: true`, somam no progresso exibido, mas **não geram XP** e não podem ser desfeitas como conclusão
   manual. O Lume não converte progresso antigo em recompensa nova.
 - Importar, escolher disciplinas, atualizar a grade e conectar uma fonte continuam sem XP. A política de XP vive
-  em `xp.js`/`xp_events`, com chave de idempotência; `/api/state` continua sendo a cópia do estado, não a
+  em `api/domain/xp.js`/`xp_events`, com chave de idempotência; `/api/state` continua sendo a cópia do estado, não a
   autoridade de pontuação.
 - Não há observação de vídeo assistido por API. "Concluí esta aula" é autodeclaração identificada; sem integração
   compatível, não existe retomada automática.
@@ -225,7 +225,7 @@ Reimportação:
 
 - `deliveryCandidates(repository)` transforma issues abertas em **sugestões** que exigem validação, com a nota de
   que issue aberta não significa projeto incompleto.
-- A leitura pública de repositórios existe em `github.js` (README, issues e milestones, sem token e sem
+- A leitura pública de repositórios existe em `api/domain/github.js` (README, issues e milestones, sem token e sem
   repositórios privados). Conexão por OAuth, validação automática de entregas e escrita no GitHub não existem.
 - Quando a integração for implementada, ela deve ser opcional, com escopo mínimo, escolha explícita de
   repositórios e nada de repositórios privados expostos por padrão.

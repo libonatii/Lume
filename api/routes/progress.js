@@ -1,12 +1,12 @@
 // XP validado no servidor, ranking e aplicativo de desktop.
 
-import { adjustEvent, getRanking, getXpSnapshot, recordTimeSession, updateXpSettings } from '../../xp.js';
-import { grantBonus, grantSlide, grantStep } from '../../rewards.js';
-import { applyProgressCommands } from '../../commands.js';
+import { adjustEvent, getRanking, getXpSnapshot, recordTimeSession, updateXpSettings } from '../domain/xp.js';
+import { grantBonus, grantSlide, grantStep } from '../domain/rewards.js';
+import { applyProgressCommands } from '../domain/commands.js';
 import {
   authenticateDevice, clearPresence, companionSelf, createPairCode, listCompanion, redeemPairCode,
   reportPresence, revokeDevice, studySnapshot,
-} from '../../companion.js';
+} from '../domain/companion.js';
 import { LIMITS } from '../config.js';
 import { bearerToken, empty, json } from '../http.js';
 

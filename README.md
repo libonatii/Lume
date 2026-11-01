@@ -98,7 +98,7 @@ O endereço de referência é [lume.lume-prototype.workers.dev](https://lume.lum
 
 O build gera hashes CSP dos scripts e estilos inline exatos do Astro e grava `dist/_headers`, utilizado também pelo servidor Node. Não libera execução genérica de scripts inline.
 
-Novas senhas e redefinições usam **bcrypt (`bcryptjs`), com custo 6** no Node e no Worker. `BCRYPT_ROUNDS` aceita inteiros de 4 a 12; o padrão está em `auth.js` e o Worker configura explicitamente 6. Valores inválidos geram erro, sem redução silenciosa. `PBKDF2_ITERATIONS` deixou de configurar a criação de senhas.
+Novas senhas e redefinições usam **bcrypt (`bcryptjs`), com custo 6** no Node e no Worker. `BCRYPT_ROUNDS` aceita inteiros de 4 a 12; o padrão está em `api/domain/auth.js` e o Worker configura explicitamente 6. Valores inválidos geram erro, sem redução silenciosa. `PBKDF2_ITERATIONS` deixou de configurar a criação de senhas.
 
 O custo 6 é um compromisso com o [limite de 10 ms de CPU por requisição do Workers Free](https://developers.cloudflare.com/workers/platform/limits/) e fica abaixo do [mínimo 10 recomendado pela OWASP para bcrypt](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#bcrypt), oferecendo menor resistência a ataques offline. Medição local inicial com `bcryptjs` encontrou aproximadamente 5 ms por hash aquecido com custo 6 e 77 ms com custo 10. A primeira execução local com custo 6 levou cerca de 13 ms. Isso **não comprova** o orçamento de CPU no Worker publicado. Antes de considerar a configuração validada para o Free, medir cadastro, login e redefinição completos, incluindo partidas frias, e conferir erros `exceededCpu`. A API mantém o limite de tentativas antes do trabalho criptográfico; esse limite não protege um banco vazado. A API assíncrona do bcrypt não amplia o orçamento de CPU.
 
@@ -124,21 +124,21 @@ Verificação desta troca: testes de autenticação/domínio, build estático, b
 | `public/slides-domain.js` | Slides: criação, edição, ordem, progresso e conclusão do deck |
 | `public/xp-policy.js` | Política de XP v1, níveis, blocos, fuso e candidatos de conclusão |
 | `public/backup-domain.js` | Leitura, prévia e mesclagem de cópias JSON |
-| `xp.js` | Livro de eventos, conquistas, tempo elegível e ranking no servidor |
+| `api/domain/xp.js` | Livro de eventos, conquistas, tempo elegível e ranking no servidor |
 | `public/study-plan.js` | Roteiro por prioridade e contagem de aulas restantes |
 | `public/companion-domain.js` | Regras do aplicativo de desktop: allowlist, presença e categorias |
 | `extension/` | Extensão do navegador (Manifest V3, sem build): leitor de curso acionado pela pessoa, ponte para o Lume e popup; ver `extension/LEIAME.md` |
 | `src/lib/extension.js` | Recebe a leitura da extensão por `postMessage` e abre a revisão da importação |
 | `public/profile-domain.js` | Projeção do perfil entre amigos, com as escolhas de compartilhamento |
-| `import-server.js` | Análise de fontes no servidor: validação de URL, limites, extração e organizador por IA |
-| `companion.js` / `companion/` | Aplicativo de desktop (nome técnico Companion): janela com o Lume completo, bandeja, pareamento, presença, roteiro e atualização; núcleo, agente local e app Electron |
+| `api/domain/import-server.js` | Análise de fontes no servidor: validação de URL, limites, extração e organizador por IA |
+| `api/domain/companion.js` / `companion/` | Aplicativo de desktop (nome técnico Companion): janela com o Lume completo, bandeja, pareamento, presença, roteiro e atualização; núcleo, agente local e app Electron |
 | `companion/electron-builder.yml` | Empacotamento do instalador Windows (NSIS) |
 | `lume.cmd` | Iniciador do app de bandeja; funciona de qualquer pasta |
 | `.github/workflows/` | CI do site e da extensão, e publicação do instalador do aplicativo de desktop |
-| `friends.js` | Convites, amizades e remoção |
+| `api/domain/friends.js` | Convites, amizades e remoção |
 | `public/*.css` | Estilos, sistema visual unificado e interações |
 | `public/assets/` | Fontes e imagens locais |
-| `auth.js` | Validação, derivação de senha, tokens e cookies |
+| `api/domain/auth.js` | Validação, derivação de senha, tokens e cookies |
 | `api/` | App HTTP único: rotas, sessão, limites, erros e adaptadores de banco e imagens |
 | `server.js` | Adaptador Node: SQLite local, imagens em `data/media/` e entrega do build estático |
 | `worker.js` / `wrangler.jsonc` | Adaptador Cloudflare (D1, R2, estáticos) e configuração de build |

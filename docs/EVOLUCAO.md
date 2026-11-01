@@ -21,13 +21,13 @@ Legenda de estado usada em todo o documento:
 
 | Recurso | Estado | Evidência |
 | --- | --- | --- |
-| Contas, sessão, recuperação | Local verificado | `auth.js`, `auth.test.js`, `tests/e2e/session.spec.js` |
-| Livro de XP com idempotência, bônus, teto diário, ajuste negativo | Local verificado; rota publicada (`GET /api/xp` → 401 sem sessão) | `xp.js`, `xp.test.js`, `tests/e2e/xp-ranking.spec.js` |
-| Ranking de amigos (nível, cursos, empenho) | Local verificado; rota publicada (`/api/ranking` → 401) | `xp.js`, `Ranking.jsx` |
-| Mensagens diretas, bloqueio, não lidas | Local verificado; rota publicada (`/api/messages/unread` → 401) | `messages.js`, `messages.test.js`, `tests/e2e/messages.spec.js` |
-| Importação por link, texto e página copiada | Local verificado; extração real conferida em Coursera e Alura (parcial) | `import-server.js`, `import.test.js`, [Importação §4](IMPORTACAO.md) |
-| Revisão otimista do estado entre dispositivos | Local verificado | `state.js`, `merge.test.js`, `tests/e2e/state-conflict.spec.js` |
-| Roteiro por prioridade explícita | Local verificado | `public/study-plan.js`, `study-plan.test.js` |
+| Contas, sessão, recuperação | Local verificado | `api/domain/auth.js`, `tests/unit/auth.test.js`, `tests/e2e/session.spec.js` |
+| Livro de XP com idempotência, bônus, teto diário, ajuste negativo | Local verificado; rota publicada (`GET /api/xp` → 401 sem sessão) | `api/domain/xp.js`, `tests/unit/xp.test.js`, `tests/e2e/xp-ranking.spec.js` |
+| Ranking de amigos (nível, cursos, empenho) | Local verificado; rota publicada (`/api/ranking` → 401) | `api/domain/xp.js`, `Ranking.jsx` |
+| Mensagens diretas, bloqueio, não lidas | Local verificado; rota publicada (`/api/messages/unread` → 401) | `api/domain/messages.js`, `tests/unit/messages.test.js`, `tests/e2e/messages.spec.js` |
+| Importação por link, texto e página copiada | Local verificado; extração real conferida em Coursera e Alura (parcial) | `api/domain/import-server.js`, `tests/unit/import.test.js`, [Importação §4](IMPORTACAO.md) |
+| Revisão otimista do estado entre dispositivos | Local verificado | `api/domain/state.js`, `tests/unit/merge.test.js`, `tests/e2e/state-conflict.spec.js` |
+| Roteiro por prioridade explícita | Local verificado | `public/study-plan.js`, `tests/unit/study-plan.test.js` |
 | Aplicativo de desktop (Electron): o Lume completo, bandeja e presença por allowlist | Verificado por checagem de sintaxe e Chromium; bandeja validada manualmente | [Lume §9](COMPANHEIRO.md) |
 
 As consultas ao site publicado foram feitas em 31/10/2026 apenas com `GET` anônimo: elas mostram que as rotas existem, não que os fluxos autenticados funcionam em produção.
@@ -55,7 +55,7 @@ As consultas ao site publicado foram feitas em 31/10/2026 apenas com `GET` anôn
 | GAMIFICACAO §6 | Aula importada concluída "não concede XP" | `completionKindForCourse` trata aula importada como `lesson` elegível: 100 XP pelo servidor |
 | GAMIFICACAO §9 | Perfil exibe XP declarado da cópia | Perfil usa XP do livro do servidor |
 | CONTINUIDADE §3, §5 | Mensagens, bloqueio, colaboração e reconciliação pendentes | Implementados |
-| IMPORTACAO §10 | Leitura de repositórios GitHub não existe | `github.js` lê repositórios públicos |
+| IMPORTACAO §10 | Leitura de repositórios GitHub não existe | `api/domain/github.js` lê repositórios públicos |
 | COMPANHEIRO §2, §8 | Roteiro igual no site; mensagens diretas pendentes | Ver primeira linha da tabela 1.2; mensagens existem |
 
 ---

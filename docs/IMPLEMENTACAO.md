@@ -41,26 +41,26 @@ Visão rápida para saber de onde partir. "Verificado" indica onde o fluxo foi e
 
 | Área | Estado | Onde está | Verificado |
 | --- | --- | --- | --- |
-| Conta: cadastro, login, saída, sessão | Implementado | `auth.js`, rotas `/api/register`, `/api/login`, `/api/logout`, `/api/me` | e2e local; em produção só `GET /api/me` |
-| Recuperação de senha | Só local | `/api/password/*`, `email.js` | e2e local com link de teste |
-| Estado sincronizado e mesclagem entre dispositivos | Implementado | `state.js`, `public/merge-domain.js` | e2e local |
+| Conta: cadastro, login, saída, sessão | Implementado | `api/domain/auth.js`, rotas `/api/register`, `/api/login`, `/api/logout`, `/api/me` | e2e local; em produção só `GET /api/me` |
+| Recuperação de senha | Só local | `/api/password/*`, `api/domain/email.js` | e2e local com link de teste |
+| Estado sincronizado e mesclagem entre dispositivos | Implementado | `api/domain/state.js`, `public/merge-domain.js` | e2e local |
 | Onboarding (três jornadas) | Implementado | `Onboarding.jsx`, `public/domain.js` | e2e local |
 | Hoje: próxima ação, sessão, tarefas, evolução | Implementado | `Study.jsx`, `public/study-plan.js` | e2e local |
 | Plano: cronograma, tarefas com prioridade e subtarefas, roteiro | Implementado | `Plan.jsx`, `Tasks.jsx`, `public/schedule-domain.js`, `public/tasks-domain.js` | e2e local |
 | Biblioteca: criar, editar, excluir, tipos, slides | Implementado (imagens só local) | `Study.jsx`, `CourseEditor.jsx`, `Slides.jsx` | e2e local |
-| Importação por link, texto e página copiada | Parcial | `import-server.js`, `public/import-domain.js` | unitário com HTML sintético; e2e com análise simulada; Coursera e Alura conferidos em 31/10 |
-| XP no servidor, níveis, tempo, correção | Implementado | `xp.js`, `public/xp-policy.js` | unitário e e2e local |
+| Importação por link, texto e página copiada | Parcial | `api/domain/import-server.js`, `public/import-domain.js` | unitário com HTML sintético; e2e com análise simulada; Coursera e Alura conferidos em 31/10 |
+| XP no servidor, níveis, tempo, correção | Implementado | `api/domain/xp.js`, `public/xp-policy.js` | unitário e e2e local |
 | Conquistas por material | Parcial | `user_achievements` | unitário e e2e local |
 | Ranking de amigos | Implementado | `/api/ranking`, `Ranking.jsx` | e2e local |
-| Amigos por convite e perfil entre amigos | Implementado | `friends.js`, `public/profile-domain.js` | e2e local |
-| Mensagens diretas e bloqueio | Implementado | `messages.js`, `Messages.jsx` | e2e local |
-| Colaboração em entregas | Parcial | `collaboration.js` | unitário local |
-| GitHub (leitura pública) | Parcial | `github.js`, `GitHub.jsx` | unitário com resposta simulada |
+| Amigos por convite e perfil entre amigos | Implementado | `api/domain/friends.js`, `public/profile-domain.js` | e2e local |
+| Mensagens diretas e bloqueio | Implementado | `api/domain/messages.js`, `Messages.jsx` | e2e local |
+| Colaboração em entregas | Parcial | `api/domain/collaboration.js` | unitário local |
+| GitHub (leitura pública) | Parcial | `api/domain/github.js`, `GitHub.jsx` | unitário com resposta simulada |
 | Aplicativo de desktop | Parcial | `companion/` | CI (sintaxe e contrato); janela e bandeja só manualmente |
 | Extensão do navegador | Protótipo | `extension/`, `src/lib/extension.js`, `ImportCourse.jsx` | e2e com páginas de exemplo e trecho salvo do Gran; nunca carregada no Chrome |
 | Aparência (Azul e Roxo, escuro e claro) | Implementado | `src/styles/` (`00-tokens.css` e seções), `Personal.jsx` | e2e local |
 
-Os dois ambientes (`server.js` e `worker.js`) servem o mesmo app de `api/`; `api-contract.test.js` confere as rotas `/api/*` nos dois. Tabelas
+Os dois ambientes (`server.js` e `worker.js`) servem o mesmo app de `api/`; `tests/unit/api-contract.test.js` confere as rotas `/api/*` nos dois. Tabelas
 existentes: `users`, `sessions`, `password_resets`, `rate_limits`, `user_state`, `companion_*`, `friend*`,
 `xp_settings`, `xp_events`, `xp_time_sessions`, `user_achievements`, `direct_messages`, `contact_blocks`,
 `message_preferences`, `delivery_invites`. Não existe tabela para cargos, desbloqueios, denúncias,
@@ -72,7 +72,7 @@ publicações, anotações nem observação de reprodução.
 
 ### C1 — Recuperação de acesso
 **Só local.** O fluxo existe (`/api/password/request` e `/api/password/reset`, token de 30 minutos e uso
-único), e `email.js` envia pelo Resend quando há `LUME_EMAIL_PROVIDER=resend`, `RESEND_API_KEY` e
+único), e `api/domain/email.js` envia pelo Resend quando há `LUME_EMAIL_PROVIDER=resend`, `RESEND_API_KEY` e
 `LUME_EMAIL_FROM`. Em produção não há nenhum segredo configurado, então o link não sai.
 - Falta: escolher o provedor, configurar os segredos no Worker, um remetente verificado e testar a entrega real.
 - O texto de `Auth.jsx` afirma que "o envio por e-mail ainda não está disponível" em qualquer ambiente; precisa
@@ -104,7 +104,7 @@ Hashes PBKDF2 antigos só migram na redefinição. A medição de CPU em produç
 - Falta: medir cadastro, login e redefinição no Worker publicado e decidir o custo com base nisso.
 
 ### C6 — Imagens de perfil e de slides
-**Só local.** `media.js` grava avatar, capa e imagens de slides em R2 (Worker) ou `data/media/` (Node). Em
+**Só local.** `api/domain/media.js` grava avatar, capa e imagens de slides em R2 (Worker) ou `data/media/` (Node). Em
 produção o binding `MEDIA` está comentado e as rotas respondem 503.
 - Falta: habilitar R2 na conta Cloudflare, criar o bucket `lume-media`, descomentar o binding e repetir o e2e
   de upload.

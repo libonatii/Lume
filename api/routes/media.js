@@ -3,7 +3,7 @@
 
 import {
   MediaError, deleteProfileObject, deleteSlideObject, parseMediaKeyFromPath, uploadProfileObject, uploadSlideObject,
-} from '../../media.js';
+} from '../domain/media.js';
 import { LIMITS } from '../config.js';
 import { BASE_HEADERS, isLocalHost, json } from '../http.js';
 

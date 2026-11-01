@@ -5,7 +5,7 @@
 
 import { createApp } from './api/app.js';
 import { d1Adapter } from './api/adapters/d1.js';
-import { r2BucketAdapter } from './media.js';
+import { r2BucketAdapter } from './api/domain/media.js';
 
 let cached = null;
 
