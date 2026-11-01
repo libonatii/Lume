@@ -294,7 +294,7 @@ Ou, sem janela: `npm run companion` (agente de terminal).
   na primeira execução.
 - Sem leitura de progresso automático das plataformas: a conclusão continua
   manual e identificada.
-- O status no Discord mostra o curso e a aula do roteiro (ou "Estudando no Lume"). O aplicativo não lê a atividade de outros programas. Sem Application ID configurado, o status fica oculto.
+- O status no Discord mostra o curso, a aula do roteiro e o contador "N de M" quando o total é conhecido (ou "Estudando no Lume"). Com a presença pausada, mostra apenas "Em pausa", sem relógio, curso ou contador. O aplicativo não lê a atividade de outros programas. Sem Application ID configurado, o status fica oculto.
 - Sem presença de cursos abertos no navegador (depende da extensão, ainda não implementada).
 - Presença não vira tempo elegível de XP; a política exige validação no servidor.
 - Amigos, mensagens diretas e ranking de amigos existem no site; presença social e feed continuam pendentes; grupos, comunidades e canais estão fora do escopo desta etapa.

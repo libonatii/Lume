@@ -366,6 +366,7 @@ async function togglePause() {
   else await companion.start();
   state = companion.getState();
   broadcast();
+  if (discord) discord.sync(state).catch(() => {});
   return state;
 }
 

@@ -6,6 +6,7 @@
 
 export const DISCORD_ASSET_KEY = 'lume_logo';
 export const DISCORD_FALLBACK_DETAILS = 'Estudando no Lume';
+export const DISCORD_PAUSED_DETAILS = 'Em pausa';
 export const DISCORD_BUTTON_LABEL = 'Abrir o Lume';
 export const DISCORD_LARGE_IMAGE_TEXT = 'Lume';
 export const DISCORD_CLIENT_ID_PLACEHOLDER = 'COLOQUE_O_APPLICATION_ID';
@@ -92,7 +93,18 @@ export function currentLesson(plan) {
   if (!course && !lesson) return null;
   const courseId = step.courseId != null && step.courseId !== '' ? String(step.courseId) : course;
   const lessonId = step.lessonId != null && step.lessonId !== '' ? String(step.lessonId) : lesson;
-  return { course, lesson, identity: `${courseId}\n${lessonId}` };
+  return { course, lesson, identity: `${courseId}\n${lessonId}`, progress: lessonProgress(plan, step) };
+}
+
+// "Aula N de M": N é a quantidade já concluída + 1, a aula que está em foco.
+// Sem total conhecido no roteiro, o Discord fica sem o contador.
+export function lessonProgress(plan, step) {
+  const courses = plan && Array.isArray(plan.courses) ? plan.courses : [];
+  const course = courses.find((item) => item && String(item.id) === String(step?.courseId));
+  const total = Number(course?.total);
+  const remaining = Number(course?.remaining);
+  if (!Number.isInteger(total) || !Number.isInteger(remaining) || total < 1 || remaining < 1 || remaining > total) return null;
+  return { current: total - remaining + 1, total };
 }
 
 // O relógio fica estável enquanto o curso e a aula não mudam. Uma sessão
@@ -106,7 +118,22 @@ export function resolveStartedAt({ identity, previous, now, sessionStartedAt } =
   return nowMs;
 }
 
-export function buildDiscordActivity({ plan, startedAt, publicUrl, assetKey = DISCORD_ASSET_KEY } = {}) {
+// Pausa sem punição: texto neutro, sem relógio, curso ou contador.
+export function buildPausedActivity({ publicUrl, assetKey = DISCORD_ASSET_KEY } = {}) {
+  const activity = {
+    details: DISCORD_PAUSED_DETAILS,
+    largeImageKey: assetKey,
+    largeImageText: DISCORD_LARGE_IMAGE_TEXT,
+    instance: false,
+  };
+  const url = normalizeHttpUrl(publicUrl);
+  const label = clipDiscordText(DISCORD_BUTTON_LABEL, BUTTON_LABEL_MAX);
+  if (url && label) activity.buttons = [{ label, url }];
+  return { activity, identity: 'paused' };
+}
+
+export function buildDiscordActivity({ plan, startedAt, publicUrl, assetKey = DISCORD_ASSET_KEY, paused = false } = {}) {
+  if (paused) return buildPausedActivity({ publicUrl, assetKey });
   const lesson = currentLesson(plan);
   const details = lesson?.course || DISCORD_FALLBACK_DETAILS;
   const state = lesson?.lesson && lesson.lesson !== details ? lesson.lesson : '';
@@ -117,6 +144,10 @@ export function buildDiscordActivity({ plan, startedAt, publicUrl, assetKey = DI
     instance: false,
   };
   if (state) activity.state = state;
+  if (state && lesson?.progress) {
+    activity.partySize = lesson.progress.current;
+    activity.partyMax = lesson.progress.total;
+  }
   const start = toTimestamp(startedAt);
   if (start) activity.startTimestamp = start;
   const url = normalizeHttpUrl(publicUrl);
@@ -132,6 +163,8 @@ export function activityKey(activity) {
     activity.details || '',
     activity.state || '',
     activity.startTimestamp || 0,
+    activity.partySize || 0,
+    activity.partyMax || 0,
     activity.largeImageKey || '',
     activity.largeImageText || '',
     button?.label || '',
@@ -327,14 +360,19 @@ export function createDiscordPresence({
 
   function compute(companionState, settings) {
     const sessionStartedAt = companionState?.since || '';
+    const paused = companionState?.paused === true;
     const draft = buildDiscordActivity({
       plan: companionState?.plan,
       publicUrl: settings.publicUrl,
       assetKey: settings.assetKey,
+      paused,
     });
-    const startedAt = rememberClock(draft.identity, sessionStartedAt);
+    // Pausar zera o relógio: ao voltar, a contagem recomeça em vez de somar a pausa.
+    if (paused) clock = null;
+    const startedAt = paused ? 0 : rememberClock(draft.identity, sessionStartedAt);
     const built = buildDiscordActivity({
       plan: companionState?.plan,
+      paused,
       startedAt,
       publicUrl: settings.publicUrl,
       assetKey: settings.assetKey,

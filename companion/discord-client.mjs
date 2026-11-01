@@ -21,6 +21,8 @@ export function createIpcDiscordClient(clientId) {
         details: activity?.details,
         state: activity?.state,
         startTimestamp: activity?.startTimestamp,
+        partySize: activity?.partySize,
+        partyMax: activity?.partyMax,
         largeImageKey: activity?.largeImageKey,
         largeImageText: activity?.largeImageText,
         buttons: activity?.buttons,

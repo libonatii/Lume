@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { readConfig, setDiscordPresence } from './core.mjs';
 import {
-  DEFAULT_DISCORD_CLIENT_ID, DISCORD_ASSET_KEY, DISCORD_BUTTON_LABEL, DISCORD_CLIENT_ID_PLACEHOLDER, DISCORD_FALLBACK_DETAILS,
+  DEFAULT_DISCORD_CLIENT_ID, DISCORD_ASSET_KEY, DISCORD_PAUSED_DETAILS, DISCORD_BUTTON_LABEL, DISCORD_CLIENT_ID_PLACEHOLDER, DISCORD_FALLBACK_DETAILS,
   PRESENCE_UPDATE_INTERVAL_MS, PUBLIC_SITE_URL, activityKey, buildDiscordActivity, clipDiscordText,
   createDiscordPresence, currentLesson, isUsableClientId, planPresenceUpdate, resolveDiscordSettings,
   resolveStartedAt, retryDelayMs,
@@ -22,6 +22,10 @@ function lessonPlan(courseTitle, title, ids = {}) {
       title,
     }],
   };
+}
+
+function progressPlan(courseTitle, title, { total, remaining, courseId = 'curso-1' }) {
+  return { ...lessonPlan(courseTitle, title, { courseId }), courses: [{ id: courseId, total, remaining }] };
 }
 
 function settings(overrides = {}) {
@@ -232,6 +236,67 @@ test('a espera entre tentativas dobra e tem teto', () => {
   assert.equal(retryDelayMs(1, () => 1), 6_000);
   assert.equal(retryDelayMs(20, () => 0), 5 * 60_000);
   assert.ok(retryDelayMs(20, () => 1) <= 5 * 60_000 * 1.2);
+});
+
+test('o progresso mostra a aula em foco e o total do curso', () => {
+  const { activity } = buildDiscordActivity({ plan: progressPlan('Curso', 'Aula 12', { total: 40, remaining: 29 }) });
+  assert.equal(activity.partySize, 12);
+  assert.equal(activity.partyMax, 40);
+
+  const last = buildDiscordActivity({ plan: progressPlan('Curso', 'Última', { total: 5, remaining: 1 }) }).activity;
+  assert.equal(last.partySize, 5);
+  assert.equal(last.partyMax, 5);
+
+  const other = buildDiscordActivity({ plan: { ...progressPlan('Curso', 'Aula', { total: 10, remaining: 4 }), courses: [{ id: 'outro', total: 9, remaining: 1 }] } }).activity;
+  assert.equal(other.partySize, undefined);
+  for (const bad of [{ total: 0, remaining: 0 }, { total: 4, remaining: 0 }, { total: 4, remaining: 9 }, { total: 'x', remaining: 1 }]) {
+    const { activity: none } = buildDiscordActivity({ plan: progressPlan('Curso', 'Aula', bad) });
+    assert.equal(none.partySize, undefined, JSON.stringify(bad));
+    assert.equal(none.partyMax, undefined);
+  }
+  assert.equal(buildDiscordActivity({ plan: lessonPlan('Curso', 'Aula') }).activity.partySize, undefined);
+
+  const a = buildDiscordActivity({ plan: progressPlan('Curso', 'Aula', { total: 10, remaining: 5 }), startedAt: 1_700_000_000_000 }).activity;
+  const b = buildDiscordActivity({ plan: progressPlan('Curso', 'Aula', { total: 10, remaining: 4 }), startedAt: 1_700_000_000_000 }).activity;
+  assert.notEqual(activityKey(a), activityKey(b));
+});
+
+test('a pausa mostra um texto neutro, sem relógio, curso ou contador', () => {
+  const { activity, identity } = buildDiscordActivity({
+    plan: progressPlan('Direito', 'Aula 2', { total: 10, remaining: 5 }),
+    startedAt: 1_700_000_000_000,
+    publicUrl: PUBLIC_SITE_URL,
+    paused: true,
+  });
+  assert.equal(identity, 'paused');
+  assert.equal(activity.details, DISCORD_PAUSED_DETAILS);
+  for (const field of ['state', 'startTimestamp', 'partySize', 'partyMax']) assert.equal(activity[field], undefined, field);
+  assert.equal(activity.largeImageKey, DISCORD_ASSET_KEY);
+  assert.deepEqual(activity.buttons, [{ label: DISCORD_BUTTON_LABEL, url: PUBLIC_SITE_URL }]);
+});
+
+test('pausar troca o status e voltar recomeça o relógio', async () => {
+  const box = harness();
+  const plan = progressPlan('Curso', 'Aula 1', { total: 10, remaining: 10, courseId: 'curso-1' });
+  await box.presence.sync({ plan });
+  await box.presence.idle();
+  const first = box.clients[0].activities.at(-1);
+  assert.equal(first.partyMax, 10);
+  const firstStart = first.startTimestamp;
+
+  box.clock += PRESENCE_UPDATE_INTERVAL_MS * 4;
+  await box.presence.sync({ plan, paused: true });
+  await box.fire();
+  const paused = box.clients[0].activities.at(-1);
+  assert.equal(paused.details, DISCORD_PAUSED_DETAILS);
+  assert.equal(paused.startTimestamp, undefined);
+
+  box.clock += PRESENCE_UPDATE_INTERVAL_MS * 4;
+  await box.presence.sync({ plan, paused: false });
+  await box.fire();
+  const resumed = box.clients[0].activities.at(-1);
+  assert.equal(resumed.details, 'Curso');
+  assert.ok(resumed.startTimestamp > firstStart);
 });
 
 test('o Application ID vem do ambiente ou da configuração e o marcador desliga', () => {

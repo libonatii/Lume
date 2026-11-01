@@ -131,6 +131,11 @@ Electron.
   em `discordPresence`. A bandeja tem o mesmo interruptor.
 - Com roteiro, a linha de detalhes é o nome do curso e o estado é o nome da
   aula. Sem roteiro, o texto é "Estudando no Lume".
+- Quando o curso tem total conhecido, o Discord mostra o contador "(12 de 40)"
+  ao lado da aula: aulas já concluídas + 1, sobre o total do curso. É uma
+  referência de avanço, não prova de estudo.
+- **Pausar a presença** troca o status para "Em pausa", sem relógio, curso ou
+  contador; ao retomar, o relógio recomeça.
 - A imagem grande usa a chave de arte `lume_logo`. O tempo decorrido começa
   quando a atividade atual começa (o aplicativo autorizado, se houver, ou o
   momento em que aquele curso e aquela aula passaram a ser o status).
