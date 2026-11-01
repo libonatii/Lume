@@ -2,6 +2,8 @@
 // em produção via env.MEDIA e diretório local data/media/ no servidor Node).
 // Nunca armazena base64 no estado sincronizado.
 
+import { AppError } from './api/errors.js';
+
 export const MAX_MEDIA_BYTES = 2 * 1024 * 1024;
 export const VALID_MEDIA_SLOTS = new Set(['avatar', 'header']);
 export const MAX_SLIDE_IMAGE_LENGTH = 256;
@@ -36,12 +38,10 @@ export function buildSlideKey(ownerId, courseId, slideId, ext, now = Date.now())
   return `slides/${cleanOwner}/${cleanCourse}/${cleanSlide}-${stamp}.${ext}`;
 }
 
-export class MediaError extends Error {
+export class MediaError extends AppError {
   constructor(message, status = 400, code = 'media_error') {
-    super(message);
+    super(message, code, status);
     this.name = 'MediaError';
-    this.status = status;
-    this.code = code;
   }
 }
 

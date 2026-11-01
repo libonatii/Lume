@@ -5,12 +5,12 @@
 // tentar de novo. O documento continua sendo a cópia da biblioteca/progresso;
 // o XP elegível vive em xp_events e não é alterado por esta rota.
 
-export class StateError extends Error {
+import { AppError } from './api/errors.js';
+
+export class StateError extends AppError {
   constructor(message, code = 'state_error', status = 400) {
-    super(message);
+    super(message, code, status);
     this.name = 'StateError';
-    this.code = code;
-    this.status = status;
   }
 }
 

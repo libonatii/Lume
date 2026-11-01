@@ -10,13 +10,12 @@ import {
   levelProgress, localDay, normalizeTimeZone, periodDays, slideEventKey, slideProgressSnapshot,
   stepEventKey, timeEventKey,
 } from './public/xp-policy.js';
+import { AppError } from './api/errors.js';
 
-export class XpError extends Error {
+export class XpError extends AppError {
   constructor(message, code = 'xp_error', status = 400) {
-    super(message);
+    super(message, code, status);
     this.name = 'XpError';
-    this.code = code;
-    this.status = status;
   }
 }
 

@@ -60,7 +60,7 @@ Visão rápida para saber de onde partir. "Verificado" indica onde o fluxo foi e
 | Extensão do navegador | Protótipo | `extension/`, `src/lib/extension.js`, `ImportCourse.jsx` | e2e com páginas de exemplo e trecho salvo do Gran; nunca carregada no Chrome |
 | Aparência (Azul e Roxo, escuro e claro) | Implementado | `public/lume.css`, `Personal.jsx` | e2e local |
 
-Os dois backends (`server.js` e `worker.js`) expõem as mesmas rotas `/api/*` (conferido em 01/11). Tabelas
+Os dois ambientes (`server.js` e `worker.js`) servem o mesmo app de `api/`; `api-contract.test.js` confere as rotas `/api/*` nos dois. Tabelas
 existentes: `users`, `sessions`, `password_resets`, `rate_limits`, `user_state`, `companion_*`, `friend*`,
 `xp_settings`, `xp_events`, `xp_time_sessions`, `user_achievements`, `direct_messages`, `contact_blocks`,
 `message_preferences`, `delivery_invites`. Não existe tabela para cargos, desbloqueios, denúncias,

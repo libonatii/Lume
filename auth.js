@@ -1,6 +1,7 @@
 // Autenticação compartilhada entre o Worker (Cloudflare) e o servidor local (Node).
 // bcryptjs usa Web Crypto para salt e funciona no bundle do Worker e no Node.
 import bcrypt from 'bcryptjs';
+import { AppError } from './api/errors.js';
 
 export const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const MIN_PASSWORD_LENGTH = 8;
@@ -32,11 +33,10 @@ export const MAX_ITERATIONS_PER_ROUND = 100000;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const encoder = new TextEncoder();
 
-export class ValidationError extends Error {
+export class ValidationError extends AppError {
   constructor(message, field) {
-    super(message);
+    super(message, 'validation', 400, { field });
     this.name = 'ValidationError';
-    this.field = field;
   }
 }
 

@@ -13,13 +13,12 @@ import {
   normalizePairCode, presenceState,
 } from './companion/domain.mjs';
 import { studyPlan } from './public/study-plan.js';
+import { AppError } from './api/errors.js';
 
-export class CompanionError extends Error {
+export class CompanionError extends AppError {
   constructor(message, code = 'companion_error', status = 400) {
-    super(message);
+    super(message, code, status);
     this.name = 'CompanionError';
-    this.code = code;
-    this.status = status;
   }
 }
 

@@ -9,18 +9,20 @@
 // - convidar, aceitar ou remover não concedem XP.
 
 import { hashSessionToken } from './auth.js';
+import { AppError } from './api/errors.js';
+import { createInitialState, restoreState } from './public/domain.js';
+import { buildProfile } from './public/profile-domain.js';
+import { getXpSnapshot } from './xp.js';
 
 export const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const INVITE_CODE_LENGTH = 12;
 export const MAX_FRIENDS = 200;
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
-export class FriendsError extends Error {
+export class FriendsError extends AppError {
   constructor(message, code = 'friends_error', status = 400) {
-    super(message);
+    super(message, code, status);
     this.name = 'FriendsError';
-    this.code = code;
-    this.status = status;
   }
 }
 
@@ -144,4 +146,34 @@ export function friendshipPolicy() {
     invitesReusableUntilExpiry: true,
     inviteTtlDays: Math.round(INVITE_TTL_MS / 86400000),
   };
+}
+
+// Perfil visto por uma amizade: só existe entre amigos, nunca expõe o e-mail
+// e passa pelas escolhas de compartilhamento de quem é visto (buildProfile).
+export async function readFriendProfile(db, viewerId, friendId) {
+  if (!friendId) throw new FriendsError('Perfil não encontrado.', 'not_found', 404);
+  const linked = await db.first('SELECT 1 AS linked FROM friendships WHERE user_id = ? AND friend_id = ?', [viewerId, friendId]);
+  if (!linked) throw new FriendsError('Você só vê o perfil de quem está na sua lista de amigos.', 'not_friends', 403);
+  const target = await db.first('SELECT id, name FROM users WHERE id = ?', [friendId]);
+  if (!target) throw new FriendsError('Perfil não encontrado.', 'not_found', 404);
+  const row = await db.first('SELECT state, updated_at FROM user_state WHERE user_id = ?', [friendId]);
+  let state = createInitialState();
+  if (row?.state) {
+    try { state = restoreState(row.state); } catch { state = createInitialState(); }
+  }
+  return {
+    user: { id: target.id, name: target.name },
+    updatedAt: row?.updated_at ?? null,
+    ...buildProfile(state, { validated: await validatedProfile(db, friendId) }),
+  };
+}
+
+// Resumo validado no servidor (nível e conquistas); ausente se a pessoa não tem XP.
+async function validatedProfile(db, userId) {
+  try {
+    const snapshot = await getXpSnapshot(db, userId, { create: false });
+    return { ...snapshot.summary, achievements: snapshot.achievements };
+  } catch {
+    return null;
+  }
 }

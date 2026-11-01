@@ -138,8 +138,9 @@ Verificação desta troca: testes de autenticação/domínio, build estático, b
 | `public/*.css` | Estilos, sistema visual unificado e interações |
 | `public/assets/` | Fontes e imagens locais |
 | `auth.js` | Validação, derivação de senha, tokens e cookies |
-| `server.js` | API local e entrega do build estático |
-| `worker.js` / `wrangler.jsonc` | API Cloudflare, D1 e configuração de build |
+| `api/` | App HTTP único: rotas, sessão, limites, erros e adaptadores de banco e imagens |
+| `server.js` | Adaptador Node: SQLite local, imagens em `data/media/` e entrega do build estático |
+| `worker.js` / `wrangler.jsonc` | Adaptador Cloudflare (D1, R2, estáticos) e configuração de build |
 | `migrations/` | Esquema do banco existente |
 | `scripts/` | Desenvolvimento e geração de cabeçalhos CSP |
 | `tests/e2e/` | Verificação dos fluxos no navegador |

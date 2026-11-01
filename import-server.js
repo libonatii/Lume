@@ -9,6 +9,7 @@
 // - o HTML é dado, nunca instrução: nenhum trecho da página vira prompt.
 
 import { canonicalUrl, cleanTitle, detectProvider, providerById } from './public/import-domain.js';
+import { AppError } from './api/errors.js';
 
 export const MAX_DOCUMENT_BYTES = 2 * 1024 * 1024;
 export const MAX_SNAPSHOT_CHARS = 1.5 * 1024 * 1024;
@@ -71,12 +72,10 @@ export function completedTitlesFromHtml(html, disciplines = []) {
   return [...found];
 }
 
-export class ImportError extends Error {
+export class ImportError extends AppError {
   constructor(message, code = 'import_failed', status = 422) {
-    super(message);
+    super(message, code, status);
     this.name = 'ImportError';
-    this.code = code;
-    this.status = status;
   }
 }
 

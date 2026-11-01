@@ -6,12 +6,12 @@
 // sugestões de entrega; nada é marcado como concluído automaticamente e nenhum
 // comentário, issue ou código é alterado.
 
-export class GitHubError extends Error {
+import { AppError } from './api/errors.js';
+
+export class GitHubError extends AppError {
   constructor(message, code = 'github_error', status = 422) {
-    super(message);
+    super(message, code, status);
     this.name = 'GitHubError';
-    this.code = code;
-    this.status = status;
   }
 }
 

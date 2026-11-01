@@ -105,3 +105,68 @@ export function client(origin) {
     },
   };
 }
+
+// Worker real (workerd) pelo `wrangler dev` local, com D1 local e as migrações
+// aplicadas. Usa uma configuração temporária sem o passo de build do Astro.
+export async function startWorkerTarget() {
+  const wrangler = join(root, 'node_modules', 'wrangler', 'bin', 'wrangler.js');
+  const { existsSync, writeFileSync, mkdirSync } = await import('node:fs');
+  if (!existsSync(wrangler)) return null;
+  const persist = mkdtempSync(join(tmpdir(), 'lume-d1-'));
+  const assets = join(persist, 'assets');
+  mkdirSync(assets);
+  writeFileSync(join(assets, 'index.html'), '<!doctype html><title>Lume</title>');
+  const config = join(root, `wrangler.contract-${process.pid}.jsonc`);
+  writeFileSync(config, JSON.stringify({
+    name: 'lume-contract',
+    main: 'worker.js',
+    compatibility_date: '2026-10-30',
+    assets: { directory: assets, binding: 'ASSETS', not_found_handling: 'none' },
+    d1_databases: [{ binding: 'DB', database_name: 'lume', database_id: 'local-contract', migrations_dir: 'migrations' }],
+    vars: { SHOW_RESET_LINK: 'true', BCRYPT_ROUNDS: '4', ATTEMPT_LIMIT: '200' },
+  }));
+  const run = (args) => new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [wrangler, ...args, '--config', config], { cwd: root, env: { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' }, stdio: ['ignore', 'pipe', 'pipe'] });
+    let output = '';
+    child.stdout.on('data', (chunk) => { output += chunk; });
+    child.stderr.on('data', (chunk) => { output += chunk; });
+    child.on('exit', (code) => (code === 0 ? resolve(output) : reject(new Error(output))));
+  });
+  const cleanup = () => {
+    rmSync(config, { force: true });
+    try { rmSync(persist, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }); } catch { /* o workerd pode segurar arquivos no Windows. */ }
+  };
+  try {
+    await run(['d1', 'migrations', 'apply', 'lume', '--local', '--persist-to', persist]);
+  } catch (error) {
+    cleanup();
+    throw error;
+  }
+  const port = await freePort();
+  const child = spawn(process.execPath, [wrangler, 'dev', '--config', config, '--local', '--ip', '127.0.0.1', '--port', String(port), '--persist-to', persist, '--log-level', 'error'], {
+    cwd: root,
+    env: { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  let output = '';
+  child.stdout.on('data', (chunk) => { output += chunk; });
+  child.stderr.on('data', (chunk) => { output += chunk; });
+  const origin = `http://127.0.0.1:${port}`;
+  try {
+    await waitFor(`${origin}/api/me`, child, 60000);
+  } catch (error) {
+    child.kill();
+    cleanup();
+    throw new Error(`${error.message}
+${output}`);
+  }
+  return {
+    name: 'worker',
+    origin,
+    async close() {
+      child.kill();
+      await new Promise((resolve) => child.once('exit', resolve));
+      cleanup();
+    },
+  };
+}

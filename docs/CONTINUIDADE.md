@@ -8,7 +8,7 @@ Este documento separa o protótipo existente da visão em [Produto](PRODUTO.md) 
 
 ## 2. O que existe no código
 
-A aplicação usa Astro, React e Motion. O Astro gera arquivos estáticos em `dist/`; React controla as telas e o estado. `server.js` atende o build e as APIs localmente; o Worker existente mantém as APIs em Cloudflare com D1. `npm run dev` inicia Astro e servidor local. O Live Server não compila a nova aplicação. A base React + Astro está publicada no endereço de referência; o que foi alterado depois do último deploy só aparece com um novo `npx wrangler deploy`.
+A aplicação usa Astro, React e Motion. O Astro gera arquivos estáticos em `dist/`; React controla as telas e o estado. As APIs são um app único em `api/`; `server.js` o serve localmente com SQLite (e entrega o build) e o Worker o serve em Cloudflare com D1. `npm run dev` inicia Astro e servidor local. O Live Server não compila a nova aplicação. A base React + Astro está publicada no endereço de referência; o que foi alterado depois do último deploy só aparece com um novo `npx wrangler deploy`.
 
 | Capacidade | Situação |
 | --- | --- |

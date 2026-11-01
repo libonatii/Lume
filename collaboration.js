@@ -8,15 +8,14 @@
 // - o histórico do convite permanece após recusa ou cancelamento.
 
 import { restoreState } from './public/domain.js';
+import { AppError } from './api/errors.js';
 
 export const MAX_COLLABORATION_NOTE = 400;
 
-export class CollaborationError extends Error {
+export class CollaborationError extends AppError {
   constructor(message, code = 'collaboration_error', status = 400) {
-    super(message);
+    super(message, code, status);
     this.name = 'CollaborationError';
-    this.code = code;
-    this.status = status;
   }
 }
 

@@ -90,8 +90,9 @@ Antes de mexer em estrutura, fixar o comportamento atual para detectar regressõ
 - A conversão de erro é uma cadeia de dez `instanceof` repetida nos dois arquivos (`server.js:879`,
   `worker.js:757`), uma por classe de erro de módulo, quase todas idênticas (`XpError`, `MessagesError`,
   `FriendsError`…).
-- Os dois já divergem: o limite do estado é **320 KB** no Node (`server.js`, `state.js`) e **256 KB** no Worker
-  (`worker.js`, `MAX_STATE_BYTES`). Um estado entre os dois salva localmente e falha em produção.
+- Os dois já divergem em detalhes: o Worker declara `MAX_STATE_BYTES = 256 KB` sem usá-lo (o limite efetivo é o
+  de 320 KB em `state.js`), os limites de tentativas por rota são diferentes (20 × 10 no Desktop e nos convites,
+  30 × 10 na importação) e o envio de imagem de perfil sem conta é aceito só no Node.
 - O perfil de amigos (`server.js:611`) monta SQL dentro do servidor, fora de um módulo compartilhado.
 - Os e2e sobem `node server.js` (`playwright.config.js`) e os testes unitários usam `node:sqlite`. O Worker, que
   é o que está publicado, não é exercitado por nenhum teste.
@@ -663,3 +664,12 @@ atualização deste plano.
 | Novo limite de unidades por material (substitui 600 aulas / 320 KB) | F3 etapa 8, I6 | Definir após medir com o curso grande do Gran |
 | Retirar o saldo legado da prévia sem conta | F4 etapa 5 | Retirar; manter o histórico legado visível como registro, sem nível |
 | Migração do XP das tarefas de prova (G4) | F4 etapa 4 | Já listada em [Implementação](IMPLEMENTACAO.md) |
+
+---
+
+## Registro de execução
+
+| Data | Etapa | O que foi entregue | Verificação |
+| --- | --- | --- | --- |
+| 01/11/2026 | Fase 0 | `api-contract.test.js` com o roteiro HTTP de todas as famílias de rota (`tests/contract/`). Os testes dourados de XP ficam em `xp.test.js`, que já cobre concessão, idempotência, bônus, tempo e ranking | `npm test` |
+| 01/11/2026 | F1 completa | App único em `api/` (rotas declarativas, `AppError`, sessão, limites, adaptadores SQLite/D1/arquivos/node:http). `server.js` e `worker.js` viraram adaptadores. Comportamentos unificados: imagem de perfil sem conta só na prévia local; limites por rota iguais nos dois ambientes; variáveis com o mesmo nome; link de redefinição gerado a partir da origem da requisição. O contrato roda no Node e no Worker real (`wrangler dev --local`) | `npm test` (contrato nos dois alvos), `npm run build`, e2e desktop |

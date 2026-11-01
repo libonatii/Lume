@@ -5,12 +5,12 @@
 // aparece no log e, apenas quando SHOW_RESET_LINK não é "false", na resposta.
 // Nenhuma senha, cookie ou token de sessão é enviado ao provider.
 
-export class EmailError extends Error {
+import { AppError } from './api/errors.js';
+
+export class EmailError extends AppError {
   constructor(message, code = 'email_error', status = 502) {
-    super(message);
+    super(message, code, status);
     this.name = 'EmailError';
-    this.code = code;
-    this.status = status;
   }
 }
 

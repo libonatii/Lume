@@ -43,3 +43,4 @@ companion/package-smoke.json
 .DS_Store
 Thumbs.db
 desktop.ini
+wrangler.contract-*.jsonc

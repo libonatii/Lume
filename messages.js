@@ -8,17 +8,17 @@
 // - referências compartilhadas carregam apenas tipo, id e título, nunca o
 //   conteúdo privado do material.
 
+import { AppError } from './api/errors.js';
+
 export const MAX_MESSAGE_LENGTH = 4000;
 export const MAX_MESSAGES_PER_THREAD = 200;
 export const MAX_REFERENCE_TITLE = 160;
 export const MESSAGE_WINDOW_LIMIT = 120;
 
-export class MessagesError extends Error {
+export class MessagesError extends AppError {
   constructor(message, code = 'messages_error', status = 400) {
-    super(message);
+    super(message, code, status);
     this.name = 'MessagesError';
-    this.code = code;
-    this.status = status;
   }
 }
 
