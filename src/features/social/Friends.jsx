@@ -4,6 +4,7 @@ import { Button, Heading } from '../../ui/ui.jsx';
 import { api, apiError } from '../../lib/api.js';
 import { copyText, selectText } from '../../lib/clipboard.js';
 import { CollaborationInbox } from '../library/Collaboration.jsx';
+import { useResource } from '../../lib/resources.js';
 
 // Amizades por convite. O convite é um código reaproveitável, válido por 7 dias;
 // não existe busca por e-mail. Ser amigo não compartilha biblioteca, progresso
@@ -14,19 +15,20 @@ function initialOf(name) {
 }
 
 export default function Friends({ account, notify, go }) {
-  const [data, setData] = useState(null);
+  const resource = useResource('/api/friends', { enabled: Boolean(account) });
+  const data = resource.data;
   const [invite, setInvite] = useState(null);
   const [code, setCode] = useState(() => new URLSearchParams(location.hash.split('?')[1] || '').get('convite') || '');
-  const [error, setError] = useState('');
+  const [actionError, setError] = useState('');
+  const error = actionError || resource.error;
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     if (!account) return;
-    const result = await api('/api/friends');
+    const result = await resource.refresh();
     if (!result.ok) { setError(apiError(result)); return; }
     setError('');
-    setData(result.data);
-  }, [account]);
+  }, [account, resource.refresh]);
 
   useEffect(() => { load().catch(() => {}); }, [load]);
 

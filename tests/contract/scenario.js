@@ -5,6 +5,8 @@
 import assert from 'node:assert/strict';
 import { addCourse, completeMission, createInitialState } from '../../public/domain.js';
 import { client } from './harness.js';
+import { libraryActions } from '../../public/library-actions.js';
+import { applyCourseImport, normalizePayload } from '../../public/import-domain.js';
 
 const PNG = Uint8Array.from([
   0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52,
@@ -28,6 +30,48 @@ async function register(origin, name) {
 
 export async function runContract(target, t) {
   const { origin } = target;
+
+  await t.test('biblioteca normalizada, operações idempotentes e isolamento', async () => {
+    const { browser } = await register(origin, 'Biblioteca');
+    const initial = await browser.request('GET', '/api/library');
+    assert.equal(initial.status, 200);
+    const state = addCourse(initial.data.state, { title: 'Curso persistente', steps: ['Aula 1', 'Aula 2'] }, 'persistente');
+    const completed = completeMission(state, 'persistente', 'persistente-0').state;
+    const body = { id: 'create-and-complete', revision: initial.data.revision, actions: libraryActions(initial.data.state, completed) };
+    const saved = await browser.request('POST', '/api/library/actions', { body });
+    assert.equal(saved.status, 200, JSON.stringify(saved.data));
+    assert.equal(saved.data.state.courses.length, 1);
+    const replay = await browser.request('POST', '/api/library/actions', { body });
+    assert.equal(replay.status, 200);
+    assert.equal(replay.data.duplicate, true);
+    assert.equal((await browser.request('GET', '/api/xp')).data.summary.totalXP, 100);
+    assert.equal((await browser.request('PUT', '/api/state', { body: { state, baseRevision: 0 } })).data.code, 'client_outdated');
+    assert.equal((await browser.request('POST', '/api/library/actions', { body: { ...body, id: 'stale' } })).status, 409);
+    const { browser: other } = await register(origin, 'OutraBiblioteca');
+    assert.equal((await other.request('GET', '/api/library')).data.state.courses.length, 0);
+    const latest = (await browser.request('GET', '/api/library')).data;
+    const concurrent = await Promise.all(['a', 'b'].map((id) => browser.request('POST', '/api/library/actions', {
+      body: { id: `concurrent-${id}`, revision: latest.revision, actions: [{ type: 'account.update', value: { selectedCourseId: id } }] },
+    })));
+    assert.deepEqual(concurrent.map((result) => result.status).sort(), [200, 409]);
+    for (const path of ['/api/progress', '/api/xp/complete', '/api/xp/bonus', '/api/xp/slides', '/api/xp/time']) {
+      assert.equal((await browser.request('POST', path, { body: {} })).data.code, 'client_outdated');
+    }
+    const empty = (await other.request('GET', '/api/library')).data;
+    const large = applyCourseImport(empty.state, normalizePayload({ title: 'Grade extensa', disciplines: [{ title: 'Disciplina', modules: [{ title: 'Módulo', lessons: Array.from({ length: 600 }, (_, index) => ({ title: `Aula ${index + 1}` })) }] }] }));
+    const stored = await other.request('POST', '/api/library/actions', { body: { id: 'large', revision: empty.revision, actions: libraryActions(empty.state, large) } });
+    assert.equal(stored.status, 200, JSON.stringify(stored.data));
+    assert.equal(stored.data.state.courses[0].steps.length, 600);
+    const ended = Date.now();
+    const timed = await other.request('POST', '/api/library/actions', { body: {
+      id: 'time', revision: stored.data.revision, actions: [{ type: 'session.put', value: {
+        id: 'timed', courseId: stored.data.state.courses[0].id, startedAt: new Date(ended - 1800000).toISOString(),
+        endedAt: new Date(ended).toISOString(), durationMs: 1800000, origin: 'declared',
+      } }],
+    } });
+    assert.equal(timed.status, 200, JSON.stringify(timed.data));
+    assert.equal((await other.request('GET', '/api/xp')).data.summary.timeXP, 25);
+  });
 
   await t.test('rotas desconhecidas e métodos', async () => {
     const anonymous = client(origin);

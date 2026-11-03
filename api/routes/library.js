@@ -6,6 +6,9 @@ import { detectProvider, normalizePayload } from '../../public/import-domain.js'
 import { parseStateBody, readState, writeState } from '../domain/state.js';
 import { LIMITS } from '../config.js';
 import { json } from '../http.js';
+import { readLibrary } from '../domain/library-store.js';
+import { applyLibraryActions } from '../domain/library-actions.js';
+import { ensureXpSettings } from '../domain/xp.js';
 
 const IMPORT_BODY = {
   tooLarge: () => new ImportError('O conteúdo enviado é grande demais.', 'too_large', 413),
@@ -19,6 +22,12 @@ const IMPORT_ATTEMPTS = {
 };
 
 export function libraryRoutes(router) {
+  const account = { auth: 'Entre na sua conta para acessar sua biblioteca.', origin: true };
+  router.add('GET', '/api/library', account, async (ctx) => {
+    await ensureXpSettings(ctx.db, ctx.user.id);
+    return json(await readLibrary(ctx.db, ctx.user.id));
+  });
+  router.add('POST', '/api/library/actions', account, async (ctx) => json(await applyLibraryActions(ctx.db, ctx.user.id, await ctx.json(3 * 1024 * 1024))));
   router.add('GET', '/api/state', { auth: 'Entre na sua conta para ver seu progresso.', origin: true }, async (ctx) =>
     json(await readState(ctx.db, ctx.user.id)));
 

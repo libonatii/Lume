@@ -97,7 +97,7 @@ export default function Tasks({ state, update, act, notify }) {
     }
     const now = new Date().toISOString();
     const result = act((current) => completeTask(current, task.id, now));
-    if (!result.added) return;
+    if (!result?.added) return;
     notify(gamified ? `Tarefa concluída: ${task.title}. +${TASK_XP} XP de legado.` : `Tarefa concluída: ${task.title}.`);
   }
 

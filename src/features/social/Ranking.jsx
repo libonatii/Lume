@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { api, apiError } from '../../lib/api.js';
 import Icon from '../../ui/Icon.jsx';
 import { Button, Empty, Heading, Progress, stagger } from '../../ui/ui.jsx';
+import { useResource } from '../../lib/resources.js';
 
 const TABS = [
   { id: 'level', label: 'Nível', hint: 'Maior nível e, depois, maior XP elegível acumulado.' },
@@ -39,21 +40,20 @@ function proportion(entry, entries, tab) {
 export default function Ranking({ account, xp, refreshXP, notify, go }) {
   const [tab, setTab] = useState('level');
   const [period, setPeriod] = useState('week');
-  const [data, setData] = useState(null);
-  const [error, setError] = useState('');
+  const timeZone = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return ''; } })();
+  const resource = useResource(`/api/ranking?tab=${tab}&period=${period}&timeZone=${encodeURIComponent(timeZone)}`, { enabled: Boolean(account) });
+  const data = resource.data;
+  const [actionError, setError] = useState('');
+  const error = actionError || resource.error;
   const [busy, setBusy] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const loading = resource.loading;
 
   const load = useCallback(async () => {
-    if (!account) { setData(null); return; }
-    setLoading(true);
+    if (!account) return;
     setError('');
-    const timeZone = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return ''; } })();
-    const result = await api(`/api/ranking?tab=${tab}&period=${period}&timeZone=${encodeURIComponent(timeZone)}`);
-    if (result.ok) setData(result.data);
-    else setError(apiError(result));
-    setLoading(false);
-  }, [account, tab, period]);
+    const result = await resource.refresh();
+    if (!result.ok) setError(apiError(result));
+  }, [account, resource.refresh]);
 
   useEffect(() => { load(); }, [load]);
 

@@ -8,6 +8,18 @@ Este documento separa o protótipo existente da visão em [Produto](PRODUTO.md) 
 
 ## 2. O que existe no código
 
+**Revisão em andamento (03/11/2026, sem publicação):** a biblioteca da conta passa a ser gravada por operações
+em `/api/library/actions` e lida em `/api/library`, com tabelas separadas para materiais, unidades, progresso,
+tarefas e sessões (`0012_library.sql`). O cliente deixa de guardar estudo no navegador; a prévia dura só na
+página aberta. Contas antigas são convertidas no servidor, preservando `user_state` como arquivo. A descrição
+de sincronização/mesclagem nas rodadas históricas abaixo não representa esse caminho novo.
+
+Validação local desta revisão: build aprovado e 18 cenários direcionados desktop/mobile aprovados para Plano,
+subtarefas, persistência, resposta perdida, conflito entre abas, Amigos e XP/ranking. Amigos, Ranking e
+Colaboração usam recursos compartilhados; o fluxo de convites de colaboração ainda precisa de verificação
+específica de navegador. A suíte completa anterior teve 97 aprovações e 5 falhas, cobertas pela rodada
+direcionada; ainda não houve nova rodada completa com todas as alterações finais.
+
 A aplicação usa Astro, React e Motion. O Astro gera arquivos estáticos em `dist/`; React controla as telas e o estado. As APIs são um app único em `api/`; `server.js` o serve localmente com SQLite (e entrega o build) e o Worker o serve em Cloudflare com D1. `npm run dev` inicia Astro e servidor local. O Live Server não compila a nova aplicação. A base React + Astro está publicada no endereço de referência; o que foi alterado depois do último deploy só aparece com um novo `npx wrangler deploy`.
 
 | Capacidade | Situação |
@@ -20,11 +32,11 @@ A aplicação usa Astro, React e Motion. O Astro gera arquivos estáticos em `di
 | Hoje | Próxima ação única calculada por `nextAction` (`public/study-plan.js`), com o mesmo critério do roteiro do Companion e do perfil: motivo, tempo a reservar (duração conhecida da fonte ou estimativa pelo tempo de sessão do onboarding, padrão 25 min), link do material e o que falta. Abaixo: sessão declarada, até três tarefas na ordem de ação com aviso de atraso e evolução (nível e última recompensa confirmada) |
 | Tarefas de prova | Lista com prioridade (alta, média, baixa, sem prioridade), prazo, atraso, vínculo opcional a curso e aula e até 10 subtarefas; concluir vale 10 XP de legado uma vez, criar, priorizar ou organizar não gera XP. Ver [Gamificação](GAMIFICACAO.md#tarefas-de-prova--regra-em-execução-no-protótipo) |
 | Conquistas | Conquistas personalizadas por curso, projeto, leitura, exercício e apresentação em `user_achievements`, com revogação em correções; os seis selos genéricos do protótipo continuam em seção de legado |
-| Histórico | Dados no navegador, extrato de XP do servidor, exportação JSON, restauração com prévia e mesclagem, correção de evento com motivo e histórico de importações em `imports` |
+| Histórico | Dados da conta no servidor, extrato de XP, exportação JSON, restauração com prévia e mesclagem explícita de arquivo, correção de evento com motivo e histórico de importações em `imports` |
 | Navegação | Cinco destinos (Hoje, Biblioteca, Plano, Amigos, Perfil) com abas por seção (`SectionTabs.jsx`): Biblioteca → Materiais, GitHub; Plano → Cronograma, Tarefas, Roteiro; Amigos → Contatos, Mensagens, Ranking; Perfil → Meu perfil, Conquistas, Meu caminho, Configurações. `#missoes` abre o Roteiro. Não lidas aparecem em Amigos e na aba Mensagens |
 | Plano | Cronograma derivado de `state.plan` (disponibilidade por dia, prazo e prioridade por curso, aulas adiadas) e do progresso (`public/schedule-domain.js`): ordem por prioridade, prazo e roteiro; sequência da fonte; duração conhecida ou estimada; aula maior que o dia sinalizada; conflito de prazo com três ajustes que só valem por escolha; adiar leva as aulas seguintes do curso. Recalcula a cada conclusão. Sem XP |
 | Visual | Redesign Moderno do Stitch (telas "Lume — Hoje (Redesign Moderno)" e "Variante 2", Projeto Lume) em `src/styles/`: tokens por paleta em `html[data-palette]` (`moderno` = **Azul**, padrão; `variante2` = **Roxo**) e por tema (`data-theme`), sidebar com destaque luminoso, cartões Bento com linha de destaque, Hoje em grade 7/5 + 6/6, botão de sessão e XP em âmbar, tipografia única Plus Jakarta Sans (Fraunces saiu da página). A escolha fica em `preferences.palette`, na Aparência de Configurações; valores desconhecidos voltam ao Azul. Logo preservado. Contraste AA nos textos dos quatro temas; o *hover* especificado (`#3b82f6`/`#8b5cf6` com texto branco) fica em 3,7:1 e 4,2:1. Os textos do Stitch ("espaço seguro", "zero pressão" e similares) não foram copiados, por contrariarem o tom de voz definido. Por decisão explícita da responsável, não há modo essencial nem tratamento de movimento reduzido |
-| Contas e sincronização | Cadastro, login, saída e recuperação de senha implementados em `api/domain/auth.js`, com sessão em cookie `HttpOnly` e limite de tentativas no banco. `/api/state` agora usa revisão otimista e mescla conflitos entre dispositivos; o XP é validado no servidor. O envio de recuperação usa Resend quando configurado |
+| Contas e persistência | Cadastro, login, saída e recuperação em `api/domain/auth.js`, com cookie `HttpOnly` e limite de tentativas no banco. Biblioteca lida e gravada diretamente na API, com revisão e repetição idempotente; conflitos pedem recarga. O envio de recuperação usa Resend quando configurado |
 | Importação de cursos | Entrada única por link com adaptadores por plataforma, revisão por áreas, fallback por texto/arquivo, leitura da página copiada da conta e **extensão do navegador** (protótipo, `extension/`) que lê a página aberta com a conta da pessoa, sem senha/cookie, incluindo aulas já marcadas como concluídas e, em leituras seguintes, conclusões novas confirmadas por ela. Extração depende do que a fonte publica; ver [Importação](IMPORTACAO.md) |
 | Sessão de estudo declarada | Início, pausa, retomada e encerramento com relógio e histórico de sessões. Ao encerrar, o servidor confirma blocos de 30 minutos; pausas não contam e a sessão não comprova estudo |
 | Slides | Material pode ter até 60 slides com título, texto e imagem; editor, ordem, visualizador por teclado, progresso e XP único quando 80% do deck foi visto, o último slide foi aberto e a pessoa confirma. Imagens dependem do R2 configurado |
@@ -41,8 +53,8 @@ A aplicação usa Astro, React e Motion. O Astro gera arquivos estáticos em `di
 | GitHub e outras integrações | Leitura pública de README, issues e milestones, com sugestões de entrega e criação de projeto; sem OAuth, sem repositórios privados e sem escrita no GitHub. Convites de colaboração em entregas implementados |
 | Captura de posição de vídeo/leitura e progresso automático | Posição estruturada por tipo (vídeo, página/seção, capítulo, exercício, entrega) com preenchimento declarado. Não há observação automática nem retomada de player externo |
 | Conquistas personalizadas por material | Implementadas no livro do servidor para curso, projeto, leitura, exercício e apresentação; falta escolher individualmente quais aparecem no perfil |
-| Restauração de cópia | Exportação JSON e restauração com validação, prévia, backup do estado anterior e mesclagem sem substituir preferências/privacidade |
-| Reconciliação | `user_state.revision` com conflito 409, mesclagem de cursos/progresso/tarefas/sessões e preferências da sessão preservadas; a UI avisa quando outro dispositivo foi mesclado |
+| Restauração de cópia | Exportação JSON e restauração com validação, prévia e mesclagem explícita sem substituir preferências/privacidade; sem backup persistido no navegador |
+| Concorrência | Revisão de `account_documents` e operação idempotente; conflito 409 pede recarga e repetição explícita, sem reconciliação no navegador |
 
 O nome “curso” no protótipo pode representar um assunto com tarefas arbitrárias. Isso ainda não é o modelo de curso com aulas e critérios de conclusão definido para o produto. A importação introduziu um formato tipado (`structure` com disciplinas, módulos e aulas) sem substituir os cursos antigos: os dois formatos convivem, e as telas reconhecem cada um.
 
@@ -132,7 +144,10 @@ A troca foi verificada por testes de autenticação/domínio, build e bundle com
 
 O link de recuperação vale 30 minutos e é de uso único. Com o link oculto na configuração pública, a resposta não revela se a conta existe. O modo de teste local pode devolver `resetUrl` para contas existentes e, portanto, não oferece a mesma garantia de resposta indistinguível. O transporte por e-mail não foi implementado.
 
-O progresso mantém uma cópia em `localStorage` e usa `/api/state` para carregar e salvar uma cópia vinculada à conta. Antes de carregar uma conta e ao sair, cópias locais são preservadas com sufixos de backup. A escrita remota é agrupada e serializada nesta sessão e usa revisão otimista: um conflito 409 devolve o estado atual, que é mesclado antes de salvar de novo. O XP elegível é atribuído pelo livro de eventos do servidor (`xp_events`), separado do saldo legado do navegador.
+Desde a revisão local de 03/11/2026, o progresso da conta é persistido nas tabelas da biblioteca por operações
+na API. Não há cópia de estudo em `localStorage`, IndexedDB ou fila offline. Escritas em andamento são
+serializadas em memória; falhas aparecem como gravação não confirmada e podem ser repetidas com o mesmo id.
+Conflitos exigem recarga. O XP elegível fica no livro do servidor (`xp_events`), separado do saldo legado.
 
 O protótipo inicial enfatizou passos de preparação e pequenas recompensas. A direção atual exige progresso real de estudo e um componente social central.
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import Atropos from 'atropos/react';
-import { PALETTES, STORAGE_KEY, STUDY_TYPES, achievements, courseProgress, courseStatus, levelInfo, localDay, nextMission, studyRhythm, totalXP, updateCourse } from '../../../public/domain.js';
+import { PALETTES, STUDY_TYPES, achievements, courseProgress, courseStatus, levelInfo, localDay, nextMission, studyRhythm, totalXP, updateCourse } from '../../../public/domain.js';
 import { formatSessionDuration } from '../../../public/session-domain.js';
 import { XP_KIND_LABELS, completionKindForCourse, levelProgress, stepEventKey } from '../../../public/xp-policy.js';
 import { mergeBackup, previewBackup, readBackup } from '../../../public/backup-domain.js';
@@ -289,11 +289,8 @@ export function Preferences({ state, update, notify, onPersonalize, account, go,
   }
   function applyBackup() {
     if (!backup) return;
-    try {
-      localStorage.setItem(`${STORAGE_KEY}.before-import`, JSON.stringify(state));
-    } catch { /* A cópia atual também permanece em memória. */ }
     update(mergeBackup(state, backup.incoming));
-    notify('Cópia mesclada. O estado anterior foi guardado neste navegador.');
+    notify(account ? 'Restauração enviada para gravação na conta.' : 'Cópia aberta na prévia temporária.');
     setBackup(null);
     setBackupName('');
   }
@@ -419,7 +416,7 @@ export function Preferences({ state, update, notify, onPersonalize, account, go,
 
         <section className="card-surface privacy-note">
           <div className="panel-title"><span className="pace-icon"><Icon name="shield"/></span><div><h2 className="title">Seu espaço, seu progresso.</h2></div></div>
-          <p className="muted-text">{account ? 'Sua conta sincroniza a biblioteca e o XP elegível é confirmado no servidor. O saldo antigo do protótipo fica separado, fora do nível novo e do ranking.' : 'Na prévia, seu progresso fica neste navegador e o XP exibido é local. Você pode exportar uma cópia.'}</p>
+          <p className="muted-text">{account ? 'Sua biblioteca é salva na conta e o XP elegível é confirmado no servidor. O saldo antigo do protótipo fica separado, fora do nível novo e do ranking.' : 'A prévia dura só enquanto esta página está aberta. Você pode exportar uma cópia antes de sair.'}</p>
           <p className="quiet-note">Não inclua senhas ou informações sensíveis nas suas etapas.</p>
           <button className="text-button accent" onClick={download}>Baixar cópia dos meus dados<Icon name="arrow"/></button>
           <div className="backup-restore">

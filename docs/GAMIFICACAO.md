@@ -8,6 +8,12 @@ A política v1 foi implementada no servidor: `api/domain/xp.js` mantém o livro 
 
 A proposta de cargos, desbloqueios e do bônus de disciplina (v2) está em [Evolução §4](EVOLUCAO.md#4-gamificação-concreta). Nada dela está implementado.
 
+**Revisão arquitetural de 03/11/2026 (local, sem publicação):** o cliente passa a usar `/api/library/actions`.
+`library-actions.js` aplica as mesmas regras declarativas e grava progresso, XP e conquistas no mesmo batch;
+`library-time.js` prepara as sessões e blocos de tempo para essa transação, acumulando sobras e descontando
+intervalos sobrepostos. O navegador não mantém fila ou marcações de entrega. Após conversão da conta, as rotas
+antigas de gravação de progresso/XP respondem `client_outdated`; leitura, correção e ranking permanecem.
+
 ## 1. O que XP representa
 
 XP representa atividade de estudo elegível e conclusões significativas. Não mede inteligência, qualidade da pessoa, domínio garantido ou tempo de tela genérico.

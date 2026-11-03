@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import { test, expect } from '@playwright/test';
+import { seedAccount, readAccount } from './library-helpers.js';
 import { createInitialState, STORAGE_KEY } from '../../public/domain.js';
 
 // Leitor da extensão (extension/capture.js) contra páginas de exemplo no formato
@@ -129,10 +130,7 @@ test('página sem lista de aulas não vira curso', async ({ page }) => {
 // ---------- Recebimento no Lume ----------
 
 async function openLume(page) {
-  await page.addInitScript(({ key, state }) => {
-    localStorage.setItem(key, JSON.stringify(state));
-    sessionStorage.setItem('lume.preview-session.v1', 'open');
-  }, { key: STORAGE_KEY, state: { ...createInitialState(), onboarded: true } });
+  await seedAccount(page, { ...createInitialState(), onboarded: true });
   await page.goto('/#biblioteca');
   await expect(page.getByRole('heading', { name: 'Biblioteca', exact: true })).toBeVisible();
 }
@@ -180,7 +178,7 @@ test('o Lume recebe a leitura da extensão, importa como histórico e depois reg
   await page.getByRole('button', { name: /Adicionar 3 aulas à biblioteca/ }).click();
   await expect(page.getByText(/1 conclusão registrada com origem na plataforma/)).toBeVisible();
 
-  const log = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).progress.map(({ title, origin, historical }) => ({ lessonTitle: title, origin, historical: Boolean(historical) })), STORAGE_KEY);
+  const log = (await readAccount(page)).progress.map(({ title, origin, historical }) => ({ lessonTitle: title, origin, historical: Boolean(historical) }));
   expect(log).toEqual([
     { lessonTitle: 'Boas-vindas', origin: 'import', historical: true },
     { lessonTitle: 'Instalação', origin: 'integration', historical: false },
@@ -305,10 +303,10 @@ test('"Concluí esta aula" abre a aula certa pelo endereço da página e só reg
   const ack = await deliver(page, { url: 'https://www.udemy.com/course/react-do-zero/learn/lecture/2/extra?x=1', title: 'Aula' }, 'concluir-1', 'complete');
   expect(ack.accepted).toBe(true);
   await expect(page.getByRole('heading', { name: 'Instalação' })).toBeVisible();
-  const before = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).progress.filter((event) => event.type === 'completion' && !event.revertedAt).length, STORAGE_KEY);
+  const before = (await readAccount(page)).progress.filter((event) => event.type === 'completion' && !event.revertedAt).length;
   expect(before).toBe(0);
   await page.getByRole('button', { name: 'Concluí esta aula' }).click();
-  const log = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).progress.map(({ title, origin }) => ({ lessonTitle: title, origin })), STORAGE_KEY);
+  const log = (await readAccount(page)).progress.map(({ title, origin }) => ({ lessonTitle: title, origin }));
   expect(log).toEqual([{ lessonTitle: 'Instalação', origin: 'manual' }]);
 });
 

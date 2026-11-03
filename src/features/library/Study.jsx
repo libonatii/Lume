@@ -75,7 +75,7 @@ export function Home({ state, open, go, update, act, notify, account, xp }) {
             <button type="button" role="checkbox" aria-checked="false" aria-label={`Concluir tarefa ${task.title}`} className="todo-check" onClick={() => {
               const now = new Date().toISOString();
               const result = act((current) => completeTask(current, task.id, now));
-              if (!result.added) return;
+              if (!result?.added) return;
               notify(`Tarefa concluída: ${task.title}.`);
             }}><Icon name="plus"/></button>
             <span className="todo-copy"><strong>{task.title}</strong><small className="todo-meta">{taskMeta(task)}</small></span>
@@ -135,7 +135,7 @@ function Evolution({ state, account, xp }) {
           : <p className="muted-text">Conclua uma aula, leitura ou entrega para receber o primeiro XP validado.</p>}
         {achievement && <p className="muted-text">Conquista mais recente: <strong>{achievement.title}</strong></p>}
       </> : <p className="muted-text">Carregando XP confirmado pelo servidor…</p>)
-      : <p className="muted-text">Na prévia, o progresso fica neste navegador e não gera XP validado. Entre na conta para registrar XP, nível e conquistas.</p>}
+      : <p className="muted-text">A prévia é temporária e não gera XP validado. Entre na conta para salvar o progresso, o nível e as conquistas.</p>}
   </section>;
 }
 
@@ -162,7 +162,7 @@ function StudySession({ state, update, act, mission, notify, account }) {
   const finish = () => {
     const now = Date.now();
     const result = act((current) => endSession(current, now));
-    if (result.session) notify(account
+    if (result?.session) notify(account
       ? `Sessão registrada: ${formatSessionDuration(result.session.durationMs)}. O servidor confirma os blocos de 30 minutos.`
       : `Sessão registrada: ${formatSessionDuration(result.session.durationMs)}. Nesta prévia o tempo fica local; entre na conta para o XP de tempo.`);
   };

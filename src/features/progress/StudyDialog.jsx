@@ -112,6 +112,7 @@ export default function StudyDialog({ modal, state, update, act, open, close, no
     const previous = achievements(state);
     const now = new Date().toISOString();
     const result = act((current) => completeMission(current, course.id, mission.step.id, { preparation: !!modal.preparation, now }));
+    if (!result) return;
     if (!result.added) { notify('Esse passo já foi registrado.'); close(); return; }
     const award = achievements(result.state).find(item => item.unlocked && !previous.find(old => old.id === item.id)?.unlocked);
     open({ type: 'success', id: course.id, preparation: modal.preparation, xp: result.xp, award, stepTitle: mission.step.title });
@@ -177,6 +178,7 @@ function ImportedSession({ course, state, act, open, close, notify, stepId, acco
   function finish() {
     const now = new Date().toISOString();
     const result = act((current) => completeLesson(current, course.id, step.id, { origin: 'manual', now }));
+    if (!result) return;
     if (!result.added) { notify('Essa aula já estava registrada.'); return; }
     const following = nextAction(result.state);
     notify(`Você concluiu ${step.title}.${following ? ` Próxima: ${following.title}.` : ''} ${account ? 'O XP é confirmado pelo servidor.' : 'Na prévia, o XP não é validado.'}`);
@@ -221,12 +223,14 @@ function ImportedCourse({ course, state, update, act, open, close, notify }) {
   function markLesson(stepId) {
     const now = new Date().toISOString();
     const result = act((current) => completeLesson(current, course.id, stepId, { origin: 'manual', now }));
+    if (!result) return;
     if (!result.added) { notify('Essa aula já estava registrada.'); return; }
     notify('Conclusão registrada por você. Em uma conta, o XP elegível é confirmado pelo servidor.');
   }
   function undoLesson(stepId) {
     const now = new Date().toISOString();
     const result = act((current) => revertLessonCompletion(current, course.id, stepId, { now }));
+    if (!result) return;
     if (!result.reverted) {
       notify(result.reason === 'integration'
         ? 'Este registro veio de uma integração e não pode ser desfeito aqui.'

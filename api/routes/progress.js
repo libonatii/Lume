@@ -9,9 +9,17 @@ import {
 } from '../domain/companion.js';
 import { LIMITS } from '../config.js';
 import { bearerToken, empty, json } from '../http.js';
+import { AppError } from '../errors.js';
 
 const XP = { auth: 'Entre na sua conta para ver seu XP e o ranking.', origin: true };
 const DESKTOP = { auth: 'Entre na sua conta para gerenciar o Companion.', origin: true };
+
+async function legacyWrite(ctx, handler, limit) {
+  if (await ctx.db.first('SELECT user_id FROM account_documents WHERE user_id=?', [ctx.user.id])) {
+    throw new AppError('Atualize o Lume para registrar atividades na biblioteca.', 'client_outdated', 409);
+  }
+  return json(await handler(ctx.db, ctx.user.id, await ctx.json(limit)));
+}
 
 // Rotas do programa de desktop: a autoridade é o token do dispositivo, não o cookie.
 function withDevice(handler) {
@@ -28,16 +36,16 @@ export function progressRoutes(router) {
   // Comandos de progresso: o servidor grava a conclusão com o próprio relógio e
   // devolve o XP concedido pelas regras na mesma resposta.
   router.add('POST', '/api/progress', { auth: 'Entre na sua conta para registrar seu progresso.', origin: true }, async (ctx) =>
-    json(await applyProgressCommands(ctx.db, ctx.user.id, await ctx.json(64 * 1024))));
+    legacyWrite(ctx, applyProgressCommands, 64 * 1024));
 
   router
     .add('GET', '/api/xp', XP, async ({ db, user, url }) =>
       json(await getXpSnapshot(db, user.id, { timeZone: url.searchParams.get('timeZone') || '' })))
-    .add('POST', '/api/xp/complete', XP, async (ctx) => json(await grantStep(ctx.db, ctx.user.id, await ctx.json(LIMITS.small))))
-    .add('POST', '/api/xp/bonus', XP, async (ctx) => json(await grantBonus(ctx.db, ctx.user.id, await ctx.json(LIMITS.small))))
-    .add('POST', '/api/xp/slides', XP, async (ctx) => json(await grantSlide(ctx.db, ctx.user.id, await ctx.json(LIMITS.small))))
+    .add('POST', '/api/xp/complete', XP, async (ctx) => legacyWrite(ctx, grantStep, LIMITS.small))
+    .add('POST', '/api/xp/bonus', XP, async (ctx) => legacyWrite(ctx, grantBonus, LIMITS.small))
+    .add('POST', '/api/xp/slides', XP, async (ctx) => legacyWrite(ctx, grantSlide, LIMITS.small))
     .add('POST', '/api/xp/adjust', XP, async (ctx) => json(await adjustEvent(ctx.db, ctx.user.id, await ctx.json(LIMITS.small))))
-    .add('POST', '/api/xp/time', XP, async (ctx) => json(await recordTimeSession(ctx.db, ctx.user.id, await ctx.json(LIMITS.small))))
+    .add('POST', '/api/xp/time', XP, async (ctx) => legacyWrite(ctx, recordTimeSession, LIMITS.small))
     .add(['PATCH', 'POST'], '/api/xp/settings', XP, async (ctx) =>
       json({ settings: await updateXpSettings(ctx.db, ctx.user.id, await ctx.json(LIMITS.tiny)) }))
     .add('GET', '/api/ranking', XP, async ({ db, user, url }) => json(await getRanking(db, user.id, {

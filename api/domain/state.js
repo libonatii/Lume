@@ -48,6 +48,10 @@ function formatVersion(value) {
 }
 
 export async function readState(db, userId) {
+  if (await db.first('SELECT user_id FROM account_documents WHERE user_id=?', [userId])) {
+    const { readLibrary } = await import('./library-store.js');
+    return readLibrary(db, userId);
+  }
   const row = await db.first('SELECT state, updated_at, revision FROM user_state WHERE user_id = ?', [userId]);
   if (!row) return { state: null, updatedAt: null, revision: 0 };
   try {
@@ -58,6 +62,9 @@ export async function readState(db, userId) {
 }
 
 export async function writeState(db, userId, { state, text, baseRevision }, { now = Date.now() } = {}) {
+  if (await db.first('SELECT user_id FROM account_documents WHERE user_id=?', [userId])) {
+    throw new StateError('A biblioteca agora é salva diretamente no servidor. Recarregue o Lume.', 'client_outdated', 409);
+  }
   if (!state || typeof state !== 'object' || Array.isArray(state)) {
     throw new StateError('Progresso em formato inválido.', 'invalid_state', 400);
   }
@@ -84,10 +91,18 @@ export async function writeState(db, userId, { state, text, baseRevision }, { no
 
   const nextRevision = currentRevision + 1;
   const updatedAt = new Date(now).toISOString();
-  await db.run(
-    `INSERT INTO user_state (user_id, state, updated_at, revision) VALUES (?, ?, ?, ?)
-     ON CONFLICT(user_id) DO UPDATE SET state = excluded.state, updated_at = excluded.updated_at, revision = excluded.revision`,
-    [userId, raw, updatedAt, nextRevision],
+  const changed = await db.run(
+    `INSERT INTO user_state (user_id, state, updated_at, revision)
+     SELECT ?, ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM account_documents WHERE user_id=?)
+     ON CONFLICT(user_id) DO UPDATE SET state = excluded.state, updated_at = excluded.updated_at, revision = excluded.revision
+     WHERE user_state.revision=?`,
+    [userId, raw, updatedAt, nextRevision, userId, currentRevision],
   );
+  if (!changed) {
+    if (await db.first('SELECT user_id FROM account_documents WHERE user_id=?', [userId])) {
+      throw new StateError('A biblioteca agora é salva diretamente no servidor. Recarregue o Lume.', 'client_outdated', 409);
+    }
+    return { conflict: true, current: await readState(db, userId) };
+  }
   return { conflict: false, updatedAt, revision: nextRevision };
 }

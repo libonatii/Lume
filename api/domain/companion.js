@@ -164,9 +164,8 @@ export async function companionSelf(db, device, now = Date.now()) {
 // Leitura do roteiro pela ótica do programa. O token do dispositivo dá acesso
 // somente leitura à cópia do estado da conta: nada é alterado e nada vira XP.
 export async function studySnapshot(db, device, now = Date.now()) {
-  const row = await db.first('SELECT state FROM user_state WHERE user_id = ?', [device.user_id]);
-  let state = null;
-  try { state = row?.state ? JSON.parse(row.state) : null; } catch { state = null; }
+  const { readStoredLibrary } = await import('./library-store.js');
+  const { state } = await readStoredLibrary(db, device.user_id);
   if (!state || typeof state !== 'object' || !Array.isArray(state.courses)) {
     return { available: false, reason: 'no_state', message: 'Ainda não há progresso salvo nesta conta. Adicione um curso no Lume.', plan: null };
   }

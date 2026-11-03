@@ -282,8 +282,10 @@ function adoptExistingIds(previousStructure, nextStructure) {
   for (const discipline of previousStructure || []) {
     for (const module of discipline.modules || []) {
       for (const lesson of module.lessons || []) {
-        if (lesson.externalId) byExternal.set(lesson.externalId, lesson.id);
-        else byPath.set(`${discipline.title}|${module.title}|${lesson.title}`, lesson.id);
+        if (lesson.externalId) byExternal.set(lesson.externalId, lesson);
+        const path = `${discipline.title}|${module.title}|${lesson.title}`;
+        // Caminho ambíguo não é evidência suficiente para unir duas aulas.
+        byPath.set(path, byPath.has(path) ? null : lesson);
       }
     }
   }
@@ -293,11 +295,12 @@ function adoptExistingIds(previousStructure, nextStructure) {
     modules: discipline.modules.map((module) => ({
       ...module,
       lessons: module.lessons.map((lesson) => {
+        const pathMatch = byPath.get(`${discipline.title}|${module.title}|${lesson.title}`);
         const known = (lesson.externalId && byExternal.get(lesson.externalId))
-          || (lesson.externalId && byPath.get(`${discipline.title}|${module.title}|${lesson.title}`));
-        if (!known || taken.has(known)) return lesson;
-        taken.add(known);
-        return { ...lesson, id: known };
+          || (pathMatch && (!lesson.externalId || !pathMatch.externalId) ? pathMatch : null);
+        if (!known || taken.has(known.id)) return lesson;
+        taken.add(known.id);
+        return { ...lesson, id: known.id, ...(known.externalId ? { externalId: known.externalId } : {}) };
       }),
     })),
   }));

@@ -59,7 +59,7 @@ export function Login({ model, mode, setMode, go, notify }) {
           <Button type="submit" className="full-width large" disabled={busy || model.accountStatus === 'checking'}>{busy ? 'Um instante…' : registering ? 'Criar minha conta' : 'Entrar e ir além'}<Icon name="arrow"/></Button>
         </form>
       </motion.div>
-      <div className="auth-preview"><span className="divider-label">ou</span><p>Prefere olhar primeiro? <button className="text-button accent" onClick={() => { model.enterPreview(); go('inicio'); }}>Explorar a prévia<Icon name="arrow"/></button></p><small>A prévia guarda o progresso só neste navegador.</small></div>
+      <div className="auth-preview"><span className="divider-label">ou</span><p>Prefere olhar primeiro? <button className="text-button accent" onClick={() => { model.enterPreview(); go('inicio'); }}>Explorar a prévia<Icon name="arrow"/></button></p><small>A prévia é temporária: recarregar ou fechar a página descarta as alterações.</small></div>
     </section>
   </div>;
 }

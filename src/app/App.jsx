@@ -88,7 +88,7 @@ export default function App() {
   }
   const current = ROUTE_BY_ID.get(route);
   const routeContext = { model, state, update, open, go, notify, params, hash, authMode, setAuthMode, checkingSession };
-  const page = current.render(routeContext);
+  const page = <>{model.saveError && <div role="alert"><p>{model.saveError}</p><button onClick={() => model.retrySave().catch(() => notify('Não foi possível carregar a biblioteca. Tente novamente.'))}>Recarregar ou tentar novamente</button></div>}{current.render(routeContext)}</>;
   const hideTabs = Boolean(current.hideTabs?.(routeContext));
   return <><Shell route={route} model={model} hideTabs={hideTabs} onComfort={() => open({ type: 'comfort' })} onHelp={() => open({ type: 'help' })} onRegister={() => setAuthMode('register')} onExit={exit}><motion.div className={`page page-${route}`} key={route} {...enter}>{page}</motion.div></Shell>
     <div className="toast-region" role="status" aria-live="polite" aria-atomic="true"><AnimatePresence>{toast && <motion.div key="feedback" className="toast" initial={{ opacity: 0, y: 16, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8 }} transition={{ duration: .28, ease }}><span className="toast-icon"><Icon name="check"/></span><span>{toast.message}</span><button aria-label="Fechar aviso" className="icon-button" onClick={() => setToast(null)}><Icon name="close"/></button></motion.div>}</AnimatePresence></div>

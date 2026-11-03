@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api, apiError } from '../../lib/api.js';
+import { useResource } from '../../lib/resources.js';
 import Icon from '../../ui/Icon.jsx';
 import { Button } from '../../ui/ui.jsx';
 
@@ -18,21 +19,22 @@ function InviteRow({ invite, children }) {
 }
 
 export function CollaborationPanel({ course, account, notify }) {
-  const [friends, setFriends] = useState([]);
-  const [invites, setInvites] = useState([]);
+  const enabled = Boolean(account && course.type === 'project');
+  const friendsResource = useResource('/api/friends', { enabled });
+  const invitesResource = useResource('/api/collaboration/invites', { enabled });
+  const friends = friendsResource.data?.friends || [];
+  const invites = (invitesResource.data?.sent || []).filter((invite) => invite.courseId === course.id);
   const [friendId, setFriendId] = useState('');
   const [stepId, setStepId] = useState(course.steps[0]?.id || '');
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  const [actionError, setError] = useState('');
+  const error = actionError || friendsResource.error || invitesResource.error;
 
   async function load() {
     if (!account) return;
-    const [friendsResult, invitesResult] = await Promise.all([api('/api/friends'), api('/api/collaboration/invites')]);
-    if (friendsResult.ok) setFriends(friendsResult.data.friends || []);
-    if (invitesResult.ok) setInvites((invitesResult.data.sent || []).filter((invite) => invite.courseId === course.id));
+    await invitesResource.refresh();
   }
-  useEffect(() => { load(); }, [account, course.id]);
   useEffect(() => { setStepId(course.steps[0]?.id || ''); }, [course.id]);
 
   async function send(event) {
@@ -87,9 +89,9 @@ export function CollaborationPanel({ course, account, notify }) {
         <label className="field">Mensagem (opcional)
           <textarea value={note} maxLength={400} rows={2} onChange={(event) => setNote(event.target.value)} placeholder="Ex.: pode revisar a parte de autenticação comigo?"/>
         </label>
-        {error && <p className="form-error" role="alert">{error}</p>}
         <Button type="submit" disabled={busy || !friendId}><Icon name="mail"/>{busy ? 'Enviando…' : 'Convidar para colaborar'}</Button>
       </form>}
+    {error && <p className="form-error" role="alert">{error}</p>}
     {invites.length > 0 && <ul className="collab-list">
       {invites.map((invite) => <InviteRow key={invite.id} invite={invite}>
         {invite.status === 'pending' && <button className="text-button" onClick={() => cancel(invite.id)}>Cancelar</button>}
@@ -99,23 +101,17 @@ export function CollaborationPanel({ course, account, notify }) {
 }
 
 export function CollaborationInbox({ account, notify }) {
-  const [data, setData] = useState(null);
-  const [error, setError] = useState('');
-  async function load() {
-    if (!account) return;
-    const result = await api('/api/collaboration/invites');
-    if (result.ok) setData(result.data);
-    else setError(apiError(result));
-  }
-  useEffect(() => { load(); }, [account]);
+  const resource = useResource('/api/collaboration/invites', { enabled: Boolean(account) });
+  const { data, error } = resource;
   async function respond(id, accept) {
     const result = await api(`/api/collaboration/invites/${encodeURIComponent(id)}/respond`, { method: 'POST', body: { accept } });
     if (!result.ok) { notify(apiError(result)); return; }
     notify(accept ? 'Você aceitou ajudar. O projeto não foi copiado e nenhum XP foi concedido.' : 'Convite recusado.');
-    await load();
+    await resource.refresh();
   }
   if (!account) return null;
   const pending = (data?.received || []).filter((invite) => invite.status === 'pending');
+  if (error) return <p className="form-error" role="alert">{error}</p>;
   if (!data || pending.length === 0) return null;
   return <section className="card-surface settings-panel" aria-labelledby="collab-inbox-title">
     <div className="panel-title"><span className="pace-icon"><Icon name="users"/></span><div><h2 className="title" id="collab-inbox-title">Convites de colaboração</h2><p className="muted-text">Uma amizade pediu ajuda em uma entrega. Aceitar é só um acordo; o material continua na biblioteca de quem convidou.</p></div></div>

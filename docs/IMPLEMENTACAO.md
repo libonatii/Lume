@@ -94,9 +94,9 @@ privacidade nem exclusão de conta. A exportação em JSON já existe em Configu
   estado, mensagens, amizades e eventos, com confirmação; definição do que acontece com mensagens já enviadas.
 
 ### C4 — Migração da prévia para a conta
-**Parcial.** Ao entrar, a cópia local fica guardada como `before-account`, mas o estado da conta substitui o
-local sem oferecer mesclagem.
-- Pronto quando: ao entrar com progresso local, a pessoa escolhe mesclar ou descartar, com prévia.
+**Fora do escopo por decisão de 03/11/2026.** O cliente passa a acessar diretamente a API; dados de estudo do
+navegador são descartados. A prévia é temporária em memória. A conversão preserva os documentos já existentes
+no servidor, não copia dados de IndexedDB ou localStorage para D1.
 
 ### C5 — Senhas e custo de hash
 **Parcial.** bcrypt com custo 6 no Worker, abaixo do mínimo 10 da OWASP, por limite de CPU do plano gratuito.
@@ -172,9 +172,10 @@ Não existe:
   passam com uma aula real autorizada.
 
 ### I6 — Limite de tamanho de cursos grandes
-**Decisão pendente.** O Lume aceita até 600 aulas por importação e 320 KB de estado por conta. Um curso grande do
-Gran (31 disciplinas) passa disso; a leitura avisa e corta. Elevar o limite exige rever o tamanho do estado
-sincronizado e a validação nos dois backends.
+**Parcial.** O importador ainda aceita até 600 aulas. A revisão local de 03/11/2026 retirou o documento global
+de 320 KB do caminho novo: operações têm limite de corpo de 3 MB e a grade é gravada em lote nas tabelas.
+O contrato verifica uma importação de 600 aulas no Node e no D1 local. Elevar o limite do importador e medir
+CPU/volume em produção continuam pendentes; isso não demonstra suporte a milhares de aulas em produção.
 
 ### I3 — Edital e cobertura
 **Parcial.** O registro de editais verificados (`EDITAL_SOURCES`) está vazio de propósito; a comparação de

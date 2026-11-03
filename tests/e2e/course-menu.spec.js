@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { seedAccount, readAccount } from './library-helpers.js';
 import { createInitialState, STORAGE_KEY } from '../../public/domain.js';
 import { applyCourseImport, normalizePayload } from '../../public/import-domain.js';
 
@@ -20,10 +21,7 @@ test('o menu "…" do cartão exclui o curso só depois da confirmação', async
   const state = stateWithCourse();
   expect(state.courses.length).toBeGreaterThan(0);
   const target = state.courses[0];
-  await page.addInitScript(({ key, value }) => {
-    localStorage.setItem(key, JSON.stringify(value));
-    sessionStorage.setItem('lume.preview-session.v1', 'open');
-  }, { key: STORAGE_KEY, value: state });
+  await seedAccount(page, state);
   await page.goto('/#biblioteca');
   await expect(page.getByRole('heading', { name: 'Biblioteca', exact: true })).toBeVisible();
 
@@ -42,17 +40,14 @@ test('o menu "…" do cartão exclui o curso só depois da confirmação', async
   await page.getByRole('menuitem', { name: 'Excluir curso' }).click();
   await page.getByRole('button', { name: 'Sim, excluir curso' }).click();
   await expect(page.getByRole('button', { name: `Mais ações de ${target.title}` })).toHaveCount(0);
-  const left = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).courses.map((course) => course.id), STORAGE_KEY);
+  const left = (await readAccount(page)).courses.map((course) => course.id);
   expect(left).not.toContain(target.id);
   expect(left).toHaveLength(state.courses.length - 1);
 });
 
 test('Esc fecha o menu sem excluir', async ({ page }) => {
   const state = stateWithCourse();
-  await page.addInitScript(({ key, value }) => {
-    localStorage.setItem(key, JSON.stringify(value));
-    sessionStorage.setItem('lume.preview-session.v1', 'open');
-  }, { key: STORAGE_KEY, value: state });
+  await seedAccount(page, state);
   await page.goto('/#biblioteca');
   const menu = page.getByRole('button', { name: `Mais ações de ${state.courses[0].title}` });
   await menu.click();

@@ -9,6 +9,7 @@
 
 import { AppError } from '../errors.js';
 import { restoreState } from '../../public/domain.js';
+import { readStoredLibrary } from './library-store.js';
 
 export class ProgressError extends AppError {
   constructor(message, code = 'progress_error', status = 400) {
@@ -30,9 +31,9 @@ export async function accountMode(db, userId) {
 }
 
 export async function loadLibrary(db, userId) {
-  const row = await db.first('SELECT state FROM user_state WHERE user_id = ?', [userId]);
+  const row = await readStoredLibrary(db, userId);
   if (!row?.state) throw new ProgressError('Salve seu progresso na conta antes de registrar conclusões.', 'state_missing', 409);
-  return restoreState(row.state);
+  return row.state;
 }
 
 function eventRow(userId, event, { source, recordedAt }) {

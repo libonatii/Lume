@@ -11,7 +11,7 @@ import {
 
 function makeDb() {
   const sqlite = new DatabaseSync(':memory:');
-  for (const file of ['0001_init.sql', '0002_user_state.sql', '0004_friends.sql', '0010_collaboration.sql']) {
+  for (const file of ['0001_init.sql', '0002_user_state.sql', '0004_friends.sql', '0007_state_revision.sql', '0010_collaboration.sql', '0012_library.sql']) {
     sqlite.exec(readFileSync(new URL(`../../migrations/${file}`, import.meta.url), 'utf8'));
   }
   const db = sqliteAdapter(sqlite);

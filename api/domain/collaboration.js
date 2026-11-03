@@ -53,10 +53,11 @@ function serializeInvite(row, perspective) {
 
 export async function createCollaborationInvite(db, ownerId, { friendId, courseId, stepId, note }, now = Date.now()) {
   await assertFriendship(db, ownerId, friendId);
-  const stateRow = await db.first('SELECT state FROM user_state WHERE user_id = ?', [ownerId]);
+  const { readStoredLibrary } = await import('./library-store.js');
+  const stateRow = await readStoredLibrary(db, ownerId);
   if (!stateRow?.state) throw new CollaborationError('Salve seu progresso antes de convidar alguém.', 'state_missing', 409);
   let state;
-  try { state = restoreState(stateRow.state); } catch { throw new CollaborationError('Não foi possível ler sua biblioteca.', 'state_invalid', 409); }
+  try { state = stateRow.state; } catch { throw new CollaborationError('Não foi possível ler sua biblioteca.', 'state_invalid', 409); }
   const course = (state.courses || []).find((item) => item.id === courseId);
   if (!course) throw new CollaborationError('Material não encontrado.', 'course_not_found', 404);
   if (course.type !== 'project') throw new CollaborationError('Convites de colaboração existem em projetos.', 'not_project', 400);

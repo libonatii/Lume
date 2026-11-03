@@ -175,6 +175,12 @@ ainda podem gerar itens indevidos — por isso a revisão existe e a grade é ma
 
 ## 7. Modelo de dados e persistência
 
+**Revisão local de 03/11/2026:** materiais e unidades são persistidos em tabelas pela API; `steps` e `structure`
+abaixo são projeções de compatibilidade para as telas. A biblioteca não é salva em localStorage ou IndexedDB.
+A identidade externa é preservada na restauração e na reimportação com fallback para DOM: um caminho de
+títulos único pode manter o id existente quando a nova leitura não traz `externalId`; caminhos ambíguos não
+são unidos. Isso não acrescenta leitores reais às demais plataformas.
+
 `public/import-domain.js` é a fonte das regras, compartilhada por navegador, servidor e testes.
 
 - Curso importado = `course` com `steps` (lista plana das aulas selecionadas, compatível com as telas atuais) e
@@ -254,8 +260,9 @@ prova de observação de reprodução estão em [Evolução §5](EVOLUCAO.md#5-i
   vídeo, com duração, código do curso e endereço). Do Gran falta ver como um vídeo **assistido** aparece (o
   arquivo analisado não tinha nenhum); a leitura supõe ícone `circle-check` ou selo "Concluído" na aula. Udemy,
   Alura, Coursera e Rocketseat não foram testadas com páginas reais.
-- **Tamanho:** o Lume aceita até 600 aulas por importação e 320 KB de estado por conta; um curso grande do Gran
-  (31 disciplinas) pode passar disso. A leitura avisa e corta; elevar o limite é decisão de produto pendente.
+- **Tamanho:** o importador aceita até 600 aulas. O caminho novo da biblioteca usa operações de até 3 MB e
+  tabelas por entidade, sem o teto global de 320 KB do documento antigo. Uma grade de 600 aulas passa no
+  contrato Node/D1 local; aumentar o limite do importador e medir produção continuam pendentes.
 - **Extensão, o que falta:** conferir o DOM real de cada plataforma (ícones e classes de conclusão incluídos) e
   ajustar as regras. A extensão também não foi carregada no Chrome como extensão; a ponte e a entrega pelo service worker não têm teste automatizado.
   Publicação na Chrome Web Store, ícones e configuração de outro endereço do Lume não existem.

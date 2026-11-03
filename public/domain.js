@@ -332,14 +332,17 @@ function sanitizeStructure(value) {
   if (!Array.isArray(value)) return [];
   return value.filter((discipline) => discipline && typeof discipline.id === 'string' && typeof discipline.title === 'string' && Array.isArray(discipline.modules)).map((discipline) => ({
     id: discipline.id,
+    ...(typeof discipline.externalId === 'string' ? { externalId: discipline.externalId } : {}),
     title: discipline.title,
     removedFromSource: discipline.removedFromSource === true,
     modules: discipline.modules.filter((module) => module && typeof module.id === 'string' && Array.isArray(module.lessons)).map((module) => ({
       id: module.id,
+      ...(typeof module.externalId === 'string' ? { externalId: module.externalId } : {}),
       title: typeof module.title === 'string' ? module.title : 'Conteúdo',
       removedFromSource: module.removedFromSource === true,
       lessons: module.lessons.filter((lesson) => lesson && typeof lesson.id === 'string' && typeof lesson.title === 'string').map((lesson) => ({
         id: lesson.id,
+        ...(typeof lesson.externalId === 'string' ? { externalId: lesson.externalId } : {}),
         title: lesson.title,
         url: typeof lesson.url === 'string' ? lesson.url : '',
         duration: Number.isFinite(lesson.duration) ? lesson.duration : null,

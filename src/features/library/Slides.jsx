@@ -193,6 +193,7 @@ export function SlidesViewer({ course, state, update, act, close, notify, accoun
   function conclude() {
     const now = new Date().toISOString();
     const result = act((current) => completeDeck(current, course.id, now));
+    if (!result) return;
     if (!result.completed) {
       notify(result.reason === 'coverage'
         ? `Veja pelo menos ${Math.round(SLIDE_COMPLETION_RATIO * 100)}% dos slides antes de concluir.`

@@ -41,7 +41,7 @@ O Lume não promete liberação de dopamina, eficácia clínica, aprendizado gar
 
 ## 3. Ciclo principal de uso
 
-1. A pessoa cria uma conta e entra no produto completo. O protótipo oferece cadastro e login com e-mail e senha e sincronização de uma cópia do progresso com revisão otimista: alterações de outro dispositivo são mescladas antes de salvar.
+1. A pessoa cria uma conta e entra no produto completo. Cadastro e login usam e-mail e senha. A biblioteca é lida e gravada diretamente na API, com revisão otimista: alterações concorrentes pedem recarga e repetição explícita, sem mescla automática de documentos no navegador.
 2. Informa seu ritmo, áreas de interesse e apoios desejados.
 3. Adiciona cursos, aulas, artigos, livros, exercícios ou projetos à biblioteca.
 4. Retoma um material do ponto salvo ou inicia uma atividade de estudo.
@@ -54,7 +54,7 @@ Preparar o ambiente e tornar uma atividade menor são apoios possíveis nesse ci
 
 ## 4. Entrada e personalização
 
-**O cadastro e o login com e-mail e senha já funcionam.** Esse acesso faz parte do produto, com recuperação de senha, saída da conta e cópia do progresso associada à pessoa autenticada. A sincronização usa revisão otimista e mescla alterações de outro dispositivo; o XP elegível é validado no servidor, em um livro de eventos separado da cópia do estado. O acesso demonstrativo da prévia continua existindo e não substitui a conta. Login com Google pode complementar o acesso; não substitui o requisito de e-mail e senha.
+**O cadastro e o login com e-mail e senha já funcionam.** Esse acesso faz parte do produto, com recuperação de senha, saída da conta e biblioteca associada à pessoa autenticada no servidor. O XP elegível é validado no servidor, em um livro de eventos. A prévia demonstrativa dura somente enquanto a página está aberta, sem persistência de estudo no navegador; não substitui a conta. Login com Google pode complementar o acesso; não substitui o requisito de e-mail e senha.
 
 O onboarding deve identificar:
 

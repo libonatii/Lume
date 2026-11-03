@@ -14,7 +14,7 @@ const desktop = isDesktopApp();
 
 // Cinco destinos; as telas secundárias ficam nas abas de cada seção.
 const links = Object.entries(SECTIONS).map(([key, section]) => [key, section.home, section.icon, section.label]);
-const syncLabels = { saving: 'Salvando na conta…', saved: 'Progresso salvo na conta', error: 'Sem sincronização · cópia local preservada' };
+const syncLabels = { loading: 'Carregando biblioteca…', saving: 'Salvando na conta…', saved: 'Progresso salvo na conta', error: 'Gravação não confirmada' };
 
 export default function Shell({ route, model, children, hideTabs = false, onComfort, onHelp, onRegister, onExit }) {
   const section = sectionOf(route);
@@ -80,7 +80,7 @@ export default function Shell({ route, model, children, hideTabs = false, onComf
         <div className="topbar-left"><span className="today">{today}</span></div>
         <div className="topbar-right">
           {gamified && <div className="level-chip" title={model.account ? 'XP confirmado pelo servidor; o saldo legado fica fora do nível.' : 'Prévia local: este XP não vale para ranking.'}><Icon name="spark"/><span>Nível {level.level} · <strong>{level.current} / {level.next} XP</strong> {model.account ? 'elegível' : 'na prévia'}</span><Progress value={level.current} max={level.next} tone="reward" label="Experiência até o próximo nível"/></div>}
-          {(!model.account || model.syncStatus !== 'saved') && <span className={`sync-chip sync-${model.account ? model.syncStatus : 'local'}`} role="status"><Icon name="cloud"/>{model.account ? syncLabels[model.syncStatus] || 'Conta conectada' : 'Prévia · progresso neste navegador'}</span>}
+          {(!model.account || model.syncStatus !== 'saved') && <span className={`sync-chip sync-${model.account ? model.syncStatus : 'local'}`} role="status"><Icon name="cloud"/>{model.account ? syncLabels[model.syncStatus] || 'Conta conectada' : 'Prévia temporária · não salva'}</span>}
           {desktop && <DesktopUpdate/>}
           <a className="appearance-chip" href="#configuracoes" title="Paleta de cores, tema e tamanho do texto"><Icon name="sun"/><span>Aparência</span></a>
           <div className="user-menu-wrap" ref={menuRef}>

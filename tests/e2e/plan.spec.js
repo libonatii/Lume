@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { createInitialState, STORAGE_KEY } from '../../public/domain.js';
+import { seedAccount, readAccount } from './library-helpers.js';
+import { createInitialState } from '../../public/domain.js';
 import { applyCourseImport, normalizePayload } from '../../public/import-domain.js';
 
 function seeded() {
@@ -20,10 +21,7 @@ function seeded() {
 }
 
 test('cronograma distribui aulas, explica conflito, recalcula após conclusão e sobrevive ao recarregamento', async ({ page }) => {
-  await page.addInitScript(({ key, value }) => {
-    if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(value));
-    sessionStorage.setItem('lume.preview-session.v1', 'open');
-  }, { key: STORAGE_KEY, value: seeded() });
+  await seedAccount(page, seeded());
 
   await page.goto('/#hoje');
   await page.getByRole('navigation', { name: 'Navegação' }).getByRole('link', { name: 'Plano', exact: true }).click();
@@ -56,10 +54,12 @@ test('cronograma distribui aulas, explica conflito, recalcula após conclusão e
   // Adiar move a aula e as seguintes do curso; nada é concluído.
   await page.getByRole('button', { name: 'Adiar Aula 2 — Direitos individuais' }).click();
   await expect(page.getByText(/As aulas seguintes de Direito Constitucional — OAB acompanham/)).toBeVisible();
+  const beforeReload = await readAccount(page);
+  expect(Object.keys(beforeReload.plan.postponed)).toEqual([beforeReload.courses[0].steps[1].id]);
 
   await page.reload();
   await expect(page.getByLabel('Segunda')).toHaveValue('30');
-  const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), STORAGE_KEY);
+  const saved = await readAccount(page);
   const course = saved.courses[0];
   expect(saved.plan.availability).toEqual({ 1: 30, 2: 30, 3: 30, 4: 30, 5: 30 });
   expect(saved.plan.goals[course.id].deadline).not.toBe('');
@@ -69,10 +69,7 @@ test('cronograma distribui aulas, explica conflito, recalcula após conclusão e
 });
 
 test('subtarefas e vínculo com aula não alteram XP e sobrevivem ao recarregamento', async ({ page }) => {
-  await page.addInitScript(({ key, value }) => {
-    if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(value));
-    sessionStorage.setItem('lume.preview-session.v1', 'open');
-  }, { key: STORAGE_KEY, value: seeded() });
+  await seedAccount(page, seeded());
 
   await page.goto('/#tarefas');
   await page.getByLabel('Tarefa', { exact: true }).fill('Revisar Aula 1 com questões');
@@ -86,10 +83,12 @@ test('subtarefas e vínculo com aula não alteram XP e sobrevivem ao recarregame
   await page.getByRole('button', { name: 'Adicionar', exact: true }).click();
   await page.getByRole('checkbox', { name: 'Resolver 10 questões' }).check();
   await expect(page.getByText('Subtarefas 1/1')).toBeVisible();
+  const beforeReload = await readAccount(page);
+  expect(beforeReload.tasks[0].subtasks[0].done).toBe(true);
 
   await page.reload();
   await expect(page.getByText('Subtarefas 1/1')).toBeVisible();
-  const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), STORAGE_KEY);
+  const saved = await readAccount(page);
   expect(saved.tasks[0].lessonId).toBe(saved.courses[0].steps[0].id);
   expect(saved.tasks[0].subtasks).toEqual([expect.objectContaining({ title: 'Resolver 10 questões', done: true })]);
   expect(saved.tasks[0].done).toBe(false);

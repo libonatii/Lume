@@ -4,6 +4,7 @@
 // (progress.js); nada aqui confia no valor enviado pelo navegador.
 
 import { restoreState } from '../../public/domain.js';
+import { readStoredLibrary } from './library-store.js';
 import {
   DAILY_TIME_XP_CAP, DEFAULT_TIME_ZONE, LEVEL_XP, TIME_BLOCK_SECONDS, TIME_BLOCK_XP,
   XP_POLICY_VERSION, XP_VALUES, levelProgress, localDay, normalizeTimeZone, periodDays, timeEventKey,
@@ -113,11 +114,11 @@ export async function ensureXpSettings(db, userId, { now = Date.now(), timeZone 
 }
 
 async function loadState(db, userId) {
-  const row = await db.first('SELECT state FROM user_state WHERE user_id = ?', [userId]);
+  const row = await readStoredLibrary(db, userId);
   if (!row?.state) {
     throw new XpError('Salve seu progresso na conta antes de registrar XP.', 'state_missing', 409);
   }
-  return restoreState(row.state);
+  return row.state;
 }
 
 function findCourse(state, courseId) {

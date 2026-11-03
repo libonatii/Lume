@@ -156,14 +156,15 @@ export async function readFriendProfile(db, viewerId, friendId) {
   if (!linked) throw new FriendsError('Você só vê o perfil de quem está na sua lista de amigos.', 'not_friends', 403);
   const target = await db.first('SELECT id, name FROM users WHERE id = ?', [friendId]);
   if (!target) throw new FriendsError('Perfil não encontrado.', 'not_found', 404);
-  const row = await db.first('SELECT state, updated_at FROM user_state WHERE user_id = ?', [friendId]);
+  const { readStoredLibrary } = await import('./library-store.js');
+  const row = await readStoredLibrary(db, friendId);
   let state = createInitialState();
   if (row?.state) {
-    try { state = restoreState(row.state); } catch { state = createInitialState(); }
+    state = row.state;
   }
   return {
     user: { id: target.id, name: target.name },
-    updatedAt: row?.updated_at ?? null,
+    updatedAt: row?.updatedAt ?? null,
     ...buildProfile(state, { validated: await validatedProfile(db, friendId) }),
   };
 }

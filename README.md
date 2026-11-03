@@ -84,7 +84,18 @@ A verificação atual passou o build, os **165 testes Node de domínio/autentica
 
 ## Dados e limites atuais
 
-O formato e a chave `lume.prototype.v1` são preservados, assim como cursos, histórico, XP e conquistas legadas. As contas usam cookies HttpOnly e a sincronização básica envia uma cópia do progresso por `/api/state`. Há cópia local, exportação JSON e restauração com prévia e mesclagem; o estado anterior à restauração fica em `lume.prototype.v1.before-import`. **A reconciliação de conflitos entre dispositivos ainda não existe.** O XP elegível não vem dessa cópia: ele é atribuído no livro `xp_events` do servidor. Desde a versão 2 do documento, todo progresso (etapas, aulas importadas, preparações e saldo legado) fica no registro único `progress`; documentos da versão 1 são convertidos na leitura e uma aba antiga não consegue gravar o formato velho por cima (`client_outdated`). Cursos importados acrescentam `structure`, `source` e `imports`; slides usam `slides`/`slideProgress`, sessões declaradas usam `activeSession`/`studySessions`, e tarefas de prova usam `tasks` com XP de legado calculado no navegador. Dados antigos sem esses campos continuam válidos.
+As contas usam cookies HttpOnly e persistência direta na API: `GET /api/library` carrega a biblioteca e
+`POST /api/library/actions` grava operações por entidade. Materiais, unidades hierárquicas, progresso, tarefas
+e sessões ficam em tabelas separadas. Revisão otimista impede sobrescrita concorrente; repetir a mesma
+operação não duplica XP. Conflitos pedem recarga, sem reconciliação de documentos no navegador.
+
+Dados de estudo antigos do navegador são descartados por decisão explícita; não há IndexedDB, fila offline
+ou cópia em localStorage. A prévia dura só enquanto a página está aberta. Os documentos já existentes em
+`user_state` são convertidos no servidor e preservados como arquivo; clientes antigos recebem
+`client_outdated` ao tentar gravar depois da conversão. Exportação JSON e restauração explícita com prévia
+continuam disponíveis, sem backup no navegador. `steps` e `structure` ainda são projeções de compatibilidade
+das telas. O XP elegível fica em `xp_events`, separado do saldo legado das tarefas. Esta revisão ainda não
+foi publicada.
 
 O banco ganhou `xp_settings`, `xp_events`, `xp_time_sessions`, `user_achievements`, `direct_messages`, `contact_blocks`, `message_preferences`, `delivery_invites`, `companion_devices`, `companion_pair_codes`, `companion_presence`, `friendships` e `friend_invites`. Tokens de dispositivo, códigos de convite e códigos de pareamento são guardados apenas como hash. Presença expira em 90 segundos sem batimento e amizade não compartilha biblioteca nem progresso.
 

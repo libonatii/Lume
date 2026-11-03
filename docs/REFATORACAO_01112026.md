@@ -1,6 +1,6 @@
 # Lume — plano de refatoração (01/11/2026)
 
-> **Estado: aprovado para execução, nada implementado.** A responsável decidiu seguir com todas as frentes
+> **Estado: execução parcial; persistência direta no servidor em validação (03/11/2026).** A responsável decidiu seguir com todas as frentes
 > abaixo. Este documento descreve o destino da arquitetura e a ordem para chegar lá; ele não muda regras de
 > produto. Pontuação continua em [Gamificação](GAMIFICACAO.md), lacunas de produto em
 > [O que falta implementar](IMPLEMENTACAO.md) e importação em [Importação](IMPORTACAO.md). Ao concluir uma
@@ -234,6 +234,22 @@ módulos de domínio).
 ---
 
 ## F3 — Dados normalizados no servidor e comandos
+
+### Revisão aprovada em 03/11/2026
+
+O pedido explícito substitui o desenho offline abaixo: **API direta sobre D1, sem IndexedDB, fila offline,
+cursor de sincronização ou reconciliação de documentos no navegador**. Dados de estudo só no navegador podem
+ser descartados; documentos de contas existentes no servidor devem ser preservados e convertidos.
+
+No diretório de trabalho, `0012_library.sql` separa `materials`, `units`, `study_progress`, `study_tasks`,
+`study_sessions` e `account_documents`. `GET /api/library` carrega a conta; `POST /api/library/actions`
+aplica operações por entidade com revisão e idempotência. Um conflito exige recarregar, sem mescla automática.
+`user_state` permanece como arquivo após a conversão e recusa novas escritas. A prévia só dura nesta página.
+
+Ainda em validação: concorrência, falhas e repetição na interface e limites de cursos grandes. O XP de tempo
+agora participa do mesmo batch, com teste de rollback. A persistência normalizada não conclui F2: `steps` e `structure` ainda são projeções para as
+telas antigas. Ações nomeadas por funcionalidade, decomposição dos componentes e limpeza da cascata CSS
+também continuam pendentes. O desenho de `/api/sync` e a fila abaixo são **históricos, substituídos**.
 
 ### Diagnóstico
 
@@ -656,7 +672,7 @@ atualização deste plano.
 | Decisão | Bloqueia | Recomendação |
 | --- | --- | --- |
 | Tratamento de clientes antigos que gravam progresso por `PUT /api/state` depois de F3 | F3 etapa 6 | Recusar com `client_outdated` e pedir recarga |
-| Armazenamento local: `localStorage` ou IndexedDB | F3 etapa 4 | IndexedDB, por causa do limite de cerca de 5 MB e de cursos grandes |
+| Persistência de estudo no navegador | Decidido em 03/11/2026 | Remover; API direta sobre D1 e prévia temporária em memória |
 | Biblioteca de cache no cliente (própria ou TanStack Query) | F6a etapa 2 | Começar com utilitário próprio pequeno; adotar biblioteca se surgirem mutações otimistas em recursos sociais |
 | Build da extensão (deixa de ser "sem build") | F5 etapa 4 | Aprovar, com esbuild |
 | Leitor `generic` lê ou não conclusão | F5 etapa 3 | Não ler; conclusão só de adaptador que a declare |
@@ -668,6 +684,31 @@ atualização deste plano.
 ---
 
 ## Registro de execução
+
+### 03/11/2026 — revisão do PR e persistência direta (em andamento)
+
+- Corrigidas respostas de cache da conta anterior e perda de `externalId` na restauração/fallback da importação.
+- Biblioteca normalizada com conversão transacional do documento do servidor, guarda de revisão e idempotência;
+  uma escrita legada concorrente com a conversão é relida, não perdida. Ordenação dos materiais é preservada.
+- Progresso, conquistas e tempo elegível gravados no mesmo batch. Falhas de concessão revertem também a edição;
+  sessões esquecidas voltam pausadas, sobras de tempo acumulam e sobreposição não duplica minutos.
+- SQL em lote para unidades/progresso/recompensas; contrato com 600 aulas passa em Node e D1 local.
+- Testes de navegador passaram a criar contas e consultar a API em vez de injetar estado em localStorage;
+  acrescentados cenários de resposta perdida, repetição idempotente, prévia temporária e conflito entre abas.
+- Verificado: `npm test` (229 aprovados, 1 cenário de mídia do Worker ignorado por ausência do binding), contrato
+  Node/D1 com concorrência e 600 aulas; 10 fluxos desktop de migração/conta, backup, sessão e aplicativo.
+  A primeira rodada completa de navegador teve 97 aprovados e 5 falhas (recarga em Plano/subtarefas e
+  simulação de resposta perdida no celular). Após ajustar a espera pela gravação e verificar o alerta visível
+  em vez do indicador oculto no celular, a rodada direcionada passou: 18 cenários desktop/mobile de Plano,
+  persistência, Amigos e XP/ranking, incluindo conflito entre abas. Build aprovado. A suíte completa ainda
+  não foi repetida com todas as alterações finais.
+- Amigos, Ranking e Colaboração passaram a usar o cache compartilhado de recursos. Amigos e Ranking foram
+  exercitados na rodada direcionada; envio e resposta de convites de colaboração ainda precisam de cenário
+  específico de navegador para essa alteração.
+- Não conclui F2/F6b/F7/F8: projeções antigas, ações nomeadas e decomposição de telas, recursos compartilhados
+  restantes, cascata CSS e consolidação documental continuam pendentes. F5 depende de fixtures reais das demais
+  plataformas. Cargos, bônus de disciplina e migração do XP das tarefas continuam decisões de produto separadas.
+- Sem commit, push, deploy, migração remota ou release.
 
 | Data | Etapa | O que foi entregue | Verificação |
 | --- | --- | --- | --- |

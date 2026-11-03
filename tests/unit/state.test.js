@@ -11,6 +11,7 @@ function makeDb() {
   sqlite.exec(readFileSync(new URL('../../migrations/0001_init.sql', import.meta.url), 'utf8'));
   sqlite.exec(readFileSync(new URL('../../migrations/0002_user_state.sql', import.meta.url), 'utf8'));
   sqlite.exec(readFileSync(new URL('../../migrations/0007_state_revision.sql', import.meta.url), 'utf8'));
+  sqlite.exec(readFileSync(new URL('../../migrations/0012_library.sql', import.meta.url), 'utf8'));
   sqlite.prepare('INSERT INTO users (id, name, email, password_hash, created_at) VALUES (?, ?, ?, ?, ?)')
     .run('u1', 'Ana', 'ana@example.test', 'x', '2026-10-31T12:00:00Z');
   return sqliteAdapter(sqlite);

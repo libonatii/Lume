@@ -11,7 +11,7 @@ const EMPTY = Object.freeze({ data: undefined, error: '', loading: false, update
 function entryFor(key) {
   let entry = entries.get(key);
   if (!entry) {
-    entry = { snapshot: EMPTY, listeners: new Set(), intervals: new Map(), timer: null, inflight: null, path: key };
+    entry = { snapshot: EMPTY, listeners: new Set(), intervals: new Map(), timer: null, inflight: null, path: key, generation: 0, controller: null };
     entries.set(key, entry);
   }
   return entry;
@@ -26,18 +26,23 @@ function publish(entry, patch) {
 export function refreshResource(key) {
   const entry = entryFor(key);
   if (entry.inflight) return entry.inflight;
+  const generation = entry.generation;
+  const controller = new AbortController();
+  entry.controller = controller;
   publish(entry, { loading: true });
-  entry.inflight = api(entry.path)
+  entry.inflight = api(entry.path, { signal: controller.signal })
     .then((result) => {
+      if (generation !== entry.generation) return { ok: false, status: 0, data: null };
       if (result.ok) publish(entry, { data: result.data, error: '', loading: false, updatedAt: Date.now() });
       else publish(entry, { error: apiError(result), loading: false, status: result.status });
       return result;
     })
     .catch((error) => {
+      if (generation !== entry.generation) return { ok: false, status: 0, data: null };
       publish(entry, { error: error.message, loading: false });
       return { ok: false, status: 0, data: null };
     })
-    .finally(() => { entry.inflight = null; });
+    .finally(() => { if (generation === entry.generation) { entry.inflight = null; entry.controller = null; } });
   return entry.inflight;
 }
 
@@ -57,6 +62,10 @@ export function invalidateResources(prefix) {
 // Ao sair da conta, nada do cache anterior pode aparecer para a próxima pessoa.
 export function clearResources() {
   for (const entry of entries.values()) {
+    entry.generation += 1;
+    entry.controller?.abort();
+    entry.controller = null;
+    entry.inflight = null;
     clearInterval(entry.timer);
     entry.timer = null;
     entry.snapshot = EMPTY;
