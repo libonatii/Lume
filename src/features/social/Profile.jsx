@@ -4,7 +4,7 @@ import Icon from '../../ui/Icon.jsx';
 import { AnimatedNumber, Button, Cover, Glow, Heading, Progress, stagger } from '../../ui/ui.jsx';
 import { api, apiError } from '../../lib/api.js';
 import { buildProfile } from '../../../public/profile-domain.js';
-import { MAX_PROFILE_BIO_LENGTH, normalizeProfileCard, studyRhythm } from '../../../public/domain.js';
+import { MAX_PROFILE_BIO_LENGTH, studyRhythm } from '../../../public/domain.js';
 
 // Perfil inspirado na vitrine da Steam, adaptado para estudos no Lume:
 // - Banner (header) e foto de perfil enviados ao armazenamento de objetos (Cloudflare R2
@@ -95,7 +95,7 @@ function formatBioLines(bio, fallbackRhythm) {
   ];
 }
 
-export default function Profile({ id, state, update, account, notify, go, xp }) {
+export default function Profile({ id, state, actions, account, notify, go, xp }) {
   const [profile, setProfile] = useState(null);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(false);
@@ -134,19 +134,13 @@ export default function Profile({ id, state, update, account, notify, go, xp }) 
   async function handleImageUpload(kind, event) {
     const file = event.target.files?.[0];
     event.target.value = '';
-    if (!file || !update) return;
+    if (!file || !actions) return;
     setUploadError('');
     try {
       const dimensions = kind === 'avatar' ? { width: 320, height: 320 } : { width: 1280, height: 420 };
       const blob = await prepareProfileImageBlob(file, dimensions);
       const mediaUrl = await uploadProfileBlob(kind, blob);
-      update((previous) => ({
-        ...previous,
-        profile: normalizeProfileCard({
-          ...previous.profile,
-          [kind]: mediaUrl,
-        }),
-      }));
+      if (!actions.updateProfile({ [kind]: mediaUrl })) return;
       notify(kind === 'avatar' ? 'Foto do perfil enviada e atualizada.' : 'Capa (header) enviada e atualizada.');
     } catch (exception) {
       setUploadError(exception.message || 'Não foi possível enviar a imagem.');
@@ -154,31 +148,18 @@ export default function Profile({ id, state, update, account, notify, go, xp }) 
   }
 
   function clearImage(kind) {
-    if (!update) return;
+    if (!actions) return;
     fetch(`/api/profile/media/${encodeURIComponent(kind)}`, {
       method: 'DELETE',
       credentials: 'same-origin',
     }).catch(() => {});
-    update((previous) => ({
-      ...previous,
-      profile: normalizeProfileCard({
-        ...previous.profile,
-        [kind]: '',
-      }),
-    }));
+    if (!actions.updateProfile({ [kind]: '' })) return;
     notify(kind === 'avatar' ? 'Foto do perfil removida.' : 'Capa do perfil restaurada ao padrão.');
   }
 
   function saveProfileText(event) {
     event.preventDefault();
-    if (!update) return;
-    update((previous) => ({
-      ...previous,
-      profile: normalizeProfileCard({
-        ...previous.profile,
-        bio: bioDraft,
-      }),
-    }));
+    if (!actions?.updateProfile({ bio: bioDraft })) return;
     setEditing(false);
     notify('Detalhes do perfil salvos.');
   }

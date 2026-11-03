@@ -1,7 +1,6 @@
-// Perfil compartilhado: monta a visão que outra pessoa vê a partir da cópia de
-// estado que a própria pessoa sincronizou. XP e progresso são declarados pelo
-// navegador, não validados pelo servidor — por isso não alimentam ranking e a
-// interface precisa dizer isso.
+// Perfil compartilhado: projeta somente as seções autorizadas da biblioteca.
+// Nas contas, XP e conquistas vêm do livro do servidor; percentuais de progresso
+// continuam sendo registros declarados, não prova de compreensão.
 import {
   achievements, courseProgress, courseStatus, levelInfo, normalizeProfileCard, STUDY_TYPES,
 } from './domain.js';

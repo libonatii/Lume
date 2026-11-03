@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { addMaterial } from '../../../public/domain.js';
 import { api, apiError } from '../../lib/api.js';
 import Icon from '../../ui/Icon.jsx';
 import { Button, Empty, Heading } from '../../ui/ui.jsx';
 
-export default function GitHub({ state, update, account, notify, go }) {
+export default function GitHub({ actions, account, notify, go }) {
   const [url, setUrl] = useState('');
   const [analysis, setAnalysis] = useState(null);
   const [selected, setSelected] = useState(() => new Set());
@@ -42,29 +41,7 @@ export default function GitHub({ state, update, account, notify, go }) {
     const chosen = (analysis.suggestions || []).filter((item) => selected.has(item.id));
     if (!chosen.length) { setError('Escolha pelo menos uma sugestão de entrega.'); return; }
     try {
-      const next = addMaterial(state, {
-        title: analysis.repository.name,
-        url: analysis.repository.url,
-        type: 'project',
-        steps: chosen.map((item) => item.title),
-        planning: false,
-      }, 'manual');
-      const courseId = next.selectedCourseId;
-      const withGithub = {
-        ...next,
-        courses: next.courses.map((course) => course.id === courseId ? {
-          ...course,
-          github: {
-            owner: analysis.repository.owner,
-            name: analysis.repository.name,
-            fullName: analysis.repository.fullName,
-            url: analysis.repository.url,
-            analyzedAt: analysis.analyzedAt,
-            suggestions: chosen.map((item) => ({ id: item.id, title: item.title, source: item.source })),
-          },
-        } : course),
-      };
-      update(withGithub);
+      if (!actions.createGitHubProject(analysis, chosen)) return;
       notify('Projeto criado com as entregas escolhidas. Analisar e cadastrar não gera XP.');
       go('biblioteca');
     } catch (exception) {

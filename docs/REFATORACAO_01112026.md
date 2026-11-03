@@ -11,6 +11,10 @@ ranking, mensagens, extensão e aplicativo de desktop). O código acompanhou por
 foi encaixado sobre a estrutura do protótipo. O resultado são oito frentes que pedem reestruturação, não só
 reescrita, porque a forma atual encarece ou impede as próximas funcionalidades.
 
+As seções **Diagnóstico** registram a situação de 01/11, não uma auditoria do código atual. Para o estado
+vigente, consulte o registro de execução e as etapas marcadas. A revisão de F3 em 03/11 substitui integralmente
+o desenho offline inicial. Publicação continua separada da implementação local.
+
 ---
 
 ## Sumário
@@ -135,18 +139,18 @@ vários comandos de uma vez. No Node, `batch` envolve as instruções em `BEGIN`
 
 ### Etapas
 
-1. [ ] Criar `api/errors.js`, `api/http.js` e os adaptadores de banco (`companionDb()` em `server.js:421` e
+1. [x] Criar `api/errors.js`, `api/http.js` e os adaptadores de banco (`companionDb()` em `server.js:421` e
        `dbAdapterFor()` no Worker viram `adapters/sqlite.js` e `adapters/d1.js`, com `batch`).
-2. [ ] Fazer os módulos de domínio lançarem `AppError` (ou subclasses que herdam dela) e trocar as duas cadeias
+2. [x] Fazer os módulos de domínio lançarem `AppError` (ou subclasses que herdam dela) e trocar as duas cadeias
        de `instanceof` por um único tratamento em `app.js`.
-3. [ ] Mover as rotas de conta (cadastro, login, saída, recuperação) para `api/routes/account.js`, usando só o
+3. [x] Mover as rotas de conta (cadastro, login, saída, recuperação) para `api/routes/account.js`, usando só o
        adaptador. Hoje o Node usa `prepare()` síncrono direto; passa a usar `db.first`/`db.run`.
-4. [ ] Mover as demais rotas, uma família por vez, conferindo os testes de contrato da Fase 0 a cada passo.
-5. [ ] Unificar constantes (limites de corpo, de estado, de tentativas) em `api/config.js`, lidas do `env`
+4. [x] Mover as demais rotas, uma família por vez, conferindo os testes de contrato da Fase 0 a cada passo.
+5. [x] Unificar constantes (limites de corpo, de estado, de tentativas) em `api/config.js`, lidas do `env`
        com os mesmos nomes nos dois ambientes. Manter os nomes antigos (`LUME_SHOW_RESET_LINK`,
        `LUME_ATTEMPT_LIMIT`) como apelidos por um ciclo e documentar a troca.
-6. [ ] Reduzir `worker.js` e `server.js` a adaptadores. Nenhuma regra de rota fica neles.
-7. [ ] Rodar os testes de contrato também contra o adaptador D1 (Miniflare, que já vem com o `wrangler`) para
+6. [x] Reduzir `worker.js` e `server.js` a adaptadores. Nenhuma regra de rota fica neles.
+7. [x] Rodar os testes de contrato também contra o adaptador D1 (Miniflare, que já vem com o `wrangler`) para
        que o código publicado seja testado.
 
 ### Pronto quando
@@ -203,16 +207,16 @@ aula, saldo legado (só para exibição na prévia, enquanto existir).
   - id em `completed` sem evento correspondente → `completion` com `origin: 'legacy'` e data desconhecida
     (não entra em nenhuma política nova).
 - Item inválido é descartado **sozinho** e registrado em `conversionNotes`, nunca derruba o documento inteiro.
-- O documento v1 original é guardado sem alteração (`lume.prototype.v1.backup` no navegador; coluna própria no
-  servidor em F3).
+- O documento original do servidor é preservado em `user_state`. Por decisão de 03/11, os dados antigos
+  do navegador são descartados; não há cópia persistida da prévia.
 
 ### Etapas
 
 1. [ ] Criar `public/model/` com as entidades, as funções derivadas e os testes. Nada da interface muda ainda.
 2. [ ] Escrever `convertV1toV2(state)` pura e testá-la com todas as fixtures da Fase 0, conferindo contagens
        (unidades, conclusões, preparações, XP legado) antes e depois.
-3. [ ] Escrever `restoreState` v2 com validação por item e um leitor v1 que converte na carga.
-4. [ ] Adaptar `backup-domain.js` e `merge-domain.js` para v2, mantendo a leitura de backups v1.
+3. [x] Escrever `restoreState` v2 com validação por item e um leitor v1 que converte na carga.
+4. [x] Adaptar `backup-domain.js` e `merge-domain.js` para v2, mantendo a leitura de backups v1.
 5. [ ] Trocar as telas para os seletores derivados (`completedUnits`, `materialProgress`, `nextUnit`), uma tela por
        vez. O critério de próxima aula passa a ser o do roteiro (resolve B4: `nextMission` segue a ordem da
        biblioteca em `StudyDialog.jsx` e `Personal.jsx`).
@@ -237,19 +241,19 @@ módulos de domínio).
 
 ### Revisão aprovada em 03/11/2026
 
-O pedido explícito substitui o desenho offline abaixo: **API direta sobre D1, sem IndexedDB, fila offline,
+O pedido explícito substitui o desenho offline original: **API direta sobre D1, sem IndexedDB, fila offline,
 cursor de sincronização ou reconciliação de documentos no navegador**. Dados de estudo só no navegador podem
 ser descartados; documentos de contas existentes no servidor devem ser preservados e convertidos.
 
-No diretório de trabalho, `0012_library.sql` separa `materials`, `units`, `study_progress`, `study_tasks`,
+O commit `9d51520` inclui `0012_library.sql`, que separa `materials`, `units`, `study_progress`, `study_tasks`,
 `study_sessions` e `account_documents`. `GET /api/library` carrega a conta; `POST /api/library/actions`
 aplica operações por entidade com revisão e idempotência. Um conflito exige recarregar, sem mescla automática.
 `user_state` permanece como arquivo após a conversão e recusa novas escritas. A prévia só dura nesta página.
 
-Ainda em validação: concorrência, falhas e repetição na interface e limites de cursos grandes. O XP de tempo
-agora participa do mesmo batch, com teste de rollback. A persistência normalizada não conclui F2: `steps` e `structure` ainda são projeções para as
-telas antigas. Ações nomeadas por funcionalidade, decomposição dos componentes e limpeza da cascata CSS
-também continuam pendentes. O desenho de `/api/sync` e a fila abaixo são **históricos, substituídos**.
+Concorrência, falhas e repetição foram exercitadas no contrato Node/D1 e em testes de navegador. O XP de tempo
+participa do mesmo batch, com teste de rollback. A persistência normalizada não conclui F2: `steps` e
+`structure` ainda são projeções para as telas. A revisão final dos limites e dos caminhos de compatibilidade
+continua pendente. O desenho antigo de `/api/sync` e da fila está preservado apenas no histórico do Git.
 
 ### Diagnóstico
 
@@ -263,72 +267,64 @@ também continuam pendentes. O desenho de `/api/sync` e a fila abaixo são **his
 - Conflitos entre dispositivos exigem mesclar o documento inteiro por heurística (`merge-domain.js`,
   `backup-domain.js`); o cliente tenta três vezes e desiste.
 
-### Arquitetura alvo
+### Arquitetura vigente
 
-**Tabelas** (migração `0011_library.sql` e seguintes):
+O esquema executável está em `migrations/0012_library.sql`:
 
-```
-materials        (id, user_id, kind, title, url, art, paused, planning, resume, source_json, created_at, updated_at, deleted_at)
-units            (id, user_id, material_id, parent_id, kind, title, position, external_id, url, duration, removed_from_source)
-progress_events  (id, user_id, unit_id, material_id, type, origin, historical, at, command_id, meta)
-study_sessions   (id, user_id, material_id, unit_id, started_at, ended_at, declared_seconds, pauses_json)
-tasks            (id, user_id, title, unit_id, material_id, due_date, priority, subtasks_json, done_at)
-user_documents   (user_id, preferences_json, onboarding_json, revision, updated_at)
-commands_applied (user_id, command_id, applied_at, result_json)   -- idempotência
-state_migrations (user_id, source_revision, migrated_at, notes_json)
-```
+| Tabela | Responsabilidade |
+| --- | --- |
+| `materials` | Um registro por material, com ordem e metadados em `data` |
+| `units` | Unidades por material, relação pai/filho, tipo, ordem, seleção e metadados |
+| `study_progress` | Registro de progresso por conta, material e unidade |
+| `study_tasks`, `study_sessions` | Tarefas e sessões, uma linha por entidade |
+| `account_documents` | Preferências, onboarding, sessão ativa e revisão da biblioteca |
+| `library_operations` | Identidade das operações já aplicadas |
+| `library_write_guards` | Guarda que aborta todo o batch em conflito de revisão |
 
-Índices por `(user_id, material_id)` e `(user_id, at)`. `user_state` continua existindo, só para leitura, com o
-documento v1 original.
+Os campos próprios de cada entidade ainda incluem JSON; não há documento único de estudo sendo substituído.
+`public/material-model.js` separa os registros e monta as projeções `steps`/`structure` para compatibilidade.
 
-**Comandos em vez de documento.** O cliente envia uma lista de comandos, cada um com id próprio:
-
-```
-POST /api/sync   { commands: [{ id, type, payload, at }], since: cursor }
-→ { applied: [{ id, ok, result | error }], changes: [...], cursor }
-GET  /api/sync?since=cursor → { changes, cursor }
+```text
+GET  /api/library
+POST /api/library/actions { id, revision, actions }
+  → biblioteca atual e revisão, ou 409 quando exige recarga
 ```
 
-Tipos iniciais: `material.create|update|delete`, `units.replace` (importação), `progress.complete`,
-`progress.revert`, `session.start|pause|end`, `task.create|update|complete|reopen`, `preferences.update`.
-O servidor valida cada comando com as mesmas funções de `public/model/` (F2), grava as linhas e avalia as
-recompensas (F4) no mesmo `batch`. Repetir um comando com o mesmo `id` devolve o resultado gravado em
-`commands_applied`.
+As operações são `material|task|session|progress.put|delete|order` e `account.update`, com validação de
+progresso imutável e de referências. O servidor calcula recompensas; valores de XP não vêm do corpo enviado.
+O mesmo id de operação não grava nem recompensa duas vezes. Escritas de unidades e coleções usam SQL em lote.
 
-**Cliente.** Guarda o modelo v2 localmente e uma **fila de saída** de comandos. Aplica cada comando de forma
-otimista, envia a fila quando há conta e rede, e incorpora `changes` de outros dispositivos. Como os eventos só
-crescem e têm chave, a mesclagem do documento inteiro desaparece. A prévia sem conta usa os mesmos comandos
-sem enviar a fila; ao entrar na conta, a fila acumulada é oferecida para envio (resolve C4).
+**Cliente.** As telas usam ações nomeadas por funcionalidade. As alterações otimistas existem somente em
+memória; promessas serializam requisições em andamento. Falha bloqueia novas edições e permite repetir o id
+da operação cujo resultado não foi confirmado. Conflito exige recarga e nova ação, sem mescla automática.
+A prévia é descartada ao recarregar ou fechar a página. Não há IndexedDB, fila offline ou migração da prévia.
 
 ### Migração das contas existentes
 
-- **Conversão preguiçosa e idempotente:** na primeira chamada a `/api/sync` de uma conta sem linha em
-  `state_migrations`, o servidor converte `user_state` com `convertV1toV2` e grava as tabelas num `batch`.
-- **Risco de CPU no Worker gratuito (10 ms).** Um documento de 256 KB pode não caber numa requisição. Medir com
-  as fixtures maiores; se não couber, a conversão é feita **no cliente** (que já tem o código) e enviada como
-  comandos `import.legacy` em blocos, com o servidor conferindo contagens.
-- Clientes antigos: `PUT /api/state` passa a aceitar só preferências; uma gravação de progresso recebe `409` com
-  `code: 'client_outdated'` e a interface pede para recarregar. Ver decisões pendentes.
+- **Conversão preguiçosa e idempotente:** a primeira leitura de `/api/library` converte o documento do servidor
+  com `restoreState`, grava as tabelas no mesmo batch e preserva `user_state` como arquivo.
+- Uma revisão legada alterada durante a conversão força nova leitura; o teste cobre essa corrida.
+- Após a conversão, `PUT /api/state` e as rotas antigas de mutação de progresso/XP retornam
+  `409 client_outdated`. Antes dela, os caminhos de compatibilidade continuam disponíveis.
+- A medição de CPU no Worker de produção permanece pendente; não foi autorizada migração remota.
 
 ### Etapas
 
-1. [ ] Migração SQL das tabelas novas.
-2. [ ] Módulo `library.js` (servidor) com leitura e gravação por comando, testado sobre SQLite e D1.
-3. [ ] Rota `/api/sync` e conversão preguiçosa, com testes de idempotência e de concorrência (dois
-       dispositivos enviando o mesmo comando e comandos conflitantes).
-4. [ ] Cliente: armazenamento local v2, fila de saída e reconciliação. Avaliar IndexedDB: `localStorage` tem
-       cerca de 5 MB e é síncrono, o que limita cursos grandes.
-5. [ ] Perfil, desktop e colaboração passam a ler as tabelas, não o documento.
-6. [ ] Trocar o fluxo da interface para `/api/sync`; `PUT /api/state` fica restrito.
-7. [ ] Exportação e importação de backup passam a gerar/aceitar v2 (mantendo leitura de v1).
+1. [x] Migração SQL das tabelas novas (`0012_library.sql`).
+2. [x] Leitura e gravação por entidade em `library-store.js`/`library-actions.js`, testadas em SQLite e D1.
+3. [x] Rotas `/api/library` e `/api/library/actions`, conversão preguiçosa, revisão e idempotência.
+4. [x] Persistência direta; removidos armazenamento de estudo no navegador, fila e reconciliação.
+5. [x] Perfil, desktop e colaboração leem `readStoredLibrary`, com fallback para contas ainda não convertidas.
+6. [x] Interface usa a API nova; mutações legadas são recusadas depois da conversão.
+7. [x] Exportação e restauração explícita de backup v2, mantendo leitura de v1.
 8. [ ] Reavaliar os limites de I6 com o novo formato (limite por material, não por conta).
 
 ### Pronto quando
 
-- Nenhuma rota de XP, perfil, desktop ou colaboração lê `user_state`.
-- Editar o armazenamento local não concede XP: só um comando aceito pelo servidor gera evento.
-- Um curso com milhares de aulas importa sem passar por um limite global de bytes.
-- e2e cobre dois dispositivos com comandos concorrentes (substitui `state-conflict.spec.js`).
+- Contas convertidas são lidas pelas tabelas; o caminho legado preserva contas ainda não convertidas.
+- Editar o armazenamento local não concede XP: só uma operação aceita pelo servidor gera evento elegível.
+- Importações não dependem do teto global de 320 KB. O contrato cobre 600 aulas; milhares ainda não são suportadas.
+- e2e cobre resposta perdida e conflito explícito entre abas; o teste de conflito legado continua separado.
 
 ### Documentos
 
@@ -374,11 +370,11 @@ sem enviar a fila; ao entrar na conta, a fila acumulada é oferecida para envio 
 
 ### Etapas
 
-1. [ ] Extrair as regras atuais para o formato declarativo sem mudar comportamento; os testes dourados da Fase 0
+1. [x] Extrair as regras atuais para o formato declarativo sem mudar comportamento; os testes dourados da Fase 0
        precisam continuar idênticos.
-2. [ ] Ligar o motor aos comandos de F3.
-3. [ ] Remover `collectCompletionCandidates`, as rotas `/api/xp/complete|bonus|slides` como entrada do cliente
-       (ficam só leitura e ajuste) e `lume.xp.sent.v1`.
+2. [x] Ligar o motor aos comandos de F3, no mesmo batch da biblioteca.
+3. [x] Remover `collectCompletionCandidates` e `lume.xp.sent.v1`; o cliente atual não usa as rotas
+       `/api/xp/complete|bonus|slides|time`. Elas ficam como compatibilidade de contas não convertidas.
 4. [ ] Implementar as regras novas conforme as decisões da responsável: G5, G4, G2 (com `user_unlocks`), S5.
 5. [ ] Retirar o saldo legado da exibição (ver decisões pendentes).
 
@@ -542,27 +538,29 @@ src/
     social/           amigos, perfil, mensagens, colaboração, ranking
     desktop/          Companion e atualização
     settings/
-      (cada uma: store.js | actions.js | selectors.js | components/)
+      (cada uma: actions.js | selectors.js | components/, conforme necessário)
   lib/
     api.js            cliente HTTP
     resources.js      cache de recursos do servidor com polling compartilhado
-    sync.js           fila de saída de F3
 ```
 
 ### Etapas
 
 **F6a — independe de F2/F3, pode começar já:**
 
-1. [ ] Tabela de rotas e `SectionTabs` derivado dela.
-2. [ ] Camada de recursos com cache e polling compartilhado; migrar Amigos, Mensagens, Ranking, Colaboração,
+1. [x] Tabela de rotas e `SectionTabs` derivado dela.
+2. [x] Camada de recursos com cache e polling compartilhado; migrar Amigos, Mensagens, Ranking, Colaboração,
        Companion e o contador de não lidas.
-3. [ ] Tirar os modais de `App.jsx` para componentes registrados.
+3. [x] Tirar os modais de `App.jsx` para componentes registrados.
 
 **F6b — depois de F3:**
 
-4. [ ] Separar `useLume` em `account`, `sync` e stores por funcionalidade sobre o modelo v2.
-5. [ ] Telas recebem ações (`completeUnit`, `pauseMaterial`) em vez de `update(previous => …)`.
-6. [ ] Quebrar os componentes grandes em subcomponentes por funcionalidade.
+4. [x] Separar `useAccountSession` (conta e prévia), `useLibraryPersistence` (revisão, envio e repetição) e
+       `useXp` (leitura do livro). `useLume` compõe os hooks e as ações nomeadas; não existe sincronização offline.
+5. [x] Telas recebem ações nomeadas em vez de `update(previous => …)` ou `act`; importação, edição e restauração
+       usam o estado mais recente. Bloqueios não limpam o formulário nem anunciam sucesso.
+6. [ ] Quebrar os componentes grandes em subcomponentes por funcionalidade. O painel de sessão foi extraído
+       para `features/progress/StudySession.jsx`; as demais decomposições continuam pendentes.
 
 ### Pronto quando
 
@@ -603,8 +601,8 @@ folhas externas já são permitidas por `'self'`; `scripts/headers.mjs` continua
 
 ### Etapas
 
-1. [ ] Remover as cinco folhas sem uso e a dependência `fraunces`; corrigir a codificação dos comentários.
-2. [ ] Extrair `tokens.css`, `base.css` e `shader.css`.
+1. [x] Remover as cinco folhas sem uso e a dependência `fraunces`; corrigir a codificação dos comentários.
+2. [x] Extrair tokens, base e shader (`00-tokens.css`, `01-shader.css`, `02-base.css`).
 3. [ ] Mover as regras de cada tela para o CSS da funcionalidade, **junto com o redesenho V1 daquela tela**,
        apagando as regras antigas sobrescritas.
 4. [ ] Testar com service worker limpo a cada etapa (assets em cache aparecem uma visita atrasados).
@@ -626,9 +624,9 @@ Itens que não pedem nova arquitetura, só remoção ou reescrita, e ficam mais 
 
 - [ ] Código legado listado em D2 (`nextMission`, `weekCount`, `applyStudyRhythm`, `HABITS`, `CHALLENGES`) —
       depois de F2, separando o que ainda é compatibilidade de leitura do que é código morto.
-- [ ] Exportações sem consumidor (D3): `importXp`, `selectedCount`, `providerSummary`, `emptySessionState`,
+- [x] Exportações sem consumidor (D3): `importXp`, `selectedCount`, `providerSummary`, `emptySessionState`,
       `GITHUB_CAPABILITIES`.
-- [ ] Mover os módulos de servidor da raiz (`auth.js`, `xp.js`, `messages.js`…) para `api/domain/` e os testes
+- [x] Mover os módulos de servidor da raiz (`auth.js`, `xp.js`, `messages.js`…) para `api/domain/` e os testes
       para `tests/unit/`, atualizando o script `test`.
 - [ ] Consolidar [Continuidade](CONTINUIDADE.md), [Implementação](IMPLEMENTACAO.md) e [Evolução](EVOLUCAO.md):
       juntos têm cerca de 115 KB e repetem matrizes de estado. Proposta: Implementação fica como registro único
@@ -659,8 +657,8 @@ atualização deste plano.
 | --- | --- |
 | Perda de progresso na conversão v1 → v2 | Função pura com fixtures reais; contagens antes/depois; documento v1 guardado; descarte por item com registro |
 | XP em dobro após a migração | Manter o formato de `event_key`; testes dourados; idempotência por `command_id` |
-| Conversão estoura a CPU do Worker gratuito | Medir com as maiores fixtures; plano B de conversão no cliente em blocos |
-| Cliente antigo grava formato velho | Resposta `client_outdated`; aceitar só preferências em `PUT /api/state` |
+| Conversão estoura a CPU do Worker gratuito | Medir com as maiores fixtures; conversão permanece no servidor |
+| Cliente antigo grava formato velho | Resposta `client_outdated` para mutações depois da conversão |
 | Extensão publicada defasada | Aceitar o formato antigo de captura por um ciclo |
 | Regressão invisível no Worker | Testes de contrato também sobre D1 (F1 etapa 7) |
 | Refatoração longa trava o produto | Fases entregam valor isolado; F6a, F7 e F5 avançam sem esperar F3 |
@@ -671,11 +669,11 @@ atualização deste plano.
 
 | Decisão | Bloqueia | Recomendação |
 | --- | --- | --- |
-| Tratamento de clientes antigos que gravam progresso por `PUT /api/state` depois de F3 | F3 etapa 6 | Recusar com `client_outdated` e pedir recarga |
+| Tratamento de clientes antigos | Decidido e implementado | Recusar mutações com `client_outdated` depois da conversão |
 | Persistência de estudo no navegador | Decidido em 03/11/2026 | Remover; API direta sobre D1 e prévia temporária em memória |
-| Biblioteca de cache no cliente (própria ou TanStack Query) | F6a etapa 2 | Começar com utilitário próprio pequeno; adotar biblioteca se surgirem mutações otimistas em recursos sociais |
-| Build da extensão (deixa de ser "sem build") | F5 etapa 4 | Aprovar, com esbuild |
-| Leitor `generic` lê ou não conclusão | F5 etapa 3 | Não ler; conclusão só de adaptador que a declare |
+| Biblioteca de cache no cliente | Implementado | `src/lib/resources.js`, com revalidação e isolamento entre contas |
+| Build da extensão | Implementado | esbuild, fonte em `extension/src/`, gerado versionado |
+| Leitor `generic` lê ou não conclusão | Implementado | Não lê; conclusão só de adaptador que a declare |
 | Plataforma conhecida sem adaptador: recusar ou tentar `generic` | F5 etapa 3 | Recusar e oferecer texto colado |
 | Novo limite de unidades por material (substitui 600 aulas / 320 KB) | F3 etapa 8, I6 | Definir após medir com o curso grande do Gran |
 | Retirar o saldo legado da prévia sem conta | F4 etapa 5 | Retirar; manter o histórico legado visível como registro, sem nível |
@@ -686,6 +684,12 @@ atualização deste plano.
 ## Registro de execução
 
 ### 03/11/2026 — revisão do PR e persistência direta (em andamento)
+
+**Commit de base:** `9d51520` registra a persistência direta e as correções descritas abaixo. A continuação
+com ações nomeadas, extração de sessão, revalidação do cache e cenário de colaboração está no diretório de
+trabalho. Build e testes unitários/contratos passaram (232 aprovados, 1 ignorado por falta de mídia no Worker).
+O cenário de colaboração e quatro cenários de edição/slides passaram no desktop; a suíte completa está em
+execução, com o build mantido intacto durante os testes.
 
 - Corrigidas respostas de cache da conta anterior e perda de `externalId` na restauração/fallback da importação.
 - Biblioteca normalizada com conversão transacional do documento do servidor, guarda de revisão e idempotência;
@@ -705,10 +709,10 @@ atualização deste plano.
 - Amigos, Ranking e Colaboração passaram a usar o cache compartilhado de recursos. Amigos e Ranking foram
   exercitados na rodada direcionada; envio e resposta de convites de colaboração ainda precisam de cenário
   específico de navegador para essa alteração.
-- Não conclui F2/F6b/F7/F8: projeções antigas, ações nomeadas e decomposição de telas, recursos compartilhados
+- Não conclui F2/F6b/F7/F8: projeções antigas, separação do transporte/conta e decomposição de telas, recursos compartilhados
   restantes, cascata CSS e consolidação documental continuam pendentes. F5 depende de fixtures reais das demais
   plataformas. Cargos, bônus de disciplina e migração do XP das tarefas continuam decisões de produto separadas.
-- Sem commit, push, deploy, migração remota ou release.
+- Commit local `9d51520`; sem push, deploy, migração remota ou release.
 
 | Data | Etapa | O que foi entregue | Verificação |
 | --- | --- | --- | --- |

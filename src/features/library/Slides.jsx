@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import {
   MAX_SLIDE_BODY, MAX_SLIDE_TITLE, SLIDE_COMPLETION_RATIO, SLIDE_XP,
-  addSlide, completeDeck, markSlideSeen, moveSlide, normalizeSlides,
-  removeSlide, setSlideImage, slidePositionLabel, slidesSummary, updateSlide,
+  normalizeSlides, slidePositionLabel, slidesSummary,
 } from '../../../public/slides-domain.js';
 import Icon from '../../ui/Icon.jsx';
 import { Button, Progress } from '../../ui/ui.jsx';
@@ -36,7 +35,7 @@ function SlideForm({ initial = { title: '', body: '' }, onSubmit, onCancel, subm
   </form>;
 }
 
-function SlideImageControl({ courseId, slide, update, notify }) {
+function SlideImageControl({ courseId, slide, actions, notify }) {
   const input = useRef(null);
   const [busy, setBusy] = useState(false);
   async function upload(event) {
@@ -55,7 +54,7 @@ function SlideImageControl({ courseId, slide, update, notify }) {
       });
       const data = await response.json().catch(() => null);
       if (!response.ok || !data?.url) throw new Error(data?.error || 'Não foi possível enviar a imagem.');
-      update((previous) => setSlideImage(previous, courseId, slide.id, data.url));
+      if (!actions.setSlideImage(courseId, slide.id, data.url)) return;
       notify('Imagem do slide enviada.');
     } catch (exception) {
       notify(exception.message || 'Não foi possível enviar a imagem do slide.');
@@ -70,7 +69,7 @@ function SlideImageControl({ courseId, slide, update, notify }) {
         method: 'DELETE',
         credentials: 'same-origin',
       });
-      update((previous) => setSlideImage(previous, courseId, slide.id, ''));
+      if (!actions.setSlideImage(courseId, slide.id, '')) return;
       notify('Imagem removida do slide.');
     } finally {
       setBusy(false);
@@ -84,29 +83,29 @@ function SlideImageControl({ courseId, slide, update, notify }) {
   </div>;
 }
 
-export function SlidesEditor({ course, update, notify }) {
+export function SlidesEditor({ course, actions, notify }) {
   const slides = normalizeSlides(course.slides);
   const summary = slidesSummary(course);
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState('');
 
   function add(values) {
-    update((previous) => addSlide(previous, course.id, values));
+    if (!actions.addSlide(course.id, values)) return;
     setAdding(false);
     notify('Slide adicionado à apresentação.');
   }
   function save(slideId, values) {
-    update((previous) => updateSlide(previous, course.id, slideId, values));
+    if (!actions.updateSlide(course.id, slideId, values)) return;
     setEditingId('');
     notify('Slide atualizado.');
   }
   function remove(slideId) {
     if (!window.confirm('Excluir este slide? O progresso dele sai da apresentação; o XP já concedido não é retirado.')) return;
-    update((previous) => removeSlide(previous, course.id, slideId));
+    if (!actions.removeSlide(course.id, slideId)) return;
     notify('Slide excluído.');
   }
   function move(slideId, direction) {
-    update((previous) => moveSlide(previous, course.id, slideId, direction));
+    actions.moveSlide(course.id, slideId, direction);
   }
 
   return <section className="slides-editor" aria-labelledby="slides-editor-title">
@@ -136,7 +135,7 @@ export function SlidesEditor({ course, update, notify }) {
             <div className="slide-editor-copy">
               <strong>{slide.title}</strong>
               {slide.body && <p className="muted-text">{slide.body.length > 160 ? `${slide.body.slice(0, 160)}…` : slide.body}</p>}
-              <SlideImageControl courseId={course.id} slide={slide} update={update} notify={notify}/>
+              <SlideImageControl courseId={course.id} slide={slide} actions={actions} notify={notify}/>
             </div>
             <div className="slide-editor-actions">
               <button className="icon-button" onClick={() => move(slide.id, 'up')} disabled={index === 0} aria-label={`Mover o slide ${slide.title} para cima`}><Icon name="chevron-up"/></button>
@@ -152,7 +151,7 @@ export function SlidesEditor({ course, update, notify }) {
   </section>;
 }
 
-export function SlidesViewer({ course, state, update, act, close, notify, account }) {
+export function SlidesViewer({ course, state, actions, progressActions, close, notify, account }) {
   const slides = normalizeSlides(course.slides);
   const summary = slidesSummary(course);
   const initial = Math.max(0, slides.findIndex((slide) => slide.id === summary.progress.lastId));
@@ -161,8 +160,8 @@ export function SlidesViewer({ course, state, update, act, close, notify, accoun
 
   useEffect(() => {
     if (!slides.length) return;
-    update((previous) => markSlideSeen(previous, course.id, slides[index]?.id || slides[0].id));
-  }, [course.id, index, slides.length, update]);
+    actions.markSlideSeen(course.id, slides[index]?.id || slides[0].id);
+  }, [course.id, index, slides.length, actions]);
 
   useEffect(() => {
     function onKeyDown(event) {
@@ -192,7 +191,7 @@ export function SlidesViewer({ course, state, update, act, close, notify, accoun
 
   function conclude() {
     const now = new Date().toISOString();
-    const result = act((current) => completeDeck(current, course.id, now));
+    const result = progressActions.completeDeck(course.id, now);
     if (!result) return;
     if (!result.completed) {
       notify(result.reason === 'coverage'

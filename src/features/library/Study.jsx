@@ -1,22 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import Atropos from 'atropos/react';
-import { studyRhythm, nextMission, hasPreparation, courseProgress, courseStatus, addMaterial, materialType } from '../../../public/domain.js';
+import { studyRhythm, nextMission, hasPreparation, courseProgress, courseStatus, materialType } from '../../../public/domain.js';
 import { nextAction } from '../../../public/study-plan.js';
-import { completeTask, isOverdue, priorityLabel, taskAgenda } from '../../../public/tasks-domain.js';
+import { isOverdue, priorityLabel, taskAgenda } from '../../../public/tasks-domain.js';
 import { XP_KIND_LABELS, levelProgress } from '../../../public/xp-policy.js';
 import { overdueMessage } from '../plan/Tasks.jsx';
 import { courseSummary, isImportedCourse, sourceLabel } from '../../../public/import-domain.js';
 import { slidePositionLabel, slidesSummary } from '../../../public/slides-domain.js';
-import {
-  endSession, formatSessionDuration, pauseSession, resumeSession, sessionElapsed,
-  startSession, touchSession,
-} from '../../../public/session-domain.js';
+import StudySession from '../progress/StudySession.jsx';
 import Icon from '../../ui/Icon.jsx';
 import { Button, Cover, Empty, Heading, Progress, ease, enter } from '../../ui/ui.jsx';
 import { isCompleted } from '../../../public/progress-domain.js';
 
-export function Home({ state, open, go, update, act, notify, account, xp }) {
+export function Home({ state, open, go, planActions, progressActions, notify, account, xp }) {
   const action = nextAction(state);
   const plan = studyRhythm(state);
   const agenda = taskAgenda(state);
@@ -63,7 +60,7 @@ export function Home({ state, open, go, update, act, notify, account, xp }) {
       </>}
     </section>
 
-    <StudySession state={state} update={update} act={act} mission={action ? { course: { id: action.courseId }, step: { id: action.lessonId, title: action.title } } : null} notify={notify} account={account}/>
+    <StudySession active={state.activeSession} actions={progressActions} mission={action ? { course: { id: action.courseId }, step: { id: action.lessonId, title: action.title } } : null} notify={notify} account={account}/>
     </div>
 
     <div className="today-grid">
@@ -74,7 +71,7 @@ export function Home({ state, open, go, update, act, notify, account, xp }) {
           ? <ul className="today-task-list">{agenda.next.map((task) => <li key={task.id} className="todo-item">
             <button type="button" role="checkbox" aria-checked="false" aria-label={`Concluir tarefa ${task.title}`} className="todo-check" onClick={() => {
               const now = new Date().toISOString();
-              const result = act((current) => completeTask(current, task.id, now));
+              const result = planActions.completeTask(task.id, now);
               if (!result?.added) return;
               notify(`Tarefa concluída: ${task.title}.`);
             }}><Icon name="plus"/></button>
@@ -139,51 +136,6 @@ function Evolution({ state, account, xp }) {
   </section>;
 }
 
-// Sessão declarada: a pessoa inicia e encerra. O relógio é informativo e não
-// concede XP; o batimento de 60 s evita contar dias de aba esquecida.
-function StudySession({ state, update, act, mission, notify, account }) {
-  const active = state.activeSession;
-  const [now, setNow] = useState(() => Date.now());
-
-  useEffect(() => {
-    if (!active) return undefined;
-    setNow(Date.now());
-    const clock = setInterval(() => setNow(Date.now()), 1000);
-    const beat = setInterval(() => update((previous) => touchSession(previous)), 60000);
-    return () => { clearInterval(clock); clearInterval(beat); };
-  }, [active?.id, active?.status, update]);
-
-  const elapsed = active ? sessionElapsed(active, now) : 0;
-  const begin = () => update((previous) => startSession(previous, {
-    courseId: mission?.course?.id || '',
-    stepId: mission?.step?.id || '',
-    label: mission ? mission.step.title : 'Estudo livre',
-  }));
-  const finish = () => {
-    const now = Date.now();
-    const result = act((current) => endSession(current, now));
-    if (result?.session) notify(account
-      ? `Sessão registrada: ${formatSessionDuration(result.session.durationMs)}. O servidor confirma os blocos de 30 minutos.`
-      : `Sessão registrada: ${formatSessionDuration(result.session.durationMs)}. Nesta prévia o tempo fica local; entre na conta para o XP de tempo.`);
-  };
-
-  return <section className={`card-surface session-bar ${active ? 'is-active' : ''}`} aria-labelledby="session-title">
-    <span className={`session-dot ${active?.status === 'paused' ? 'is-paused' : ''}`} aria-hidden="true"/>
-    <div className="session-copy">
-      <span className="eyebrow">{active ? active.label : 'Tempo de estudo'}</span>
-      <h2 id="session-title" className="title">{active ? (active.status === 'active' ? 'Sessão em andamento' : 'Sessão pausada') : 'Sessão de estudo'}</h2>
-      <p className="muted-text">{active
-        ? <>Tempo declarado: <strong className="session-clock" role="timer" aria-label="Tempo da sessão">{formatSessionDuration(elapsed)}</strong> · {active.courseId ? 'vinculado ao seu material' : 'sem material vinculado'}</>
-        : 'Inicie ao começar a estudar e encerre ao terminar. Em uma conta, o servidor confirma blocos de 30 minutos (25 XP cada, até 200 XP por dia); pausas não contam.'}</p>
-    </div>
-    <div className="session-controls">
-      {!active && <Button onClick={begin}><Icon name="play"/>Começar sessão</Button>}
-      {active && <Button secondary onClick={() => update((previous) => active.status === 'active' ? pauseSession(previous) : resumeSession(previous))}><Icon name={active.status === 'active' ? 'pause' : 'play'}/>{active.status === 'active' ? 'Pausar' : 'Retomar'}</Button>}
-      {active && <Button onClick={finish}><Icon name="check"/>Encerrar sessão</Button>}
-    </div>
-  </section>;
-}
-
 const statuses = { all: 'Todos', active: 'Em andamento', new: 'Para começar', paused: 'Em pausa', completed: 'Concluídos' };
 
 // Menu "…" no canto do cartão. Fica ao lado do cartão (e não dentro dele) porque
@@ -232,7 +184,7 @@ export function CourseCard({ course, state, open }) {
   </motion.button><CourseMenu course={course} open={open}/></div>;
 }
 
-export function Library({ state, open, update }) {
+export function Library({ state, open, actions }) {
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const courses = state.courses.filter(course => (filter === 'all' || courseStatus(state, course) === filter) && course.title.toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR')));
@@ -261,7 +213,7 @@ export function Library({ state, open, update }) {
     </div>}
 
     {state.courses.length === 0
-      ? <FirstStudyArea update={update} open={open}/>
+      ? <FirstStudyArea actions={actions} open={open}/>
       : <div className="library-grid">
       <section className="library-shelf">
         <div className="shelf-header">
@@ -298,7 +250,7 @@ export function Library({ state, open, update }) {
   </div>;
 }
 
-function FirstStudyArea({ update, open }) {
+function FirstStudyArea({ actions, open }) {
   const [area, setArea] = useState('');
   const [firstStep, setFirstStep] = useState('');
   const [error, setError] = useState('');
@@ -307,12 +259,12 @@ function FirstStudyArea({ update, open }) {
     const title = area.trim();
     if (!title) { setError('Diga qual área você quer estudar.'); return; }
     try {
-      update(previous => addMaterial(previous, {
+      if (!actions.addMaterial({
         title,
         type: 'course',
         firstActivity: firstStep.trim() || `Encontrar meu primeiro material de ${title}`,
         planning: !firstStep.trim(),
-      }, 'manual'));
+      }, 'manual')) return;
       setError('');
     } catch (exception) {
       setError(exception.message);

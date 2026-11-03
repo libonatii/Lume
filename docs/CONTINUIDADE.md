@@ -14,11 +14,15 @@ tarefas e sessões (`0012_library.sql`). O cliente deixa de guardar estudo no na
 página aberta. Contas antigas são convertidas no servidor, preservando `user_state` como arquivo. A descrição
 de sincronização/mesclagem nas rodadas históricas abaixo não representa esse caminho novo.
 
-Validação local desta revisão: build aprovado e 18 cenários direcionados desktop/mobile aprovados para Plano,
-subtarefas, persistência, resposta perdida, conflito entre abas, Amigos e XP/ranking. Amigos, Ranking e
-Colaboração usam recursos compartilhados; o fluxo de convites de colaboração ainda precisa de verificação
-específica de navegador. A suíte completa anterior teve 97 aprovações e 5 falhas, cobertas pela rodada
-direcionada; ainda não houve nova rodada completa com todas as alterações finais.
+As telas usam ações nomeadas por funcionalidade, aplicadas sobre o estado mais recente. `useLume` compõe
+`useAccountSession` (conta e prévia), `useLibraryPersistence` (revisão, envio, bloqueio e repetição) e `useXp`.
+O painel de sessão fica em `features/progress/StudySession.jsx`. Amigos, Ranking e Colaboração usam o cache
+compartilhado, que revalida ao reabrir a tela e isola respostas de contas diferentes.
+
+Validação anterior à extração dos hooks: build e 232 testes unitários/contratos aprovados (1 cenário de mídia
+do Worker ignorado). Cinco cenários desktop de colaboração e edição/slides aprovados; colaboração cobre
+envio, aceite e cancelamento entre duas contas, sem copiar projeto nem conceder XP. A rodada completa de
+navegador está em execução; a extração dos hooks terá validação própria após o encerramento dessa rodada.
 
 A aplicação usa Astro, React e Motion. O Astro gera arquivos estáticos em `dist/`; React controla as telas e o estado. As APIs são um app único em `api/`; `server.js` o serve localmente com SQLite (e entrega o build) e o Worker o serve em Cloudflare com D1. `npm run dev` inicia Astro e servidor local. O Live Server não compila a nova aplicação. A base React + Astro está publicada no endereço de referência; o que foi alterado depois do último deploy só aparece com um novo `npx wrangler deploy`.
 
@@ -27,7 +31,7 @@ A aplicação usa Astro, React e Motion. O Astro gera arquivos estáticos em `di
 | Entrada | Cadastro, login e saída com e-mail e senha; prévia local mantida como caminho alternativo, sem conta |
 | Ritmo de estudo | Três jornadas de onboarding com sequências próprias (Quero começar, Estudo de vez em quando, Estudo com frequência), apoios opcionais, etapa social dispensável e retomada de onde parou. O estado fica em `onboarding` no documento da conta |
 | Biblioteca | Cursos/assuntos com etapas, busca, filtros, pausa, links, criação manual, edição de título/tipo/retomada, etapas editáveis, exclusão com confirmação e slides internos; cursos importados por link têm disciplinas, módulos, aulas, progresso por área, próxima aula e origem do registro |
-| Progresso | Registro único `progress` (documento v2, `public/progress-domain.js`): cada conclusão ou preparação é um evento com origem (`manual`, `integration`, `import`, `legacy`); desfazer marca `revertedAt` sem apagar. O documento é sincronizado por conta no D1. Progresso marcado na página copiada entra como histórico `import`, sem XP. Documentos v1 (`completed`/`history`/`studyLog`) são convertidos na leitura |
+| Progresso | Registro único `progress` (`public/progress-domain.js`), persistido em `study_progress`: cada conclusão ou preparação tem origem (`manual`, `integration`, `import`, `legacy`); desfazer marca `revertedAt` sem apagar. Progresso lido na primeira importação entra como histórico, sem XP. Documentos v1 do servidor são convertidos na leitura |
 | Gamificação | Política v1 no servidor: 100 XP por aula/leitura/exercício, 150 por entrega, 100 por apresentação, 500 de bônus por curso/projeto, 25 por bloco de 30 min e nível a cada 500 XP. Livro `xp_events` com idempotência e correção por ajuste negativo. O saldo legado (5/10 XP) permanece separado e fora do ranking |
 | Hoje | Próxima ação única calculada por `nextAction` (`public/study-plan.js`), com o mesmo critério do roteiro do Companion e do perfil: motivo, tempo a reservar (duração conhecida da fonte ou estimativa pelo tempo de sessão do onboarding, padrão 25 min), link do material e o que falta. Abaixo: sessão declarada, até três tarefas na ordem de ação com aviso de atraso e evolução (nível e última recompensa confirmada) |
 | Tarefas de prova | Lista com prioridade (alta, média, baixa, sem prioridade), prazo, atraso, vínculo opcional a curso e aula e até 10 subtarefas; concluir vale 10 XP de legado uma vez, criar, priorizar ou organizar não gera XP. Ver [Gamificação](GAMIFICACAO.md#tarefas-de-prova--regra-em-execução-no-protótipo) |
@@ -205,7 +209,7 @@ Situação: materiais tipados básicos, separação de preparação, política d
 - Livro de eventos e atribuição de XP no servidor.
 - Migração voluntária e segura dos dados locais para a conta.
 
-Situação: autenticação, recuperação de acesso, sessão, persistência com revisão otimista e mesclagem entre dispositivos e livro de eventos de XP implementados. A revisão da migração voluntária de etapas genéricas antigas continua pendente.
+Situação: autenticação, recuperação de acesso, sessão, persistência direta com revisão otimista e livro de XP implementados. Conflitos exigem recarga; não há mesclagem automática entre dispositivos. A migração da prévia foi retirada do escopo em 03/11; os documentos existentes no servidor são preservados e convertidos.
 
 ### Etapa C — primeira experiência social
 

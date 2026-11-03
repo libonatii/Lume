@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import {
-  STUDY_TYPES, addMaterial, deleteCourse, formatVideoTime, normalizePosition,
-  replaceCourseSteps, resumeLabel, updateCourse,
+  STUDY_TYPES, formatVideoTime, normalizePosition, resumeLabel,
 } from '../../../public/domain.js';
 import { isImportedCourse } from '../../../public/import-domain.js';
 import Icon from '../../ui/Icon.jsx';
 import { Button } from '../../ui/ui.jsx';
 
-export function ManualCourseForm({ state, update, close, notify, open }) {
+export function ManualCourseForm({ actions, close, notify, open }) {
   const [title, setTitle] = useState('');
   const [type, setType] = useState('course');
   const [url, setUrl] = useState('');
@@ -18,7 +17,7 @@ export function ManualCourseForm({ state, update, close, notify, open }) {
     setError('');
     try {
       const lines = steps.split('\n').map((line) => line.trim()).filter(Boolean);
-      const next = addMaterial(state, {
+      const result = actions.addMaterial({
         title,
         url,
         type,
@@ -26,9 +25,9 @@ export function ManualCourseForm({ state, update, close, notify, open }) {
         firstActivity: 'Concluir a primeira atividade',
         planning: false,
       }, 'manual');
-      update(next);
+      if (!result) return;
       notify('Material criado. Agora você pode adicionar slides e registrar seu progresso.');
-      const id = next.selectedCourseId;
+      const id = result.state.selectedCourseId;
       close();
       if (id) open({ type: 'course', id });
     } catch (exception) {
@@ -64,7 +63,7 @@ export function ManualCourseForm({ state, update, close, notify, open }) {
   </div>;
 }
 
-export default function CourseEditor({ course, state, update, close, notify }) {
+export default function CourseEditor({ course, actions, close, notify }) {
   const imported = isImportedCourse(course);
   const [title, setTitle] = useState(course.title);
   const [url, setUrl] = useState(course.url || '');
@@ -93,9 +92,7 @@ export default function CourseEditor({ course, state, update, close, notify }) {
     event.preventDefault();
     setError('');
     try {
-      let next = updateCourse(state, course.id, { title, url, type, position });
-      if (!imported) next = replaceCourseSteps(next, course.id, steps);
-      update(next);
+      if (!actions.editMaterial(course.id, { title, url, type, position }, imported ? undefined : steps)) return;
       notify('Material atualizado.');
       close();
     } catch (exception) {
@@ -103,7 +100,7 @@ export default function CourseEditor({ course, state, update, close, notify }) {
     }
   }
   function removeCourse() {
-    update((previous) => deleteCourse(previous, course.id));
+    if (!actions.deleteMaterial(course.id)) return;
     notify('Material excluído. O XP já concedido permanece no seu extrato.');
     close();
   }

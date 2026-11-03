@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import {
   STUDY_RHYTHMS, STUDY_TYPES, SESSION_MINUTES, CONTINUITY_OBSTACLES, TRACKING_PREFERENCES,
-  studyRhythm, startJourney, saveOnboardingAnswer, completeJourney, emptyOnboarding, addMaterial,
+  studyRhythm, emptyOnboarding,
 } from '../../../public/domain.js';
 import Icon from '../../ui/Icon.jsx';
 import { Button, Glow, ease, stagger } from '../../ui/ui.jsx';
@@ -38,7 +38,7 @@ function Stepper({ step, total }) {
   </div>;
 }
 
-export default function Onboarding({ state, update, go, notify, account }) {
+export default function Onboarding({ state, actions, libraryActions, go, notify, account }) {
   const saved = state.onboarding ?? emptyOnboarding();
   const [journey, setJourney] = useState(saved.journey ?? state.habit ?? null);
   const [step, setStep] = useState(saved.journey && saved.status === 'active' ? saved.step : 0);
@@ -55,15 +55,16 @@ export default function Onboarding({ state, update, go, notify, account }) {
 
   function persist(patch, nextStep) {
     const merged = { ...answers, ...patch };
+    if (!actions.saveAnswers(merged, nextStep)) return false;
     setAnswers(merged);
-    update(previous => saveOnboardingAnswer(previous, merged, nextStep));
+    return true;
   }
 
   function choose(id) {
+    if (!actions.startJourney(id)) return;
     setJourney(id);
     setStep(1);
     setError('');
-    update(previous => startJourney(previous, id));
   }
 
   function advance(patch) {
@@ -75,23 +76,23 @@ export default function Onboarding({ state, update, go, notify, account }) {
     }
     setError('');
     if (step === reviewStep) {
-      createMaterial();
-      persist(patch ?? {}, socialStep);
+      if (!createMaterial()) return;
+      if (!persist(patch ?? {}, socialStep)) return;
       setStep(socialStep);
       return;
     }
-    persist(patch ?? {}, step + 1);
+    if (!persist(patch ?? {}, step + 1)) return;
     setStep(step + 1);
   }
 
   function back() {
     if (step <= 1) { setStep(0); return; }
-    persist({}, step - 1);
+    if (!persist({}, step - 1)) return;
     setStep(step - 1);
   }
 
   function finish() {
-    update(previous => completeJourney(saveOnboardingAnswer(previous, answers, socialStep)));
+    if (!actions.finishJourney(answers, socialStep)) return;
     go('hoje');
     notify('Seu começo está pronto. Você pode ajustar tudo depois.');
   }
@@ -136,7 +137,7 @@ export default function Onboarding({ state, update, go, notify, account }) {
       const title = (String(a.ongoing ?? '').split('\n')[0] || String(a.areas ?? '').split('\n')[0] || '').trim();
       if (title) payload = { title, type: 'course', firstActivity: `Definir o próximo marco de ${title}`, planning: true };
     }
-    if (payload) update(previous => addMaterial(previous, payload));
+    return !payload || Boolean(libraryActions.addMaterial(payload, 'onboarding'));
   }
 
   const summary = useMemo(() => {
@@ -164,7 +165,7 @@ export default function Onboarding({ state, update, go, notify, account }) {
         </motion.button>)}
       </fieldset>
       {saved.status === 'active' && saved.journey && <p role="status" className="resume-banner"><Icon name="return"/>Você parou na etapa {saved.step}. Escolher a mesma jornada retoma de onde parou.</p>}
-      <div className="onboarding-actions"><Button secondary onClick={() => { update(previous => ({ ...previous, onboarded: true, onboarding: { ...emptyOnboarding(), status: 'done', finishedAt: new Date().toISOString() } })); go('hoje'); notify('Você pode personalizar quando quiser.'); }}>Explorar sem personalizar agora</Button></div>
+      <div className="onboarding-actions"><Button secondary onClick={() => { if (!actions.skipJourney()) return; go('hoje'); notify('Você pode personalizar quando quiser.'); }}>Explorar sem personalizar agora</Button></div>
     </div>;
   }
 

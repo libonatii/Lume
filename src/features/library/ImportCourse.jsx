@@ -4,7 +4,7 @@ import Icon from '../../ui/Icon.jsx';
 import { Button } from '../../ui/ui.jsx';
 import { api, apiError } from '../../lib/api.js';
 import {
-  MAX_SYLLABUS_CHARS, allLessonIds, applyCourseImport, formatDuration,
+  MAX_SYLLABUS_CHARS, allLessonIds, formatDuration,
   looksLikeExamCourse, normalizeImportUrl, normalizePayload, detectProvider,
 } from '../../../public/import-domain.js';
 import { completedUnitIds } from '../../../public/progress-domain.js';
@@ -55,7 +55,7 @@ function clipboardPage(event) {
   }
 }
 
-export default function ImportCourse({ state, update, close, notify, go, open, modal = {} }) {
+export default function ImportCourse({ state, actions, close, notify, go, open, modal = {} }) {
   const updating = Boolean(modal.courseId);
   const existing = updating ? state.courses.find((course) => course.id === modal.courseId) : null;
   // Leitura enviada pela extensão: já chega estruturada, então vai direto à revisão.
@@ -258,16 +258,17 @@ export default function ImportCourse({ state, update, close, notify, go, open, m
       return;
     }
     try {
-      const next = applyCourseImport(state, normalized, {
+      const result = actions.importCourse(normalized, {
         selectedLessonIds: ids,
         mode: updating ? 'update' : 'create',
         courseId: updating ? modal.courseId : null,
         observedCompletionIds: recordNew ? newlyDone.map((lesson) => lesson.id) : [],
         edital: looksLikeExamCourse(normalized) && (edition || examPhase) ? { exam: 'OAB', edition: edition.trim(), phase: examPhase, checkedAt: new Date().toISOString() } : null,
       });
+      if (!result) return;
+      const next = result.state;
       const course = next.courses.find((item) => item.source?.identity === normalized.identity) || next.courses.at(-1);
       const record = next.imports.at(-1);
-      update(next);
       setPayload(normalized);
       setSelected(new Set(ids));
       setImported({

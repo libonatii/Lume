@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import Atropos from 'atropos/react';
-import { PALETTES, STUDY_TYPES, achievements, courseProgress, courseStatus, levelInfo, localDay, nextMission, studyRhythm, totalXP, updateCourse } from '../../../public/domain.js';
+import { PALETTES, STUDY_TYPES, achievements, courseProgress, courseStatus, levelInfo, localDay, nextMission, studyRhythm, totalXP } from '../../../public/domain.js';
 import { formatSessionDuration } from '../../../public/session-domain.js';
 import { XP_KIND_LABELS, completionKindForCourse, levelProgress, stepEventKey } from '../../../public/xp-policy.js';
-import { mergeBackup, previewBackup, readBackup } from '../../../public/backup-domain.js';
+import { previewBackup, readBackup } from '../../../public/backup-domain.js';
 import { api, apiError } from '../../lib/api.js';
 import Icon from '../../ui/Icon.jsx';
 import { AnimatedNumber, Button, Cover, Empty, Glow, Heading, Progress, Ring, stagger } from '../../ui/ui.jsx';
@@ -193,7 +193,7 @@ export function History({ state, account, xp, refreshXP, notify }) {
   </div>;
 }
 
-export function Preferences({ state, update, notify, onPersonalize, account, go, xp, refreshXP }) {
+export function Preferences({ state, actions, libraryActions, notify, onPersonalize, account, go, xp, refreshXP }) {
   const [rankingBusy, setRankingBusy] = useState(false);
   const [backup, setBackup] = useState(null);
   const [backupName, setBackupName] = useState('');
@@ -211,7 +211,7 @@ export function Preferences({ state, update, notify, onPersonalize, account, go,
     return () => { alive = false; };
   }, [account]);
   function preference(key, value) {
-    update(previous => ({ ...previous, preferences: { ...previous.preferences, [key]: value, ...(key === 'weeklyGoal' ? { weeklyGoalSource: 'manual' } : {}) } }));
+    if (!actions.setPreference(key, value)) return;
     notify('Preferência salva. Seu espaço, do seu jeito.');
   }
   async function toggleRanking(value) {
@@ -244,12 +244,12 @@ export function Preferences({ state, update, notify, onPersonalize, account, go,
     }
   }
   function sharingPreference(key, value) {
-    update(previous => ({ ...previous, preferences: { ...previous.preferences, sharing: { ...previous.preferences.sharing, [key]: value } } }));
+    if (!actions.setSharingPreference(key, value)) return;
     notify('Privacidade do perfil atualizada.');
   }
   function toggleProject(course) {
     const open = course.shared !== true;
-    update(previous => ({ ...previous, courses: previous.courses.map(item => item.id === course.id ? { ...item, shared: open } : item) }));
+    if (!actions.setProjectSharing(course.id, open)) return;
     notify(open ? 'Projeto marcado como público no seu perfil.' : 'Projeto voltou a ser privado.');
   }
   const sharing = state.preferences.sharing ?? {};
@@ -259,7 +259,7 @@ export function Preferences({ state, update, notify, onPersonalize, account, go,
     && (course.planning === true || course.steps.some((step) => isCompleted(state, step.id)
       && !eventKeys.has(stepEventKey(completionKindForCourse(course), course.id, step.id))))).slice(0, 8);
   function classifyCourse(courseId, patch) {
-    update(previous => updateCourse(previous, courseId, patch));
+    if (!libraryActions.editMaterial(courseId, patch)) return;
     notify('Classificação atualizada. Nenhum XP antigo foi recriado.');
   }
   function download() {
@@ -289,7 +289,7 @@ export function Preferences({ state, update, notify, onPersonalize, account, go,
   }
   function applyBackup() {
     if (!backup) return;
-    update(mergeBackup(state, backup.incoming));
+    if (!actions.restoreBackup(backup.incoming)) return;
     notify(account ? 'Restauração enviada para gravação na conta.' : 'Cópia aberta na prévia temporária.');
     setBackup(null);
     setBackupName('');

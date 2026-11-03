@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { achievements, completeMission, courseProgress, deleteCourse, hasPreparation, materialType, nextMission } from '../../../public/domain.js';
+import { achievements, courseProgress, hasPreparation, materialType, nextMission } from '../../../public/domain.js';
 import {
-  completeLesson, courseSummary, editalCoverage, formatDuration, isImportedCourse,
-  lessonOrigin, looksLikeExamCourse, revertLessonCompletion, sourceLabel,
+  courseSummary, editalCoverage, formatDuration, isImportedCourse,
+  lessonOrigin, looksLikeExamCourse, sourceLabel,
 } from '../../../public/import-domain.js';
 import { slidesSummary } from '../../../public/slides-domain.js';
 import { nextAction } from '../../../public/study-plan.js';
@@ -39,14 +39,14 @@ function nextLine(state) {
   return following ? `Próxima: ${following.title} · ${following.courseTitle}.` : 'Não há outra etapa pendente nos seus materiais ativos.';
 }
 
-export default function StudyDialog({ modal, state, update, act, open, close, notify, go, account }) {
+export default function StudyDialog({ modal, state, libraryActions, progressActions, open, close, notify, go, account }) {
   const course = state.courses.find(course => course.id === modal.id);
 
   if (modal.type === 'new' || modal.type === 'import') {
-    return <ImportCourse state={state} update={update} close={close} notify={notify} go={go} open={open} modal={{ courseId: modal.type === 'import' ? modal.id : null, capture: modal.capture }}/>;
+    return <ImportCourse state={state} actions={libraryActions} close={close} notify={notify} go={go} open={open} modal={{ courseId: modal.type === 'import' ? modal.id : null, capture: modal.capture }}/>;
   }
   if (modal.type === 'manual') {
-    return <ManualCourseForm state={state} update={update} close={close} notify={notify} open={open}/>;
+    return <ManualCourseForm actions={libraryActions} close={close} notify={notify} open={open}/>;
   }
 
   if (modal.type === 'success') return <div className="success-content">
@@ -65,13 +65,13 @@ export default function StudyDialog({ modal, state, update, act, open, close, no
 
   if (!course) return <div className="dialog-content"><h2 id="dialog-title" className="title">Este curso não está disponível.</h2><Button onClick={close}>Voltar</Button></div>;
 
-  if (modal.type === 'delete') return <DeleteCourse course={course} update={update} close={close} notify={notify}/>;
-  if (modal.type === 'edit') return <CourseEditor course={course} state={state} update={update} close={close} notify={notify}/>;
-  if (modal.type === 'slides') return <SlidesViewer course={course} state={state} update={update} act={act} close={close} notify={notify} account={account}/>;
+  if (modal.type === 'delete') return <DeleteCourse course={course} actions={libraryActions} close={close} notify={notify}/>;
+  if (modal.type === 'edit') return <CourseEditor course={course} actions={libraryActions} close={close} notify={notify}/>;
+  if (modal.type === 'slides') return <SlidesViewer course={course} state={state} actions={libraryActions} progressActions={progressActions} close={close} notify={notify} account={account}/>;
 
   if (isImportedCourse(course)) {
-    if (modal.type === 'session') return <ImportedSession course={course} state={state} act={act} open={open} close={close} notify={notify} stepId={modal.stepId} account={account}/>;
-    return <ImportedCourse course={course} state={state} update={update} act={act} open={open} close={close} notify={notify}/>;
+    if (modal.type === 'session') return <ImportedSession course={course} state={state} actions={progressActions} open={open} close={close} notify={notify} stepId={modal.stepId} account={account}/>;
+    return <ImportedCourse course={course} state={state} actions={libraryActions} progressActions={progressActions} open={open} close={close} notify={notify}/>;
   }
 
   const mission = nextMission({ ...state, courses: [course] }, course.id);
@@ -93,13 +93,13 @@ export default function StudyDialog({ modal, state, update, act, open, close, no
           {deck.total > 0
             ? <Button secondary onClick={() => open({ type: 'slides', id: course.id })}><Icon name="book"/>Abrir apresentação ({deck.total})</Button>
             : <Button secondary onClick={() => open({ type: 'edit', id: course.id })}><Icon name="plus"/>Adicionar slides</Button>}
-          {progress.done < progress.total && <Button secondary onClick={() => update(previous => ({ ...previous, courses: previous.courses.map(item => item.id === course.id ? { ...item, paused: !item.paused } : item) }))}><Icon name={course.paused ? 'play' : 'pause'}/>{course.paused ? 'Retomar curso' : 'Pausar curso'}</Button>}
-          {mission && <Button onClick={() => { update(previous => ({ ...previous, selectedCourseId: course.id })); open({ type: 'session', id: course.id }); }}>Continuar<Icon name="arrow"/></Button>}
+          {progress.done < progress.total && <Button secondary onClick={() => libraryActions.togglePause(course.id)}><Icon name={course.paused ? 'play' : 'pause'}/>{course.paused ? 'Retomar curso' : 'Pausar curso'}</Button>}
+          {mission && <Button onClick={() => { if (libraryActions.selectMaterial(course.id)) open({ type: 'session', id: course.id }); }}>Continuar<Icon name="arrow"/></Button>}
           {progress.done === progress.total && <span className="completed-message"><Icon name="check"/>Um caminho concluído.</span>}
         </div>
         <details className="slides-details">
           <summary>Apresentação e slides</summary>
-          <SlidesEditor course={course} update={update} notify={notify}/>
+          <SlidesEditor course={course} actions={libraryActions} notify={notify}/>
         </details>
         <CollaborationPanel course={course} account={account} notify={notify}/>
         <p className="quiet-note">Editar o material não apaga o XP já confirmado. Excluir remove o progresso registrado neste material, com confirmação.</p>
@@ -111,7 +111,7 @@ export default function StudyDialog({ modal, state, update, act, open, close, no
   function finish() {
     const previous = achievements(state);
     const now = new Date().toISOString();
-    const result = act((current) => completeMission(current, course.id, mission.step.id, { preparation: !!modal.preparation, now }));
+    const result = progressActions.completeMission(course.id, mission.step.id, { preparation: !!modal.preparation, now });
     if (!result) return;
     if (!result.added) { notify('Esse passo já foi registrado.'); close(); return; }
     const award = achievements(result.state).find(item => item.unlocked && !previous.find(old => old.id === item.id)?.unlocked);
@@ -148,10 +148,10 @@ function CapabilityPanel({ capabilities }) {
   </details>;
 }
 
-function DeleteCourse({ course, update, close, notify }) {
+function DeleteCourse({ course, actions, close, notify }) {
   const imported = isImportedCourse(course);
   function remove() {
-    update((previous) => deleteCourse(previous, course.id));
+    if (!actions.deleteMaterial(course.id)) return;
     notify(`"${course.title}" foi excluído. O XP já confirmado permanece no extrato.`);
     close();
   }
@@ -167,7 +167,7 @@ function DeleteCourse({ course, update, close, notify }) {
   </div>;
 }
 
-function ImportedSession({ course, state, act, open, close, notify, stepId, account }) {
+function ImportedSession({ course, state, actions, open, close, notify, stepId, account }) {
   const summary = courseSummary(state, course);
   const step = course.steps.find((item) => item.id === stepId) || summary.next || summary.resume;
   if (!step) return <div className="dialog-content"><h2 id="dialog-title" className="title">Todas as aulas selecionadas foram concluídas.</h2><p className="muted-text">Isso vale para as áreas que você escolheu, não necessariamente para o curso inteiro.</p><Button onClick={close}>Voltar</Button></div>;
@@ -177,7 +177,7 @@ function ImportedSession({ course, state, act, open, close, notify, stepId, acco
   const link = lesson?.url || course.url;
   function finish() {
     const now = new Date().toISOString();
-    const result = act((current) => completeLesson(current, course.id, step.id, { origin: 'manual', now }));
+    const result = actions.completeLesson(course.id, step.id, { origin: 'manual', now });
     if (!result) return;
     if (!result.added) { notify('Essa aula já estava registrada.'); return; }
     const following = nextAction(result.state);
@@ -203,7 +203,7 @@ function ImportedSession({ course, state, act, open, close, notify, stepId, acco
   </div>;
 }
 
-function ImportedCourse({ course, state, update, act, open, close, notify }) {
+function ImportedCourse({ course, state, actions, progressActions, open, close, notify }) {
   const summary = courseSummary(state, course);
   const [expanded, setExpanded] = useState(() => new Set(summary.disciplines.slice(0, 2).map((discipline) => discipline.id)));
   const [edition, setEdition] = useState(course.edital?.edition || '');
@@ -222,14 +222,14 @@ function ImportedCourse({ course, state, update, act, open, close, notify }) {
   }
   function markLesson(stepId) {
     const now = new Date().toISOString();
-    const result = act((current) => completeLesson(current, course.id, stepId, { origin: 'manual', now }));
+    const result = progressActions.completeLesson(course.id, stepId, { origin: 'manual', now });
     if (!result) return;
     if (!result.added) { notify('Essa aula já estava registrada.'); return; }
     notify('Conclusão registrada por você. Em uma conta, o XP elegível é confirmado pelo servidor.');
   }
   function undoLesson(stepId) {
     const now = new Date().toISOString();
-    const result = act((current) => revertLessonCompletion(current, course.id, stepId, { now }));
+    const result = progressActions.revertLesson(course.id, stepId, { now });
     if (!result) return;
     if (!result.reverted) {
       notify(result.reason === 'integration'
@@ -243,7 +243,7 @@ function ImportedCourse({ course, state, update, act, open, close, notify }) {
   }
   function saveEdital() {
     const value = { exam: 'OAB', edition: edition.trim(), phase, requestedAt: new Date().toISOString() };
-    update((previous) => ({ ...previous, courses: previous.courses.map((item) => item.id === course.id ? { ...item, edital: value } : item) }));
+    if (!actions.setEdital(course.id, value)) return;
     setCoverage(editalCoverage(course, { edition: value.edition, phase }));
   }
 
@@ -330,7 +330,7 @@ function ImportedCourse({ course, state, update, act, open, close, notify }) {
 
     <details className="slides-details">
       <summary>Apresentação e slides</summary>
-      <SlidesEditor course={course} update={update} notify={notify}/>
+      <SlidesEditor course={course} actions={actions} notify={notify}/>
     </details>
 
     <div className="import-source">

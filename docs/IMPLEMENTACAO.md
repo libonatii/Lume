@@ -43,7 +43,7 @@ Visão rápida para saber de onde partir. "Verificado" indica onde o fluxo foi e
 | --- | --- | --- | --- |
 | Conta: cadastro, login, saída, sessão | Implementado | `api/domain/auth.js`, rotas `/api/register`, `/api/login`, `/api/logout`, `/api/me` | e2e local; em produção só `GET /api/me` |
 | Recuperação de senha | Só local | `/api/password/*`, `api/domain/email.js` | e2e local com link de teste |
-| Estado sincronizado e mesclagem entre dispositivos | Implementado | `api/domain/state.js`, `public/merge-domain.js` | e2e local |
+| Biblioteca direta com revisão e repetição idempotente | Só local (revisão de 03/11) | `api/domain/library-store.js`, `library-actions.js`, `src/features/library/useLibraryPersistence.js` | contrato Node/D1 e e2e; conflito exige recarga |
 | Onboarding (três jornadas) | Implementado | `Onboarding.jsx`, `public/domain.js` | e2e local |
 | Hoje: próxima ação, sessão, tarefas, evolução | Implementado | `Study.jsx`, `public/study-plan.js` | e2e local |
 | Plano: cronograma, tarefas com prioridade e subtarefas, roteiro | Implementado | `Plan.jsx`, `Tasks.jsx`, `public/schedule-domain.js`, `public/tasks-domain.js` | e2e local |
@@ -54,7 +54,7 @@ Visão rápida para saber de onde partir. "Verificado" indica onde o fluxo foi e
 | Ranking de amigos | Implementado | `/api/ranking`, `Ranking.jsx` | e2e local |
 | Amigos por convite e perfil entre amigos | Implementado | `api/domain/friends.js`, `public/profile-domain.js` | e2e local |
 | Mensagens diretas e bloqueio | Implementado | `api/domain/messages.js`, `Messages.jsx` | e2e local |
-| Colaboração em entregas | Parcial | `api/domain/collaboration.js` | unitário local |
+| Colaboração em entregas | Parcial (sem contribuição individual) | `api/domain/collaboration.js` | unitário e e2e local de envio, aceite e cancelamento |
 | GitHub (leitura pública) | Parcial | `api/domain/github.js`, `GitHub.jsx` | unitário com resposta simulada |
 | Aplicativo de desktop | Parcial | `companion/` | CI (sintaxe e contrato); janela e bandeja só manualmente |
 | Extensão do navegador | Protótipo | `extension/`, `src/lib/extension.js`, `ImportCourse.jsx` | e2e com páginas de exemplo e trecho salvo do Gran; nunca carregada no Chrome |
@@ -63,7 +63,8 @@ Visão rápida para saber de onde partir. "Verificado" indica onde o fluxo foi e
 Os dois ambientes (`server.js` e `worker.js`) servem o mesmo app de `api/`; `tests/unit/api-contract.test.js` confere as rotas `/api/*` nos dois. Tabelas
 existentes: `users`, `sessions`, `password_resets`, `rate_limits`, `user_state`, `companion_*`, `friend*`,
 `xp_settings`, `xp_events`, `xp_time_sessions`, `user_achievements`, `direct_messages`, `contact_blocks`,
-`message_preferences`, `delivery_invites`. Não existe tabela para cargos, desbloqueios, denúncias,
+`message_preferences`, `delivery_invites`, `materials`, `units`, `study_progress`, `study_tasks`,
+`study_sessions`, `account_documents`, `library_operations`, `library_write_guards`. Não existe tabela para cargos, desbloqueios, denúncias,
 publicações, anotações nem observação de reprodução.
 
 ---
@@ -298,7 +299,8 @@ ainda sobrescrevem regras antigas das seções anteriores. As cinco folhas sem u
 
 ### D2 — Regras antigas ainda em uso
 `nextMission` (ordem da biblioteca), `HABITS` e
-`CHALLENGES` sobrevivem por compatibilidade ou testes antigos. O saldo legado (5/10 XP) continua no navegador.
+`CHALLENGES` sobrevivem por compatibilidade ou testes antigos. O saldo legado (5/10 XP) continua derivado
+dos registros antigos, separado do livro do servidor; não existe armazenamento de estudo no navegador.
 Separar o que é compatibilidade de dados do que é código morto antes de remover.
 
 ### D3 — Exportações sem consumidor
@@ -321,9 +323,9 @@ Não há rotina documentada de backup ou exportação do D1 de produção.
 
 ### O3 — Comandos de verificação
 ```sh
-npm test          # 166 testes Node (01/11/2026, commit da extensão incluído)
+npm test          # unitários e contrato HTTP Node/Worker
 npm run build     # Astro + CSP
-npm run test:e2e  # 90 cenários (45 desktop + 45 celular)
+npm run test:e2e  # cenários desktop e celular; build prévio obrigatório
 ```
 - Não rode dois Playwright ao mesmo tempo no mesmo diretório: compartilham `test-results/` e a porta 4187.
 - A análise por link nos e2e é simulada; não prova extração real de plataformas.
@@ -344,7 +346,7 @@ npm run test:e2e  # 90 cenários (45 desktop + 45 celular)
 | Nomes e requisitos dos cargos | G2 |
 | Manter ou escurecer o *hover* dos botões | V3 |
 | Publicar a versão 0.5.1 do aplicativo de desktop | §8 |
-| Elevar o limite de 600 aulas e 320 KB por conta | I6 |
+| Elevar o limite de 600 aulas após medir o formato por entidade | I6 |
 | Publicar a extensão na Chrome Web Store | I2 |
 
 ## 13. Fora do escopo (decisões tomadas)

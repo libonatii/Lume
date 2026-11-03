@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import {
-  DAY_MINUTE_OPTIONS, WEEKDAYS, applyAvailability, buildSchedule, increaseWeekly, nextAvailableDay,
-  normalizePlan, postponeLesson, setAvailability, setGoal, suggestedAvailability,
+  DAY_MINUTE_OPTIONS, WEEKDAYS, buildSchedule, normalizePlan, suggestedAvailability,
 } from '../../../public/schedule-domain.js';
 import { studyPlan } from '../../../public/study-plan.js';
 import { TASK_PRIORITIES, localDate } from '../../../public/tasks-domain.js';
@@ -29,7 +28,7 @@ function shortDate(date) {
 
 // Cronograma: o que estudar em cada dia disponível, recalculado a partir de hoje
 // sempre que o progresso, a disponibilidade, um prazo ou uma prioridade mudam.
-export function Schedule({ state, update, open, notify }) {
+export function Schedule({ state, actions, open, notify }) {
   const today = localDate();
   const plan = normalizePlan(state.plan);
   const schedule = useMemo(() => buildSchedule(state, { today }), [state, today]);
@@ -39,8 +38,9 @@ export function Schedule({ state, update, open, notify }) {
   const firstItem = visibleDays[0]?.items[0];
 
   function postpone(item, date) {
-    const target = nextAvailableDay(state, date);
-    update((previous) => postponeLesson(previous, item.lessonId, target));
+    const result = actions.postponeLesson(item.lessonId, date);
+    if (!result) return;
+    const { target } = result;
     notify(`${item.title} foi para ${shortDate(target)}. As aulas seguintes de ${item.courseTitle} acompanham.`);
   }
 
@@ -57,9 +57,9 @@ export function Schedule({ state, update, open, notify }) {
       <h2 id={`conflict-${conflict.courseId}`} className="title"><Icon name="flag"/>O prazo de {conflict.title} não cabe no plano atual</h2>
       <p className="muted-text">Faltam {formatMinutes(conflict.neededMinutes)} de estudo (contando o que vem antes na ordem) e há {formatMinutes(conflict.availableMinutes)} disponíveis até {shortDate(conflict.deadline)}. {conflict.finish ? `No ritmo atual, termina em ${shortDate(conflict.finish)}.` : 'No ritmo atual, não termina nos próximos seis meses.'}</p>
       <div className="action-row">
-        <Button secondary onClick={() => { update((previous) => increaseWeekly(previous, conflict.extraWeeklyMinutes)); notify(`Disponibilidade aumentada em ${formatMinutes(conflict.extraWeeklyMinutes)} por semana.`); }}>Aumentar {formatMinutes(conflict.extraWeeklyMinutes)} por semana</Button>
-        {conflict.finish && <Button secondary onClick={() => { update((previous) => setGoal(previous, conflict.courseId, { deadline: conflict.finish })); notify(`Prazo de ${conflict.title} ajustado para ${shortDate(conflict.finish)}.`); }}>Mudar o prazo para {shortDate(conflict.finish)}</Button>}
-        {!conflict.prioritized && <Button secondary onClick={() => { update((previous) => setGoal(previous, conflict.courseId, { priority: 1 })); notify(`${conflict.title} passou para prioridade alta.`); }}>Dar prioridade alta a este curso</Button>}
+        <Button secondary onClick={() => { if (actions.increaseWeekly(conflict.extraWeeklyMinutes)) notify(`Disponibilidade aumentada em ${formatMinutes(conflict.extraWeeklyMinutes)} por semana.`); }}>Aumentar {formatMinutes(conflict.extraWeeklyMinutes)} por semana</Button>
+        {conflict.finish && <Button secondary onClick={() => { if (actions.setGoal(conflict.courseId, { deadline: conflict.finish })) notify(`Prazo de ${conflict.title} ajustado para ${shortDate(conflict.finish)}.`); }}>Mudar o prazo para {shortDate(conflict.finish)}</Button>}
+        {!conflict.prioritized && <Button secondary onClick={() => { if (actions.setGoal(conflict.courseId, { priority: 1 })) notify(`${conflict.title} passou para prioridade alta.`); }}>Dar prioridade alta a este curso</Button>}
       </div>
       <p className="quiet-note">Nenhum ajuste é aplicado sem a sua escolha.</p>
     </section>)}
@@ -70,7 +70,7 @@ export function Schedule({ state, update, open, notify }) {
         ? <section className="card-surface plan-setup">
           <h2 className="title">Quanto tempo você tem por semana?</h2>
           <p className="muted-text">O cronograma distribui {schedule.unscheduled} aulas na sua disponibilidade. Comece pela sugestão e ajuste os dias abaixo.</p>
-          <div className="action-row"><Button onClick={() => { update((previous) => applyAvailability(previous, suggestedAvailability(previous))); notify('Disponibilidade definida. Ajuste os dias quando quiser.'); }}>Usar segunda a sexta, {suggestedAvailability(state)[1]} min por dia</Button></div>
+          <div className="action-row"><Button onClick={() => { if (actions.useSuggestedAvailability()) notify('Disponibilidade definida. Ajuste os dias quando quiser.'); }}>Usar segunda a sexta, {suggestedAvailability(state)[1]} min por dia</Button></div>
         </section>
         : <section className="plan-days" aria-labelledby="plan-days-title">
           <div className="shelf-header"><h2 id="plan-days-title" className="headline">Próximos dias</h2>{schedule.unscheduled > 0 && <span className="quiet-note">{schedule.unscheduled} aulas ficam além de seis meses</span>}</div>
@@ -94,7 +94,7 @@ export function Schedule({ state, update, open, notify }) {
       <h2 id="plan-settings-title" className="title">Disponibilidade e prazos</h2>
       <div className="availability-grid" role="group" aria-label="Minutos por dia da semana">
         {WEEKDAYS.map((day) => <label key={day.id} className="field availability-day">{day.label}
-          <select value={String(plan.availability[day.id] || 0)} onChange={(event) => update((previous) => setAvailability(previous, day.id, event.target.value))}>
+          <select value={String(plan.availability[day.id] || 0)} onChange={(event) => actions.setAvailability(day.id, event.target.value)}>
             {[...new Set([...DAY_MINUTE_OPTIONS, plan.availability[day.id] || 0])].sort((a, b) => a - b).map((minutes) => <option key={minutes} value={minutes}>{minutes ? formatMinutes(minutes) : 'Sem estudo'}</option>)}
           </select>
         </label>)}
@@ -103,10 +103,10 @@ export function Schedule({ state, update, open, notify }) {
         {schedule.courses.map((course) => <div key={course.courseId} className="goal-row">
           <span className="goal-title"><strong>{course.title}</strong><small className="todo-meta">{course.remaining} aulas · {formatMinutes(course.remainingMinutes || 0)}{course.finish ? ` · termina em ${shortDate(course.finish)}` : ''}</small></span>
           <label className="field">Prazo
-            <input type="date" value={plan.goals[course.courseId]?.deadline || ''} onChange={(event) => update((previous) => setGoal(previous, course.courseId, { deadline: event.target.value }))}/>
+            <input type="date" value={plan.goals[course.courseId]?.deadline || ''} onChange={(event) => actions.setGoal(course.courseId, { deadline: event.target.value })}/>
           </label>
           <label className="field">Prioridade
-            <select value={String(plan.goals[course.courseId]?.priority || 0)} onChange={(event) => update((previous) => setGoal(previous, course.courseId, { priority: event.target.value }))}>
+            <select value={String(plan.goals[course.courseId]?.priority || 0)} onChange={(event) => actions.setGoal(course.courseId, { priority: event.target.value })}>
               {TASK_PRIORITIES.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
             </select>
           </label>

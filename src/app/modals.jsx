@@ -5,8 +5,8 @@ import StudyDialog from '../features/progress/StudyDialog.jsx';
 import Icon from '../ui/Icon.jsx';
 import { Button } from '../ui/ui.jsx';
 
-function ComfortDialog({ state, update, close }) {
-  const setTheme = (theme) => update((previous) => ({ ...previous, preferences: { ...previous.preferences, theme } }));
+function ComfortDialog({ state, settingsActions, close }) {
+  const setTheme = (theme) => settingsActions.setPreference('theme', theme);
   return <div className="dialog-content">
     <span className="dialog-emblem"><Icon name="sun"/></span>
     <h2 id="dialog-title" className="title">Conforto visual</h2>
@@ -36,8 +36,8 @@ const SIMPLE = {
   break: ({ close }) => <NoticeDialog icon="leaf" tone="tone-mint" title="Pausa registrada." close={close}>O progresso está salvo e nenhuma etapa foi marcada como concluída. Ao voltar, retome pela próxima ação em Hoje.</NoticeDialog>,
 };
 
-export function ModalContent({ modal, state, update, act, open, close, notify, go, account }) {
+export function ModalContent({ modal, state, settingsActions, libraryActions, progressActions, open, close, notify, go, account }) {
   const simple = SIMPLE[modal.type];
-  if (simple) return simple({ state, update, close });
-  return <StudyDialog key={modal.type} modal={modal} state={state} update={update} act={act} open={open} close={close} notify={notify} go={go} account={account}/>;
+  if (simple) return simple({ state, settingsActions, close });
+  return <StudyDialog key={modal.type} modal={modal} state={state} libraryActions={libraryActions} progressActions={progressActions} open={open} close={close} notify={notify} go={go} account={account}/>;
 }

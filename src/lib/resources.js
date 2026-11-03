@@ -89,7 +89,9 @@ export function useResource(key, { interval = 0, enabled = true } = {}) {
     entry.listeners.add(listener);
     entry.intervals.set(listener, interval);
     reschedule(entry);
-    if (!entry.snapshot.updatedAt && !entry.inflight) refreshResource(key);
+    // Mostra o cache imediatamente e revalida ao reabrir a tela: outra pessoa
+    // pode ter respondido a um convite enquanto o recurso não tinha ouvintes.
+    if (!entry.inflight) refreshResource(key);
     return () => {
       entry.listeners.delete(listener);
       entry.intervals.delete(listener);

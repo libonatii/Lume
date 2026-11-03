@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
 import {
-  MAX_SUBTASKS, MAX_TASKS, TASK_PRIORITIES, TASK_XP, addSubtask, addTask, completeTask, isOverdue, localDate,
-  priorityLabel, removeSubtask, removeTask, reopenTask, setTaskPriority, sortTasks, toggleSubtask,
+  MAX_SUBTASKS, MAX_TASKS, TASK_PRIORITIES, TASK_XP, isOverdue, localDate,
+  priorityLabel, sortTasks,
 } from '../../../public/tasks-domain.js';
 import Icon from '../../ui/Icon.jsx';
 import { Button, Empty, Heading, stagger } from '../../ui/ui.jsx';
@@ -24,7 +24,7 @@ function dateLabel(value) {
 }
 
 // Subtarefas: aparecem só quando a pessoa decide dividir a tarefa.
-function Subtasks({ task, update }) {
+function Subtasks({ task, actions }) {
   const [draft, setDraft] = useState('');
   const [error, setError] = useState('');
   const items = task.subtasks || [];
@@ -32,7 +32,7 @@ function Subtasks({ task, update }) {
   function add(event) {
     event.preventDefault();
     try {
-      update((previous) => addSubtask(previous, task.id, draft));
+      if (!actions.addSubtask(task.id, draft)) return;
       setDraft('');
       setError('');
     } catch (exception) {
@@ -42,8 +42,8 @@ function Subtasks({ task, update }) {
   return <details className="todo-subtasks" open={items.length > 0 && done < items.length ? true : undefined}>
     <summary>{items.length ? `Subtarefas ${done}/${items.length}` : 'Dividir em subtarefas'}</summary>
     {items.length > 0 && <ul className="subtask-list">{items.map((item) => <li key={item.id}>
-      <label className="subtask"><input type="checkbox" checked={item.done} onChange={() => update((previous) => toggleSubtask(previous, task.id, item.id))}/><span className={item.done ? 'is-done' : ''}>{item.title}</span></label>
-      <button type="button" className="text-button" aria-label={`Remover subtarefa ${item.title}`} onClick={() => update((previous) => removeSubtask(previous, task.id, item.id))}>Remover</button>
+      <label className="subtask"><input type="checkbox" checked={item.done} onChange={() => actions.toggleSubtask(task.id, item.id)}/><span className={item.done ? 'is-done' : ''}>{item.title}</span></label>
+      <button type="button" className="text-button" aria-label={`Remover subtarefa ${item.title}`} onClick={() => actions.removeSubtask(task.id, item.id)}>Remover</button>
     </li>)}</ul>}
     {!task.done && items.length < MAX_SUBTASKS && <form className="subtask-form" onSubmit={add}>
       <input aria-label={`Nova subtarefa de ${task.title}`} maxLength={140} value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Ex.: Ler os artigos 5º a 7º"/>
@@ -53,7 +53,7 @@ function Subtasks({ task, update }) {
   </details>;
 }
 
-export default function Tasks({ state, update, act, notify }) {
+export default function Tasks({ state, actions, notify }) {
   const [title, setTitle] = useState('');
   const [courseId, setCourseId] = useState('');
   const [lessonId, setLessonId] = useState('');
@@ -77,7 +77,7 @@ export default function Tasks({ state, update, act, notify }) {
       return;
     }
     try {
-      update((previous) => addTask(previous, { title, courseId, lessonId, dueDate, priority }));
+      if (!actions.addTask({ title, courseId, lessonId, dueDate, priority })) return;
       setTitle('');
       setLessonId('');
       setDueDate('');
@@ -91,22 +91,22 @@ export default function Tasks({ state, update, act, notify }) {
 
   function toggle(task) {
     if (task.done) {
-      update((previous) => reopenTask(previous, task.id));
+      if (!actions.reopenTask(task.id)) return;
       notify('Tarefa reaberta. O XP da conclusão sai do total enquanto ela estiver aberta.');
       return;
     }
     const now = new Date().toISOString();
-    const result = act((current) => completeTask(current, task.id, now));
+    const result = actions.completeTask(task.id, now);
     if (!result?.added) return;
     notify(gamified ? `Tarefa concluída: ${task.title}. +${TASK_XP} XP de legado.` : `Tarefa concluída: ${task.title}.`);
   }
 
   function prioritize(task, value) {
-    update((previous) => setTaskPriority(previous, task.id, value));
+    actions.setTaskPriority(task.id, value);
   }
 
   function remove(task) {
-    update((previous) => removeTask(previous, task.id));
+    if (!actions.removeTask(task.id)) return;
     notify('Tarefa removida.');
   }
 
@@ -139,7 +139,7 @@ export default function Tasks({ state, update, act, notify }) {
         {TASK_PRIORITIES.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
       </select>}
       <button type="button" className="text-button" aria-label={`Remover tarefa ${task.title}`} onClick={() => remove(task)}>Remover</button>
-      <Subtasks task={task} update={update}/>
+      <Subtasks task={task} actions={actions}/>
     </motion.li>;
   }
 

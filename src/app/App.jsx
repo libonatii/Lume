@@ -22,7 +22,7 @@ export default function App() {
   const toastTimer = useRef(null);
   const notify = useCallback(message => { clearTimeout(toastTimer.current); setToast({ message, id: Date.now() }); toastTimer.current = setTimeout(() => setToast(null), 6500); }, []);
   const model = useLume(notify);
-  const { state, setState: update } = model;
+  const { state } = model;
   const { requested, params } = parseHash(hash);
   const signedIn = Boolean(model.account);
   // A sessão verificada vale mais que o hash: #login não pode derrubar quem já entrou.
@@ -87,13 +87,13 @@ export default function App() {
     catch { notify('Não foi possível sair da conta agora. Tente novamente.'); }
   }
   const current = ROUTE_BY_ID.get(route);
-  const routeContext = { model, state, update, open, go, notify, params, hash, authMode, setAuthMode, checkingSession };
+  const routeContext = { model, state, open, go, notify, params, hash, authMode, setAuthMode, checkingSession };
   const page = <>{model.saveError && <div role="alert"><p>{model.saveError}</p><button onClick={() => model.retrySave().catch(() => notify('Não foi possível carregar a biblioteca. Tente novamente.'))}>Recarregar ou tentar novamente</button></div>}{current.render(routeContext)}</>;
   const hideTabs = Boolean(current.hideTabs?.(routeContext));
   return <><Shell route={route} model={model} hideTabs={hideTabs} onComfort={() => open({ type: 'comfort' })} onHelp={() => open({ type: 'help' })} onRegister={() => setAuthMode('register')} onExit={exit}><motion.div className={`page page-${route}`} key={route} {...enter}>{page}</motion.div></Shell>
     <div className="toast-region" role="status" aria-live="polite" aria-atomic="true"><AnimatePresence>{toast && <motion.div key="feedback" className="toast" initial={{ opacity: 0, y: 16, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8 }} transition={{ duration: .28, ease }}><span className="toast-icon"><Icon name="check"/></span><span>{toast.message}</span><button aria-label="Fechar aviso" className="icon-button" onClick={() => setToast(null)}><Icon name="close"/></button></motion.div>}</AnimatePresence></div>
     {modal && <Dialog onClose={close} identity={`${modal.type}:${modal.id || ''}`}>
-      <ModalContent modal={modal} state={state} update={update} act={model.act} open={open} close={close} notify={notify} go={go} account={model.account}/>
+      <ModalContent modal={modal} state={state} settingsActions={model.settingsActions} libraryActions={model.libraryActions} progressActions={model.progressActions} open={open} close={close} notify={notify} go={go} account={model.account}/>
     </Dialog>}
   </>;
 }

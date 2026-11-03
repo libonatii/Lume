@@ -19,11 +19,16 @@ test('resposta perdida permite repetir a mesma operação sem duplicar a tarefa'
   await page.getByLabel('Tarefa', { exact: true }).fill('Revisar concorrência');
   await page.getByRole('button', { name: 'Adicionar tarefa' }).click();
   await expect(page.getByRole('alert')).toContainText('Não foi possível confirmar a gravação');
+  await page.getByLabel('Tarefa', { exact: true }).fill('Rascunho preservado');
+  await page.getByRole('button', { name: 'Adicionar tarefa' }).click();
+  await expect(page.getByLabel('Tarefa', { exact: true })).toHaveValue('Rascunho preservado');
+  expect(ids).toHaveLength(1);
   await page.getByRole('button', { name: 'Recarregar ou tentar novamente' }).click();
   const saved = await readAccount(page);
   expect(saved.tasks.filter((task) => task.title === 'Revisar concorrência')).toHaveLength(1);
   expect(ids).toHaveLength(2);
   expect(ids[1]).toBe(ids[0]);
+  await expect(page.getByLabel('Tarefa', { exact: true })).toHaveValue('Rascunho preservado');
   await page.reload();
   await expect(page.getByText('Revisar concorrência', { exact: true })).toBeVisible();
 });

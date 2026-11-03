@@ -209,6 +209,10 @@ export function saveOnboardingAnswer(state, patch, step) {
 
 // Conclui o onboarding sem conceder XP: criar material e escolher ritmo não são
 // eventos elegíveis na política de recompensas.
+export function skipJourney(state, now = new Date().toISOString()) {
+  return { ...state, onboarded: true, onboarding: { ...emptyOnboarding(), status: 'done', finishedAt: now } };
+}
+
 export function completeJourney(state) {
   const current = normalizeOnboarding(state.onboarding);
   const rhythm = STUDY_RHYTHMS.find((item) => item.id === current.journey);
@@ -557,6 +561,18 @@ export function updateCourse(state, courseId, patch = {}) {
     art: patch.art === undefined ? course.art : (['design', 'code', 'language', 'nature'].includes(patch.art) ? patch.art : course.art),
   };
   return { ...state, courses: state.courses.map((item) => item.id === courseId ? next : item) };
+}
+
+export function toggleCoursePause(state, courseId) {
+  return { ...state, courses: state.courses.map((course) => course.id === courseId ? { ...course, paused: !course.paused } : course) };
+}
+
+export function selectCourse(state, courseId) {
+  return { ...state, selectedCourseId: courseId };
+}
+
+export function setCourseEdital(state, courseId, edital) {
+  return { ...state, courses: state.courses.map((course) => course.id === courseId ? { ...course, edital } : course) };
 }
 
 export function replaceCourseSteps(state, courseId, steps = []) {
