@@ -56,7 +56,9 @@ export function useLibraryPersistence(notify, onSaved) {
       failed.current = null;
       blocked.current = '';
       setSaveError('');
-      await saved.current();
+      // A sequência intermediária não precisa reler XP: a última gravação
+      // consulta o livro já com todas as operações anteriores confirmadas.
+      if (order === sequence.current) await saved.current();
     } catch (error) {
       if (token !== generation.current) return;
       generation.current += 1;

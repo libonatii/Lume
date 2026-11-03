@@ -115,6 +115,23 @@ export async function applyLibraryActions(db, userId, input, { now = Date.now() 
     if (index < 0) state[field].push(value); else state[field][index] = value;
   }
   const normalized = restoreState(state);
+  // A leitura de backup tolera itens quebrados; a API não pode confirmar uma
+  // edição que descartou aulas silenciosamente ou vinculou progresso a outro curso.
+  const owners = new Map();
+  for (const course of state.courses) {
+    const restored = normalized.courses.find((item) => item.id === course.id);
+    if (!restored || restored.steps.length !== course.steps.length) fail('O material contém aulas inválidas.');
+    for (const step of restored.steps) {
+      if (owners.has(step.id)) fail('Cada aula precisa de um identificador único.');
+      owners.set(step.id, course.id);
+    }
+  }
+  const existingEvents = new Set(current.state.progress.map((event) => event.id));
+  for (const event of normalized.progress) {
+    // Um vínculo antigo inconsistente permanece como arquivo histórico; não
+    // bloqueia edições alheias nem autoriza criar outro registro inconsistente.
+    if (!existingEvents.has(event.id) && owners.get(event.unitId) !== event.materialId) fail('A aula não pertence ao material informado.');
+  }
   for (const event of removedProgress) {
     const material = normalized.courses.find((course) => course.id === event.materialId);
     if (material?.steps.some((step) => step.id === event.unitId)) fail('Use desfazer para uma conclusão existente; o histórico não pode ser apagado.');

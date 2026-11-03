@@ -192,7 +192,7 @@ Cada conquista possui uma página ou detalhe que explica o que foi concluído. A
 - O perfil reúne o que a pessoa está estudando, o roteiro que aparece em Hoje, os projetos que ela marcou como públicos, os materiais concluídos e os números de progresso e XP.
 - Abrir o perfil exige amizade. Não existe perfil público por link, busca por e-mail nem página anônima.
 - Cada seção pode ser desligada em Configurações › O que amigos veem, e cada projeto nasce privado até ser marcado. Projeto privado não aparece em lugar nenhum, nem nas contagens.
-- XP, nível e conquistas de contas vêm do livro de eventos do servidor e são validados; percentuais de progresso continuam declarados pela cópia sincronizada. O saldo legado não entra no perfil como XP validado.
+- XP, nível e conquistas de contas vêm do livro de eventos do servidor e são validados; percentuais de progresso vêm da biblioteca no servidor e continuam declarados. O saldo legado não entra no perfil como XP validado.
 - A escolha individual de conquistas para o perfil e o compartilhamento de aprendizados continuam pendentes. Mensagens diretas entre amizades estão implementadas.
 
 ### Placares

@@ -50,6 +50,18 @@ test('conversão refaz a leitura se um cliente antigo salvar durante a migraçã
   assert.equal((await readLibrary(racingDb, 'u1')).state.courses[0].title, 'Última gravação');
 });
 
+test('vínculo histórico inconsistente é preservado sem bloquear edição do material', async (t) => {
+  const { db } = fixture(t);
+  const old = addCourse(createInitialState(), { title: 'Antes', steps: ['Aula'] }, 'c1');
+  old.progress = [{ id: 'legacy', type: 'completion', materialId: '', unitId: 'c1-0', origin: 'legacy', historical: true, at: null }];
+  await db.run('INSERT INTO user_state(user_id,state,revision,updated_at) VALUES (?,?,1,?)', ['u1', JSON.stringify(old), '2026-01-01']);
+  const current = await readLibrary(db, 'u1');
+  const next = await applyLibraryActions(db, 'u1', { id: 'rename', revision: current.revision, actions: [{ type: 'material.put', value: { ...current.state.courses[0], title: 'Depois' } }] });
+  assert.equal(next.state.courses[0].title, 'Depois');
+  assert.deepEqual(next.state.progress, current.state.progress);
+  assert.equal((await db.first('SELECT COUNT(*) AS n FROM xp_events')).n, 0);
+});
+
 test('mutações concedem XP uma vez e conflito não sobrescreve alterações', async (t) => {
   const { db } = fixture(t);
   const now = Date.now();
@@ -84,6 +96,26 @@ test('falha ao gravar conquista reverte material, progresso e XP no mesmo batch'
   sqlite.exec('DROP TRIGGER fail_achievement');
   await applyLibraryActions(db, 'u1', operation, { now });
   assert.equal((await db.first('SELECT COUNT(*) AS n FROM user_achievements')).n, 1);
+});
+
+test('edições inválidas não descartam aulas nem ligam progresso a outro material', async (t) => {
+  const { db } = fixture(t);
+  const initial = await readLibrary(db, 'u1');
+  let state = addCourse(initial.state, { title: 'Primeiro', steps: ['Aula 1', 'Aula 2'] }, 'c1');
+  state = addCourse(state, { title: 'Segundo', steps: ['Aula 3'] }, 'c2');
+  const created = await applyLibraryActions(db, 'u1', { id: 'create', revision: initial.revision, actions: libraryActions(initial.state, state) });
+  const course = created.state.courses[0];
+  for (const [id, steps] of [['invalid', [...course.steps, { id: 'broken' }]], ['duplicate', [course.steps[0], course.steps[0]]]]) {
+    await assert.rejects(applyLibraryActions(db, 'u1', { id, revision: created.revision, actions: [{ type: 'material.put', value: { ...course, steps } }] }), { code: 'invalid_library_action' });
+  }
+  const completed = completeMission(created.state, 'c1', 'c1-0').state;
+  completed.progress.at(-1).materialId = 'c2';
+  await assert.rejects(applyLibraryActions(db, 'u1', { id: 'wrong-owner', revision: created.revision, actions: libraryActions(created.state, completed) }), { code: 'invalid_library_action' });
+  const after = await readLibrary(db, 'u1');
+  assert.equal(after.revision, created.revision);
+  assert.deepEqual(after.state.courses, created.state.courses);
+  assert.equal(after.state.progress.length, 0);
+  assert.equal((await db.first('SELECT COUNT(*) AS n FROM xp_events')).n, 0);
 });
 
 test('identidade externa sobrevive à restauração e ao fallback sem externalId', () => {

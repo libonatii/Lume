@@ -2,39 +2,21 @@
 
 /* Tipografia Editorial */
 .display {
-  font-family: var(--font-serif);
-  font-weight: 560;
-  font-size: clamp(2rem, 3.3vw, 3.1rem);
-  line-height: 1.08;
-  letter-spacing: -0.025em;
   margin: 0.35rem 0 0;
-  font-variation-settings: 'opsz' 72, 'SOFT' 50;
 }
 .display em, .headline em {
-  font-style: italic;
-  color: var(--lume);
   font-weight: 520;
 }
 .headline {
-  font-family: var(--font-serif);
-  font-weight: 560;
-  font-size: clamp(1.45rem, 2.2vw, 2rem);
   line-height: 1.16;
-  letter-spacing: -0.02em;
   margin: 0;
-  font-variation-settings: 'opsz' 48;
 }
 .title {
-  font-family: var(--font-serif);
-  font-weight: 560;
-  font-size: 1.22rem;
   line-height: 1.25;
-  letter-spacing: -0.01em;
   margin: 0;
 }
 .lead {
   font-size: 1.06rem;
-  color: var(--text-muted);
   max-width: 62ch;
   margin: 0.65rem 0 0;
 }
@@ -42,11 +24,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  font-size: 0.74rem;
-  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.11em;
-  color: var(--lume);
 }
 .eyebrow.on-glow {
   padding: 0.28rem 0.7rem;
@@ -64,7 +42,6 @@ html[data-theme='light'] .eyebrow.on-glow {
 }
 
 .muted-text {
-  color: var(--text-muted);
   margin: 0;
   font-size: 0.95rem;
 }
@@ -108,8 +85,6 @@ html[data-theme='light'] .glow {
   justify-content: center;
   gap: 0.55rem;
   padding: 0.72rem 1.2rem;
-  border-radius: var(--radius-md);
-  font-weight: 650;
   font-size: 0.94rem;
   border: 1px solid transparent;
   cursor: pointer;
@@ -119,23 +94,6 @@ html[data-theme='light'] .glow {
 .button.large {
   padding: 0.88rem 1.4rem;
   font-size: 1rem;
-}
-.button.primary {
-  background: linear-gradient(135deg, var(--lume) 0%, var(--lume-2) 100%);
-  color: var(--lume-ink);
-  box-shadow: 0 10px 26px -10px color-mix(in srgb, var(--lume-2) 55%, transparent), 0 1px 0 0 rgba(255, 255, 255, 0.32) inset;
-}
-.button.primary:hover:not(:disabled) {
-  filter: brightness(1.06);
-}
-.button.secondary {
-  background: var(--surface-2);
-  color: var(--text);
-  border-color: var(--border);
-}
-.button.secondary:hover:not(:disabled) {
-  border-color: var(--border-strong);
-  background: var(--surface-3);
 }
 .button.ghost {
   background: transparent;
@@ -211,7 +169,6 @@ html[data-theme='light'] .glow {
   width: 100%;
   height: 0.5rem;
   border-radius: var(--radius-pill);
-  background: var(--track);
   overflow: hidden;
   position: relative;
 }
@@ -252,11 +209,6 @@ html[data-theme='light'] .glow {
 
 /* Capas e Superfícies */
 .card-surface {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 1.35rem;
-  box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
   gap: 0.7rem;

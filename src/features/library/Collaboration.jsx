@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { materialSteps } from '../../../public/material-model.js';
 import { api, apiError } from '../../lib/api.js';
 import { useResource } from '../../lib/resources.js';
 import Icon from '../../ui/Icon.jsx';
@@ -25,7 +26,7 @@ export function CollaborationPanel({ course, account, notify }) {
   const friends = friendsResource.data?.friends || [];
   const invites = (invitesResource.data?.sent || []).filter((invite) => invite.courseId === course.id);
   const [friendId, setFriendId] = useState('');
-  const [stepId, setStepId] = useState(course.steps[0]?.id || '');
+  const [stepId, setStepId] = useState(materialSteps(course)[0]?.id || '');
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [actionError, setError] = useState('');
@@ -35,7 +36,7 @@ export function CollaborationPanel({ course, account, notify }) {
     if (!account) return;
     await invitesResource.refresh();
   }
-  useEffect(() => { setStepId(course.steps[0]?.id || ''); }, [course.id]);
+  useEffect(() => { setStepId(materialSteps(course)[0]?.id || ''); }, [course.id]);
 
   async function send(event) {
     event.preventDefault();
@@ -82,7 +83,7 @@ export function CollaborationPanel({ course, account, notify }) {
           </label>
           <label className="field">Entrega
             <select value={stepId} onChange={(event) => setStepId(event.target.value)} required>
-              {course.steps.map((step) => <option key={step.id} value={step.id}>{step.title}</option>)}
+              {materialSteps(course).map((step) => <option key={step.id} value={step.id}>{step.title}</option>)}
             </select>
           </label>
         </div>

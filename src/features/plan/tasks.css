@@ -1,4 +1,4 @@
-/* Tarefas de estudo. */
+/* Lista de tarefas de estudo. */
 
 /* --- Tarefas de estudo --- */
 .first-area {
@@ -67,7 +67,6 @@
   .nav-link {
     flex: 1 1 0;
     min-width: 0;
-    padding: 0.4rem 0.2rem;
   }
   .nav-short {
     max-width: 100%;

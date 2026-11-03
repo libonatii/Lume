@@ -434,17 +434,6 @@ export function courseStatus(state, course) {
   return 'new';
 }
 
-export function nextMission(state, courseId = state.selectedCourseId) {
-  const preferred = state.courses.find((course) => course.id === courseId);
-  const candidates = preferred ? [preferred, ...state.courses.filter((course) => course.id !== preferred.id)] : state.courses;
-  for (const course of candidates) {
-    if (course.paused) continue;
-    const step = course.steps.find((item) => !isCompleted(state, item.id));
-    if (step) return { course, step };
-  }
-  return null;
-}
-
 export function hasPreparation(state, stepId) {
   return hasPreparationFor(state, stepId);
 }

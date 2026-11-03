@@ -38,8 +38,6 @@
 }
 .today-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
-  gap: 1.1rem;
   align-items: start;
 }
 .today-task-list {
@@ -52,19 +50,12 @@
 .evolution-level {
   margin: 0;
 }
-.todo-overdue-note {
-  border-color: var(--danger);
-}
 .todo-late {
-  color: var(--danger);
   font-weight: 700;
 }
 .todo-priority {
   color: var(--text);
   font-weight: 600;
-}
-.todo-item.is-late {
-  border-color: var(--danger);
 }
 .todo-item.priority-1:not(.is-done) .todo-check {
   border-width: 2px;
@@ -92,15 +83,8 @@
 }
 
 /* Funções de cor aplicadas: recompensa (XP), sucesso e alerta. */
-.progress.tone-reward > span {
-  background: var(--reward);
-}
 .success-xp {
   background: var(--reward-soft);
-  color: var(--reward);
-}
-.level-chip .icon,
-.evolution-level strong {
   color: var(--reward);
 }
 .completed-message {
@@ -130,8 +114,6 @@
   margin: 0 0 1.25rem;
   padding: 0.25rem;
   border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  background: var(--surface);
   width: fit-content;
   max-width: 100%;
   overflow-x: auto;
@@ -142,7 +124,6 @@
   align-items: center;
   gap: 0.4rem;
   padding: 0.45rem 0.95rem;
-  border-radius: var(--radius-pill);
   color: var(--text-muted);
   font-weight: 600;
   font-size: 0.92rem;
@@ -153,10 +134,6 @@
 .section-tab:focus-visible {
   color: var(--text);
   background: var(--surface-2);
-}
-.section-tab.active {
-  color: var(--lume-ink);
-  background: var(--lume);
 }
 .section-tab .nav-badge {
   margin-left: 0;

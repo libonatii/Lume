@@ -8,6 +8,8 @@ import {
   looksLikeExamCourse, normalizeImportUrl, normalizePayload, detectProvider,
 } from '../../../public/import-domain.js';
 import { completedUnitIds } from '../../../public/progress-domain.js';
+import { materialSteps } from '../../../public/material-model.js';
+import { clipboardPage, MAX_SNAPSHOT_CHARS } from './clipboard-page.js';
 
 // Fluxo curto de importação: colar link → analisar → escolher áreas → adicionar.
 // A revisão é a própria árvore de disciplinas; não existe formulário por aula.
@@ -22,38 +24,6 @@ const EXTRACTION_LABEL = {
   'file-import': 'Arquivo enviado',
   'ai-assisted': 'Organizado por IA',
 };
-
-// A pessoa copia a página do curso já logada (Ctrl+A, Ctrl+C). O navegador
-// envia só o HTML copiado, sem cookies: a sessão não sai do navegador.
-const MAX_SNAPSHOT_CHARS = 1500000;
-
-function clipboardPage(event) {
-  const html = event.clipboardData?.getData('text/html') || '';
-  if (html.length < 1200) return '';
-  if (!/<(html|body|main|section|div|ul|ol|li|a|h[1-6])\b/i.test(html)) return '';
-  try {
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    doc.querySelectorAll('script:not([type="application/ld+json"]), style, link, svg, noscript, template, iframe, canvas, picture, img, video, audio').forEach((node) => node.remove());
-    // Sobram só a estrutura e os links: menos dados pessoais e menos bytes.
-    // Metadados ficam intactos porque title/description vêm deles.
-    doc.querySelectorAll('*').forEach((node) => {
-      if (node.tagName === 'META' || node.tagName === 'TITLE') return;
-      for (const attribute of [...node.attributes]) {
-        const name = attribute.name.toLowerCase();
-        // Só o suficiente para reconhecer aulas concluídas; o resto sai para
-        // reduzir dados pessoais e bytes antes de enviar ao servidor.
-        if (name === 'href') continue;
-        if (['class', 'aria-label', 'aria-checked', 'aria-current', 'data-completed', 'data-done', 'data-status', 'data-state', 'data-progress', 'title', 'role'].includes(name)) continue;
-        if (name === 'type' && /ld\+json/i.test(attribute.value)) continue;
-        node.removeAttribute(attribute.name);
-      }
-    });
-    const serialized = doc.documentElement?.outerHTML || '';
-    return serialized.length > MAX_SNAPSHOT_CHARS ? serialized.slice(0, MAX_SNAPSHOT_CHARS) : serialized;
-  } catch {
-    return '';
-  }
-}
 
 export default function ImportCourse({ state, actions, close, notify, go, open, modal = {} }) {
   const updating = Boolean(modal.courseId);
@@ -98,7 +68,7 @@ export default function ImportCourse({ state, actions, close, notify, go, open, 
   const matched = useMemo(() => (payload ? state.courses.find((course) => course.source?.identity === payload.identity) : null), [payload, state.courses]);
   const newlyDone = useMemo(() => {
     if (!payload || !matched) return [];
-    const known = new Set((matched.steps || []).map((step) => step.id));
+    const known = new Set(materialSteps(matched).map((step) => step.id));
     const done = completedUnitIds(state);
     return payload.disciplines
       .flatMap((discipline) => discipline.modules.flatMap((module) => module.lessons))
@@ -274,7 +244,7 @@ export default function ImportCourse({ state, actions, close, notify, go, open, 
       setImported({
         course,
         added: record?.added ?? ids.length,
-        kept: (existing?.steps?.length || 0),
+        kept: materialSteps(existing).length,
         sourceCompleted: record?.sourceCompleted ?? normalized.completedCount ?? 0,
         observed: record?.observed ?? 0,
         auto,

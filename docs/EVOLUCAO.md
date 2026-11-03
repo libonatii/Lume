@@ -1,6 +1,9 @@
 # Lume — diagnóstico e plano de evolução
 
-Versão: 1.0 (31/10/2026). Este documento consolida o diagnóstico do protótipo e a proposta para transformar o Lume em uma plataforma social de estudos integrada: **organizar → saber o próximo passo → estudar → registrar avanço → receber XP → evoluir de nível e cargo → desbloquear possibilidades → compartilhar e colaborar**.
+Propostas de produto de 31/10/2026, com referências revistas em 03/11. O estado implementado está somente
+em [Continuidade](CONTINUIDADE.md); a lista vigente de lacunas e decisões, em [Implementação](IMPLEMENTACAO.md).
+Este documento preserva o raciocínio e os critérios das propostas: **organizar → saber o próximo passo → estudar
+→ registrar avanço → receber XP → evoluir de nível e cargo → desbloquear possibilidades → compartilhar e colaborar**.
 
 Leia antes: [Produto](PRODUTO.md), [Gamificação](GAMIFICACAO.md), [Continuidade](CONTINUIDADE.md), [Importação](IMPORTACAO.md) e [Lume (desktop)](COMPANHEIRO.md). Tudo o que está marcado como **proposta** aqui ainda não existe; a seção 7 registra o que a Etapa 1 implementou.
 
@@ -16,6 +19,11 @@ Legenda de estado usada em todo o documento:
 ---
 
 ## 1. Diagnóstico fundamentado
+
+**Registro histórico de 31/10, não retrato do código atual.** A persistência agora é direta pela API,
+sem cópia persistida ou reconciliação no navegador. O critério de próxima aula já foi unificado em
+`study-plan.js`; `nextMission` foi removido. Navegação, prioridade e cronograma estão implementados.
+As tabelas abaixo explicam a origem das propostas; não devem ser usadas como lista de trabalho.
 
 ### 1.1 O que já está bem resolvido e deve ser aproveitado
 
@@ -68,7 +76,7 @@ Exemplo real de uso: Ana estuda para a OAB com um curso da Gran e quer concluir 
 | --- | --- | --- | --- |
 | 1. Informar o curso | Cola o link do curso ou a página copiada da área do aluno | Disciplinas, módulos, aulas e durações encontradas, marcadas como completas ou parciais | Implementado |
 | 2. Revisar | Escolhe Constitucional e Penal; desmarca o que não interessa | "68 aulas selecionadas · 41 h de duração conhecida · 9 aulas sem duração" | Contagem implementada; total de horas é **proposta** |
-| 3. Planejar | Informa disponibilidade (seg/qua/sex, 1 h) e prazo | Cronograma semanal com aulas na sequência; se não couber, mostra o conflito e opções | **Proposta (Etapa 2)** |
+| 3. Planejar | Informa disponibilidade (seg/qua/sex, 1 h) e prazo | Cronograma semanal com aulas na sequência; se não couber, mostra o conflito e opções | Implementado em 01/11 |
 | 4. Abrir a próxima aula | Toca em "Abrir aula" na Hoje | Abre o link da fonte; mostra por que essa aula está primeiro e quanto tempo reservar | **Etapa 1** |
 | 5. Estudar | Começa a sessão; assiste à aula | Sessão declarada; com a extensão, cobertura observada do vídeo | Sessão implementada; observação é **proposta (Etapa 5)** |
 | 6. Registrar | Confirma a conclusão | Servidor concede 100 XP uma vez; aula some do roteiro; cronograma recalcula | XP implementado; recálculo é **Etapa 2** |
@@ -105,7 +113,7 @@ No celular, os cinco destinos ocupam a barra inferior sem rótulo abreviado. "In
 | --- | --- | --- | --- | --- |
 | Vazio | "Adicione o primeiro curso para receber a próxima ação." + botão importar | "Sua biblioteca está vazia. Importe um curso por link ou crie um material." | "Sem tarefas. Defina a próxima ação concreta para sua prova." | "Convide alguém com um código de 7 dias." |
 | Carregando | Esqueleto do bloco de próxima ação, sem animação decorativa | Esqueleto dos cartões | Esqueleto da lista | Esqueleto da lista |
-| Erro | "Não foi possível sincronizar. Sua cópia local está preservada." + tentar de novo | Igual | Igual | "Não foi possível carregar seus amigos." + tentar de novo |
+| Erro | "Gravação não confirmada. Tente novamente antes de fechar a página."; conflito pede recarga | Igual | Igual | "Não foi possível carregar seus amigos." + tentar de novo |
 | Conclusão | "Você concluiu {aula}. +100 XP. Próxima: {aula}." | Curso concluído com conquista | Tarefa riscada, sem XP se organizacional | — |
 | Integração indisponível | "Esta fonte não informa progresso. Registre a conclusão quando terminar." | Selo "registro manual" no cartão | — | — |
 
@@ -194,6 +202,9 @@ Regras: desbloqueios são permanentes; ficam registrados no servidor (`user_unlo
 
 ### 5.2 Matriz por plataforma
 
+Referência histórica da pesquisa de 31/10. Capacidades e conferências atuais ficam em
+[Importação](IMPORTACAO.md); em especial, o Gran passou a ter leitor próprio pela API da página em 01/11.
+
 | | Alura | Coursera | Gran Cursos | Estratégia Concursos |
 | --- | --- | --- | --- | --- |
 | Importação da grade | Parcial por página pública (verificado: 5 itens em uma formação); completa pela página copiada | Boa por página pública (verificado: 127 itens com duração) | Página pública mostra disciplinas; aulas exigem login → página copiada | Grade exige login → página copiada |
@@ -228,7 +239,8 @@ continua proposta. A leitura foi testada com páginas de exemplo, não com conta
 - **Tempo efetivo**: tempo de relógio em reprodução (sem pausa, sem buffering). A 2×, uma aula de 60 min gera ~30 min de tempo efetivo.
 - **Saltos** não criam cobertura; **chegar ao fim** não conclui.
 - **Conclusão observada**: cobertura ≥ 95% e trecho final reproduzido. Mesmo assim, a pessoa confirma; a origem do registro fica "observado pela extensão".
-- **Falhas de conexão**: a extensão guarda lotes localmente e reenvia com chave de idempotência (aula + sequência do lote).
+- **Falhas de conexão**: o desenho de lotes persistidos desta proposta não foi aprovado. A decisão de 03/11
+  exige API direta, sem fila offline; uma futura observação deve definir recuperação explícita sem reintroduzi-la.
 - Observar reprodução não comprova compreensão; a interface diz "reprodução observada", não "aula assimilada".
 
 ### 5.5 Primeira prova técnica recomendada
@@ -238,7 +250,7 @@ continua proposta. A leitura foi testada com páginas de exemplo, não com conta
 1. A extensão, instalada sem empacotamento, detecta o `<video>` da aula e envia lotes ao servidor local.
 2. Assistir 3 min, pular 5 min e assistir mais 2 min resulta em cobertura de ~5 min, não 10.
 3. Assistir a 2× por 4 min de relógio gera 4 min de tempo efetivo e ~8 min de cobertura.
-4. Desligar a rede por 1 min e religar não perde nem duplica lotes.
+4. Desligar a rede informa a interrupção; ao religar, a retomada não duplica registros confirmados.
 5. Fechar o navegador e voltar preserva a cobertura acumulada.
 
 Em paralelo, um **roteiro de inspeção manual** (30 min, com a conta da responsável) para Gran e Estratégia: o player é `<video>` no DOM? Em iframe de qual origem? A URL da aula é estável? Só depois dessa resposta a extensão ganha permissão para esses domínios.

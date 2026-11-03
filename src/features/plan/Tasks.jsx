@@ -5,6 +5,7 @@ import {
   priorityLabel, sortTasks,
 } from '../../../public/tasks-domain.js';
 import Icon from '../../ui/Icon.jsx';
+import { materialSteps } from '../../../public/material-model.js';
 import { Button, Empty, Heading, stagger } from '../../ui/ui.jsx';
 
 // Lista de tarefas de estudo para uma prova. Criar e organizar não gera XP;
@@ -67,7 +68,7 @@ export default function Tasks({ state, actions, notify }) {
   const done = tasks.filter((task) => task.done);
   const gamified = state.preferences.gamification;
   const courses = new Map(state.courses.map((course) => [course.id, course.title]));
-  const lessons = new Map(state.courses.flatMap((course) => course.steps.map((step) => [step.id, step.title])));
+  const lessons = new Map(state.courses.flatMap((course) => materialSteps(course).map((step) => [step.id, step.title])));
   const chosenCourse = state.courses.find((course) => course.id === courseId);
 
   function submit(event) {
@@ -164,7 +165,7 @@ export default function Tasks({ state, actions, notify }) {
           {chosenCourse && <label className="field">Aula ou etapa (opcional)
             <select name="task-lesson" value={lessonId} onChange={(event) => setLessonId(event.target.value)}>
               <option value="">Curso inteiro</option>
-              {chosenCourse.steps.map((step) => <option key={step.id} value={step.id}>{step.title}</option>)}
+              {materialSteps(chosenCourse).map((step) => <option key={step.id} value={step.id}>{step.title}</option>)}
             </select>
           </label>}
           <label className="field">Prazo (opcional)

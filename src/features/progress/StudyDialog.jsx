@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { achievements, courseProgress, hasPreparation, materialType, nextMission } from '../../../public/domain.js';
+import { achievements, courseProgress, hasPreparation, materialType } from '../../../public/domain.js';
+import { materialSteps, materialLesson } from '../../../public/material-model.js';
+import LessonTree from '../library/LessonTree.jsx';
 import {
   courseSummary, editalCoverage, formatDuration, isImportedCourse,
   lessonOrigin, looksLikeExamCourse, sourceLabel,
@@ -74,7 +76,8 @@ export default function StudyDialog({ modal, state, libraryActions, progressActi
     return <ImportedCourse course={course} state={state} actions={libraryActions} progressActions={progressActions} open={open} close={close} notify={notify}/>;
   }
 
-  const mission = nextMission({ ...state, courses: [course] }, course.id);
+  const action = nextAction({ ...state, courses: [course] });
+  const mission = action && { course, step: materialSteps(course).find((step) => step.id === action.lessonId) };
   if (modal.type === 'course') {
     const progress = courseProgress(state, course);
     const deck = slidesSummary(course);
@@ -169,9 +172,9 @@ function DeleteCourse({ course, actions, close, notify }) {
 
 function ImportedSession({ course, state, actions, open, close, notify, stepId, account }) {
   const summary = courseSummary(state, course);
-  const step = course.steps.find((item) => item.id === stepId) || summary.next || summary.resume;
+  const step = materialSteps(course).find((item) => item.id === stepId) || summary.next || summary.resume;
   if (!step) return <div className="dialog-content"><h2 id="dialog-title" className="title">Todas as aulas selecionadas foram concluídas.</h2><p className="muted-text">Isso vale para as áreas que você escolheu, não necessariamente para o curso inteiro.</p><Button onClick={close}>Voltar</Button></div>;
-  const lesson = (course.structure || []).flatMap((discipline) => discipline.modules.flatMap((module) => module.lessons.map((item) => ({ ...item, discipline: discipline.title, module: module.title })))).find((item) => item.id === step.id);
+  const lesson = materialLesson(course, step.id);
   const done = isCompleted(state, step.id);
   const origin = lessonOrigin(state, step.id);
   const link = lesson?.url || course.url;
@@ -205,7 +208,6 @@ function ImportedSession({ course, state, actions, open, close, notify, stepId, 
 
 function ImportedCourse({ course, state, actions, progressActions, open, close, notify }) {
   const summary = courseSummary(state, course);
-  const [expanded, setExpanded] = useState(() => new Set(summary.disciplines.slice(0, 2).map((discipline) => discipline.id)));
   const [edition, setEdition] = useState(course.edital?.edition || '');
   const [phase, setPhase] = useState(course.edital?.phase || '');
   const [coverage, setCoverage] = useState(null);
@@ -213,13 +215,6 @@ function ImportedCourse({ course, state, actions, progressActions, open, close, 
   const examLike = looksLikeExamCourse(course);
   const nextStep = summary.next;
 
-  function toggle(id) {
-    setExpanded((previous) => {
-      const next = new Set(previous);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  }
   function markLesson(stepId) {
     const now = new Date().toISOString();
     const result = progressActions.completeLesson(course.id, stepId, { origin: 'manual', now });
@@ -247,7 +242,7 @@ function ImportedCourse({ course, state, actions, progressActions, open, close, 
     setCoverage(editalCoverage(course, { edition: value.edition, phase }));
   }
 
-  const nextLesson = summary.next ? (course.structure || []).flatMap((discipline) => discipline.modules.flatMap((module) => module.lessons.map((lesson) => ({ ...lesson, discipline: discipline.title, module: module.title })))).find((lesson) => lesson.id === summary.next.id) : null;
+  const nextLesson = summary.next ? materialLesson(course, summary.next.id) : null;
   const deck = slidesSummary(course);
 
   return <div className="dialog-content imported-course">
@@ -293,38 +288,7 @@ function ImportedCourse({ course, state, actions, progressActions, open, close, 
 
     {summary.resume && summary.resume.id !== nextLesson?.id && <p className="quiet-note"><Icon name="return"/>Ponto de retomada: {summary.resume.title} · {dateLabel(summary.lastStudiedAt)}</p>}
 
-    <div className="import-tree compact">
-      {summary.disciplines.map((discipline) => {
-        const structure = course.structure.find((item) => item.id === discipline.id);
-        const isOpen = expanded.has(discipline.id);
-        return <div className={`import-discipline ${isOpen ? 'is-open' : ''}`} key={discipline.id}>
-          <button className="import-discipline-toggle" aria-expanded={isOpen} onClick={() => toggle(discipline.id)}>
-            <span className="import-discipline-title">{discipline.title}</span>
-            <small>{discipline.done}/{discipline.total} aulas</small>
-            <Icon name={isOpen ? 'chevron-up' : 'chevron-down'}/>
-          </button>
-          {isOpen && <div className="import-modules">
-            {structure.modules.map((module) => <div className="import-module" key={module.id}>
-              <div className="import-module-head"><strong>{module.title}</strong></div>
-              <ul className="import-lessons">
-                {module.lessons.filter((lesson) => course.steps.some((step) => step.id === lesson.id)).map((lesson) => {
-                  const done = isCompleted(state, lesson.id);
-                  const origin = lessonOrigin(state, lesson.id);
-                  return <li key={lesson.id} className={done ? 'is-done' : ''}>
-                    <button className="import-check small" role="checkbox" aria-checked={done ? 'true' : 'false'} aria-label={`${done ? 'Desmarcar' : 'Marcar'} a aula ${lesson.title}`} onClick={() => (done ? undoLesson(lesson.id) : markLesson(lesson.id))}>
-                      <Icon name={done ? 'check' : 'plus'}/>
-                    </button>
-                    <span className="import-lesson-title">{lesson.title}{lesson.removedFromSource ? <small className="import-flag">removida da fonte</small> : null}</span>
-                    {lesson.duration ? <small className="import-lesson-time">{formatDuration(lesson.duration)}</small> : null}
-                    {done && <small className="import-origin">{ORIGIN_LABEL[origin] || 'manual'}</small>}
-                  </li>;
-                })}
-              </ul>
-            </div>)}
-          </div>}
-        </div>;
-      })}
-    </div>
+    <LessonTree key={course.id} course={course} state={state} disciplines={summary.disciplines} onComplete={markLesson} onRevert={undoLesson}/>
 
     <CapabilityPanel capabilities={capabilities}/>
 

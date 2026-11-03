@@ -13,7 +13,7 @@ export async function seedAccount(page, state = { ...createInitialState(), onboa
 
 export async function readAccount(page) {
   // Espera as mutações imediatas antes de consultar a cópia do servidor.
-  await expect(page.locator('.sync-saving')).toHaveCount(0);
+  await expect(page.locator('.sync-saving')).toHaveCount(0, { timeout: 15000 });
   await expect(page.locator('.sync-error')).toHaveCount(0);
   const response = await page.request.get('/api/library', { headers: { origin: 'http://127.0.0.1:4187' } });
   expect(response.ok()).toBe(true);

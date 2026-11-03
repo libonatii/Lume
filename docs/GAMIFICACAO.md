@@ -223,9 +223,9 @@ Um evento observado por um player ou integração ainda não comprova compreens�
 
 ## 9. Integridade, repetição e segurança
 
-Na implementação da nova política para contas, o servidor é a autoridade de concessão de XP e pontuação compartilhada. `xp_events` guarda a chave única, o tipo, o valor, o material, a origem, a versão da política e o dia local. A cópia de `/api/state` continua servindo à biblioteca e à retomada, mas não é fonte de XP elegível.
+Na implementação da nova política para contas, o servidor é a autoridade de concessão de XP e pontuação compartilhada. `xp_events` guarda a chave única, o tipo, o valor, o material, a origem, a versão da política e o dia local. Na revisão local de 03/11, a biblioteca e a retomada usam `/api/library`; `/api/state` é compatibilidade de contas ainda não convertidas.
 
-O perfil entre amigos exibe XP, nível e conquistas a partir do livro de eventos do servidor. Percentuais de progresso continuam vindo da cópia sincronizada; são declarados e não alimentam placar.
+O perfil entre amigos exibe XP, nível e conquistas a partir do livro de eventos do servidor. Percentuais de progresso vêm da biblioteca no servidor; continuam declarados e não alimentam o placar diretamente.
 
 Cada evento de XP deve ter uma chave única, por exemplo:
 

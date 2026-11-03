@@ -39,3 +39,28 @@ export function projectMaterial(material, units) {
   steps.push(...roots.filter((unit) => unit.kind === 'step' && unit.selected).map((unit) => unit.data));
   return { ...material, steps, ...(structure.length ? { structure, selection: { lessonIds: steps.map((step) => step.id) } } : {}) };
 }
+
+// Única leitura da árvore nas telas. Aceita o documento de compatibilidade e
+// registros normalizados, sem manter uma segunda lista de unidades editável.
+const views = new WeakMap();
+export function materialView(course) {
+  if (!course || typeof course !== 'object') return { steps: [], structure: [] };
+  if (!views.has(course)) {
+    const { units: storedUnits, ...metadata } = course;
+    const { material, units } = Array.isArray(storedUnits)
+      ? { material: metadata, units: storedUnits }
+      : splitMaterial(course);
+    views.set(course, projectMaterial(material, units));
+  }
+  return views.get(course);
+}
+
+export function materialSteps(course) { return materialView(course).steps; }
+export function materialStructure(course) { return materialView(course).structure || []; }
+export function materialLesson(course, id) {
+  for (const discipline of materialStructure(course)) for (const module of discipline.modules) {
+    const lesson = module.lessons.find((item) => item.id === id);
+    if (lesson) return { ...lesson, discipline: discipline.title, module: module.title };
+  }
+  return materialSteps(course).find((step) => step.id === id) || null;
+}

@@ -1,7 +1,7 @@
-/* Sessão de estudo declarada. */
+/* Sessão declarada e histórico de tempo. */
 
 /* ============================================================
-   Sessão de estudo declarada (tempo de continuidade, nunca XP)
+   Sessão de estudo declarada (tempo elegível validado no servidor)
    ============================================================ */
 
 .session-bar {
@@ -16,15 +16,7 @@
   border-color: var(--border-strong);
 }
 .session-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--text-subtle);
   flex-shrink: 0;
-}
-.session-bar.is-active .session-dot {
-  background: var(--mint);
-  box-shadow: 0 0 0 5px var(--mint-soft);
 }
 .session-dot.is-paused {
   background: var(--warning);

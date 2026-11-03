@@ -78,9 +78,7 @@ dialog#dialog::backdrop {
   gap: 0.4rem;
   padding: 0.38rem 0.9rem;
   border-radius: var(--radius-pill);
-  background: var(--lume-soft);
   border: 1px solid var(--border-strong);
-  color: var(--lume);
   font-weight: 700;
 }
 .new-achievement {
@@ -96,7 +94,6 @@ dialog#dialog::backdrop {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  color: var(--mint);
   font-weight: 650;
 }
 

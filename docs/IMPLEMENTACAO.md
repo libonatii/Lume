@@ -1,6 +1,6 @@
 # Lume — o que falta implementar
 
-> Atualizado em 01/11/2026 a partir de uma revisão do projeto inteiro: rotas da API nos dois backends, tabelas
+> Atualizado em 03/11/2026 a partir de uma revisão do projeto inteiro: rotas da API nos dois backends, tabelas
 > das migrações, telas e textos da interface, testes, configuração publicada e documentos. Este é o registro
 > único de **lacunas**: o que não existe, o que está parcial e o que funciona só em parte dos ambientes.
 > O que já funciona está em [Continuidade](CONTINUIDADE.md); a direção do produto, em [Produto](PRODUTO.md);
@@ -37,7 +37,8 @@ Em ordem de impacto para quem usa o site publicado.
 
 ## 2. Mapa do que existe
 
-Visão rápida para saber de onde partir. "Verificado" indica onde o fluxo foi exercitado.
+O mapa vigente está em [Continuidade](CONTINUIDADE.md#3-o-que-existe). A tabela abaixo é um índice
+de evidências e limitações por ambiente, não uma segunda lista de pendências.
 
 | Área | Estado | Onde está | Verificado |
 | --- | --- | --- | --- |
@@ -58,7 +59,7 @@ Visão rápida para saber de onde partir. "Verificado" indica onde o fluxo foi e
 | GitHub (leitura pública) | Parcial | `api/domain/github.js`, `GitHub.jsx` | unitário com resposta simulada |
 | Aplicativo de desktop | Parcial | `companion/` | CI (sintaxe e contrato); janela e bandeja só manualmente |
 | Extensão do navegador | Protótipo | `extension/`, `src/lib/extension.js`, `ImportCourse.jsx` | e2e com páginas de exemplo e trecho salvo do Gran; nunca carregada no Chrome |
-| Aparência (Azul e Roxo, escuro e claro) | Implementado | `src/styles/` (`00-tokens.css` e seções), `Personal.jsx` | e2e local |
+| Aparência (Azul e Roxo, escuro e claro) | Implementado | `src/styles/` (tokens/tema), `src/features/*/*.css`, `Personal.jsx` | e2e local; comparação de estilos em 32 combinações |
 
 Os dois ambientes (`server.js` e `worker.js`) servem o mesmo app de `api/`; `tests/unit/api-contract.test.js` confere as rotas `/api/*` nos dois. Tabelas
 existentes: `users`, `sessions`, `password_resets`, `rate_limits`, `user_state`, `companion_*`, `friend*`,
@@ -134,8 +135,9 @@ tarefa com aula). Falta:
 - registrar a aula e abrir a próxima em um passo;
 - considerar o prazo das tarefas no cronograma (hoje só as aulas entram);
 - lembretes ou notificações do plano;
-- unificar o diálogo de cada curso com o critério do roteiro (`StudyDialog.jsx` e `Personal.jsx` ainda usam
-  `nextMission`, que segue a ordem da biblioteca).
+
+A unificação do critério foi concluída em 03/11: Biblioteca e diálogo usam `nextAction`, derivado
+do roteiro; `nextMission` foi removido.
 
 ### B5 — Sessão de estudo
 **Implementado como declaração.** O tempo é declarado pela pessoa e vira XP em blocos validados no servidor.
@@ -293,15 +295,17 @@ A reestruturação que trata estes itens e as causas de arquitetura por trás de
 [Plano de refatoração](REFATORACAO_01112026.md).
 
 ### D1 — CSS legado
-`src/styles/` divide a folha por seção desde 01/11/2026, mas as camadas finais (`70-*`, `71-*`, `80-redesign-moderno.css`)
-ainda sobrescrevem regras antigas das seções anteriores. As cinco folhas sem uso foram removidas em 01/11/2026; a divisão por funcionalidade está em
-[Refatoração F7](REFATORACAO_01112026.md#f7--css-por-componente-sobre-tokens).
+Limpeza estrutural realizada em 03/11: estilos de 22 folhas foram colocados junto das funcionalidades
+e da casca; declarações sobrescritas do mesmo seletor/contexto foram removidas. Tokens e tema continuam
+globais, com ordem explícita em `src/styles/lume.css`. Isso não implementa o redesenho V1 das demais telas.
+Ver [Refatoração F7](REFATORACAO_01112026.md#f7--css-por-componente-sobre-tokens).
 
 ### D2 — Regras antigas ainda em uso
-`nextMission` (ordem da biblioteca), `HABITS` e
-`CHALLENGES` sobrevivem por compatibilidade ou testes antigos. O saldo legado (5/10 XP) continua derivado
-dos registros antigos, separado do livro do servidor; não existe armazenamento de estudo no navegador.
-Separar o que é compatibilidade de dados do que é código morto antes de remover.
+`nextMission` e `applyStudyRhythm` foram removidos. `HABITS` e `CHALLENGES` continuam validando campos
+de documentos antigos em `restoreState`; `weekCount` tem consumidores reais e não conta preparações.
+O saldo legado continua separado do livro do servidor. `steps`/`structure` são projeções de compatibilidade
+do modelo persistido, ainda usadas pelas regras de domínio e pelo contrato v2; as telas usam seletores.
+Eliminar também esse formato em memória exige uma migração de contrato/domínio, não apagar os leitores.
 
 ### D3 — Exportações sem consumidor
 Resolvido em 01/11/2026: `importXp`, `selectedCount`, `providerSummary`, `emptySessionState`, `GITHUB_CAPABILITIES`,
@@ -367,10 +371,8 @@ seções acima.
 
 ## Anexo A — brief de 31/10/2026: plataforma social de estudos sem grupos
 
-> Pedido vigente registrado nesta rodada. A base social sem grupos, a biblioteca editável, os slides, o XP
-> validado e o ranking de amigos já foram implementados; mensagens diretas, colaboração e GitHub continuam
-> pendentes. A mudança de escopo social já foi refletida nos documentos de produto. Onde este brief contrariar
-> seções anteriores, prevalece o brief. O anexo ao fim é histórico.
+> Pedido histórico de 31/10, preservado como evidência. As seções atuais acima prevalecem quanto ao
+> estado de implementação: mensagens, convites de colaboração e leitura pública do GitHub já existem.
 
 Quero evoluir o Lume como uma plataforma social de estudos gamificada, inspirada na biblioteca e progressão da Steam, na comunicação direta do Discord e na organização do Notion.
 
@@ -482,7 +484,7 @@ Entregue o que funciona, o que foi verificado e as dependências ainda pendentes
 ## Anexo B — brief histórico: onboarding (rodada anterior)
 
 > Preservado como registro. Este texto descreve uma tarefa já executada e não é a lista vigente de
-> pendências; consulte as seções acima. O brief vigente está na seção 13. Onde este anexo mencionar grupos,
+> pendências; consulte as seções acima. Onde este anexo mencionar grupos,
 > vale o escopo atual sem grupos. A tabela "Situação da implementação" no fim do anexo é daquela rodada
 > (28 testes de domínio e 10 cenários de navegador) e não representa o estado atual.
 

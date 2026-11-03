@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import Atropos from 'atropos/react';
-import { PALETTES, STUDY_TYPES, achievements, courseProgress, courseStatus, levelInfo, localDay, nextMission, studyRhythm, totalXP } from '../../../public/domain.js';
+import { PALETTES, STUDY_TYPES, achievements, courseStatus, levelInfo, studyRhythm, totalXP } from '../../../public/domain.js';
+import { materialSteps } from '../../../public/material-model.js';
 import { formatSessionDuration } from '../../../public/session-domain.js';
 import { XP_KIND_LABELS, completionKindForCourse, levelProgress, stepEventKey } from '../../../public/xp-policy.js';
-import { previewBackup, readBackup } from '../../../public/backup-domain.js';
+import BackupPanel from './BackupPanel.jsx';
 import { api, apiError } from '../../lib/api.js';
 import Icon from '../../ui/Icon.jsx';
 import { AnimatedNumber, Button, Cover, Empty, Glow, Heading, Progress, Ring, stagger } from '../../ui/ui.jsx';
@@ -195,12 +196,8 @@ export function History({ state, account, xp, refreshXP, notify }) {
 
 export function Preferences({ state, actions, libraryActions, notify, onPersonalize, account, go, xp, refreshXP }) {
   const [rankingBusy, setRankingBusy] = useState(false);
-  const [backup, setBackup] = useState(null);
-  const [backupName, setBackupName] = useState('');
-  const [backupError, setBackupError] = useState('');
   const [messageNotifications, setMessageNotifications] = useState(true);
   const [messagesBusy, setMessagesBusy] = useState(false);
-  const backupInput = useRef(null);
   useEffect(() => {
     if (!account) return undefined;
     let alive = true;
@@ -256,43 +253,11 @@ export function Preferences({ state, actions, libraryActions, notify, onPersonal
   const projects = state.courses.filter(course => course.type === 'project');
   const eventKeys = new Set((xp?.events || []).map((event) => event.eventKey));
   const legacyCourses = state.courses.filter((course) => !course.example
-    && (course.planning === true || course.steps.some((step) => isCompleted(state, step.id)
+    && (course.planning === true || materialSteps(course).some((step) => isCompleted(state, step.id)
       && !eventKeys.has(stepEventKey(completionKindForCourse(course), course.id, step.id))))).slice(0, 8);
   function classifyCourse(courseId, patch) {
     if (!libraryActions.editMaterial(courseId, patch)) return;
     notify('Classificação atualizada. Nenhum XP antigo foi recriado.');
-  }
-  function download() {
-    const url = URL.createObjectURL(new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' }));
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `lume-meu-caminho-${localDay(new Date())}.json`;
-    anchor.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    notify('Cópia exportada. Para restaurar, escolha o arquivo em “Restaurar uma cópia”.');
-  }
-  async function chooseBackup(event) {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
-    setBackupError('');
-    setBackup(null);
-    try {
-      const text = await file.text();
-      const incoming = readBackup(text);
-      setBackup({ incoming, summary: previewBackup(state, incoming) });
-      setBackupName(file.name);
-    } catch (error) {
-      setBackupError(error.message || 'Não foi possível ler esta cópia.');
-      setBackupName('');
-    }
-  }
-  function applyBackup() {
-    if (!backup) return;
-    if (!actions.restoreBackup(backup.incoming)) return;
-    notify(account ? 'Restauração enviada para gravação na conta.' : 'Cópia aberta na prévia temporária.');
-    setBackup(null);
-    setBackupName('');
   }
   return <div className="personal-root">
     <Heading eyebrow="Perfil" title="Configurações">
@@ -414,28 +379,7 @@ export function Preferences({ state, actions, libraryActions, notify, onPersonal
           </div>
         </section>
 
-        <section className="card-surface privacy-note">
-          <div className="panel-title"><span className="pace-icon"><Icon name="shield"/></span><div><h2 className="title">Seu espaço, seu progresso.</h2></div></div>
-          <p className="muted-text">{account ? 'Sua biblioteca é salva na conta e o XP elegível é confirmado no servidor. O saldo antigo do protótipo fica separado, fora do nível novo e do ranking.' : 'A prévia dura só enquanto esta página está aberta. Você pode exportar uma cópia antes de sair.'}</p>
-          <p className="quiet-note">Não inclua senhas ou informações sensíveis nas suas etapas.</p>
-          <button className="text-button accent" onClick={download}>Baixar cópia dos meus dados<Icon name="arrow"/></button>
-          <div className="backup-restore">
-            <strong className="title">Restaurar uma cópia</strong>
-            <p className="muted-text">Mescla cursos, progresso, histórico e tarefas de um arquivo JSON. Suas preferências, privacidade e onboarding atuais não são substituídos.</p>
-            <input ref={backupInput} type="file" accept=".json,application/json" className="sr-only" onChange={chooseBackup} aria-label="Escolher arquivo de cópia do Lume"/>
-            <Button secondary onClick={() => backupInput.current?.click()}><Icon name="return"/>Escolher arquivo JSON</Button>
-            {backupName && <p className="quiet-note">Arquivo: {backupName}</p>}
-            {backupError && <p className="form-error" role="alert">{backupError}</p>}
-            {backup && <div className="backup-preview">
-              <p className="inline-note"><Icon name="info"/><span>Esta cópia acrescenta {backup.summary.newCourseCount} {backup.summary.newCourseCount === 1 ? 'material novo' : 'materiais novos'}, {backup.summary.newCompleted} {backup.summary.newCompleted === 1 ? 'conclusão' : 'conclusões'} e {backup.summary.newTasks} {backup.summary.newTasks === 1 ? 'tarefa' : 'tarefas'}. {backup.summary.unchanged > 0 ? `${backup.summary.unchanged} material(is) já existente(s) serão mesclados.` : ''}</span></p>
-              {backup.summary.newCourses.length > 0 && <ul className="backup-course-list">{backup.summary.newCourses.map((title) => <li key={title}>{title}</li>)}</ul>}
-              <div className="dialog-actions inline-actions">
-                <Button onClick={applyBackup}><Icon name="check"/>Mesclar à minha biblioteca</Button>
-                <Button secondary onClick={() => { setBackup(null); setBackupName(''); }}>Cancelar</Button>
-              </div>
-            </div>}
-          </div>
-        </section>
+        <BackupPanel state={state} actions={actions} account={account} notify={notify}/>
       </div>
     </div>
   </div>;

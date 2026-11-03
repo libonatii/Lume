@@ -3,6 +3,7 @@ import {
   STUDY_TYPES, formatVideoTime, normalizePosition, resumeLabel,
 } from '../../../public/domain.js';
 import { isImportedCourse } from '../../../public/import-domain.js';
+import { materialSteps } from '../../../public/material-model.js';
 import Icon from '../../ui/Icon.jsx';
 import { Button } from '../../ui/ui.jsx';
 
@@ -69,7 +70,7 @@ export default function CourseEditor({ course, actions, close, notify }) {
   const [url, setUrl] = useState(course.url || '');
   const [type, setType] = useState(course.type || 'course');
   const [position, setPosition] = useState(() => normalizePosition(course.position, course.type) || {});
-  const [steps, setSteps] = useState(() => course.steps.map((step) => step.title));
+  const [steps, setSteps] = useState(() => materialSteps(course).map((step) => step.title));
   const [error, setError] = useState('');
   const [confirming, setConfirming] = useState(false);
 

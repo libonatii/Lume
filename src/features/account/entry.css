@@ -1,4 +1,4 @@
-/* Casca e tela de entrada (login, cadastro, recuperação). */
+/* Entrada: login, cadastro e recuperação. */
 
 /* Shell de Entrada (Login, Onboarding, Recuperação) */
 .entry-shell {
@@ -287,8 +287,6 @@ html[data-theme='light'] .sample-achievement {
 }
 .field input:focus, .field select:focus, .field textarea:focus, .auth-input:focus {
   outline: none;
-  border-color: var(--lume);
-  box-shadow: 0 0 0 3px var(--lume-soft);
 }
 .password-field {
   display: flex;

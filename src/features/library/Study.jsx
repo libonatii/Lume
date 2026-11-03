@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import Atropos from 'atropos/react';
-import { studyRhythm, nextMission, hasPreparation, courseProgress, courseStatus, materialType } from '../../../public/domain.js';
+import { studyRhythm, hasPreparation, courseProgress, courseStatus, materialType } from '../../../public/domain.js';
+import { materialSteps } from '../../../public/material-model.js';
 import { nextAction } from '../../../public/study-plan.js';
 import { isOverdue, priorityLabel, taskAgenda } from '../../../public/tasks-domain.js';
 import { XP_KIND_LABELS, levelProgress } from '../../../public/xp-policy.js';
@@ -189,7 +190,8 @@ export function Library({ state, open, actions }) {
   const [search, setSearch] = useState('');
   const courses = state.courses.filter(course => (filter === 'all' || courseStatus(state, course) === filter) && course.title.toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR')));
   const selected = state.courses.find(course => course.id === state.selectedCourseId) || state.courses[0];
-  const next = selected && nextMission({ ...state, courses: [selected] }, selected.id);
+  const action = selected && nextAction({ ...state, courses: [selected] });
+  const next = action && { course: selected, step: materialSteps(selected).find((step) => step.id === action.lessonId) };
   const selectedArt = selected && (['design', 'code', 'language', 'nature'].includes(selected.art) ? selected.art : 'nature');
   const selectedDeck = selected ? slidesSummary(selected) : null;
 
@@ -289,7 +291,7 @@ function FirstStudyArea({ actions, open }) {
 }
 
 export function Steps({ course, state }) {
-  return <ol className="course-step-list">{course.steps.map((step, index) => {
+  return <ol className="course-step-list">{materialSteps(course).map((step, index) => {
     const done = isCompleted(state, step.id);
     const prepared = hasPreparation(state, step.id) && !done;
     return <li className={done ? 'completed-step' : prepared ? 'prepared-step' : ''} key={step.id}>

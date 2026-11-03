@@ -7,6 +7,7 @@ import { createPlanActions } from '../../src/features/plan/actions.js';
 import { createProgressActions } from '../../src/features/progress/actions.js';
 import { createSettingsActions } from '../../src/features/settings/actions.js';
 import { createAccountActions } from '../../src/features/account/actions.js';
+import { materialSteps, materialStructure, materialLesson, splitMaterial } from '../../public/material-model.js';
 
 function model() {
   let state = createInitialState();
@@ -51,6 +52,20 @@ test('ações bloqueadas não devolvem sucesso nem executam a regra', () => {
   assert.equal(createProgressActions(denied).completeMission('missing', 'missing'), null);
   assert.equal(createSettingsActions(denied).restoreBackup(null), null);
   assert.equal(createAccountActions(denied).finishJourney({}, 0), null);
+});
+
+test('seletores apresentam a mesma grade a partir de unidades persistidas ou documento antigo', () => {
+  const app = model();
+  app.library.importCourse(normalizePayload({ title: 'Curso', disciplines: [{ title: 'Área', modules: [{ title: 'Módulo', lessons: [{ title: 'Aula', externalId: 'aula-42', duration: 90 }] }] }] }));
+  const course = app.read().courses[0];
+  const { material, units } = splitMaterial(course);
+  const normalized = { ...material, units };
+  assert.deepEqual(materialSteps(normalized), materialSteps(course));
+  assert.deepEqual(materialStructure(normalized), materialStructure(course));
+  const lesson = materialLesson(normalized, materialSteps(normalized)[0].id);
+  assert.equal(lesson.externalId, 'aula-42');
+  assert.equal(lesson.duration, 90);
+  assert.equal(lesson.discipline, 'Área');
 });
 
 test('restaurar cópia e criar projeto preservam privacidade, perfil e materiais editados durante a análise', () => {

@@ -1,6 +1,6 @@
 # Lume — plano de refatoração (01/11/2026)
 
-> **Estado: execução parcial; persistência direta no servidor em validação (03/11/2026).** A responsável decidiu seguir com todas as frentes
+> **Estado: revisão local de 03/11/2026; implementação e validação registradas ao final.** A responsável decidiu seguir com todas as frentes
 > abaixo. Este documento descreve o destino da arquitetura e a ordem para chegar lá; ele não muda regras de
 > produto. Pontuação continua em [Gamificação](GAMIFICACAO.md), lacunas de produto em
 > [O que falta implementar](IMPLEMENTACAO.md) e importação em [Importação](IMPORTACAO.md). Ao concluir uma
@@ -74,11 +74,11 @@ Antes de mexer em estrutura, fixar o comportamento atual para detectar regressõ
 - [ ] **Fixtures de estado.** Reunir em `tests/fixtures/states/` documentos `lume.prototype.v1` com formato real
       e dados anonimizados: conta nova, conta com histórico legado (5/10 XP e preparações), curso importado com
       `structure`, curso com slides, tarefas com e sem vínculo, sessão ativa, exemplo sem progresso, backup antigo.
-- [ ] **Testes de contrato da API.** `api-contract.test.js`: para cada rota `/api/*`, status, formato do corpo
+- [x] **Testes de contrato da API.** `api-contract.test.js`: famílias de rotas `/api/*`, status, formato do corpo
       e códigos de erro atuais, executados contra o servidor Node em processo. Servem de referência para F1 e F3.
-- [ ] **Testes dourados de XP.** Para cada fixture, a lista de `xp_events` que `xp.js` concede hoje. F4 tem de
-      reproduzir exatamente as mesmas chaves (`event_key`) e valores.
-- [ ] Incluir os arquivos novos no script `test` do `package.json`.
+- [x] **Testes de referência de XP.** `xp.test.js`, `progress.test.js` e `library-store.test.js` conferem
+      chaves, valores, idempotência, tempo e rollback com dados sintéticos. Fixtures reais continuam pendentes.
+- [x] Incluir os arquivos novos no script `test` do `package.json`.
 
 **Pronto quando:** os três conjuntos rodam no CI e descrevem o comportamento atual sem alterá-lo.
 
@@ -217,10 +217,14 @@ aula, saldo legado (só para exibição na prévia, enquanto existir).
        (unidades, conclusões, preparações, XP legado) antes e depois.
 3. [x] Escrever `restoreState` v2 com validação por item e um leitor v1 que converte na carga.
 4. [x] Adaptar `backup-domain.js` e `merge-domain.js` para v2, mantendo a leitura de backups v1.
-5. [ ] Trocar as telas para os seletores derivados (`completedUnits`, `materialProgress`, `nextUnit`), uma tela por
-       vez. O critério de próxima aula passa a ser o do roteiro (resolve B4: `nextMission` segue a ordem da
-       biblioteca em `StudyDialog.jsx` e `Personal.jsx`).
-6. [ ] Remover `steps` como campo armazenado e as leituras diretas de `completed`/`history`/`studyLog`.
+5. [x] Telas usam seletores de `material-model.js` e `progress-domain.js`; Biblioteca e diálogo usam
+       `nextAction`, com o critério do roteiro. `nextMission` foi removido.
+6. [x] `steps`/`structure` não são persistidos nas tabelas. Leituras dos registros v1 ficam na conversão.
+
+**Limite da entrega:** `public/material-model.js` é o módulo executável, sem criar uma pasta `model/`
+só por convenção. O contrato v2 e as regras antigas ainda recebem projeções `steps`/`structure`.
+Os seletores não tornam essa migração em memória concluída; substituí-la integralmente continua parte de F2.
+As conversões têm testes sintéticos de preservação; ainda faltam os documentos reais anonimizados da Fase 0.
 
 ### Pronto quando
 
@@ -252,8 +256,9 @@ aplica operações por entidade com revisão e idempotência. Um conflito exige 
 
 Concorrência, falhas e repetição foram exercitadas no contrato Node/D1 e em testes de navegador. O XP de tempo
 participa do mesmo batch, com teste de rollback. A persistência normalizada não conclui F2: `steps` e
-`structure` ainda são projeções para as telas. A revisão final dos limites e dos caminhos de compatibilidade
-continua pendente. O desenho antigo de `/api/sync` e da fila está preservado apenas no histórico do Git.
+`structure` ainda são projeções do contrato v2. A revisão confirmou o teto de 600 aulas no importador,
+corpo de 3 MB e até 2000 ações por requisição, além da recusa das mutações legadas após conversão.
+O desenho antigo de `/api/sync` e da fila está preservado apenas no histórico do Git.
 
 ### Diagnóstico
 
@@ -489,12 +494,13 @@ Cada provedor só é marcado como suportado com: fixture gravada de página real
 
 ### Etapas
 
-1. [ ] `providers/registry.js`, `defineProvider` e `providers/kit/`; `PROVIDERS` passa a ser derivado do registro.
-2. [ ] Adaptador do Gran a partir de `readGranApi`, com `externalId` em todos os níveis.
-3. [ ] Provedores `generic` (heurística atual, sem conclusão) e `text` (texto colado e IA).
-4. [ ] Build da extensão e remoção de `PROVIDER_HOSTS`/`PLATFORM_NAME` duplicados.
-5. [ ] `providerCapabilities` lê o adaptador; a revisão da importação mostra o que cada plataforma realmente faz.
-6. [ ] Migração de identidade na reimportação, com teste usando curso importado por título.
+1. [x] Registro em `public/providers/registry.js` e utilitários em `kit.js`; lista derivada do registro.
+2. [x] Adaptador do Gran extraído, com identidade externa entregue pela fonte (disciplina e aula).
+3. [x] Fonte desconhecida sem conclusão e caminho de texto/IA. Recusa de plataformas conhecidas sem
+       leitor próprio permanece decisão pendente; a heurística assistida existente não foi retirada.
+4. [x] Build da extensão e remoção de `PROVIDER_HOSTS`/`PLATFORM_NAME` duplicados.
+5. [x] `providerCapabilities` lê o adaptador; a revisão mostra as capacidades declaradas.
+6. [x] Migração de identidade na reimportação, com teste usando curso importado por título.
 7. [ ] Demais provedores, um por vez, na ordem acima.
 
 ### Pronto quando
@@ -559,8 +565,9 @@ src/
        `useXp` (leitura do livro). `useLume` compõe os hooks e as ações nomeadas; não existe sincronização offline.
 5. [x] Telas recebem ações nomeadas em vez de `update(previous => …)` ou `act`; importação, edição e restauração
        usam o estado mais recente. Bloqueios não limpam o formulário nem anunciam sucesso.
-6. [ ] Quebrar os componentes grandes em subcomponentes por funcionalidade. O painel de sessão foi extraído
-       para `features/progress/StudySession.jsx`; as demais decomposições continuam pendentes.
+6. [x] Extrair responsabilidades: `StudySession`, `BackupPanel`, `OnboardingFields`, `LessonTree`,
+       processamento de imagem em `profile-media.js` e página copiada em `clipboard-page.js`.
+       As telas continuam compondo suas seções; extração não significa transformar cada trecho de JSX em arquivo.
 
 ### Pronto quando
 
@@ -593,7 +600,7 @@ src/styles/
   tokens.css        paletas (Azul, Roxo), temas e funções de cor — o topo atual de lume.css
   base.css          reset, tipografia, controles, utilitários
   shader.css        regras do Paper Shaders predeclaradas para a CSP (lume.css:234), sempre globais
-src/features/<área>/components/*.css   importados pelo próprio componente
+src/features/<área>/*.css   regras da funcionalidade, importadas pelo manifesto global
 ```
 
 O Vite gera nomes com hash, então o `?v=` manual em `index.astro` deixa de ser necessário. A CSP não muda:
@@ -603,13 +610,15 @@ folhas externas já são permitidas por `'self'`; `scripts/headers.mjs` continua
 
 1. [x] Remover as cinco folhas sem uso e a dependência `fraunces`; corrigir a codificação dos comentários.
 2. [x] Extrair tokens, base e shader (`00-tokens.css`, `01-shader.css`, `02-base.css`).
-3. [ ] Mover as regras de cada tela para o CSS da funcionalidade, **junto com o redesenho V1 daquela tela**,
-       apagando as regras antigas sobrescritas.
-4. [ ] Testar com service worker limpo a cada etapa (assets em cache aparecem uma visita atrasados).
+3. [x] Mover 22 folhas para funcionalidades/casca e remover declarações sobrescritas no mesmo
+       seletor/contexto. Ordem preservada em `src/styles/lume.css`; o redesenho V1 continua separado.
+4. [x] Comparação de estilos com service worker bloqueado e fontes carregadas: 32 combinações de
+       quatro rotas, dois tamanhos, duas paletas e dois temas, sem diferenças na limpeza inicial.
 
 ### Pronto quando
 
-- `lume.css` não existe mais como arquivo único; nenhuma regra é sobrescrita mais adiante no mesmo bundle.
+- `lume.css` é só manifesto; regras por funcionalidade e tema. Estados, responsividade e seletores
+  mais específicos continuam usando a cascata; não confundir essas sobreposições com declarações mortas.
 - e2e de aparência (`appearance.spec.js`) verde nos quatro temas.
 
 ### Documentos
@@ -622,16 +631,16 @@ folhas externas já são permitidas por `'self'`; `scripts/headers.mjs` continua
 
 Itens que não pedem nova arquitetura, só remoção ou reescrita, e ficam mais seguros depois das frentes acima.
 
-- [ ] Código legado listado em D2 (`nextMission`, `weekCount`, `applyStudyRhythm`, `HABITS`, `CHALLENGES`) —
-      depois de F2, separando o que ainda é compatibilidade de leitura do que é código morto.
+- [x] D2 revisado: `nextMission` e `applyStudyRhythm` removidos; `weekCount` tem consumidores reais;
+      `HABITS`/`CHALLENGES` validam campos de documentos antigos. Compatibilidade preservada.
 - [x] Exportações sem consumidor (D3): `importXp`, `selectedCount`, `providerSummary`, `emptySessionState`,
       `GITHUB_CAPABILITIES`.
 - [x] Mover os módulos de servidor da raiz (`auth.js`, `xp.js`, `messages.js`…) para `api/domain/` e os testes
       para `tests/unit/`, atualizando o script `test`.
-- [ ] Consolidar [Continuidade](CONTINUIDADE.md), [Implementação](IMPLEMENTACAO.md) e [Evolução](EVOLUCAO.md):
-      juntos têm cerca de 115 KB e repetem matrizes de estado. Proposta: Implementação fica como registro único
-      de lacunas, Continuidade só com o que existe, Evolução só com propostas ainda não aprovadas.
-- [ ] Atualizar `AGENTS.md` com a arquitetura final.
+- [x] Consolidar referências: Continuidade registra código existente e execução; Implementação é o
+      registro de lacunas; Evolução preserva propostas e identifica explicitamente diagnósticos históricos.
+      Relatos antigos de Continuidade ficam no Git; anexos históricos de Implementação não prevalecem.
+- [x] Atualizar `AGENTS.md` com ações, hooks, modelo persistido e CSS por funcionalidade.
 
 ---
 
@@ -683,13 +692,20 @@ atualização deste plano.
 
 ## Registro de execução
 
-### 03/11/2026 — revisão do PR e persistência direta (em andamento)
+### 03/11/2026 — revisão do PR e persistência direta
 
-**Commit de base:** `9d51520` registra a persistência direta e as correções descritas abaixo. A continuação
-com ações nomeadas, extração de sessão, revalidação do cache e cenário de colaboração está no diretório de
-trabalho. Build e testes unitários/contratos passaram (232 aprovados, 1 ignorado por falta de mídia no Worker).
-O cenário de colaboração e quatro cenários de edição/slides passaram no desktop; a suíte completa está em
-execução, com o build mantido intacto durante os testes.
+**Commits de base:** `9d51520` registra persistência direta; `7236b08`, ações nomeadas, hooks de conta e
+biblioteca, revalidação do cache e colaboração. A continuação remove `nextMission`, centraliza seletores,
+extrai componentes, coloca o CSS junto das funcionalidades e consolida os documentos.
+
+**Verificação final:** `npm test` com 236 aprovações e 1 cenário de mídia ignorado no Worker sem binding.
+Inclui rejeição atômica de aulas inválidas/duplicadas e novos registros vinculados ao material errado,
+preservando registros históricos inconsistentes. Suíte completa desktop/mobile: **106 aprovados**, incluindo
+onboarding mobile e preservação de formulário durante bloqueio. Após a validação adicional da API e novo
+build, **20 cenários direcionados aprovados** (backup, persistência, edição/slides e novo fluxo de perfil,
+nos dois tamanhos). O perfil cobre processamento/upload da foto, apresentação, recarga e remoção.
+`git diff --check` e 104 links locais/âncoras sem erro. As 29 folhas importadas não repetem declarações
+no mesmo seletor/contexto; estilos calculados iguais nas 32 combinações verificadas.
 
 - Corrigidas respostas de cache da conta anterior e perda de `externalId` na restauração/fallback da importação.
 - Biblioteca normalizada com conversão transacional do documento do servidor, guarda de revisão e idempotência;
@@ -699,20 +715,15 @@ execução, com o build mantido intacto durante os testes.
 - SQL em lote para unidades/progresso/recompensas; contrato com 600 aulas passa em Node e D1 local.
 - Testes de navegador passaram a criar contas e consultar a API em vez de injetar estado em localStorage;
   acrescentados cenários de resposta perdida, repetição idempotente, prévia temporária e conflito entre abas.
-- Verificado: `npm test` (229 aprovados, 1 cenário de mídia do Worker ignorado por ausência do binding), contrato
-  Node/D1 com concorrência e 600 aulas; 10 fluxos desktop de migração/conta, backup, sessão e aplicativo.
-  A primeira rodada completa de navegador teve 97 aprovados e 5 falhas (recarga em Plano/subtarefas e
-  simulação de resposta perdida no celular). Após ajustar a espera pela gravação e verificar o alerta visível
-  em vez do indicador oculto no celular, a rodada direcionada passou: 18 cenários desktop/mobile de Plano,
-  persistência, Amigos e XP/ranking, incluindo conflito entre abas. Build aprovado. A suíte completa ainda
-  não foi repetida com todas as alterações finais.
-- Amigos, Ranking e Colaboração passaram a usar o cache compartilhado de recursos. Amigos e Ranking foram
-  exercitados na rodada direcionada; envio e resposta de convites de colaboração ainda precisam de cenário
-  específico de navegador para essa alteração.
-- Não conclui F2/F6b/F7/F8: projeções antigas, separação do transporte/conta e decomposição de telas, recursos compartilhados
-  restantes, cascata CSS e consolidação documental continuam pendentes. F5 depende de fixtures reais das demais
-  plataformas. Cargos, bônus de disciplina e migração do XP das tarefas continuam decisões de produto separadas.
-- Commit local `9d51520`; sem push, deploy, migração remota ou release.
+- A rodada anterior de navegador teve 105 aprovações e uma espera de gravação excedida no onboarding mobile.
+  O trace confirmou respostas 200; a espera passou de 5 para 15 s e o XP só é relido no fim da sequência.
+- Colaboração tem cenário de envio, aceite e cancelamento, sem copiar projeto ou conceder XP.
+- Comparação de estilos calculados repetida após a relocação final: 32 combinações, nenhuma diferença
+  depois de carregar as fontes. Isso não é aprovação visual de um redesenho novo.
+- F2 ainda mantém projeção v2 no domínio e transporte; faltam fixtures reais anonimizadas de estados.
+  F5 depende de fixtures das demais plataformas; aumento do limite de 600 aulas e CPU em produção continuam
+  pendentes. Cargos, bônus de disciplina e migração do XP das tarefas são decisões de produto separadas.
+- Trabalho local; sem push, deploy, migração remota ou release.
 
 | Data | Etapa | O que foi entregue | Verificação |
 | --- | --- | --- | --- |

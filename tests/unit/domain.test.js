@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createInitialState, restoreState, completeMission, totalXP, courseProgress, courseStatus, nextMission, achievements, addCourse, safeCourseURL, weekCount } from '../../public/domain.js';
+import { createInitialState, restoreState, completeMission, totalXP, courseProgress, courseStatus, achievements, addCourse, safeCourseURL, weekCount } from '../../public/domain.js';
+import { nextAction } from '../../public/study-plan.js';
 import { studyRhythm, startJourney, saveOnboardingAnswer, completeJourney, normalizeOnboarding, addMaterial, journeyPlan, STATE_VERSION } from '../../public/domain.js';
 import { completedUnitIds, isCompleted, progressFromV1 } from '../../public/progress-domain.js';
 
@@ -20,7 +21,7 @@ test('começa sem XP, sem cursos de exemplo e sem próxima ação inventada', ()
   const state = createInitialState();
   assert.equal(totalXP(state), 0);
   assert.equal(state.courses.length, 0);
-  assert.equal(nextMission(state), null);
+  assert.equal(nextAction(state), null);
   assert.equal(achievements(state).filter((item) => item.unlocked).length, 0);
 });
 
@@ -40,7 +41,7 @@ test('conclusão é registrada uma única vez e avança a próxima etapa sem sal
   const { state } = completeMission(seededState(), 'design', 'design-1');
   assert.equal(totalXP(state), 0);
   assert.equal(state.progress[0].legacyXp, undefined);
-  assert.equal(nextMission(state).step.id, 'design-2');
+  assert.equal(nextAction(state).lessonId, 'design-2');
   assert.equal(courseProgress(state, state.courses[0]).done, 1);
   assert.equal(completeMission(state, 'design', 'design-1').added, false);
   assert.equal(achievements(state)[0].unlocked, true);
@@ -52,7 +53,7 @@ test('tornar menor não conclui a aula nem concede XP de preparação', () => {
   assert.equal(result.state.progress[0].type, 'preparation');
   assert.equal(result.state.progress[0].legacyXp, undefined);
   assert.equal(completedUnitIds(result.state).size, 0);
-  assert.equal(nextMission(result.state).step.id, 'design-1');
+  assert.equal(nextAction(result.state).lessonId, 'design-1');
   assert.equal(courseStatus(result.state, result.state.courses[0]), 'active');
   assert.equal(completeMission(result.state, 'design', 'design-1', { preparation: true }).added, false);
   assert.equal(totalXP(completeMission(result.state, 'design', 'design-1').state), 0);
@@ -62,18 +63,18 @@ test('curso concluído não volta às sugestões', () => {
   let state = seededState();
   for (const step of state.courses[0].steps) state = completeMission(state, 'design', step.id).state;
   assert.equal(courseStatus(state, state.courses[0]), 'completed');
-  assert.equal(nextMission(state).course.id, 'python');
+  assert.equal(nextAction(state).courseId, 'python');
   assert.equal(achievements(state).find((item) => item.id === 'course').unlocked, true);
 });
 
 test('pausar um curso preserva progresso e muda a sugestão', () => {
   const state = completeMission(seededState(), 'design', 'design-1').state;
   state.courses[0].paused = true;
-  assert.equal(nextMission(state).course.id, 'python');
+  assert.equal(nextAction(state).courseId, 'python');
   assert.equal(courseProgress(state, state.courses[0]).done, 1);
   assert.equal(completeMission(state, 'design', 'design-2').added, false);
   state.courses[0].paused = false;
-  assert.equal(nextMission(state).step.id, 'design-2');
+  assert.equal(nextAction(state).lessonId, 'design-2');
 });
 
 test('cursos próprios validam links e ganham etapas únicas', () => {
@@ -82,7 +83,7 @@ test('cursos próprios validam links e ganham etapas únicas', () => {
   assert.equal(safeCourseURL('https://example.com/aula'), 'https://example.com/aula');
   const state = addCourse(createInitialState(), { title: ' Meu curso ', steps: [' Abrir material ', '', 'Praticar'] }, 'custom');
   assert.equal(state.courses.at(-1).steps.length, 2);
-  assert.equal(nextMission(state).course.title, 'Meu curso');
+  assert.equal(nextAction(state).courseTitle, 'Meu curso');
   assert.equal(achievements(state).find((item) => item.id === 'own').unlocked, true);
   assert.throws(() => addCourse(state, { title: 'X', steps: [], url: '' }));
 });

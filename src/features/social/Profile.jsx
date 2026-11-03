@@ -5,6 +5,7 @@ import { AnimatedNumber, Button, Cover, Glow, Heading, Progress, stagger } from 
 import { api, apiError } from '../../lib/api.js';
 import { buildProfile } from '../../../public/profile-domain.js';
 import { MAX_PROFILE_BIO_LENGTH, studyRhythm } from '../../../public/domain.js';
+import { prepareProfileImageBlob, uploadProfileBlob } from './profile-media.js';
 
 // Perfil inspirado na vitrine da Steam, adaptado para estudos no Lume:
 // - Banner (header) e foto de perfil enviados ao armazenamento de objetos (Cloudflare R2
@@ -15,71 +16,6 @@ import { MAX_PROFILE_BIO_LENGTH, studyRhythm } from '../../../public/domain.js';
 // - Barra lateral com Conquistas/Insígnias, Na fila, Projetos públicos e atalhos.
 
 const STATUS_LABEL = { active: 'Em andamento', new: 'Começando', paused: 'Pausado', completed: 'Concluído' };
-
-function canvasToBlob(canvas, type, quality) {
-  return new Promise((resolve) => {
-    canvas.toBlob((blob) => resolve(blob), type, quality);
-  });
-}
-
-async function prepareProfileImageBlob(file, { width, height }) {
-  if (!file || !file.type.startsWith('image/')) {
-    throw new Error('Escolha um arquivo de imagem (PNG, JPG, WebP ou GIF).');
-  }
-  if (file.size > 12 * 1024 * 1024) {
-    throw new Error('A imagem escolhida é muito pesada (máximo 12 MB).');
-  }
-  if (file.type === 'image/gif' && file.size <= 2 * 1024 * 1024) {
-    return file;
-  }
-  try {
-    const bitmap = await createImageBitmap(file);
-    try {
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      const scale = Math.max(width / (bitmap.width || width), height / (bitmap.height || height));
-      const drawWidth = (bitmap.width || width) * scale;
-      const drawHeight = (bitmap.height || height) * scale;
-      const offsetX = (width - drawWidth) / 2;
-      const offsetY = (height - drawHeight) / 2;
-      ctx.drawImage(bitmap, offsetX, offsetY, drawWidth, drawHeight);
-
-      for (const quality of [0.86, 0.74, 0.6]) {
-        const webp = await canvasToBlob(canvas, 'image/webp', quality);
-        if (webp && webp.size <= 2 * 1024 * 1024) return webp;
-        const jpeg = await canvasToBlob(canvas, 'image/jpeg', quality);
-        if (jpeg && jpeg.size <= 2 * 1024 * 1024) return jpeg;
-      }
-    } finally {
-      bitmap.close?.();
-    }
-  } catch {
-    if (file.size <= 2 * 1024 * 1024) return file;
-    throw new Error('Não foi possível processar esta imagem.');
-  }
-  throw new Error('A imagem ficou grande demais mesmo após otimizar. Tente outra imagem.');
-}
-
-async function uploadProfileBlob(slot, blob) {
-  const response = await fetch(`/api/profile/media/${encodeURIComponent(slot)}`, {
-    method: 'PUT',
-    credentials: 'same-origin',
-    headers: { 'Content-Type': blob.type || 'application/octet-stream' },
-    body: blob,
-  });
-  let data = null;
-  try {
-    data = await response.json();
-  } catch {
-    data = null;
-  }
-  if (!response.ok || !data?.url) {
-    throw new Error(data?.error || 'Não foi possível enviar a imagem para o servidor.');
-  }
-  return data.url;
-}
 
 function formatBioLines(bio, fallbackRhythm) {
   const lines = String(bio || '')
@@ -148,12 +84,11 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
   }
 
   function clearImage(kind) {
-    if (!actions) return;
+    if (!actions?.updateProfile({ [kind]: '' })) return;
     fetch(`/api/profile/media/${encodeURIComponent(kind)}`, {
       method: 'DELETE',
       credentials: 'same-origin',
     }).catch(() => {});
-    if (!actions.updateProfile({ [kind]: '' })) return;
     notify(kind === 'avatar' ? 'Foto do perfil removida.' : 'Capa do perfil restaurada ao padrão.');
   }
 
