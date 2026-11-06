@@ -1,3 +1,4 @@
+import { materialSteps, materialStructure, unitsFromStructure } from './material-model.js';
 // Domínio da importação de cursos.
 // Este módulo é usado pelo navegador, pelo servidor local e pelo Worker, e por
 // isso não depende de DOM, rede ou banco. Ele só normaliza, compara e mescla.
@@ -290,20 +291,31 @@ function adoptExistingIds(previousStructure, nextStructure) {
     }
   }
   const taken = new Set();
-  return nextStructure.map((discipline) => ({
-    ...discipline,
-    modules: discipline.modules.map((module) => ({
-      ...module,
-      lessons: module.lessons.map((lesson) => {
-        const pathMatch = byPath.get(`${discipline.title}|${module.title}|${lesson.title}`);
-        const known = (lesson.externalId && byExternal.get(lesson.externalId))
-          || (pathMatch && (!lesson.externalId || !pathMatch.externalId) ? pathMatch : null);
-        if (!known || taken.has(known.id)) return lesson;
-        taken.add(known.id);
-        return { ...lesson, id: known.id, ...(known.externalId ? { externalId: known.externalId } : {}) };
+  const matchContainer = (items, next) => (items || []).find((item) => item.id === next.id
+    || (next.externalId && item.externalId === next.externalId)
+    || (item.title === next.title && (!item.externalId || !next.externalId)));
+  return nextStructure.map((discipline) => {
+    const oldDiscipline = matchContainer(previousStructure, discipline);
+    return {
+      ...discipline,
+      ...(oldDiscipline ? { id: oldDiscipline.id, ...(oldDiscipline.externalId ? { externalId: oldDiscipline.externalId } : {}) } : {}),
+      modules: discipline.modules.map((module) => {
+        const oldModule = matchContainer(oldDiscipline?.modules, module);
+        return {
+          ...module,
+          ...(oldModule ? { id: oldModule.id, ...(oldModule.externalId ? { externalId: oldModule.externalId } : {}) } : {}),
+          lessons: module.lessons.map((lesson) => {
+            const pathMatch = byPath.get(`${discipline.title}|${module.title}|${lesson.title}`);
+            const known = (lesson.externalId && byExternal.get(lesson.externalId))
+              || (pathMatch && (!lesson.externalId || !pathMatch.externalId) ? pathMatch : null);
+            if (!known || taken.has(known.id)) return lesson;
+            taken.add(known.id);
+            return { ...lesson, id: known.id, ...(known.externalId ? { externalId: known.externalId } : {}) };
+          }),
+        };
       }),
-    })),
-  }));
+    };
+  });
 }
 
 function idRemap(before, after) {
@@ -316,6 +328,7 @@ function idRemap(before, after) {
 }
 
 function mergeStructure(previousStructure, nextStructure) {
+  const incomingIds = new Set(nextStructure.flatMap((discipline) => discipline.modules.flatMap((module) => module.lessons.map((lesson) => lesson.id))));
   const previousDisciplines = new Map((previousStructure || []).map((discipline) => [discipline.id, discipline]));
   const merged = [];
   const used = new Set();
@@ -332,7 +345,10 @@ function mergeStructure(previousStructure, nextStructure) {
       }
       // Aula que existia e sumiu da fonte permanece visível, marcada.
       for (const [id, lesson] of lessons) {
-        if (!incoming.has(id)) lessons.set(id, { ...lesson, removedFromSource: true });
+        if (!incoming.has(id)) {
+          if (incomingIds.has(id)) lessons.delete(id);
+          else lessons.set(id, { ...lesson, removedFromSource: true });
+        }
       }
       modules.push({ ...module, lessons: [...lessons.values()] });
     }
@@ -340,14 +356,14 @@ function mergeStructure(previousStructure, nextStructure) {
     // não pode desaparecer porque a plataforma reorganizou o curso.
     for (const oldModule of old?.modules || []) {
       if (modules.some((module) => module.id === oldModule.id)) continue;
-      modules.push({ ...oldModule, lessons: oldModule.lessons.map((lesson) => ({ ...lesson, removedFromSource: true })) });
+      modules.push({ ...oldModule, lessons: oldModule.lessons.filter((lesson) => !incomingIds.has(lesson.id)).map((lesson) => ({ ...lesson, removedFromSource: true })) });
     }
     used.add(discipline.id);
     merged.push({ ...discipline, modules });
   }
   for (const old of previousStructure || []) {
     if (used.has(old.id)) continue;
-    merged.push({ ...old, removedFromSource: true, modules: old.modules.map((module) => ({ ...module, lessons: module.lessons.map((lesson) => ({ ...lesson, removedFromSource: true })) })) });
+    merged.push({ ...old, removedFromSource: true, modules: old.modules.map((module) => ({ ...module, lessons: module.lessons.filter((lesson) => !incomingIds.has(lesson.id)).map((lesson) => ({ ...lesson, removedFromSource: true })) })) });
   }
   return merged;
 }
@@ -387,17 +403,17 @@ export function applyCourseImport(state, payload, { selectedLessonIds = [], now 
   }
   const existing = (state.courses || []).find((course) => course.source?.identity === payload.identity)
     || (courseId ? (state.courses || []).find((course) => course.id === courseId && course.source) : null);
-  const incoming = existing ? adoptExistingIds(existing.structure, payload.disciplines) : payload.disciplines;
+  const incoming = existing ? adoptExistingIds(materialStructure(existing), payload.disciplines) : payload.disciplines;
   const remap = idRemap(payload.disciplines, incoming);
   const requested = new Set((selectedLessonIds.length ? selectedLessonIds : allLessonIds(payload)).map((id) => remap.get(id) || id));
   observedCompletionIds = observedCompletionIds.map((id) => remap.get(id) || id);
-  const structure = existing ? mergeStructure(existing.structure, incoming) : incoming;
-  const selection = mergeSelection(existing?.steps, structure, requested);
+  const structure = existing ? mergeStructure(materialStructure(existing), incoming) : incoming;
+  const selection = mergeSelection(materialSteps(existing), structure, requested);
   const steps = stepsFromStructure(structure, selection);
   if (!steps.length) throw new Error('Nada para importar. Escolha pelo menos uma disciplina.');
 
-  const added = steps.filter((step) => !(existing?.steps || []).some((old) => old.id === step.id)).length;
-  const removed = (existing?.steps || []).filter((old) => !steps.some((step) => step.id === old.id)).length;
+  const added = steps.filter((step) => !materialSteps(existing).some((old) => old.id === step.id)).length;
+  const removed = materialSteps(existing).filter((old) => !steps.some((step) => step.id === old.id)).length;
   const id = existing?.id || `course_${stableHash(payload.identity)}`;
   const course = {
     ...(existing || {}),
@@ -410,8 +426,7 @@ export function applyCourseImport(state, payload, { selectedLessonIds = [], now 
     paused: existing?.paused === true,
     type: existing?.type === 'project' ? 'project' : 'course',
     planning: false,
-    steps,
-    structure,
+    units: unitsFromStructure(structure, selection),
     source: {
       provider: payload.provider.id,
       providerLabel: payload.provider.label,
@@ -427,7 +442,6 @@ export function applyCourseImport(state, payload, { selectedLessonIds = [], now 
       importedAt: existing?.source?.importedAt || now,
       lastUpdatedAt: now,
     },
-    selection: { lessonIds: steps.map((step) => step.id) },
     edital: edital || existing?.edital || null,
   };
 
@@ -502,7 +516,7 @@ export function findLessonByUrl(state, pageUrl) {
   if (!page || !page.parts.length) return null;
   let best = null;
   for (const course of state.courses || []) {
-    const selected = new Set((course.steps || []).map((step) => step.id));
+    const selected = new Set(materialSteps(course).map((step) => step.id));
     for (const lesson of courseLessons(course)) {
       if (!lesson.url || lesson.removedFromSource || !selected.has(lesson.id)) continue;
       const target = segments(lesson.url);
@@ -515,12 +529,11 @@ export function findLessonByUrl(state, pageUrl) {
 }
 
 export function courseLessons(course) {
-  if (!course?.structure) return [];
-  return course.structure.flatMap((discipline) => discipline.modules.flatMap((module) => module.lessons.map((lesson) => ({ ...lesson, disciplineId: discipline.id, disciplineTitle: discipline.title, moduleTitle: module.title }))));
+  return materialStructure(course).flatMap((discipline) => discipline.modules.flatMap((module) => module.lessons.map((lesson) => ({ ...lesson, disciplineId: discipline.id, disciplineTitle: discipline.title, moduleTitle: module.title }))));
 }
 
 export function isImportedCourse(course) {
-  return Boolean(course?.source?.identity && Array.isArray(course?.structure));
+  return Boolean(course?.source?.identity && course.units?.some((unit) => unit.kind === 'discipline'));
 }
 
 // Rótulo curto da origem, sem prometer plataforma quando a entrada foi texto.
@@ -540,10 +553,10 @@ export function sourceLabel(source) {
 // Resumo separado por disciplina e no conjunto selecionado. Não confundir com
 // conclusão do curso inteiro quando a grade é parcial.
 export function courseSummary(state, course) {
-  const lessons = courseLessons(course).filter((lesson) => course.steps?.some((step) => step.id === lesson.id));
+  const lessons = courseLessons(course).filter((lesson) => materialSteps(course).some((step) => step.id === lesson.id));
   const doneIds = completedUnitIds(state);
-  const disciplines = (course.structure || []).map((discipline) => {
-    const items = discipline.modules.flatMap((module) => module.lessons).filter((lesson) => course.steps?.some((step) => step.id === lesson.id));
+  const disciplines = materialStructure(course).map((discipline) => {
+    const items = discipline.modules.flatMap((module) => module.lessons).filter((lesson) => materialSteps(course).some((step) => step.id === lesson.id));
     const done = items.filter((lesson) => doneIds.has(lesson.id)).length;
     return { id: discipline.id, title: discipline.title, done, total: items.length, percent: items.length ? Math.round((done / items.length) * 100) : 0, removedFromSource: discipline.removedFromSource === true };
   }).filter((discipline) => discipline.total > 0);
@@ -585,7 +598,7 @@ export function lessonOrigin(state, lessonId) {
 // Não cria evento de XP: quem concede é o servidor, pela política vigente.
 export function completeLesson(state, courseId, lessonId, { origin = 'manual', now = new Date().toISOString() } = {}) {
   const course = (state.courses || []).find((item) => item.id === courseId);
-  const lesson = course?.steps?.find((item) => item.id === lessonId);
+  const lesson = materialSteps(course).find((item) => item.id === lessonId);
   if (!course || !lesson || isCompleted(state, lessonId)) return { state, added: false, xp: 0 };
   const result = recordCompletion(state, {
     materialId: courseId,
@@ -646,7 +659,7 @@ export function editalCoverage(course, { edition = '', phase = '' } = {}) {
     };
   }
   const normalize = (value) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-  const courseDisciplines = (course?.structure || []).map((discipline) => ({ title: discipline.title, normalized: normalize(discipline.title) }));
+  const courseDisciplines = materialStructure(course).map((discipline) => ({ title: discipline.title, normalized: normalize(discipline.title) }));
   const covered = [];
   const missing = [];
   for (const topic of source.topics) {
@@ -667,6 +680,6 @@ export function editalCoverage(course, { edition = '', phase = '' } = {}) {
 }
 
 export function looksLikeExamCourse(course) {
-  const text = `${course?.title || ''} ${(course?.structure || []).map((discipline) => discipline.title).join(' ')}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const text = `${course?.title || ''} ${materialStructure(course).map((discipline) => discipline.title).join(' ')}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   return /\boab\b|exame de ordem|concurso|preparatorio/.test(text);
 }

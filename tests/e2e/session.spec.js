@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { stepUnits } from '../../public/material-model.js';
 import { seedAccount, readAccount } from './library-helpers.js';
 import { createInitialState, STORAGE_KEY } from '../../public/domain.js';
 
@@ -8,7 +9,7 @@ import { createInitialState, STORAGE_KEY } from '../../public/domain.js';
 test('sessão declarada persiste ao recarregar, pausa, retoma e encerra sem conceder XP local', async ({ page }) => {
   const seeded = createInitialState();
   seeded.onboarded = true;
-  seeded.courses = [{ id: 'design', title: 'Design de interfaces', category: 'Design', art: 'design', url: '', example: false, paused: false, steps: [{ id: 'design-1', title: 'Abrir o material e conhecer o curso' }] }];
+  seeded.courses = [{ id: 'design', title: 'Design de interfaces', category: 'Design', art: 'design', url: '', example: false, paused: false, units: stepUnits([{ id: 'design-1', title: 'Abrir o material e conhecer o curso' }]) }];
   seeded.selectedCourseId = 'design';
   await seedAccount(page, seeded);
   await page.goto('/#hoje');

@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { materialSteps, stepUnits, unitsFromStructure } from '../../public/material-model.js';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
@@ -9,6 +10,16 @@ import {
 } from '../../api/domain/xp.js';
 import { grantBonus, grantSlide, grantStep } from '../../api/domain/rewards.js';
 import { levelProgress } from '../../public/xp-policy.js';
+import { earnedTitles } from '../../public/title-policy.js';
+
+test('cargos exigem nível e marcos; construção e especialidade têm critérios próprios', () => {
+  assert.deepEqual(earnedTitles({ level: 30 }).map((item) => item.id), ['beginner']);
+  assert.deepEqual(earnedTitles({ level: 2, lessons: 5 }).map((item) => item.id), ['beginner']);
+  const titles = earnedTitles({ level: 15, lessons: 30, materials: 2, disciplines: 1, courses: 2, hasFriend: true, builtProject: true, areas: { Direito: 30, Redes: 29 } });
+  assert.deepEqual(titles.map((item) => item.id), ['beginner', 'student', 'dedicated', 'curator', 'partner', 'builder', 'reference', 'specialist:Direito']);
+  assert.deepEqual(earnedTitles({ builtProject: true, areas: { Redes: 30 } }).map((item) => item.id), ['beginner', 'builder', 'specialist:Redes']);
+  assert.equal(earnedTitles({ level: 10, lessons: 20 }).some((item) => item.id === 'partner'), false);
+});
 
 const NOW = Date.parse('2026-10-31T12:00:00Z');
 const DAY = '2026-10-31';
@@ -44,7 +55,7 @@ function materialState({ type = 'course', steps = ['Aula 1', 'Aula 2'], courseId
     art: 'nature',
     url: '',
     category: 'Teste',
-    steps: steps.map((title, index) => ({ id: `${courseId}-${index}`, title })),
+    units: stepUnits(steps.map((title, index) => ({ id: `${courseId}-${index}`, title }))),
     slides: [],
     slideProgress: { seen: [], lastId: '', completedAt: null },
   }];
@@ -52,24 +63,21 @@ function materialState({ type = 'course', steps = ['Aula 1', 'Aula 2'], courseId
   return state;
 }
 
-// Monta o progresso no formato v1 (completed + history) e passa pela leitura
-// do estado, que converte para o registro único — como acontece com contas antigas.
+// Monta conclusões no registro único do formato atual.
 function completeState(state, ids, at = NOW + 1000) {
   const course = state.courses[0];
   const completed = new Set(ids);
   return restoreState({
     ...state,
-    version: 1,
-    completed: [...completed],
-    history: [...completed].map((stepId) => ({
+    progress: [...completed].map((stepId) => ({
       id: `step:${stepId}`,
-      courseId: course.id,
-      stepId,
-      title: course.steps.find((step) => step.id === stepId)?.title || 'Aula',
-      courseTitle: course.title,
-      preparation: false,
-      xp: 0,
-      policy: 'v1',
+      materialId: course.id,
+      unitId: stepId,
+      title: materialSteps(course).find((step) => step.id === stepId)?.title || 'Aula',
+      materialTitle: course.title,
+      type: 'completion',
+      origin: 'manual',
+      historical: false,
       at: new Date(at).toISOString(),
     })),
   });
@@ -119,11 +127,8 @@ test('progresso anterior à política e progresso importado permanecem legado', 
 
   const imported = materialState({ courseId: 'imp' });
   imported.courses[0].source = { provider: 'coursera', providerLabel: 'Coursera', identity: 'coursera|https://example.test/c', completeness: 'complete', demo: false };
-  imported.courses[0].structure = [{ id: 'd1', title: 'Área', modules: [{ id: 'm1', title: 'Módulo', lessons: [{ id: 'imp-0', title: 'Aula 1' }] }] }];
-  imported.version = 1;
-  imported.completed = ['imp-0'];
-  imported.history = [];
-  imported.studyLog = [{ id: 'import:imp-0', courseId: 'imp', stepId: 'imp-0', origin: 'import', historical: true, at: new Date(NOW + 1000).toISOString() }];
+  imported.courses[0].units = unitsFromStructure([{ id: 'd1', title: 'Área', modules: [{ id: 'm1', title: 'Módulo', lessons: [{ id: 'imp-0', title: 'Aula 1' }] }] }], ['imp-0']);
+  imported.progress = [{ id: 'import:imp-0', type: 'completion', materialId: 'imp', unitId: 'imp-0', origin: 'import', historical: true, at: new Date(NOW + 1000).toISOString() }];
   await saveState(db, 'legacy', imported);
   await assert.rejects(
     () => grantStep(db, 'legacy', { courseId: 'imp', stepId: 'imp-0' }, { now: NOW + 2000 }),

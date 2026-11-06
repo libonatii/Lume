@@ -1,6 +1,6 @@
-// Persistência da biblioteca no servidor. A conversão preguiçosa lê somente a
-// cópia antiga já existente no banco, preservada em user_state como arquivo.
-import { createInitialState, restoreState } from '../../public/domain.js';
+// Persistência da biblioteca no servidor. Nenhuma leitura migra documentos
+// antigos: formatos incompatíveis são recusados e permanecem no banco.
+import { createInitialState, restoreState, STATE_VERSION } from '../../public/domain.js';
 import { splitMaterial, projectMaterial } from '../../public/material-model.js';
 import { AppError } from '../errors.js';
 import { reconcileSession } from '../../public/session-domain.js';
@@ -59,10 +59,11 @@ export function libraryStatements(userId, previous, next) {
   return statements;
 }
 
-export async function ensureLibrary(db, userId, attempt = 0) {
+export async function ensureLibrary(db, userId) {
   if (await db.first('SELECT user_id FROM account_documents WHERE user_id=?', [userId])) return;
   const old = await db.first('SELECT state,revision FROM user_state WHERE user_id=?', [userId]);
-  const state = old?.state ? restoreState(old.state) : createInitialState();
+  if (old?.state) throw new AppError('Esta conta possui dados em formato antigo. Os dados foram preservados; a migração não está disponível.', 'library_format_unsupported', 409);
+  const state = createInitialState();
   const statements = [
     ['INSERT INTO library_write_guards (user_id,valid) VALUES (?,CASE WHEN COALESCE((SELECT revision FROM user_state WHERE user_id=?),0)=? THEN 1 ELSE 0 END)', [userId, userId, old?.revision || 0]],
     ['INSERT INTO account_documents (user_id,data,revision,updated_at) VALUES (?,?,1,?)', [userId, json(documentOf(state)), new Date().toISOString()]],
@@ -72,21 +73,22 @@ export async function ensureLibrary(db, userId, attempt = 0) {
   ];
   try { await db.batch(statements); }
   catch (error) {
-    // Outra requisição pode ter concluído a mesma conversão; o batch impede
-    // que uma segunda cópia sobrescreva qualquer material já editado.
+    // Outra requisição pode ter inicializado a conta; o batch impede que uma
+    // segunda inicialização sobrescreva qualquer material já editado.
     if (await db.first('SELECT user_id FROM account_documents WHERE user_id=?', [userId])) return;
-    const latest = await db.first('SELECT revision FROM user_state WHERE user_id=?', [userId]);
-    if (attempt < 2 && (latest?.revision || 0) !== (old?.revision || 0)) return ensureLibrary(db, userId, attempt + 1);
     throw error;
   }
 }
 
-// Compatibilidade de leitura para contas ainda não abertas no cliente novo.
-// Depois da conversão, nenhum consumidor volta ao documento arquivado.
+// Leitura compartilhada. Documentos só são lidos se já estiverem no contrato
+// atual; não há conversão nem fallback sobre uma biblioteca existente.
 export async function readStoredLibrary(db, userId) {
   if (await db.first('SELECT user_id FROM account_documents WHERE user_id=?', [userId])) return readLibrary(db, userId);
   const row = await db.first('SELECT state,revision,updated_at FROM user_state WHERE user_id=?', [userId]);
-  return { state: row?.state ? restoreState(row.state) : null, revision: row?.revision || 0, updatedAt: row?.updated_at || null };
+  if (!row?.state) return { state: null, revision: 0, updatedAt: null };
+  const state = JSON.parse(row.state);
+  if (state.version !== STATE_VERSION) throw new AppError('Formato de biblioteca incompatível. Os dados existentes foram preservados.', 'library_format_unsupported', 409);
+  return { state: restoreState(state), revision: row.revision, updatedAt: row.updated_at };
 }
 
 export async function readLibrary(db, userId) {
@@ -95,6 +97,7 @@ export async function readLibrary(db, userId) {
   // metade de uma revisão junto com metade da seguinte.
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const document = await db.first('SELECT * FROM account_documents WHERE user_id=?', [userId]);
+    if (JSON.parse(document.data).version !== STATE_VERSION) throw new AppError('Formato de biblioteca incompatível. Os dados existentes foram preservados.', 'library_format_unsupported', 409);
     const materials = await db.all('SELECT * FROM materials WHERE user_id=? ORDER BY position', [userId]);
     const units = await db.all('SELECT * FROM units WHERE user_id=? ORDER BY position', [userId]);
     const state = { ...createInitialState(), ...JSON.parse(document.data), courses: materials.map((row) => projectMaterial(JSON.parse(row.data), units.filter((unit) => unit.material_id === row.id).map((unit) => ({ id: unit.id, parentId: unit.parent_id, kind: unit.kind, position: unit.position, selected: Boolean(unit.selected), data: JSON.parse(unit.data) })))) };

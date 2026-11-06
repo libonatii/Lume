@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { materialSteps } from '../../public/material-model.js';
 import assert from 'node:assert/strict';
 import {
   addCourse, addMaterial, completeMission, createInitialState, deleteCourse, formatVideoTime, normalizePosition,
@@ -25,17 +26,17 @@ test('editar material altera título, tipo e ponto de retomada sem perder etapas
   assert.equal(updated.title, 'Constitucional — revisão');
   assert.equal(updated.type, 'book');
   assert.equal(updated.resumeAt, 'capítulo 2');
-  assert.equal(updated.steps.length, 3);
+  assert.equal(materialSteps(updated).length, 3);
   assert.deepEqual(completedUnitIds(next), completedUnitIds(state));
 });
 
 test('renomear etapa mantém o progresso e remover apaga só o registro daquela etapa', () => {
   const { state, course } = courseState();
   const renamed = replaceCourseSteps(state, course.id, ['Ler a introdução completa', 'Resolver exercícios', 'Revisar']);
-  assert.equal(renamed.courses[0].steps[0].id, `${course.id}-0`);
+  assert.equal(materialSteps(renamed.courses[0])[0].id, `${course.id}-0`);
   assert.ok(isCompleted(renamed, `${course.id}-0`));
   const removed = replaceCourseSteps(renamed, course.id, ['Ler a introdução completa', 'Revisar']);
-  assert.equal(removed.courses[0].steps.length, 2);
+  assert.equal(materialSteps(removed.courses[0]).length, 2);
   assert.ok(isCompleted(removed, `${course.id}-0`));
   assert.equal(isCompleted(removed, `${course.id}-1`), false);
 });

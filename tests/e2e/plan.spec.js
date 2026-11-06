@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { materialSteps } from '../../public/material-model.js';
 import { seedAccount, readAccount } from './library-helpers.js';
 import { createInitialState } from '../../public/domain.js';
 import { applyCourseImport, normalizePayload } from '../../public/import-domain.js';
@@ -55,7 +56,7 @@ test('cronograma distribui aulas, explica conflito, recalcula após conclusão e
   await page.getByRole('button', { name: 'Adiar Aula 2 — Direitos individuais' }).click();
   await expect(page.getByText(/As aulas seguintes de Direito Constitucional — OAB acompanham/)).toBeVisible();
   const beforeReload = await readAccount(page);
-  expect(Object.keys(beforeReload.plan.postponed)).toEqual([beforeReload.courses[0].steps[1].id]);
+  expect(Object.keys(beforeReload.plan.postponed)).toEqual([materialSteps(beforeReload.courses[0])[1].id]);
 
   await page.reload();
   await expect(page.getByLabel('Segunda')).toHaveValue('30');
@@ -63,12 +64,12 @@ test('cronograma distribui aulas, explica conflito, recalcula após conclusão e
   const course = saved.courses[0];
   expect(saved.plan.availability).toEqual({ 1: 30, 2: 30, 3: 30, 4: 30, 5: 30 });
   expect(saved.plan.goals[course.id].deadline).not.toBe('');
-  expect(Object.keys(saved.plan.postponed)).toEqual([course.steps[1].id]);
-  expect(saved.progress.filter((event) => event.type === 'completion' && !event.revertedAt).map((event) => event.unitId)).toEqual([course.steps[0].id]);
+  expect(Object.keys(saved.plan.postponed)).toEqual([materialSteps(course)[1].id]);
+  expect(saved.progress.filter((event) => event.type === 'completion' && !event.revertedAt).map((event) => event.unitId)).toEqual([materialSteps(course)[0].id]);
   expect(saved.progress.some((event) => event.legacyXp)).toBe(false);
 });
 
-test('subtarefas e vínculo com aula não alteram XP e sobrevivem ao recarregamento', async ({ page }) => {
+test('tarefa vinculada conclui a aula uma vez; subtarefas e reabertura não geram XP', async ({ page }) => {
   await seedAccount(page, seeded());
 
   await page.goto('/#tarefas');
@@ -89,8 +90,23 @@ test('subtarefas e vínculo com aula não alteram XP e sobrevivem ao recarregame
   await page.reload();
   await expect(page.getByText('Subtarefas 1/1')).toBeVisible();
   const saved = await readAccount(page);
-  expect(saved.tasks[0].lessonId).toBe(saved.courses[0].steps[0].id);
+  expect(saved.tasks[0].lessonId).toBe(materialSteps(saved.courses[0])[0].id);
   expect(saved.tasks[0].subtasks).toEqual([expect.objectContaining({ title: 'Resolver 10 questões', done: true })]);
   expect(saved.tasks[0].done).toBe(false);
   expect(saved.progress).toEqual([]);
+  await page.getByRole('checkbox', { name: 'Concluir tarefa Revisar Aula 1 com questões' }).click();
+  await expect(page.getByRole('checkbox', { name: 'Reabrir tarefa Revisar Aula 1 com questões' })).toBeChecked();
+  const completed = await readAccount(page);
+  expect(completed.progress.filter((event) => !event.revertedAt)).toHaveLength(1);
+  const xp = async () => (await (await page.request.get('/api/xp', { headers: { origin: 'http://127.0.0.1:4187' } })).json()).summary.totalXP;
+  expect(await xp()).toBe(100);
+  await page.getByRole('checkbox', { name: 'Reabrir tarefa Revisar Aula 1 com questões' }).click();
+  await expect(page.getByRole('checkbox', { name: 'Concluir tarefa Revisar Aula 1 com questões' })).not.toBeChecked();
+  await page.getByRole('checkbox', { name: 'Concluir tarefa Revisar Aula 1 com questões' }).click();
+  await expect(page.getByRole('checkbox', { name: 'Reabrir tarefa Revisar Aula 1 com questões' })).toBeChecked();
+  await readAccount(page);
+  expect(await xp()).toBe(100);
+  await page.goto('/#perfil');
+  await expect(page.getByRole('region', { name: 'Cargos de estudo' })).toContainText('Iniciante');
+  await expect(page.getByRole('region', { name: 'Cargos de estudo' })).toContainText('Todas as funcionalidades');
 });

@@ -24,12 +24,12 @@ test('ações mantêm tarefa e conclusão criadas enquanto um editor de material
   const created = app.library.addMaterial({ title: 'Livro', type: 'book', steps: ['Capítulo um', 'Capítulo dois'] });
   const course = created.state.courses[0];
   app.plan.addTask({ title: 'Revisar leitura', courseId: course.id });
-  app.progress.completeMission(course.id, course.steps[0].id);
+  app.progress.completeMission(course.id, materialSteps(course)[0].id);
   app.library.editMaterial(course.id, { title: 'Livro revisado' }, ['Introdução', 'Capítulo dois']);
   assert.equal(app.read().tasks[0].title, 'Revisar leitura');
   assert.equal(app.read().courses[0].title, 'Livro revisado');
-  assert.equal(app.read().progress[0].unitId, course.steps[0].id);
-  assert.equal(app.read().courses[0].steps[0].id, course.steps[0].id);
+  assert.equal(app.read().progress[0].unitId, materialSteps(course)[0].id);
+  assert.equal(materialSteps(app.read().courses[0])[0].id, materialSteps(course)[0].id);
 });
 
 test('ações criadas antes de uma importação preservam os materiais e as subtarefas mais recentes', () => {

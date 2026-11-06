@@ -1,4 +1,6 @@
 import { restoreState } from '../../public/domain.js';
+import { materialSteps } from '../../public/material-model.js';
+import { recordCompletion } from '../../public/progress-domain.js';
 import { ACCOUNT_FIELDS } from '../../public/library-actions.js';
 import { AppError } from '../errors.js';
 import { readLibrary, commitLibrary } from './library-store.js';
@@ -26,7 +28,7 @@ function rewardStatements(userId, state, changed, settings, now) {
       const time = eligible && Number.isFinite(Date.parse(event.at)) ? Date.parse(event.at) : -Infinity;
       completions.set(event.unitId, Math.max(completions.get(event.unitId) ?? -Infinity, time));
     }
-    const contexts = course.steps.filter((step) => changed.units.has(JSON.stringify([course.id, step.id]))).map((step) => ({ on: 'unit.completed', course, step, completions, since }));
+    const contexts = materialSteps(course).filter((step) => changed.units.has(JSON.stringify([course.id, step.id]))).map((step) => ({ on: 'unit.completed', course, step, completions, since }));
     if (changed.decks.has(course.id)) contexts.push({ on: 'deck.completed', course, since });
     for (const context of contexts) for (const rule of RULES) {
       if (rule.on !== context.on) continue;
@@ -40,10 +42,10 @@ function rewardStatements(userId, state, changed, settings, now) {
   if (!grants.length) return [];
   const payload = JSON.stringify(grants);
   return [
-    [`INSERT OR IGNORE INTO xp_events (id,user_id,event_key,kind,xp,material_id,material_title,step_id,step_title,session_id,origin,policy_version,local_day,granted_at)
+    [`INSERT OR IGNORE INTO xp_events (id,user_id,event_key,kind,xp,material_id,material_title,step_id,step_title,session_id,origin,policy_version,local_day,granted_at,meta)
       SELECT json_extract(value,'$.id'),?,json_extract(value,'$.key'),json_extract(value,'$.kind'),json_extract(value,'$.xp'),
         json_extract(value,'$.materialId'),json_extract(value,'$.materialTitle'),json_extract(value,'$.stepId'),json_extract(value,'$.stepTitle'),
-        '','manual',?,?,? FROM json_each(?)`, [userId, XP_POLICY_VERSION, day, at, payload]],
+        '','manual',?,?,?,json_extract(value,'$.meta') FROM json_each(?)`, [userId, XP_POLICY_VERSION, day, at, payload]],
     [`INSERT OR IGNORE INTO user_achievements (id,user_id,event_id,kind,material_id,material_title,criterion,policy_version,origin,visibility,earned_at)
       SELECT json_extract(g.value,'$.achievementId'),e.user_id,e.id,json_extract(g.value,'$.achievement.kind'),e.material_id,
         json_extract(g.value,'$.achievement.title'),json_extract(g.value,'$.achievement.criterion'),e.policy_version,e.origin,'friends',e.granted_at
@@ -62,7 +64,7 @@ export async function applyLibraryActions(db, userId, input, { now = Date.now() 
   if (!Array.isArray(input.actions) || !input.actions.length || input.actions.length > 2000) fail('Envie de 1 a 2000 operações por vez.');
   const current = await readLibrary(db, userId);
   if (input.revision !== current.revision) throw new AppError('A biblioteca mudou. Recarregue os dados antes de repetir a ação.', 'library_conflict', 409);
-  const state = structuredClone(current.state);
+  let state = structuredClone(current.state);
   const changed = { units: new Set(), decks: new Set() };
   const removedProgress = [];
   for (const action of input.actions) {
@@ -114,14 +116,27 @@ export async function applyLibraryActions(db, userId, input, { now = Date.now() 
     }
     if (index < 0) state[field].push(value); else state[field][index] = value;
   }
+  // A conclusão vinculada é aplicada também no servidor: enviar só task.put
+  // deve produzir exatamente o mesmo evento de aula que a interface.
+  for (const task of state.tasks) {
+    const previous = current.state.tasks.find((item) => item.id === task.id);
+    if (!task.done || !previous || previous.done || !task.lessonId) continue;
+    const course = state.courses.find((item) => item.id === task.courseId);
+    const lesson = materialSteps(course).find((item) => item.id === task.lessonId);
+    if (!lesson) fail('A aula vinculada não pertence ao material informado.');
+    const at = new Date(Math.min(Date.parse(task.completedAt) || now, now)).toISOString();
+    const result = recordCompletion(state, { materialId: course.id, unitId: lesson.id, origin: 'manual', at, title: lesson.title, materialTitle: course.title });
+    state = result.state;
+    if (result.added) changed.units.add(JSON.stringify([course.id, lesson.id]));
+  }
   const normalized = restoreState(state);
   // A leitura de backup tolera itens quebrados; a API não pode confirmar uma
   // edição que descartou aulas silenciosamente ou vinculou progresso a outro curso.
   const owners = new Map();
   for (const course of state.courses) {
     const restored = normalized.courses.find((item) => item.id === course.id);
-    if (!restored || restored.steps.length !== course.steps.length) fail('O material contém aulas inválidas.');
-    for (const step of restored.steps) {
+    if (!restored || restored.units.length !== course.units.length) fail('O material contém aulas inválidas.');
+    for (const step of materialSteps(restored)) {
       if (owners.has(step.id)) fail('Cada aula precisa de um identificador único.');
       owners.set(step.id, course.id);
     }
@@ -134,7 +149,7 @@ export async function applyLibraryActions(db, userId, input, { now = Date.now() 
   }
   for (const event of removedProgress) {
     const material = normalized.courses.find((course) => course.id === event.materialId);
-    if (material?.steps.some((step) => step.id === event.unitId)) fail('Use desfazer para uma conclusão existente; o histórico não pode ser apagado.');
+    if (materialSteps(material).some((step) => step.id === event.unitId)) fail('Use desfazer para uma conclusão existente; o histórico não pode ser apagado.');
   }
   // A restauração tolerante é adequada para arquivos antigos, mas uma mutação
   // inválida deve ser recusada, não aceita depois de descartar seu conteúdo.

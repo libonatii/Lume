@@ -135,7 +135,7 @@ No celular, os cinco destinos ocupam a barra inferior sem rótulo abreviado. "In
 
 A v1 (`public/xp-policy.js`) continua como base: 100 por aula, leitura, lista de exercícios e apresentação; 150 por entrega; 500 de bônus por curso ou projeto; 25 por bloco de 30 min (teto de 200 por dia); nível a cada 500 XP. **Não recomendo mudar a curva de nível**: ela já está publicada, é linear e explicável, e qualquer mudança alteraria níveis exibidos a pessoas com histórico.
 
-Proposta v2 (exige aprovação da responsável): **bônus de disciplina concluída, 200 XP**. Justificativa: cursos de concurso têm centenas de aulas; o bônus de curso fica a meses de distância, e a disciplina é o marco que a pessoa reconhece ("terminei Constitucional"). Regras: uma vez por identidade de disciplina; exige a disciplina inteira selecionada e grade não parcial nela; não retroativo — disciplinas concluídas antes da v2 recebem a conquista, não o XP.
+Política v2 aprovada e implementada localmente: **bônus de disciplina concluída, 200 XP e conquista**. Uma vez por identidade de disciplina; exige todas as aulas selecionadas, grade completa e conclusões elegíveis. Não há migração ou concessão retroativa de dados antigos. A disciplina é o marco intermediário de cursos extensos.
 
 ### 4.3 Unidades e proteção contra duplicidade
 
@@ -166,6 +166,13 @@ O teto diário de tempo limita quem tenta acumular XP só com relógio; conclus�
 
 ### 4.5 Cargos, requisitos e desbloqueios (proposta)
 
+**Decisão de 03/11/2026:** nomes e requisitos abaixo aprovados para títulos, com formas neutras.
+As colunas de desbloqueio são propostas históricas e não são requisitos de acesso: todas as
+funcionalidades disponíveis valem para todos os cargos. Pausas preservam os títulos; correções
+de eventos reavaliam os requisitos. `public/title-policy.js` é a política executável e `user_titles`
+registra a concessão idempotente. O perfil exibe títulos e critérios, respeitando a privacidade de XP.
+Colaboração permanece por convites; contribuição individual e suas recompensas ficam adiadas.
+
 Os requisitos combinam nível com **marcos concretos**, para que o cargo diga o que a pessoa fez, e não só quanto tempo passou. Nenhuma ferramenta fundamental (estudar, importar, tarefas, sessão, mensagens, amigos, ranking) fica atrás de um cargo.
 
 | Cargo | Requisitos | Recompensa | Desbloqueio funcional | Valor do desbloqueio |
@@ -184,6 +191,11 @@ Gêneros: o cargo é exibido na forma escolhida pela pessoa no perfil (padrão n
 Regras: desbloqueios são permanentes; ficam registrados no servidor (`user_unlocks`, migração nova) a partir de eventos do livro; nunca dependem de sequência diária; um desbloqueio só é anunciado quando a tela correspondente existe e funciona.
 
 ### 4.6 Transição sem apagar histórico
+
+**Substituída pela decisão de 03/11/2026: não migrar dados.** O contrato atual é v3;
+formatos antigos são recusados explicitamente, sem apagar bancos ou converter documentos.
+Tarefa vinculada conclui a aula (recompensa da aula, uma vez); tarefa sem vínculo concede 0 XP.
+Os passos abaixo registram a proposta antiga, não uma autorização de migração.
 
 1. `user_unlocks` é calculado a partir de `xp_events` e `user_achievements` existentes: quem já tem nível e marcos recebe os cargos ao abrir a versão nova, com o critério visível.
 2. O saldo legado (5/10 XP) continua fora de nível, cargo e ranking.

@@ -1,5 +1,11 @@
 # Lume — importação de cursos por link
 
+**Modelo vigente (F2, 03/11/2026):** a análise continua entregando disciplinas/módulos/aulas
+para revisão. Ao confirmar, o material contém somente `units` (pai, tipo, ordem, seleção e
+metadados). Árvores exibidas são derivadas; domínio, API v3 e banco não guardam `steps` e
+`structure` em paralelo. Reimportação preserva ids, referências externas e progresso.
+Não há conversão de bibliotecas antigas ao abrir a conta.
+
 Status: **implementado** — o endpoint `/api/import/analyze` existe no servidor local e no Worker, e a versão
 por link está publicada no site de referência. A leitura de **página copiada** da conta foi implementada depois
 do último deploy e depende de uma nova publicação; consulte a seção 12. Verificado com build, testes de domínio

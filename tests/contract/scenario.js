@@ -3,6 +3,7 @@
 // qualquer alvo de harness.js. Mudança intencional de contrato muda este arquivo.
 
 import assert from 'node:assert/strict';
+import { materialSteps } from '../../public/material-model.js';
 import { addCourse, completeMission, createInitialState } from '../../public/domain.js';
 import { client } from './harness.js';
 import { libraryActions } from '../../public/library-actions.js';
@@ -61,7 +62,9 @@ export async function runContract(target, t) {
     const large = applyCourseImport(empty.state, normalizePayload({ title: 'Grade extensa', disciplines: [{ title: 'Disciplina', modules: [{ title: 'Módulo', lessons: Array.from({ length: 600 }, (_, index) => ({ title: `Aula ${index + 1}` })) }] }] }));
     const stored = await other.request('POST', '/api/library/actions', { body: { id: 'large', revision: empty.revision, actions: libraryActions(empty.state, large) } });
     assert.equal(stored.status, 200, JSON.stringify(stored.data));
-    assert.equal(stored.data.state.courses[0].steps.length, 600);
+    assert.equal(materialSteps(stored.data.state.courses[0]).length, 600);
+    assert.equal('steps' in stored.data.state.courses[0], false);
+    assert.equal('structure' in stored.data.state.courses[0], false);
     const ended = Date.now();
     const timed = await other.request('POST', '/api/library/actions', { body: {
       id: 'time', revision: stored.data.revision, actions: [{ type: 'session.put', value: {
@@ -80,6 +83,29 @@ export async function runContract(target, t) {
     assert.equal(wrong.status, 405);
     assert.match(wrong.headers.get('allow') || '', /POST/);
     assert.equal((await anonymous.request('DELETE', '/api/state')).status, 405);
+  });
+
+  await t.test('tarefa vinculada e disciplina usam a mesma transação e não repetem recompensas', async () => {
+    const { browser } = await register(origin, 'Disciplina');
+    let current = (await browser.request('GET', '/api/library')).data;
+    const payload = normalizePayload({ title: 'Curso completo', completeness: 'complete', disciplines: [{ title: 'Direito', modules: [{ title: 'Aulas', lessons: [{ title: 'Primeira' }, { title: 'Segunda' }] }] }] });
+    const state = applyCourseImport(current.state, payload);
+    const course = state.courses[0];
+    const lessons = materialSteps(course);
+    state.tasks = lessons.map((lesson, index) => ({ id: `task-${index}`, title: lesson.title, courseId: course.id, lessonId: lesson.id, done: false }));
+    let response = await browser.request('POST', '/api/library/actions', { body: { id: 'create', revision: current.revision, actions: libraryActions(current.state, state) } });
+    assert.equal(response.status, 200, JSON.stringify(response.data));
+    current = response.data;
+    const body = { id: 'finish', revision: current.revision, actions: current.state.tasks.map((task) => ({ type: 'task.put', value: { ...task, done: true, completedAt: new Date().toISOString() } })) };
+    response = await browser.request('POST', '/api/library/actions', { body });
+    assert.equal(response.status, 200, JSON.stringify(response.data));
+    assert.equal(response.data.state.progress.length, 2);
+    assert.equal((await browser.request('POST', '/api/library/actions', { body })).data.duplicate, true);
+    const xp = (await browser.request('GET', '/api/xp')).data;
+    assert.equal(xp.summary.totalXP, 900);
+    assert.equal(xp.events.filter((event) => event.kind === 'discipline_bonus').length, 1);
+    assert.equal(xp.achievements.filter((item) => item.kind === 'discipline').length, 1);
+    assert.ok(xp.titles.some((item) => item.id === 'beginner'));
   });
 
   await t.test('sessão anônima', async () => {

@@ -5,7 +5,9 @@
 // protótipo (5 XP por preparação, 10 XP por etapa/tarefa) fica separado e nunca
 // entra aqui, no nível novo ou no ranking.
 
-export const XP_POLICY_VERSION = 'v1';
+import { materialSteps } from './material-model.js';
+
+export const XP_POLICY_VERSION = 'v2';
 export const LEVEL_XP = 500;
 export const TIME_BLOCK_SECONDS = 30 * 60;
 export const TIME_BLOCK_XP = 25;
@@ -20,11 +22,12 @@ export const XP_VALUES = Object.freeze({
   slide: 100,
   course_bonus: 500,
   project_bonus: 500,
+  discipline_bonus: 200,
 });
 
 export const STEP_KINDS = Object.freeze(['lesson', 'reading', 'exercise', 'delivery']);
 export const BONUS_KINDS = Object.freeze(['course_bonus', 'project_bonus']);
-export const ALL_KINDS = Object.freeze([...STEP_KINDS, ...BONUS_KINDS, 'slide', 'time_block', 'adjustment']);
+export const ALL_KINDS = Object.freeze([...STEP_KINDS, ...BONUS_KINDS, 'discipline_bonus', 'slide', 'time_block', 'adjustment']);
 
 export const XP_KIND_LABELS = Object.freeze({
   lesson: 'Aula concluída',
@@ -34,6 +37,7 @@ export const XP_KIND_LABELS = Object.freeze({
   slide: 'Apresentação concluída',
   course_bonus: 'Curso completo',
   project_bonus: 'Projeto completo',
+  discipline_bonus: 'Disciplina concluída',
   time_block: 'Bloco de 30 minutos',
   adjustment: 'Ajuste de integridade',
 });
@@ -58,7 +62,7 @@ export function xpForKind(kind) {
 }
 
 export function isImportedCourse(course) {
-  return Boolean(course && course.source && Array.isArray(course.structure));
+  return Boolean(course?.source && course.units?.some((unit) => unit.kind === 'discipline'));
 }
 
 // Um curso "planejado" (por exemplo, "definir o próximo marco") organiza a
@@ -69,8 +73,7 @@ export function isEligibleCourse(course) {
     && course.example !== true
     && course.planning !== true
     && course.source?.demo !== true
-    && Array.isArray(course.steps)
-    && course.steps.length > 0;
+    && materialSteps(course).length > 0;
 }
 
 export function completionKindForCourse(course) {
@@ -129,12 +132,8 @@ export function slideProgressSnapshot(course) {
 export function courseGradeIsComplete(course) {
   if (!isImportedCourse(course)) return true;
   if (course.source.completeness !== 'complete') return false;
-  const total = (course.structure || [])
-    .flatMap((discipline) => discipline.modules || [])
-    .flatMap((module) => module.lessons || [])
-    .filter((lesson) => lesson && lesson.removedFromSource !== true)
-    .length;
-  return total > 0 && course.steps.length >= total;
+  const lessons = course.units.filter((unit) => unit.kind === 'lesson' && !unit.data.removedFromSource);
+  return lessons.length > 0 && lessons.every((unit) => unit.selected);
 }
 
 export function normalizeTimeZone(value) {

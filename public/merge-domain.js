@@ -8,6 +8,7 @@
 import { STATE_VERSION, restoreState } from './domain.js';
 import { mergeProgress } from './progress-domain.js';
 import { mergeBackup } from './backup-domain.js';
+import { materialSteps } from './material-model.js';
 
 function onboardingTime(value) {
   const candidate = value && typeof value === 'object' ? value : {};
@@ -44,7 +45,7 @@ export function mergeStates(local, remote) {
     return task;
   });
   // Entre dispositivos, desfazer uma conclusão num deles vale para o outro.
-  const stepIds = new Set(courses.flatMap((course) => course.steps.map((step) => step.id)));
+  const stepIds = new Set(courses.flatMap((course) => materialSteps(course).map((step) => step.id)));
   const progress = mergeProgress(left.progress || [], right.progress || [], { revertWins: true })
     .filter((event) => stepIds.has(event.unitId));
   const selected = courses.some((course) => course.id === merged.selectedCourseId)

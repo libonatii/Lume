@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { stepUnits } from '../../public/material-model.js';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
@@ -31,7 +32,7 @@ async function saveProject(db, ownerId) {
   state.onboarded = true;
   state.courses[0].type = 'project';
   state.courses[0].id = 'p1';
-  state.courses[0].steps = [{ id: 'p1-0', title: 'Implementar autenticação' }, { id: 'p1-1', title: 'Publicar documentação' }];
+  state.courses[0].units = stepUnits([{ id: 'p1-0', title: 'Implementar autenticação' }, { id: 'p1-1', title: 'Publicar documentação' }]);
   await db.run('INSERT INTO user_state (user_id, state, updated_at) VALUES (?, ?, ?)', [ownerId, JSON.stringify(state), '2026-10-31T12:00:00Z']);
   return state;
 }

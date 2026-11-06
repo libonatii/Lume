@@ -1,17 +1,18 @@
 import test from 'node:test';
+import { materialSteps, stepUnits } from '../../public/material-model.js';
 import assert from 'node:assert/strict';
 import { createInitialState, restoreState, completeMission, totalXP, courseProgress, courseStatus, achievements, addCourse, safeCourseURL, weekCount } from '../../public/domain.js';
 import { nextAction } from '../../public/study-plan.js';
 import { studyRhythm, startJourney, saveOnboardingAnswer, completeJourney, normalizeOnboarding, addMaterial, journeyPlan, STATE_VERSION } from '../../public/domain.js';
-import { completedUnitIds, isCompleted, progressFromV1 } from '../../public/progress-domain.js';
+import { completedUnitIds, isCompleted } from '../../public/progress-domain.js';
 
 // Estado de teste com trilhas próprias. A biblioteca real começa vazia.
 function seededState() {
   const steps = (prefix, count) => Array.from({ length: count }, (_, index) => ({ id: `${prefix}-${index + 1}`, title: `Etapa ${index + 1}` }));
   const state = createInitialState();
   state.courses = [
-    { id: 'design', title: 'Design de interfaces', category: 'Design & criatividade', art: 'design', url: '', example: false, paused: false, steps: steps('design', 4) },
-    { id: 'python', title: 'Primeiros passos em Python', category: 'Tecnologia & programação', art: 'code', url: '', example: false, paused: false, steps: steps('python', 4) },
+    { id: 'design', title: 'Design de interfaces', category: 'Design & criatividade', art: 'design', url: '', example: false, paused: false, units: stepUnits(steps('design', 4)) },
+    { id: 'python', title: 'Primeiros passos em Python', category: 'Tecnologia & programação', art: 'code', url: '', example: false, paused: false, units: stepUnits(steps('python', 4)) },
   ];
   state.selectedCourseId = 'design';
   return state;
@@ -61,7 +62,7 @@ test('tornar menor não conclui a aula nem concede XP de preparação', () => {
 
 test('curso concluído não volta às sugestões', () => {
   let state = seededState();
-  for (const step of state.courses[0].steps) state = completeMission(state, 'design', step.id).state;
+  for (const step of materialSteps(state.courses[0])) state = completeMission(state, 'design', step.id).state;
   assert.equal(courseStatus(state, state.courses[0]), 'completed');
   assert.equal(nextAction(state).courseId, 'python');
   assert.equal(achievements(state).find((item) => item.id === 'course').unlocked, true);
@@ -82,7 +83,7 @@ test('cursos próprios validam links e ganham etapas únicas', () => {
   assert.equal(safeCourseURL('https://user:secret@example.com'), null);
   assert.equal(safeCourseURL('https://example.com/aula'), 'https://example.com/aula');
   const state = addCourse(createInitialState(), { title: ' Meu curso ', steps: [' Abrir material ', '', 'Praticar'] }, 'custom');
-  assert.equal(state.courses.at(-1).steps.length, 2);
+  assert.equal(materialSteps(state.courses.at(-1)).length, 2);
   assert.equal(nextAction(state).courseTitle, 'Meu curso');
   assert.equal(achievements(state).find((item) => item.id === 'own').unlocked, true);
   assert.throws(() => addCourse(state, { title: 'X', steps: [], url: '' }));
@@ -100,9 +101,7 @@ test('pausas não reduzem o saldo legado nem apagam conquistas', () => {
   // Histórico antigo do protótipo (documento v1): continua aceito e preservado.
   let state = restoreState({
     ...seededState(),
-    version: 1,
-    history: [{ id: 'step:design-1', courseId: 'design', stepId: 'design-1', title: 'Etapa 1', courseTitle: 'Design de interfaces', preparation: false, xp: 10, at: '2026-01-01T12:00:00Z' }],
-    completed: ['design-1'],
+    progress: [{ id: 'step:design-1', materialId: 'design', unitId: 'design-1', type: 'completion', origin: 'legacy', historical: true, title: 'Etapa 1', materialTitle: 'Design de interfaces', legacyXp: 10, at: '2026-01-01T12:00:00Z' }],
   });
   assert.equal(state.progress[0].origin, 'legacy');
   assert.equal(state.progress[0].legacyXp, 10);
@@ -131,6 +130,12 @@ test('armazenamento inválido não quebra o início e preferências são normali
   // Um curso estragado não apaga os outros.
   const broken = { ...state, courses: [...state.courses, { id: 'quebrado', title: 3, steps: [] }] };
   assert.deepEqual(restoreState(JSON.stringify(broken)).courses.map((course) => course.id), ['design', 'python']);
+  const brokenUnit = structuredClone(state);
+  delete brokenUnit.courses[0].units[1].data.title;
+  const recovered = restoreState(brokenUnit);
+  assert.equal(recovered.courses.length, 2);
+  assert.equal(materialSteps(recovered.courses[0]).length, 3);
+  assert.equal(isCompleted(recovered, 'design-1'), true);
 });
 
 test('preferência antiga de reduzir movimentos é descartada e não volta ao estado', () => {
@@ -228,7 +233,7 @@ test('paleta da Aparência começa no Redesign Moderno e valores desconhecidos v
   assert.equal(restoreState(JSON.stringify(old)).preferences.palette, 'moderno');
 });
 
-test('documento v1 é convertido sem perder conclusões, preparações nem o saldo legado', () => {
+test('documentos antigos são recusados sem modificar o objeto original', () => {
   const v1 = {
     ...seededState(),
     version: 1,
@@ -241,22 +246,7 @@ test('documento v1 é convertido sem perder conclusões, preparações nem o sal
     ],
     studyLog: [],
   };
-  const converted = restoreState(JSON.stringify(v1));
-  assert.equal(converted.version, STATE_VERSION);
-  assert.equal('completed' in converted || 'history' in converted || 'studyLog' in converted, false);
-  // Invariante: o conjunto concluído é exatamente o do v1.
-  assert.deepEqual([...completedUnitIds(converted)].sort(), ['design-1', 'design-2', 'python-1']);
-  // Preparação continua preparação; nunca vira aula concluída.
-  assert.equal(isCompleted(converted, 'design-3'), false);
-  assert.equal(converted.progress.filter((event) => event.type === 'preparation').length, 2);
-  // Saldo legado preservado: 5 (preparação) + 10 (etapa).
-  assert.equal(totalXP(converted), 15);
-  // Concluída sem registro (python-1) entra como histórico sem data.
-  const orphan = converted.progress.find((event) => event.unitId === 'python-1');
-  assert.equal(orphan.origin, 'legacy');
-  assert.equal(orphan.historical, true);
-  assert.equal(orphan.at, null);
-  // Converter de novo o resultado não muda nada.
-  assert.deepEqual(restoreState(JSON.stringify(converted)).progress, converted.progress);
-  assert.deepEqual(progressFromV1({}), []);
+  const before = JSON.stringify(v1);
+  assert.throws(() => restoreState(v1), /incompatível/);
+  assert.equal(JSON.stringify(v1), before);
 });

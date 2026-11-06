@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { createInitialState } from '../../public/domain.js';
+import { stepUnits, materialSteps } from '../../public/material-model.js';
+import { libraryActions } from '../../public/library-actions.js';
 
 const PASSWORD = 'senha-local-teste-123';
 
@@ -29,26 +31,23 @@ function courseState(completedIds = ['c1-0']) {
     resumeAt: '',
     slides: [],
     slideProgress: { seen: [], lastId: '', completedAt: null },
-    steps: [
+    units: stepUnits([
       { id: 'c1-0', title: 'Aula 1' },
       { id: 'c1-1', title: 'Aula 2' },
       { id: 'c1-2', title: 'Aula 3' },
-    ],
+    ]),
   }];
   state.selectedCourseId = 'c1';
   // Formato v1, como uma conta criada antes do registro único de progresso.
-  state.version = 1;
-  delete state.progress;
-  state.completed = [...completedIds];
-  state.history = completedIds.map((stepId) => ({
+  state.progress = completedIds.map((stepId) => ({
     id: `step:${stepId}`,
-    courseId: 'c1',
-    stepId,
-    title: state.courses[0].steps.find((step) => step.id === stepId)?.title || 'Aula',
-    courseTitle: 'Curso de teste',
-    preparation: false,
-    xp: 0,
-    policy: 'v1',
+    materialId: 'c1',
+    unitId: stepId,
+    title: materialSteps(state.courses[0]).find((step) => step.id === stepId)?.title || 'Aula',
+    materialTitle: 'Curso de teste',
+    type: 'completion',
+    origin: 'manual',
+    historical: false,
     at: new Date(Date.now() + 1000).toISOString(),
   }));
   return state;
@@ -102,9 +101,9 @@ test('ranking exige opt-in, mostra o próprio XP validado e pode ser desligado',
   await register(page.request, baseURL, 'Ana Ranking', 'xp-ranking');
   await (await page.request.get('/api/xp?timeZone=UTC', { headers: { origin: baseURL } })).json();
   const state = courseState(['c1-0']);
-  await page.request.put('/api/state', { data: state, headers: { origin: baseURL } });
-  const grant = await page.request.post('/api/xp/complete', { data: { courseId: 'c1', stepId: 'c1-0' }, headers: { origin: baseURL } });
-  expect((await grant.json()).added).toBe(true);
+  const initial = await (await page.request.get('/api/library', { headers: { origin: baseURL } })).json();
+  const grant = await page.request.post('/api/library/actions', { data: { id: 'study', revision: initial.revision, actions: libraryActions(initial.state, state) }, headers: { origin: baseURL } });
+  expect(grant.status()).toBe(200);
 
   await page.goto('/#hoje');
   // A Hoje mostra o nível e a última recompensa validada, com o tipo de conclusão.

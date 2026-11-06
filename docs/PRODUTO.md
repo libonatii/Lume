@@ -112,9 +112,9 @@ A pessoa cola o link do curso, o Lume identifica a plataforma e apresenta as ár
 - A pessoa mantém uma lista de tarefas necessárias para estudar para uma prova, com vínculo opcional a um curso, prazo opcional e prioridade explícita. Tarefas atrasadas aparecem primeiro, também na página Hoje.
 - Definir ou mudar a prioridade é organização e não gera XP.
 - Criar, editar, organizar ou remover tarefas é preparação e não gera XP.
-- Concluir uma tarefa de estudo definida concede XP uma vez; reabrir retira o XP até concluir de novo, sem acumular. A regra em execução é transitória e está detalhada em [Gamificação](GAMIFICACAO.md#tarefas-de-prova--regra-em-execução-no-protótipo).
-- O XP da tarefa é declarado no navegador no protótipo e não vale para ranking até existir validação no servidor. A migração proposta (tarefa vinculada a aula conclui a aula; tarefa sem vínculo é organizacional) está em [Evolução §4.6](EVOLUCAO.md#46-transição-sem-apagar-histórico) e depende de aprovação.
-- Tarefas não concluem curso, não criam conquista por material e não substituem a sessão de estudo declarada.
+- Concluir tarefa vinculada a uma aula conclui a aula; o servidor concede sua recompensa uma única vez, mesmo com várias tarefas para ela. Tarefa sem vínculo é organizacional e concede 0 XP.
+- Reabrir tarefa não desfaz a aula nem retira XP. Correções de estudo são ações separadas e identificadas.
+- A aula registrada participa dos bônus de disciplina e curso; a tarefa não tem bônus próprio nem substitui a sessão de estudo declarada.
 
 ### Sessão declarada e aplicativo de desktop (implementados)
 
@@ -250,7 +250,7 @@ As regras detalhadas estão em [Gamificação](GAMIFICACAO.md).
 
 1. Preparar o material não altera XP, nível ou placar.
 2. Concluir uma aula elegível gera recompensa uma única vez e preserva a próxima ação da trilha.
-3. Concluir uma tarefa de prova definida gera XP uma única vez; criar ou organizar a lista não gera nada.
+3. Concluir tarefa vinculada registra a aula e seu XP uma única vez; sem vínculo, criar ou organizar não gera nada.
 4. Um curso concluído gera uma conquista com seu nome e o bônus de curso definido na política.
 5. Um artigo incompleto permanece em andamento com marcador de retomada; sua conclusão gera uma conquista própria.
 6. A aula pode ser retomada automaticamente apenas nas fontes com essa capacidade; nas demais, a interface informa o registro manual.
@@ -259,3 +259,4 @@ As regras detalhadas estão em [Gamificação](GAMIFICACAO.md).
 9. O ranking permite alternar entre nível, cursos concluídos e empenho no período, com regras visíveis e dados autorizados. A visão acumulada não desaparece na virada da semana.
 10. Mudar o ritmo ou precisar de uma pausa não retira conquistas.
 11. A experiência funciona com teclado, temas e texto ajustável; os recursos sociais podem ser ocultos quando a pessoa assim escolher. Modo essencial e tratamento de movimento reduzido foram retirados do escopo por decisão explícita da responsável.
+12. Disciplina completa concede 200 XP e conquista uma vez, com grade completa e aulas elegíveis. Cargos são títulos de progressão; não bloqueiam funcionalidades.

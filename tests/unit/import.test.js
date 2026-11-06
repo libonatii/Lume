@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { materialSteps, materialStructure } from '../../public/material-model.js';
 import assert from 'node:assert/strict';
 import {
   allLessonIds, applyCourseImport, canonicalUrl, completeLesson, courseSummary, findLessonByUrl,
@@ -202,7 +203,7 @@ test('progresso já marcado na página copiada entra como histórico sem XP', ()
   assert.equal(payload.completedCount, 1);
   const state = applyCourseImport(createInitialState(), payload, { now: '2026-10-31T12:00:00Z' });
   const course = state.courses[0];
-  const first = course.steps.find((step) => step.title === completedTitle);
+  const first = materialSteps(course).find((step) => step.title === completedTitle);
   assert.ok(isCompleted(state, first.id));
   const entry = eventFor(state, first.id);
   assert.equal(entry.origin, 'import');
@@ -258,8 +259,8 @@ test('importar não concede XP e cria curso tipado com disciplinas', () => {
   const state = applyCourseImport(createInitialState(), payload);
   const course = state.courses.at(-1);
   assert.equal(state.courses.length, 1);
-  assert.equal(course.steps.length, 3);
-  assert.equal(course.structure.length, 2);
+  assert.equal(materialSteps(course).length, 3);
+  assert.equal(materialStructure(course).length, 2);
   assert.equal(course.source.provider, 'grancursos');
   assert.equal(course.source.completeness, 'partial');
   assert.equal(totalXP(state), 0, 'importar organiza, não recompensa');
@@ -280,7 +281,7 @@ test('importação parcial seleciona disciplinas sem marcar o curso inteiro como
   const areaA = payload.disciplines[0].modules[0].lessons.map((lesson) => lesson.id);
   let state = applyCourseImport(createInitialState(), payload, { selectedLessonIds: areaA });
   const course = state.courses.at(-1);
-  assert.equal(course.steps.length, 2);
+  assert.equal(materialSteps(course).length, 2);
   state = completeLesson(state, course.id, areaA[0]).state;
   state = completeLesson(state, course.id, areaA[1]).state;
   assert.equal(courseSummary(state, course).percent, 100);
@@ -297,7 +298,7 @@ test('reimportar preserva conclusões, aulas removidas e não duplica o curso', 
   const first = normalizePayload(base);
   let state = applyCourseImport(createInitialState(), first);
   const course = state.courses.at(-1);
-  const firstLesson = course.steps[0].id;
+  const firstLesson = materialSteps(course)[0].id;
   state = completeLesson(state, course.id, firstLesson).state;
   const totalCourses = state.courses.length;
 
@@ -311,8 +312,8 @@ test('reimportar preserva conclusões, aulas removidas e não duplica o curso', 
   const merged = state.courses.find((item) => item.source?.identity === updated.identity);
   assert.equal(merged.id, course.id);
   assert.deepEqual([...completedUnitIds(state)], [firstLesson], 'conclusão preservada');
-  assert.ok(merged.steps.some((step) => step.id === firstLesson), 'aula removida da fonte continua no curso');
-  assert.ok(merged.steps.some((step) => step.title === 'Aula 3'));
+  assert.ok(materialSteps(merged).some((step) => step.id === firstLesson), 'aula removida da fonte continua no curso');
+  assert.ok(materialSteps(merged).some((step) => step.title === 'Aula 3'));
   assert.equal(merged.source.importedAt, course.source.importedAt);
   assert.equal(state.progress.length, 1, 'histórico preservado');
   assert.equal(state.imports.length, 2);
@@ -325,7 +326,7 @@ test('conclusão manual é registrada sem XP e pode ser desfeita sem apagar o hi
   });
   let state = applyCourseImport(createInitialState(), payload);
   const course = state.courses.at(-1);
-  const lessonId = course.steps[0].id;
+  const lessonId = materialSteps(course)[0].id;
   const result = completeLesson(state, course.id, lessonId, { origin: 'manual', now: '2026-10-30T10:00:00Z' });
   assert.equal(result.added, true);
   assert.equal(result.xp, 0);
@@ -343,27 +344,25 @@ test('conclusão manual é registrada sem XP e pode ser desfeita sem apagar o hi
   assert.equal(weekCount(undone.state, new Date('2026-10-30T12:00:00Z')), 0);
 });
 
-test('o estado importado sobrevive à restauração e aceita dados legados sem studyLog', () => {
+test('o estado importado sobrevive à restauração e recusa formatos anteriores', () => {
   const payload = normalizePayload({
     title: 'Curso', provider: { id: 'alura' }, sourceUrl: 'https://www.alura.com.br/curso',
     disciplines: [{ title: 'Área', modules: [{ title: 'M', lessons: [{ title: 'Aula 1' }, { title: 'Aula 2' }] }] }],
   });
   let state = applyCourseImport(createInitialState(), payload);
-  state = completeLesson(state, state.courses.at(-1).id, state.courses.at(-1).steps[0].id).state;
+  state = completeLesson(state, state.courses.at(-1).id, materialSteps(state.courses.at(-1))[0].id).state;
   const restored = restoreState(JSON.stringify(state));
   const course = restored.courses.at(-1);
   assert.equal(course.source.identity, payload.identity);
-  assert.equal(course.structure.length, 1);
+  assert.equal(materialStructure(course).length, 1);
   assert.equal(restored.progress.length, 1);
   assert.equal(completedUnitIds(restored).size, completedUnitIds(state).size);
 
-  // Documento v1 de antes do studyLog: lido sem erro e sem progresso inventado.
+  // Documento antigo não é convertido para o formato atual.
   const legacy = { ...createInitialState(), version: 1, completed: [], history: [] };
   delete legacy.progress;
   delete legacy.imports;
-  const legacyRestored = restoreState(JSON.stringify(legacy));
-  assert.deepEqual(legacyRestored.progress, []);
-  assert.equal(legacyRestored.courses.length, 0);
+  assert.throws(() => restoreState(JSON.stringify(legacy)), /incompatível/);
 
   const broken = { ...state, progress: [{ id: 'x' }, ...state.progress] };
   assert.equal(restoreState(JSON.stringify(broken)).progress.length, 1, 'registro inválido não derruba o progresso');
@@ -485,13 +484,13 @@ test('aula com identidade da plataforma mantém progresso quando o título muda'
   });
   let state = applyCourseImport(createInitialState(), normalizePayload(capture('Aula 1 - Introdução')), { now: '2026-11-01T10:00:00Z' });
   const course = state.courses[0];
-  const lessonId = course.steps[0].id;
+  const lessonId = materialSteps(course)[0].id;
   state = completeLesson(state, course.id, lessonId, { now: '2026-11-01T11:00:00Z' }).state;
   state = applyCourseImport(state, normalizePayload(capture('Aula 1 - Introdução ao Direito')), { now: '2026-11-02T10:00:00Z' });
   const updated = state.courses[0];
-  assert.equal(updated.steps.length, 2, 'renomear não cria aula nova');
-  assert.equal(updated.steps[0].id, lessonId);
-  assert.equal(updated.steps[0].title, 'Aula 1 - Introdução ao Direito');
+  assert.equal(materialSteps(updated).length, 2, 'renomear não cria aula nova');
+  assert.equal(materialSteps(updated)[0].id, lessonId);
+  assert.equal(materialSteps(updated)[0].title, 'Aula 1 - Introdução ao Direito');
   assert.ok(isCompleted(state, lessonId));
 });
 
@@ -502,11 +501,11 @@ test('aula importada antes da identidade da plataforma adota o externalId sem pe
   };
   const old = normalizePayload({ ...base, disciplines: [{ title: 'Direito', modules: [{ title: 'Aulas', lessons: [{ title: 'Aula 1' }, { title: 'Aula 2' }] }] }] });
   let state = applyCourseImport(createInitialState(), old, { now: '2026-11-01T10:00:00Z' });
-  const oldId = state.courses[0].steps[0].id;
+  const oldId = materialSteps(state.courses[0])[0].id;
   state = completeLesson(state, state.courses[0].id, oldId, { now: '2026-11-01T11:00:00Z' }).state;
   const next = normalizePayload({ ...base, disciplines: [{ title: 'Direito', externalId: 'd1', modules: [{ title: 'Aulas', lessons: [{ title: 'Aula 1', externalId: 'd1/a1' }, { title: 'Aula 2', externalId: 'd1/a2' }] }] }] });
   state = applyCourseImport(state, next, { now: '2026-11-02T10:00:00Z' });
-  const lessons = state.courses[0].structure[0].modules[0].lessons;
+  const lessons = materialStructure(state.courses[0])[0].modules[0].lessons;
   assert.equal(lessons.filter((lesson) => !lesson.removedFromSource).length, 2, 'nada some nem duplica');
   assert.equal(lessons[0].id, oldId);
   assert.equal(lessons[0].externalId, 'd1/a1');

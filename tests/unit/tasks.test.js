@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { addCourse, createInitialState, restoreState, totalXP, weekCount } from '../../public/domain.js';
 import {
-  MAX_TASKS, TASK_XP, addTask, completeTask, isOverdue, normalizeTasks, priorityLabel, removeTask, reopenTask,
+  MAX_TASKS, addTask, completeTask, isOverdue, normalizeTasks, priorityLabel, removeTask, reopenTask,
   setTaskPriority, sortTasks, taskAgenda,
 } from '../../public/tasks-domain.js';
 
@@ -25,12 +25,12 @@ test('criar tarefa não gera XP e guarda curso e prazo', () => {
   assert.equal(unknown.tasks[0].dueDate, '');
 });
 
-test('concluir uma tarefa vale XP uma vez e reabrir não duplica', () => {
+test('concluir tarefa sem aula vinculada não concede XP', () => {
   const state = stateWithTask();
   const result = completeTask(state, state.tasks[0].id, '2026-10-31T11:00:00Z');
   assert.equal(result.added, true);
-  assert.equal(result.xp, TASK_XP);
-  assert.equal(totalXP(result.state), TASK_XP);
+  assert.equal(result.xp, 0);
+  assert.equal(totalXP(result.state), 0);
   assert.equal(result.state.tasks[0].completedAt, '2026-10-31T11:00:00.000Z');
   assert.equal(completeTask(result.state, state.tasks[0].id).added, false);
 
@@ -38,7 +38,7 @@ test('concluir uma tarefa vale XP uma vez e reabrir não duplica', () => {
   assert.equal(reopened.tasks[0].done, false);
   assert.equal(totalXP(reopened), 0);
   const again = completeTask(reopened, state.tasks[0].id, '2026-10-31T12:00:00Z');
-  assert.equal(totalXP(again.state), TASK_XP, 'reabrir e concluir não acumula duas vezes');
+  assert.equal(totalXP(again.state), 0, 'reabrir e concluir não concede XP próprio');
 });
 
 test('remover tarefa apaga apenas o registro escolhido', () => {
@@ -56,7 +56,7 @@ test('tarefas sobrevivem à restauração e dados inválidos são descartados', 
   const restored = restoreState(JSON.stringify(state));
   assert.equal(restored.tasks.length, 1);
   assert.equal(restored.tasks[0].done, true);
-  assert.equal(totalXP(restored), TASK_XP);
+  assert.equal(totalXP(restored), 0);
 
   const legacy = createInitialState();
   delete legacy.tasks;
@@ -67,10 +67,10 @@ test('tarefas sobrevivem à restauração e dados inválidos são descartados', 
   assert.equal(normalizeTasks(new Array(MAX_TASKS + 5).fill(0)).length, 0);
 });
 
-test('tarefa concluída conta no ritmo da semana', () => {
+test('tarefa organizacional não conta como aula no ritmo da semana', () => {
   const base = stateWithTask();
   const state = completeTask(base, base.tasks[0].id, '2026-10-28T12:00:00Z').state;
-  assert.equal(weekCount(state, new Date('2026-10-29T12:00:00Z')), 1);
+  assert.equal(weekCount(state, new Date('2026-10-29T12:00:00Z')), 0);
   assert.equal(weekCount(state, new Date('2026-11-05T12:00:00Z')), 0);
 });
 

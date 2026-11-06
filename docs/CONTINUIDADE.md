@@ -34,12 +34,12 @@ Telas React → ações nomeadas → useLibraryPersistence → /api/library/acti
   revisão otimista e idempotência. Falha permite repetir o mesmo id; conflito exige recarga.
   Requisições em andamento são serializadas somente em memória.
 - `0012_library.sql` persiste materiais, unidades, progresso, tarefas, sessões e preferências.
-  `user_state` é preservado como arquivo e convertido na primeira leitura. Escritas legadas
-  após conversão recebem `client_outdated`. Não há IndexedDB, fila offline ou reconciliação
+  Não há migração de dados: documentos antigos permanecem no banco e recebem erro explícito
+  `library_format_unsupported`. Escritas legadas sobre bibliotecas novas recebem `client_outdated`. Não há IndexedDB, fila offline ou reconciliação
   de documentos no navegador. A prévia dura somente enquanto a página está aberta.
-- `material-model.js` separa materiais e unidades e deriva `steps`/`structure` para compatibilidade.
-  As telas leem `materialSteps`, `materialStructure` e `materialLesson`; os domínios e o contrato
-  v2 ainda usam a projeção. Isso não é uma migração integral do modelo em memória.
+- `material-model.js` define materiais com `units` no domínio, transporte v3 e banco.
+  `materialSteps`, `materialStructure` e `materialLesson` são visualizações derivadas:
+  nenhum material mantém `steps`, `structure` ou `selection` em paralelo.
 - `state.progress` é o registro único de conclusões/preparações, com origem e `revertedAt`.
   `library-actions.js` e `library-time.js` gravam progresso, XP e conquistas atomicamente.
   `xp_events` é a autoridade do ranking; valores e limites vêm de `xp-policy.js`.
@@ -58,17 +58,18 @@ Telas React → ações nomeadas → useLibraryPersistence → /api/library/acti
 | Cursos | Importação por link/texto/arquivo/página copiada/extensão, revisão e reimportação que preserva ids e progresso |
 | Próxima ação | Hoje, Biblioteca, diálogo, roteiro, perfil e Desktop usam o critério de `study-plan.js`; `nextMission` foi removido |
 | Plano | Disponibilidade, prazos, prioridades, cronograma derivado, conflitos explicados e adiamento |
-| Tarefas | Prazo, prioridade, vínculo com aula, subtarefas e regra transitória de 10 XP legado, fora do ranking |
+| Tarefas | Prazo, prioridade, vínculo com aula e subtarefas; concluir tarefa vinculada conclui a aula, sem XP próprio; sem vínculo, 0 XP |
 | Sessão | Início, pausa, retomada, batimentos e encerramento; sobras de tempo, sobreposição e teto tratados no servidor |
 | Slides | Editor, ordem, imagens, navegação por teclado e conclusão confirmada com cobertura do deck |
 | XP | Livro idempotente, bônus, tempo, extrato e correção por ajuste negativo; saldo legado separado |
-| Conquistas | Marcos personalizados por material e selos antigos identificados como legado |
+| Conquistas | Marcos personalizados por material e disciplina; disciplina completa recebe 200 XP uma vez |
+| Cargos | Títulos por nível e marcos, calculados no servidor e exibidos no perfil; sem bloqueios funcionais |
 | Amigos | Convites de sete dias, aceite, lista, remoção e perfil com escolhas de compartilhamento |
 | Mensagens | Conversas entre amizades, referências, histórico, não lidas, bloqueio e preferência de notificação |
 | Ranking | Nível, cursos e empenho semanal/mensal; opt-in, empates, período/fuso e legado fora |
 | GitHub | Leitura pública de README, issues e milestones; sugestões revisáveis de entregas |
 | Colaboração | Convite por entrega, aceite/recusa e cancelamento; sem copiar projeto ou conceder XP |
-| Backup | Exportação e restauração explícita de v1/v2 com prévia; preserva preferências e privacidade |
+| Backup | Exportação e restauração explícita do formato v3 com prévia; versões antigas recusadas, sem conversão |
 | Aparência | Azul/Roxo, claro/escuro, tamanho do texto e cores por função; logo preservado |
 | Desktop | Lume completo em Electron, bandeja, pareamento, presença opcional, atualização e Discord |
 

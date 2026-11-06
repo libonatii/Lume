@@ -26,8 +26,7 @@ Em ordem de impacto para quem usa o site publicado.
 | 2 | **Imagens indisponíveis em produção** | Foto de perfil, capa e imagens de slides respondem 503: o binding R2 `MEDIA` está comentado em `wrangler.jsonc` porque o R2 não está habilitado na conta | Só local | [C6](#c6--imagens-de-perfil-e-de-slides) |
 | 3 | **Nenhum fluxo com conta foi verificado em produção** | XP, ranking, mensagens, colaboração, sincronização e Companion só foram exercitados no servidor local e nos e2e. Em produção, apenas `GET` anônimos confirmam que as rotas existem. O custo de bcrypt 6 no Worker também não foi medido | Só local | [O1](#o1--verificação-em-produção) |
 | 4 | **Acompanhamento de aulas externas ainda não foi provado** | É o problema central declarado. A extensão do navegador lê a grade e as conclusões que a plataforma mostra, mas só foi testada com páginas de exemplo e um trecho salvo do Gran; nunca rodou num Chrome real nem numa conta real. Não há observação de reprodução nem retomada automática, e um curso grande do Gran ultrapassa o limite de 600 aulas | Protótipo | [I2](#i2--progresso-e-reprodução-de-aulas-externas), [I6](#i6--limite-de-tamanho-de-cursos-grandes) |
-| 5 | **Nível sem consequência** | Não existem cargos nem desbloqueios; a pessoa não escolhe quais conquistas aparecem no perfil | Não implementado | [G2](#g2--cargos-e-desbloqueios), [G3](#g3--conquistas-no-perfil) |
-| 6 | **XP de tarefas fora do servidor** | Concluir uma tarefa de prova vale 10 XP calculados no navegador (saldo antigo), fora do nível, do ranking e do livro de eventos. A migração depende de decisão | Parcial (transitório) | [G4](#g4--xp-das-tarefas-de-prova) |
+| 5 | **Escolha de conquistas no perfil** | Cargos já são títulos sem bloqueio; falta escolher quais conquistas exibir | Parcial | [G3](#g3--conquistas-no-perfil) |
 | 7 | **Social sem segurança nem reconhecimento** | Não há denúncia de abuso (exigida em Produto §7), compartilhamento de aprendizados nem reconhecimento a conquistas de amigos. Colaboração não registra contribuição. Mensagens chegam por consulta periódica, sem notificação | Parcial | [S2](#s2--segurança-social-e-moderação)–[S5](#s5--colaboração-com-contribuição-identificável) |
 | 8 | **Conta e dados pessoais incompletos** | Não é possível trocar senha ou e-mail estando logada, excluir a conta nem ver sessões ativas. Não há termos de uso nem política de privacidade, embora o site guarde e-mail e progresso | Parcial | [C2](#c2--gestão-da-conta), [C3](#c3--termos-privacidade-e-exclusão-de-dados) |
 | 9 | **Organização ao estilo Notion** | Sem anotações ligadas ao material, quadro de projeto, trilhas como sequência de materiais ou modelos | Não implementado | [B3](#b3--anotações-trilhas-e-modelos) |
@@ -65,7 +64,7 @@ Os dois ambientes (`server.js` e `worker.js`) servem o mesmo app de `api/`; `tes
 existentes: `users`, `sessions`, `password_resets`, `rate_limits`, `user_state`, `companion_*`, `friend*`,
 `xp_settings`, `xp_events`, `xp_time_sessions`, `user_achievements`, `direct_messages`, `contact_blocks`,
 `message_preferences`, `delivery_invites`, `materials`, `units`, `study_progress`, `study_tasks`,
-`study_sessions`, `account_documents`, `library_operations`, `library_write_guards`. Não existe tabela para cargos, desbloqueios, denúncias,
+`study_sessions`, `account_documents`, `library_operations`, `library_write_guards`, `user_titles`. Não existe tabela para desbloqueios, denúncias,
 publicações, anotações nem observação de reprodução.
 
 ---
@@ -97,8 +96,8 @@ privacidade nem exclusão de conta. A exportação em JSON já existe em Configu
 
 ### C4 — Migração da prévia para a conta
 **Fora do escopo por decisão de 03/11/2026.** O cliente passa a acessar diretamente a API; dados de estudo do
-navegador são descartados. A prévia é temporária em memória. A conversão preserva os documentos já existentes
-no servidor, não copia dados de IndexedDB ou localStorage para D1.
+navegador são descartados. A prévia é temporária em memória. Não há migração de dados: formatos antigos
+permanecem no servidor, com erro explícito de incompatibilidade, sem conversão nem exclusão.
 
 ### C5 — Senhas e custo de hash
 **Parcial.** bcrypt com custo 6 no Worker, abaixo do mínimo 10 da OWASP, por limite de CPU do plano gratuito.
@@ -202,24 +201,22 @@ com motivo. Falta: teste de concorrência entre dispositivos no Worker publicado
 evento.
 
 ### G2 — Cargos e desbloqueios
-**Não implementado.** A proposta (oito cargos, requisitos, desbloqueios funcionais e transição) está em
-[Evolução §4.5](EVOLUCAO.md#45-cargos-requisitos-e-desbloqueios-proposta). Exige tabela nova (`user_unlocks`),
-cálculo no servidor a partir do livro e uma tela de progressão.
-- Pronto quando: um cargo é concedido uma única vez mesmo com requisições repetidas, aparece no perfil, não some
-  com pausas, e o primeiro desbloqueio pode ser usado de fato.
+**Implementado localmente:** oito critérios de títulos aprovados em [Evolução §4.5](EVOLUCAO.md#45-cargos-requisitos-e-desbloqueios-proposta),
+concessão idempotente em `user_titles`, perfil com critérios e reavaliação nas correções.
+Bloqueios funcionais foram rejeitados: todas as funcionalidades disponíveis são acessíveis a todos.
+Modelos, trilhas e desafios continuam recursos futuros independentes de cargo.
 
 ### G3 — Conquistas no perfil
 **Parcial.** Conquistas por material existem; a pessoa não escolhe quais aparecem no perfil (todas aparecem
 quando o XP está compartilhado).
 
 ### G4 — XP das tarefas de prova
-**Parcial (regra transitória).** 10 XP calculados no navegador, uma vez por tarefa, fora do servidor, do nível
-e do ranking. A proposta de migração (tarefa ligada a aula conclui a aula; tarefa sem vínculo não gera XP) está
-em [Evolução §4.6](EVOLUCAO.md#46-transição-sem-apagar-histórico) e depende de aprovação.
+**Implementado localmente:** tarefa vinculada conclui a aula e usa sua recompensa no servidor, uma vez.
+Tarefa sem vínculo concede 0 XP. Reabrir tarefa não desfaz a aula. Não há migração de saldos antigos.
 
 ### G5 — Bônus de disciplina
-**Não implementado; proposta.** 200 XP por disciplina concluída, não retroativo
-([Evolução §4.2](EVOLUCAO.md#42-política-de-xp-manter-a-v1-e-acrescentar-uma-unidade)). Depende de aprovação.
+**Implementado localmente:** 200 XP e conquista por disciplina, uma vez por identidade.
+Exige grade completa, todas as aulas selecionadas e conclusões elegíveis. Sem concessão retroativa.
 
 ---
 
@@ -303,9 +300,8 @@ Ver [Refatoração F7](REFATORACAO_01112026.md#f7--css-por-componente-sobre-toke
 ### D2 — Regras antigas ainda em uso
 `nextMission` e `applyStudyRhythm` foram removidos. `HABITS` e `CHALLENGES` continuam validando campos
 de documentos antigos em `restoreState`; `weekCount` tem consumidores reais e não conta preparações.
-O saldo legado continua separado do livro do servidor. `steps`/`structure` são projeções de compatibilidade
-do modelo persistido, ainda usadas pelas regras de domínio e pelo contrato v2; as telas usam seletores.
-Eliminar também esse formato em memória exige uma migração de contrato/domínio, não apagar os leitores.
+O saldo legado continua separado do livro do servidor. F2 usa `units` no domínio e contrato v3;
+`steps`/`structure` são somente visualizações derivadas. Documentos antigos não são convertidos.
 
 ### D3 — Exportações sem consumidor
 Resolvido em 01/11/2026: `importXp`, `selectedCount`, `providerSummary`, `emptySessionState`, `GITHUB_CAPABILITIES`,
@@ -345,9 +341,6 @@ npm run test:e2e  # cenários desktop e celular; build prévio obrigatório
 | Provedor de e-mail e remetente da recuperação | C1 |
 | Habilitar R2 na conta Cloudflare | C6 |
 | Textos de termos de uso e política de privacidade; regra de exclusão de conta | C3 |
-| Migração do XP das tarefas de prova | G4 |
-| Bônus de 200 XP por disciplina | G5 |
-| Nomes e requisitos dos cargos | G2 |
 | Manter ou escurecer o *hover* dos botões | V3 |
 | Publicar a versão 0.5.1 do aplicativo de desktop | §8 |
 | Elevar o limite de 600 aulas após medir o formato por entidade | I6 |

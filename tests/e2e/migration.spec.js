@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { materialSteps, stepUnits } from '../../public/material-model.js';
 import { createInitialState, completeMission } from '../../public/domain.js';
 import { seedAccount, readAccount } from './library-helpers.js';
 
@@ -8,8 +9,8 @@ function seededState() {
   const steps = (prefix, count) => Array.from({ length: count }, (_, index) => ({ id: `${prefix}-${index + 1}`, title: `Etapa ${index + 1}` }));
   const state = createInitialState();
   state.courses = [
-    { id: 'design', title: 'Design de interfaces', category: 'Design & criatividade', art: 'design', url: '', example: false, paused: false, steps: steps('design', 4) },
-    { id: 'python', title: 'Primeiros passos em Python', category: 'Tecnologia & programação', art: 'code', url: '', example: false, paused: false, steps: steps('python', 4) },
+    { id: 'design', title: 'Design de interfaces', category: 'Design & criatividade', art: 'design', url: '', example: false, paused: false, units: stepUnits(steps('design', 4)) },
+    { id: 'python', title: 'Primeiros passos em Python', category: 'Tecnologia & programação', art: 'code', url: '', example: false, paused: false, units: stepUnits(steps('python', 4)) },
   ];
   state.selectedCourseId = 'design';
   return state;
@@ -19,16 +20,9 @@ test('prévia, dados legados, busca, filtros, teclado, curso e progresso', async
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
-  // Documento salvo por uma versão antiga do Lume (formato v1: completed + history).
+  // Biblioteca no formato atual, com uma aula já concluída.
   const at = new Date().toISOString();
-  const { progress: _progress, ...current } = completeMission(seededState(), 'design', 'design-1', { now: at }).state;
-  const oldState = {
-    ...current,
-    version: 1,
-    completed: ['design-1'],
-    history: [{ id: 'step:design-1', courseId: 'design', stepId: 'design-1', title: 'Etapa 1', courseTitle: 'Design de interfaces', preparation: false, xp: 10, at }],
-    studyLog: [],
-  };
+  const oldState = completeMission(seededState(), 'design', 'design-1', { now: at }).state;
   oldState.onboarded = true;
   oldState.preferences.essential = true;
   oldState.supports = ['calm'];
@@ -74,11 +68,11 @@ test('prévia, dados legados, busca, filtros, teclado, curso e progresso', async
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Biblioteca', exact: true })).toBeVisible();
   const restored = await readAccount(page);
-  expect(restored.version).toBe(2);
+  expect(restored.version).toBe(3);
   expect('history' in restored || 'completed' in restored || 'studyLog' in restored).toBe(false);
   const done = restored.progress.filter((event) => event.type === 'completion' && !event.revertedAt);
   expect(done).toHaveLength(2);
-  expect(done.find((event) => event.unitId === 'design-1')).toMatchObject({ origin: 'legacy', legacyXp: 10 });
+  expect(done.find((event) => event.unitId === 'design-1')).toMatchObject({ origin: 'manual' });
   expect(done.find((event) => event.materialTitle === 'Leitura React')?.origin).toBe('manual');
   expect(restored.preferences.essential).toBe(true); // Guardado como legado, sem efeito visual.
   await page.getByRole('button', { name: /^Menu da conta/ }).click();
@@ -237,7 +231,7 @@ test('jornada 1 leva a uma primeira atividade concreta sem XP', async ({ page })
   expect(state.progress).toEqual([]);
   const material = state.courses.find(course => course.title === 'Curso de redes — módulo 1');
   expect(material.type).toBe('lesson');
-  expect(material.steps[0].title).toBe('Assistir à aula 1 completa');
+  expect(materialSteps(material)[0].title).toBe('Assistir à aula 1 completa');
   // A Hoje aponta a atividade criada e usa o tempo de sessão escolhido como estimativa rotulada.
   await expect(page.getByRole('heading', { name: 'Assistir à aula 1 completa', exact: true })).toBeVisible();
   await expect(page.getByText('Reserve 20 minutos para avançar.', { exact: false })).toBeVisible();
@@ -265,5 +259,5 @@ test('jornada 2 registra o ponto de retomada', async ({ page }) => {
   expect(state.progress).toEqual([]);
   const material = state.courses.find(course => course.title === 'Curso de estatística');
   expect(material.resumeAt).toBe('aula 3');
-  expect(material.steps[0].title).toBe('Retomar em: aula 3');
+  expect(materialSteps(material)[0].title).toBe('Retomar em: aula 3');
 });

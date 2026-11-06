@@ -5,6 +5,7 @@ import {
   achievements, courseProgress, courseStatus, levelInfo, normalizeProfileCard, STUDY_TYPES,
 } from './domain.js';
 import { studyPlan } from './study-plan.js';
+import { materialSteps } from './material-model.js';
 
 export const STUDYING_LIMIT = 6;
 export const PROJECTS_LIMIT = 8;
@@ -29,7 +30,7 @@ function typeLabel(course) {
 
 function realCourses(state) {
   const courses = Array.isArray(state?.courses) ? state.courses : [];
-  return courses.filter((course) => course && course.example !== true && Array.isArray(course.steps) && course.steps.length > 0);
+  return courses.filter((course) => course && course.example !== true && materialSteps(course).length > 0);
 }
 
 // Um projeto só aparece no perfil quando a pessoa marca explicitamente.
@@ -192,6 +193,7 @@ export function buildProfile(state, { now = Date.now(), validated = null } = {})
       status: courseStatus(state, course),
       progress: sharing.progress ? courseProgress(state, course) : null,
     })),
+    titles: sharing.xp ? (validated?.titles || []) : [],
     achievements: allAchievements
       ? allAchievements.map(({ id, title, text, icon, unlocked, current, target }) => ({
         id, title, text, icon, unlocked, current, target,

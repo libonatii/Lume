@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
 import {
-  MAX_SUBTASKS, MAX_TASKS, TASK_PRIORITIES, TASK_XP, isOverdue, localDate,
+  MAX_SUBTASKS, MAX_TASKS, TASK_PRIORITIES, isOverdue, localDate,
   priorityLabel, sortTasks,
 } from '../../../public/tasks-domain.js';
 import Icon from '../../ui/Icon.jsx';
@@ -9,8 +9,7 @@ import { materialSteps } from '../../../public/material-model.js';
 import { Button, Empty, Heading, stagger } from '../../ui/ui.jsx';
 
 // Lista de tarefas de estudo para uma prova. Criar e organizar não gera XP;
-// concluir uma tarefa vale TASK_XP uma vez. O modelo ainda é o legado do
-// protótipo e não substitui a validação no servidor.
+// concluir uma tarefa vinculada registra a aula, sem recompensa própria.
 export function overdueMessage(count) {
   return count === 1
     ? 'Uma tarefa passou do prazo. Reorganize a semana para manter seu objetivo.'
@@ -99,7 +98,7 @@ export default function Tasks({ state, actions, notify }) {
     const now = new Date().toISOString();
     const result = actions.completeTask(task.id, now);
     if (!result?.added) return;
-    notify(gamified ? `Tarefa concluída: ${task.title}. +${TASK_XP} XP de legado.` : `Tarefa concluída: ${task.title}.`);
+    notify(`Tarefa concluída: ${task.title}.${task.lessonId ? ' A conclusão da aula vinculada foi registrada.' : ''}`);
   }
 
   function prioritize(task, value) {
@@ -133,7 +132,7 @@ export default function Tasks({ state, actions, notify }) {
           {course || 'Sem curso vinculado'}
           {task.lessonId && lessons.get(task.lessonId) ? ` · ${lessons.get(task.lessonId)}` : ''}
           {task.dueDate ? ` · ${late ? 'venceu' : 'vence'} em ${dateLabel(task.dueDate)}` : ''}
-          {task.done && gamified ? ` · +${TASK_XP} XP de legado` : ''}
+          {task.done && task.lessonId ? ' · Aula vinculada' : ''}
         </small>
       </span>
       {!task.done && <select className="todo-priority-select" aria-label={`Prioridade de ${task.title}`} value={String(task.priority || 0)} onChange={(event) => prioritize(task, event.target.value)}>
@@ -146,7 +145,7 @@ export default function Tasks({ state, actions, notify }) {
 
   return <div className="personal-root">
     <Heading eyebrow="Preparação para a prova" title="Tarefas">
-      Liste as ações concretas da sua preparação e defina o que vem primeiro. Criar e priorizar tarefas não gera XP; concluir uma tarefa de estudo vale XP uma vez.
+      Liste as ações concretas da sua preparação e defina o que vem primeiro. Concluir uma tarefa vinculada registra a conclusão da aula. Tarefas sem aula vinculada não geram XP.
     </Heading>
 
     <section className="card-surface settings-panel">
@@ -181,7 +180,7 @@ export default function Tasks({ state, actions, notify }) {
         <Button type="submit" disabled={(state.tasks || []).length >= MAX_TASKS}><Icon name="plus"/>Adicionar tarefa</Button>
       </form>
       {gamified
-        ? <p className="quiet-note">Cada tarefa concluída vale {TASK_XP} XP de legado. O XP é calculado neste navegador e ainda não é validado pelo servidor.</p>
+        ? <p className="quiet-note">O servidor concede o XP da aula vinculada uma única vez, mesmo com várias tarefas. Reabrir a tarefa não desfaz a aula nem repete a recompensa.</p>
         : <p className="quiet-note">Os indicadores de XP estão ocultos nas preferências. As tarefas continuam funcionando.</p>}
     </section>
 

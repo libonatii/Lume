@@ -1,17 +1,18 @@
+import { materialSteps, stepUnits, normalizeMaterialUnits } from './material-model.js';
 import { normalizeActiveSession, normalizeStudySessions } from './session-domain.js';
-import { normalizeTasks, taskWeekCount, taskXP } from './tasks-domain.js';
+import { normalizeTasks } from './tasks-domain.js';
 import { emptyPlan, normalizePlan } from './schedule-domain.js';
 import { levelProgress } from './xp-policy.js';
 import { normalizeSlideProgress, normalizeSlides } from './slides-domain.js';
 import {
   activeCompletions, completedUnitIds, hasPreparationFor, isCompleted, legacyProgressXp, materialHasActivity,
-  normalizeProgress, progressFromV1, pruneProgress, recordCompletion, recordPreparation,
+  normalizeProgress, pruneProgress, recordCompletion, recordPreparation,
 } from './progress-domain.js';
 
 export const STORAGE_KEY = 'lume.prototype.v1';
-// Formato do documento de estado. A versão 2 troca `completed`, `history` e
-// `studyLog` pelo registro único `progress` (progress-domain.js).
-export const STATE_VERSION = 2;
+// Formato v3: materiais com units e registro único progress. Versões anteriores
+// são recusadas; não existe migração automática de dados.
+export const STATE_VERSION = 3;
 export const HABITS = [
   { id: 'starting', icon: 'sprout', title: 'Quero começar', text: 'Ainda não tenho uma rotina de estudos.' },
   { id: 'sometimes', icon: 'leaf', title: 'Estudo de vez em quando', text: 'Começo, mas nem sempre consigo manter.' },
@@ -234,8 +235,8 @@ export function completeJourney(state) {
 // Plano inicial por jornada, usado na página Hoje e na revisão do ritmo.
 export function journeyPlan(state) {
   const journey = normalizeOnboarding(state.onboarding).journey ?? state.habit;
-  const pending = state.courses.find((course) => !course.paused && course.steps.some((step) => !isCompleted(state, step.id)));
-  const resumed = pending ? pending.steps.find((step) => !isCompleted(state, step.id)) : null;
+  const pending = state.courses.find((course) => !course.paused && materialSteps(course).some((step) => !isCompleted(state, step.id)));
+  const resumed = pending ? materialSteps(pending).find((step) => !isCompleted(state, step.id)) : null;
   const base = { journey, title: 'Seu próximo passo', detail: 'Registro manual, no seu tempo.', firstActivity: resumed?.title ?? null, course: pending?.title ?? null };
   if (journey === 'starting') return { ...base, title: 'Comece por uma coisa só', detail: 'Uma atividade concreta, sem montar um sistema inteiro.' };
   if (journey === 'sometimes') return { ...base, title: 'Continuar de onde parei', detail: 'Retome o material que ficou aberto, sem recomeçar do zero.' };
@@ -332,31 +333,6 @@ function sanitizeCapabilities(value) {
   }));
 }
 
-function sanitizeStructure(value) {
-  if (!Array.isArray(value)) return [];
-  return value.filter((discipline) => discipline && typeof discipline.id === 'string' && typeof discipline.title === 'string' && Array.isArray(discipline.modules)).map((discipline) => ({
-    id: discipline.id,
-    ...(typeof discipline.externalId === 'string' ? { externalId: discipline.externalId } : {}),
-    title: discipline.title,
-    removedFromSource: discipline.removedFromSource === true,
-    modules: discipline.modules.filter((module) => module && typeof module.id === 'string' && Array.isArray(module.lessons)).map((module) => ({
-      id: module.id,
-      ...(typeof module.externalId === 'string' ? { externalId: module.externalId } : {}),
-      title: typeof module.title === 'string' ? module.title : 'Conteúdo',
-      removedFromSource: module.removedFromSource === true,
-      lessons: module.lessons.filter((lesson) => lesson && typeof lesson.id === 'string' && typeof lesson.title === 'string').map((lesson) => ({
-        id: lesson.id,
-        ...(typeof lesson.externalId === 'string' ? { externalId: lesson.externalId } : {}),
-        title: lesson.title,
-        url: typeof lesson.url === 'string' ? lesson.url : '',
-        duration: Number.isFinite(lesson.duration) ? lesson.duration : null,
-        completedInSource: lesson.completedInSource === true,
-        removedFromSource: lesson.removedFromSource === true,
-      })),
-    })),
-  }));
-}
-
 // Campos de importação e de slides são extensões opcionais. Quando não são
 // válidos, o curso e suas etapas continuam intactos: nenhum progresso é
 // descartado. Esta função também garante que o estado antigo receba a estrutura
@@ -375,12 +351,11 @@ function sanitizeCourse(course) {
     slideProgress: normalizeSlideProgress(course.slideProgress, slides),
     slidesUpdatedAt: Number.isFinite(Date.parse(course.slidesUpdatedAt)) ? course.slidesUpdatedAt : null,
   };
-  if (!course.source || typeof course.source !== 'object' || !Array.isArray(course.structure)) return base;
+  if (!course.source || typeof course.source !== 'object') return base;
   const source = course.source;
   const extraction = source.extraction && typeof source.extraction === 'object' ? source.extraction : {};
   return {
     ...base,
-    structure: sanitizeStructure(course.structure),
     source: {
       provider: typeof source.provider === 'string' ? source.provider : 'unknown',
       providerLabel: typeof source.providerLabel === 'string' ? source.providerLabel : 'Fonte não reconhecida',
@@ -400,7 +375,6 @@ function sanitizeCourse(course) {
       importedAt: Number.isFinite(Date.parse(source.importedAt)) ? source.importedAt : null,
       lastUpdatedAt: Number.isFinite(Date.parse(source.lastUpdatedAt)) ? source.lastUpdatedAt : null,
     },
-    selection: { lessonIds: Array.isArray(course.selection?.lessonIds) ? course.selection.lessonIds.filter((id) => typeof id === 'string') : [] },
     edital: course.edital && typeof course.edital === 'object' ? course.edital : null,
   };
 }
@@ -422,8 +396,9 @@ function sanitizeImports(value) {
 
 export function courseProgress(state, course) {
   const completed = completedUnitIds(state);
-  const done = course.steps.filter((step) => completed.has(step.id)).length;
-  return { done, total: course.steps.length, percent: Math.round(done / course.steps.length * 100) };
+  const steps = materialSteps(course);
+  const done = steps.filter((step) => completed.has(step.id)).length;
+  return { done, total: steps.length, percent: steps.length ? Math.round(done / steps.length * 100) : 0 };
 }
 
 export function courseStatus(state, course) {
@@ -444,7 +419,7 @@ export function hasPreparation(state, stepId) {
 // 5 ou 10 XP continuam preservados como histórico do protótipo.
 export function completeMission(state, courseId, stepId, { preparation = false, now = new Date().toISOString() } = {}) {
   const course = state.courses.find((item) => item.id === courseId);
-  const step = course?.steps.find((item) => item.id === stepId);
+  const step = materialSteps(course).find((item) => item.id === stepId);
   if (!step || course.paused || isCompleted(state, stepId)) return { state, added: false, xp: 0 };
   const result = preparation
     ? recordPreparation(state, { materialId: courseId, unitId: stepId, at: now, title: `Preparar o material: ${course.title}`, materialTitle: course.title })
@@ -454,7 +429,7 @@ export function completeMission(state, courseId, stepId, { preparation = false, 
 }
 
 export function totalXP(state) {
-  return legacyProgressXp(state) + taskXP(state);
+  return legacyProgressXp(state);
 }
 
 // Nível do saldo legado, usado apenas na prévia sem conta. Em uma conta, o
@@ -477,7 +452,7 @@ export function weekCount(state, now = new Date()) {
   const inWeek = (entry) => entry.at && new Date(entry.at) >= start && new Date(entry.at) < end;
   // Só estudo concluído conta; preparar o material e registros históricos, não.
   const lessons = activeCompletions(state).filter((entry) => !entry.historical && inWeek(entry)).length;
-  return lessons + taskWeekCount(state, start, end);
+  return lessons;
 }
 
 export function achievements(state) {
@@ -519,7 +494,7 @@ export function addCourse(state, { title, url = '', steps, art = 'design' }, id 
     example: false, paused: false, type: 'course', planning: false, resumeAt: '',
     position: null,
     slides: [], slideProgress: { seen: [], lastId: '', completedAt: null },
-    steps: cleanSteps.map((step, index) => ({ id: `${id}-${index}`, title: step })),
+    units: stepUnits(cleanSteps.map((step, index) => ({ id: `${id}-${index}`, title: step }))),
   };
   return { ...state, courses: [...state.courses, course], selectedCourseId: id };
 }
@@ -572,12 +547,12 @@ export function replaceCourseSteps(state, courseId, steps = []) {
   if (!cleanSteps.length) throw new Error('Mantenha pelo menos uma etapa.');
   if (cleanSteps.length > 40) throw new Error('São permitidas até 40 etapas.');
   if (cleanSteps.some((step) => step.length > 180)) throw new Error('Cada etapa pode ter até 180 caracteres.');
-  const previous = new Map(course.steps.map((step) => [step.id, step]));
+  const previous = new Map(materialSteps(course).map((step) => [step.id, step]));
   const used = new Set();
   const nextSteps = cleanSteps.map((title, index) => {
-    const exact = course.steps.find((step) => step.title === title && !used.has(step.id));
+    const exact = materialSteps(course).find((step) => step.title === title && !used.has(step.id));
     if (exact) { used.add(exact.id); return exact; }
-    const sameIndex = course.steps[index];
+    const sameIndex = materialSteps(course)[index];
     if (sameIndex && !used.has(sameIndex.id)) {
       used.add(sameIndex.id);
       return { ...sameIndex, title };
@@ -590,7 +565,7 @@ export function replaceCourseSteps(state, courseId, steps = []) {
   const validIds = new Set(nextSteps.map((step) => step.id));
   return {
     ...state,
-    courses: state.courses.map((item) => item.id === courseId ? { ...item, steps: nextSteps } : item),
+    courses: state.courses.map((item) => item.id === courseId ? { ...item, units: stepUnits(nextSteps) } : item),
     progress: (state.progress || []).filter((event) => event.materialId !== courseId || validIds.has(event.unitId)),
   };
 }
@@ -601,7 +576,7 @@ export function replaceCourseSteps(state, courseId, steps = []) {
 export function deleteCourse(state, courseId) {
   const course = (state.courses || []).find((item) => item.id === courseId);
   if (!course) return state;
-  const stepIds = new Set(course.steps.map((step) => step.id));
+  const stepIds = new Set(materialSteps(course).map((step) => step.id));
   const courses = state.courses.filter((item) => item.id !== courseId);
   return {
     ...state,
@@ -619,7 +594,7 @@ export function deleteCourse(state, courseId) {
 // pessoa tiver algum progresso nele; exemplos intocados são removidos na
 // restauração, sem tocar em cursos reais nem em histórico.
 function exampleHasProgress(course, value, progress) {
-  const stepIds = new Set(course.steps.map((step) => step.id));
+  const stepIds = new Set(materialSteps(course).map((step) => step.id));
   return progress.some((event) => event.materialId === course.id || stepIds.has(event.unitId))
     || (Array.isArray(value.studySessions) && value.studySessions.some((session) => session.courseId === course.id))
     || value.activeSession?.courseId === course.id;
@@ -630,22 +605,21 @@ function validCourses(list) {
   const ids = new Set();
   const stepIds = new Set();
   const courses = [];
-  for (const course of Array.isArray(list) ? list : []) {
+  for (let course of Array.isArray(list) ? list : []) {
     if (!course || typeof course.id !== 'string' || ids.has(course.id) || typeof course.title !== 'string') continue;
-    if (!Array.isArray(course.steps) || safeCourseURL(course.url || '') === null) continue;
-    const steps = course.steps.filter((step) => step && typeof step.id === 'string' && typeof step.title === 'string' && !stepIds.has(step.id));
-    if (!steps.length) continue;
+    if (!Array.isArray(course.units) || 'steps' in course || 'structure' in course || 'selection' in course || safeCourseURL(course.url || '') === null) continue;
+    course = { ...course, units: normalizeMaterialUnits(course.units.filter((unit) => !stepIds.has(unit?.id))) };
+    const steps = materialSteps(course);
+    if (!steps.length || course.units.some((unit) => stepIds.has(unit.id))) continue;
     ids.add(course.id);
-    steps.forEach((step) => stepIds.add(step.id));
-    courses.push(steps.length === course.steps.length ? course : { ...course, steps });
+    course.units.forEach((unit) => stepIds.add(unit.id));
+    courses.push(course);
   }
   return courses;
 }
 
-// Lê o documento salvo (v1 ou v2). Cada parte é validada sozinha: um curso ou
-// registro estragado é descartado sem apagar o resto. O v1 é convertido para o
-// registro único de progresso na leitura; o documento original fica intacto
-// onde foi salvo até a próxima gravação.
+// Valida o formato atual por material e registro. Formatos antigos são
+// recusados explicitamente, sem produzir um estado vazio para gravar por cima.
 export function restoreState(raw) {
   const fallback = createInitialState();
   if (!raw) return fallback;
@@ -655,16 +629,14 @@ export function restoreState(raw) {
   } catch {
     return fallback;
   }
-  if (!value || typeof value !== 'object' || Array.isArray(value) || ![1, STATE_VERSION].includes(value.version)) return fallback;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return fallback;
+  if (value.version !== STATE_VERSION) throw new Error('Formato de dados incompatível. Nenhuma migração automática será realizada.');
   try {
     const courses = validCourses(value.courses);
-    const rawProgress = value.version === 1
-      ? progressFromV1({ completed: value.completed, history: value.history, studyLog: value.studyLog, courses })
-      : value.progress;
-    const progress = normalizeProgress(rawProgress);
+    const progress = normalizeProgress(value.progress);
     const keptCourses = courses.filter((course) => course.example !== true || exampleHasProgress(course, value, progress));
     const keptIds = new Set(keptCourses.map((course) => course.id));
-    const keptStepIds = new Set(keptCourses.flatMap((course) => course.steps.map((step) => step.id)));
+    const keptStepIds = new Set(keptCourses.flatMap((course) => materialSteps(course).map((step) => step.id)));
     const selectedCourseId = keptIds.has(value.selectedCourseId) ? value.selectedCourseId : keptCourses[0]?.id ?? null;
     const preferences = value.preferences || {};
     const { completed: _completed, history: _history, studyLog: _studyLog, ...rest } = value;

@@ -7,6 +7,7 @@
 // servidor. Restaurar uma cópia não recria nem duplica recompensas.
 
 import { STATE_VERSION, restoreState } from './domain.js';
+import { materialSteps } from './material-model.js';
 import { completedUnitIds, mergeProgress } from './progress-domain.js';
 
 export const MAX_BACKUP_BYTES = 2 * 1024 * 1024;
@@ -31,11 +32,9 @@ export function readBackup(text) {
     throw new BackupError('Este arquivo não é um JSON válido.', 'invalid_json');
   }
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new BackupError('Este arquivo não parece uma cópia do Lume.', 'invalid_shape');
-  // Cópias da versão 1 (com `completed` e `history`) continuam aceitas e são
-  // convertidas para o registro único de progresso.
-  const v1 = raw.version === 1 && Array.isArray(raw.completed) && Array.isArray(raw.history);
-  const v2 = raw.version === STATE_VERSION && Array.isArray(raw.progress);
-  if (!Array.isArray(raw.courses) || (!v1 && !v2)) {
+  // Só restaura o formato atual; versões antigas não são convertidas.
+  const supported = raw.version === STATE_VERSION && Array.isArray(raw.progress);
+  if (!Array.isArray(raw.courses) || !supported) {
     throw new BackupError('A cópia não tem o formato de progresso do Lume.', 'invalid_version');
   }
   const restored = restoreState(JSON.stringify(raw));
@@ -60,7 +59,7 @@ function mergeCourseSteps(currentSteps, incomingSteps) {
 }
 
 function mergeCourseProgress(current, incoming) {
-  const steps = mergeCourseSteps(current.steps, incoming.steps);
+  const units = mergeCourseSteps(current.units, incoming.units);
   const slides = mergeById(current.slides || [], incoming.slides || []);
   const seen = new Set([
     ...(current.slideProgress?.seen || []),
@@ -72,7 +71,7 @@ function mergeCourseProgress(current, incoming) {
     .at(-1) || null;
   return {
     ...current,
-    steps,
+    units,
     slides,
     // Mantém as escolhas atuais de título, tipo, link e privacidade.
     slideProgress: {
@@ -99,7 +98,7 @@ export function mergeBackup(current, incoming) {
   }
   const courses = [...byId.values()];
   const validCourses = new Set(courses.map((course) => course.id));
-  const stepIds = new Set(courses.flatMap((course) => course.steps.map((step) => step.id)));
+  const stepIds = new Set(courses.flatMap((course) => materialSteps(course).map((step) => step.id)));
   // Restaurar nunca tira progresso: conclusão ativa em qualquer lado continua ativa.
   const progress = mergeProgress(current.progress || [], incoming.progress || [])
     .filter((event) => stepIds.has(event.unitId));

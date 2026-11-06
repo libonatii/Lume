@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { materialSteps } from '../../public/material-model.js';
 import assert from 'node:assert/strict';
 import { addCourse, completeMission, createInitialState } from '../../public/domain.js';
 import { applyCourseImport, completeLesson, normalizePayload } from '../../public/import-domain.js';
@@ -79,7 +80,7 @@ test('curso importado entra no roteiro com as aulas selecionadas e a origem', ()
   });
   let state = applyCourseImport(createInitialState(), payload);
   const course = state.courses.at(-1);
-  state = completeLesson(state, course.id, course.steps[0].id, { now: new Date(NOW - 3600 * 1000).toISOString() }).state;
+  state = completeLesson(state, course.id, materialSteps(course)[0].id, { now: new Date(NOW - 3600 * 1000).toISOString() }).state;
 
   const plan = studyPlan(state, { now: NOW });
   assert.equal(plan.totals.remaining, 1);
@@ -118,8 +119,8 @@ test('próxima ação da Hoje segue o mesmo roteiro e diferencia duração conhe
   assert.equal(first.remainingWithoutDuration, 1);
 
   // Concluir a aula muda a próxima ação; o critério passa a ser continuidade.
-  state = completeLesson(state, course.id, course.steps[0].id, { now: new Date(NOW - 60 * 1000).toISOString() }).state;
-  state = completeLesson(state, course.id, course.steps[1].id, { now: new Date(NOW - 30 * 1000).toISOString() }).state;
+  state = completeLesson(state, course.id, materialSteps(course)[0].id, { now: new Date(NOW - 60 * 1000).toISOString() }).state;
+  state = completeLesson(state, course.id, materialSteps(course)[1].id, { now: new Date(NOW - 30 * 1000).toISOString() }).state;
   const third = nextAction(state, { now: NOW });
   assert.equal(third.title, 'Aula 3');
   assert.equal(third.reason.id, 'continuity');

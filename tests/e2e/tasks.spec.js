@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { stepUnits } from '../../public/material-model.js';
 import { seedAccount, readAccount } from './library-helpers.js';
 import { createInitialState, STORAGE_KEY } from '../../public/domain.js';
 
-test('tarefa de prova é criada, concluída com XP uma vez e sobrevive ao recarregamento', async ({ page }) => {
+test('tarefa sem aula é concluída sem XP e sobrevive ao recarregamento', async ({ page }) => {
   await seedAccount(page, { ...createInitialState(), onboarded: true });
 
   await page.goto('/#tarefas');
@@ -12,7 +13,7 @@ test('tarefa de prova é criada, concluída com XP uma vez e sobrevive ao recarr
   await expect(page.getByText('Resolver 10 questões de constitucional')).toBeVisible();
 
   await page.getByRole('checkbox', { name: 'Concluir tarefa Resolver 10 questões de constitucional' }).click();
-  await expect(page.getByText(/\+10 XP de legado/).first()).toBeVisible();
+  await expect(page.getByText(/\+10 XP de legado/)).toHaveCount(0);
   await expect(page.getByRole('heading', { name: /Concluídas/ })).toBeVisible();
 
   const completed = await readAccount(page);
@@ -22,9 +23,9 @@ test('tarefa de prova é criada, concluída com XP uma vez e sobrevive ao recarr
 
   await page.reload();
   await expect(page.getByText('Resolver 10 questões de constitucional')).toBeVisible();
-  await expect(page.getByText(/\+10 XP de legado/).first()).toBeVisible();
+  await expect(page.getByText(/\+10 XP de legado/)).toHaveCount(0);
 
-  // Reabrir retira o XP; concluir de novo não acumula uma segunda vez.
+  // Reabrir e concluir novamente continuam sem XP próprio.
   await page.getByRole('checkbox', { name: 'Reabrir tarefa Resolver 10 questões de constitucional' }).click();
   await expect(page.getByText(/\+10 XP de legado/)).toHaveCount(0);
   await page.getByRole('checkbox', { name: 'Concluir tarefa Resolver 10 questões de constitucional' }).click();
@@ -34,7 +35,7 @@ test('tarefa de prova é criada, concluída com XP uma vez e sobrevive ao recarr
 
 test('prioridade e atraso aparecem na lista e na Hoje e sobrevivem ao recarregamento', async ({ page }) => {
   const state = { ...createInitialState(), onboarded: true };
-  state.courses = [{ id: 'const', title: 'Direito Constitucional', category: 'Direito', art: 'nature', url: '', example: false, paused: false, steps: [{ id: 'const-1', title: 'Direitos fundamentais' }] }];
+  state.courses = [{ id: 'const', title: 'Direito Constitucional', category: 'Direito', art: 'nature', url: '', example: false, paused: false, units: stepUnits([{ id: 'const-1', title: 'Direitos fundamentais' }]) }];
   state.tasks = [
     { id: 'late', title: 'Revisar controle de constitucionalidade', courseId: 'const', dueDate: '2020-01-10', priority: 0, done: false, createdAt: '2020-01-01T10:00:00.000Z', completedAt: null },
     { id: 'plain', title: 'Separar súmulas vinculantes', courseId: '', dueDate: '', priority: 0, done: false, createdAt: '2020-01-02T10:00:00.000Z', completedAt: null },

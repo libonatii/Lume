@@ -10,6 +10,7 @@ import {
   XP_POLICY_VERSION, XP_VALUES, levelProgress, localDay, normalizeTimeZone, periodDays, timeEventKey,
 } from '../../public/xp-policy.js';
 import { AppError } from '../errors.js';
+import { readTitles } from './titles.js';
 
 export class XpError extends AppError {
   constructor(message, code = 'xp_error', status = 400) {
@@ -235,6 +236,7 @@ export async function getXpSnapshot(db, userId, { now = Date.now(), timeZone = '
       settings: null,
       events: [],
       achievements: [],
+      titles: [],
     };
   }
   const events = await db.all(
@@ -251,6 +253,7 @@ export async function getXpSnapshot(db, userId, { now = Date.now(), timeZone = '
     settings: serializeSettings(settings),
     events: events.map(serializeEvent),
     achievements: achievements.map(serializeAchievement),
+    titles: await readTitles(db, userId, { now }),
   };
 }
 
@@ -288,6 +291,7 @@ export async function adjustEvent(db, userId, { eventId, reason }, { now = Date.
     'UPDATE user_achievements SET revoked_at = ? WHERE user_id = ? AND event_id = ? AND revoked_at IS NULL',
     [iso(now), userId, event.id],
   );
+  await readTitles(db, userId, { now, recalculate: true });
   return { added: true, duplicate: false, event: serializeEvent(adjustment) };
 }
 

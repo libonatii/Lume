@@ -62,7 +62,7 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
   }, [id, isSelf]);
 
   const selfName = account?.name || 'Estudante na Prévia';
-  const validated = xp?.summary ? { ...xp.summary, achievements: xp.achievements } : null;
+  const validated = xp?.summary ? { ...xp.summary, achievements: xp.achievements, titles: xp.titles } : null;
   const view = isSelf
     ? { user: { id: account?.id || 'local', name: selfName }, updatedAt: null, ...buildProfile(state, { validated }) }
     : profile;
@@ -163,6 +163,11 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
         <div className="steam-identity">
           <span className="eyebrow on-glow">{isSelf ? 'Seu perfil como os amigos veem' : 'Perfil de amigo'}</span>
           <h1 id="profile-user-title" className="display steam-persona-name">{user.name}</h1>
+          {view.titles?.length > 0 && <section aria-label="Cargos de estudo">
+            <h2>Cargos de estudo</h2>
+            <p className="muted-text">Títulos por avanço real. Todas as funcionalidades estão disponíveis para todos os cargos.</p>
+            <ul>{view.titles.map((item) => <li key={item.id}><strong>{item.title}</strong> — {item.criterion}</li>)}</ul>
+          </section>}
           <p className="steam-subname">
             {isSelf
               ? 'Este é o recorte que outras pessoas da sua lista enxergam. Ajuste em Configurações › O que amigos veem.'

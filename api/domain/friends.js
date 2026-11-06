@@ -173,7 +173,7 @@ export async function readFriendProfile(db, viewerId, friendId) {
 async function validatedProfile(db, userId) {
   try {
     const snapshot = await getXpSnapshot(db, userId, { create: false });
-    return { ...snapshot.summary, achievements: snapshot.achievements };
+    return { ...snapshot.summary, achievements: snapshot.achievements, titles: snapshot.titles };
   } catch {
     return null;
   }

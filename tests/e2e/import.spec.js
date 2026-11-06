@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { materialSteps } from '../../public/material-model.js';
 import { seedAccount, readAccount } from './library-helpers.js';
 import { createInitialState, STORAGE_KEY } from '../../public/domain.js';
 
@@ -162,7 +163,7 @@ test('biblioteca vazia pergunta a área e cria a primeira trilha sem XP', async 
   expect(state.courses).toHaveLength(1);
   expect(state.courses[0].title).toBe('Direito');
   expect(state.courses[0].origin).toBe('manual');
-  expect(state.courses[0].steps[0].title).toBe('Ler a introdução de processo penal');
+  expect(materialSteps(state.courses[0])[0].title).toBe('Ler a introdução de processo penal');
   expect(state.progress.filter((event) => event.origin === 'manual' || event.legacyXp)).toEqual([]);
 });
 
@@ -244,7 +245,7 @@ test('link sem https é detectado e adicionado sem abrir a revisão', async ({ p
   await expect(page.locator('#dialog-title')).toHaveText('React Básico');
   const state = await readAccount(page);
   expect(state.courses).toHaveLength(1);
-  expect(state.courses[0].steps).toHaveLength(2);
+  expect(materialSteps(state.courses[0])).toHaveLength(2);
   expect(state.progress.filter((event) => event.origin === 'manual' || event.legacyXp)).toEqual([]);
   await page.unroute('**/api/import/analyze');
 });

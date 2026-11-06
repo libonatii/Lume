@@ -113,6 +113,6 @@ test('preparação não concede XP e as regras declaram gatilho e identidade', a
   assert.equal(prepared.results[0].status, 'recorded');
   assert.equal(prepared.xp.length, 0);
   assert.deepEqual(RULES.map((rule) => `${rule.on}:${rule.id}`), [
-    'unit.completed:unit-completion', 'unit.completed:material-completion', 'deck.completed:deck-completion',
+    'unit.completed:unit-completion', 'unit.completed:material-completion', 'unit.completed:discipline-completion', 'deck.completed:deck-completion',
   ]);
 });

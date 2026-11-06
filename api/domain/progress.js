@@ -8,6 +8,7 @@
 // cada pedido de XP, com a mesma confiança de antes, até o primeiro comando.
 
 import { AppError } from '../errors.js';
+import { materialSteps } from '../../public/material-model.js';
 import { restoreState } from '../../public/domain.js';
 import { readStoredLibrary } from './library-store.js';
 
@@ -110,7 +111,7 @@ export async function activeUnitIds(db, userId) {
 
 function findUnit(state, materialId, unitId) {
   const course = (state.courses || []).find((item) => item.id === materialId);
-  const step = course?.steps?.find((item) => item.id === unitId);
+  const step = materialSteps(course).find((item) => item.id === unitId);
   return course && step ? { course, step } : null;
 }
 

@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { materialSteps } from '../../public/material-model.js';
 import assert from 'node:assert/strict';
 import { addCourse, completeMission, createInitialState, restoreState } from '../../public/domain.js';
 import { completedUnitIds } from '../../public/progress-domain.js';
@@ -17,7 +18,7 @@ test('cópia válida é lida e mesclada sem substituir preferências ou títulos
   const base = current();
   let incoming = addCourse(createInitialState(), { title: 'Curso da cópia', steps: ['Leitura 1', 'Leitura 2'] });
   incoming.courses[0].type = 'article';
-  incoming = completeMission(incoming, incoming.courses[0].id, incoming.courses[0].steps[0].id, { now: '2026-10-31T12:00:00Z' }).state;
+  incoming = completeMission(incoming, incoming.courses[0].id, materialSteps(incoming.courses[0])[0].id, { now: '2026-10-31T12:00:00Z' }).state;
   incoming.tasks = [{ id: 'task-copy', title: 'Tarefa da cópia', courseId: '', dueDate: '', done: false, createdAt: '2026-10-31T12:00:00Z', completedAt: null }];
   const backup = readBackup(JSON.stringify(incoming));
   const merged = mergeBackup(base, backup);
@@ -47,7 +48,7 @@ test('mesclar a mesma cópia duas vezes não duplica curso, progresso ou tarefa'
 test('prévia conta o que entra sem alterar o estado', () => {
   const base = current();
   let incoming = addCourse(createInitialState(), { title: 'Novo', steps: ['A'] });
-  incoming = completeMission(incoming, incoming.courses[0].id, incoming.courses[0].steps[0].id).state;
+  incoming = completeMission(incoming, incoming.courses[0].id, materialSteps(incoming.courses[0])[0].id).state;
   const preview = previewBackup(base, incoming);
   assert.equal(preview.newCourseCount, 1);
   assert.deepEqual(preview.newCourses, ['Novo']);
@@ -59,12 +60,12 @@ test('arquivo inválido, vazio ou grande demais é recusado com mensagem', () =>
   assert.throws(() => readBackup(''), (error) => error instanceof BackupError && error.code === 'empty');
   assert.throws(() => readBackup('{'), (error) => error.code === 'invalid_json');
   assert.throws(() => readBackup(JSON.stringify({ version: 2, courses: [], completed: [], history: [] })), (error) => error.code === 'invalid_version');
-  assert.throws(() => readBackup(JSON.stringify({ version: 3, courses: [], progress: [] })), (error) => error.code === 'invalid_version');
+  assert.throws(() => readBackup(JSON.stringify({ version: 4, courses: [], progress: [] })), (error) => error.code === 'invalid_version');
   const big = 'x'.repeat(2 * 1024 * 1024 + 1);
   assert.throws(() => readBackup(big), (error) => error.code === 'too_large');
 });
 
-test('cópia antiga (versão 1) continua aceita e é convertida', () => {
+test('cópia antiga é recusada sem migração e sem alterar a biblioteca atual', () => {
   const base = current();
   const old = addCourse(createInitialState(), { title: 'Curso antigo', steps: ['A', 'B'] }, 'antigo');
   const v1 = {
@@ -74,9 +75,7 @@ test('cópia antiga (versão 1) continua aceita e é convertida', () => {
     history: [{ id: 'step:antigo-0', courseId: 'antigo', stepId: 'antigo-0', title: 'A', courseTitle: 'Curso antigo', preparation: false, xp: 10, at: '2026-01-01T12:00:00Z' }],
   };
   delete v1.progress;
-  const backup = readBackup(JSON.stringify(v1));
-  assert.equal(backup.version, 2);
-  const merged = mergeBackup(base, backup);
-  assert.ok(completedUnitIds(merged).has('antigo-0'));
-  assert.equal(merged.progress.find((event) => event.unitId === 'antigo-0').legacyXp, 10);
+  const before = JSON.stringify(base);
+  assert.throws(() => readBackup(JSON.stringify(v1)), { code: 'invalid_version' });
+  assert.equal(JSON.stringify(base), before);
 });

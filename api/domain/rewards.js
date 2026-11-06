@@ -13,6 +13,7 @@ import {
 } from '../../public/xp-policy.js';
 import { XpError, ensureXpSettings, findEvent, insertAchievement, insertEvent, serializeEvent } from './xp.js';
 import { accountMode, eligibleCompletions, loadLibrary, syncFromDocument } from './progress.js';
+import { materialSteps } from '../../public/material-model.js';
 
 function iso(value) {
   return new Date(value).toISOString();
@@ -23,7 +24,7 @@ function refuse(code, message) {
 }
 
 function unitTitle(course, step) {
-  return course.steps.length === 1 ? course.title : `${step.title} — ${course.title}`;
+  return materialSteps(course).length === 1 ? course.title : `${step.title} — ${course.title}`;
 }
 
 export const RULES = [
@@ -46,6 +47,7 @@ export const RULES = [
         grant: {
           key: stepEventKey(kind, course.id, step.id), kind, xp: XP_VALUES[kind],
           materialId: course.id, materialTitle: course.title, stepId: step.id, stepTitle: step.title,
+          meta: JSON.stringify({ area: step.discipline || course.category || '' }),
           achievement,
         },
       };
@@ -59,10 +61,10 @@ export const RULES = [
     grant({ course, completions, since }) {
       if (!isEligibleCourse(course)) return refuse('material_not_eligible', 'Este material não participa da política de XP.');
       if (!courseGradeIsComplete(course)) return refuse('partial_grade', 'Uma grade parcial não conclui o curso inteiro.');
-      if (!course.steps.every((item) => completions.has(item.id))) return refuse('course_not_complete', 'Ainda há unidades obrigatórias em aberto.');
+      if (!materialSteps(course).every((item) => completions.has(item.id))) return refuse('course_not_complete', 'Ainda há unidades obrigatórias em aberto.');
       const minimum = course.type === 'project' ? 1 : 2;
-      if (!isImportedCourse(course) && course.steps.length < minimum) return refuse('too_short', 'Um material de uma única etapa não recebe bônus de conclusão.');
-      if (course.steps.some((item) => completions.get(item.id) < since)) {
+      if (!isImportedCourse(course) && materialSteps(course).length < minimum) return refuse('too_short', 'Um material de uma única etapa não recebe bônus de conclusão.');
+      if (materialSteps(course).some((item) => completions.get(item.id) < since)) {
         return refuse('legacy_progress', 'A conclusão inclui etapas anteriores à política atual; o bônus não é retroativo.');
       }
       const kind = bonusKindForCourse(course);
@@ -75,6 +77,26 @@ export const RULES = [
             : { kind: 'course', title: course.title, criterion: 'Todas as unidades obrigatórias concluídas' },
         },
       };
+    },
+  },
+  {
+    id: 'discipline-completion',
+    on: 'unit.completed',
+    grant({ course, step, completions, since }) {
+      if (!isEligibleCourse(course) || !step) return refuse('material_not_eligible', 'Disciplina indisponível.');
+      const unit = course.units.find((item) => item.id === step.id && item.kind === 'lesson');
+      const module = course.units.find((item) => item.id === unit?.parentId);
+      const discipline = course.units.find((item) => item.id === module?.parentId && item.kind === 'discipline');
+      if (!discipline || discipline.data.removedFromSource) return refuse('discipline_missing', 'Disciplina indisponível.');
+      if ((discipline.data.completeness || course.source?.completeness) !== 'complete') return refuse('partial_grade', 'A grade da disciplina é parcial.');
+      const modules = new Set(course.units.filter((item) => item.parentId === discipline.id).map((item) => item.id));
+      const lessons = course.units.filter((item) => item.kind === 'lesson' && modules.has(item.parentId) && !item.data.removedFromSource);
+      if (!lessons.length || lessons.some((item) => !item.selected || !completions.has(item.id) || completions.get(item.id) < since)) return refuse('discipline_not_complete', 'Conclua todas as aulas elegíveis da disciplina.');
+      return { grant: {
+        key: `discipline|${course.id}|${discipline.id}`, kind: 'discipline_bonus', xp: XP_VALUES.discipline_bonus,
+        materialId: course.id, materialTitle: course.title, stepId: discipline.id, stepTitle: discipline.data.title,
+        achievement: { kind: 'discipline', title: `${discipline.data.title} — ${course.title}`, criterion: 'Todas as aulas da disciplina completa concluídas' },
+      } };
     },
   },
   {
@@ -162,7 +184,7 @@ export async function grantStep(db, userId, { courseId, stepId }, { now = Date.n
   if (typeof stepId !== 'string' || !stepId || stepId.length > 160) throw new XpError('Etapa inválida.', 'invalid_step', 400);
   const context = await unitContext(db, userId, courseId, { now });
   if (!context.course || !isEligibleCourse(context.course)) throw new XpError('Este material não participa da política de XP.', 'material_not_eligible', 409);
-  const step = context.course.steps.find((item) => item.id === stepId);
+   const step = materialSteps(context.course).find((item) => item.id === stepId);
   if (!step) throw new XpError('Etapa não encontrada.', 'step_not_found', 404);
   const [outcome] = await runRules(db, userId, 'unit.completed', { ...context, step }, { now, only: 'unit-completion' });
   return settle(outcome);

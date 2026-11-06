@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { materialSteps } from '../../public/material-model.js';
 import assert from 'node:assert/strict';
 import { addCourse, createInitialState, restoreState, totalXP } from '../../public/domain.js';
 import { applyCourseImport, completeLesson, normalizePayload } from '../../public/import-domain.js';
@@ -57,16 +58,16 @@ test('aulas seguem a sequência e respeitam o tempo de cada dia', () => {
 
 test('concluir uma aula recalcula o cronograma sem apagar progresso', () => {
   const { state, course } = base();
-  const done = completeLesson(state, course.id, course.steps[0].id).state;
+  const done = completeLesson(state, course.id, materialSteps(course)[0].id).state;
   const schedule = buildSchedule(done, { today: MONDAY });
   assert.deepEqual(schedule.days[0].items.map((item) => item.title), ['Aula 2']);
   assert.equal(schedule.courses[0].remaining, 3);
-  assert.ok(isCompleted(done, course.steps[0].id));
+  assert.ok(isCompleted(done, materialSteps(course)[0].id));
 });
 
 test('adiar uma aula adia as seguintes do mesmo curso', () => {
   const { state, course } = base();
-  const later = postponeLesson(state, course.steps[0].id, '2026-11-04');
+  const later = postponeLesson(state, materialSteps(course)[0].id, '2026-11-04');
   const schedule = buildSchedule(later, { today: MONDAY });
   assert.equal(schedule.days[0].date, '2026-11-04');
   assert.deepEqual(schedule.days[0].items.map((item) => item.title), ['Aula 1', 'Aula 2']);
@@ -113,12 +114,12 @@ test('planejar não gera XP e o plano sobrevive à restauração', () => {
   const { state, course } = base();
   let planned = setGoal(state, course.id, { deadline: '2026-12-15', priority: 2 });
   planned = setAvailability(planned, 6, 120);
-  planned = postponeLesson(planned, course.steps[1].id, '2026-11-20');
+  planned = postponeLesson(planned, materialSteps(course)[1].id, '2026-11-20');
   assert.equal(totalXP(planned), totalXP(state));
   const restored = restoreState(JSON.stringify(planned));
   assert.deepEqual(restored.plan.availability, { 1: 60, 3: 60, 6: 120 });
   assert.deepEqual(restored.plan.goals[course.id], { deadline: '2026-12-15', priority: 2 });
-  assert.equal(restored.plan.postponed[course.steps[1].id], '2026-11-20');
+  assert.equal(restored.plan.postponed[materialSteps(course)[1].id], '2026-11-20');
 });
 
 test('dados inválidos do plano são descartados sem perder o restante', () => {

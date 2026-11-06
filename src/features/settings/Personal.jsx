@@ -189,7 +189,7 @@ export function History({ state, account, xp, refreshXP, notify }) {
 
     {legacy > 0 && <details className="legacy-details">
       <summary>Saldo legado: {legacy} XP (fora do nível e do ranking)</summary>
-      <p className="quiet-note">Preparações, etapas e tarefas do protótipo somam {legacy} XP histórico. Esse saldo não é convertido, não entra no nível novo e não aparece em placares. Ele permanece guardado para não apagar seu histórico.</p>
+      <p className="quiet-note">Registros legados deste documento somam {legacy} XP histórico. Esse saldo não é convertido, não entra no nível novo e não aparece em placares.</p>
     </details>}
   </div>;
 }

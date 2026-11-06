@@ -26,6 +26,7 @@ export function useLibraryPersistence(notify, onSaved) {
 
   const load = useCallback(async (signal) => {
     const token = ++generation.current;
+    connected.current = false;
     clearResources();
     failed.current = null;
     blocked.current = '';
@@ -33,13 +34,19 @@ export function useLibraryPersistence(notify, onSaved) {
     setSyncStatus('loading');
     const result = await api('/api/library', { signal });
     if (token !== generation.current) return false;
-    if (!result.ok) throw new Error(apiError(result));
+    if (!result.ok) {
+      const message = apiError(result);
+      blocked.current = message;
+      setSaveError(message);
+      notify(message);
+      throw new Error(message);
+    }
     revision.current = result.data.revision;
     publish(result.data.state);
     connected.current = true;
     setSyncStatus('saved');
     return true;
-  }, [publish]);
+  }, [notify, publish]);
 
   const send = useCallback(async (operation, token, order) => {
     if (token !== generation.current) return;

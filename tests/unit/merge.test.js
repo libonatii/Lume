@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { stepUnits } from '../../public/material-model.js';
 import assert from 'node:assert/strict';
 import { addCourse, completeMission, createInitialState } from '../../public/domain.js';
 import { completeLesson, revertLessonCompletion } from '../../public/import-domain.js';
@@ -10,7 +11,7 @@ function localState() {
   let state = addCourse(createInitialState(), { title: 'Curso compartilhado', steps: ['Aula 1', 'Aula 2'] });
   const course = state.courses[0];
   course.id = 'c1';
-  course.steps = [{ id: 'c1-0', title: 'Aula 1' }, { id: 'c1-1', title: 'Aula 2' }];
+  course.units = stepUnits([{ id: 'c1-0', title: 'Aula 1' }, { id: 'c1-1', title: 'Aula 2' }]);
   state = completeMission(state, 'c1', 'c1-0', { now: '2026-10-31T12:00:00Z' }).state;
   state.courses[0].slides = [{ id: 's1', title: 'Um', body: '' }, { id: 's2', title: 'Dois', body: '' }];
   state.courses[0].slideProgress = { seen: ['s1'], lastId: 's1', completedAt: null };
@@ -46,7 +47,7 @@ test('mesclar não duplica materiais nem apaga curso que só existe de um lado',
   const local = localState();
   const remote = {
     ...local,
-    courses: [...local.courses, { id: 'remoto', title: 'Curso remoto', type: 'article', planning: false, url: '', example: false, paused: false, art: 'nature', steps: [{ id: 'remoto-0', title: 'Leitura' }] }],
+    courses: [...local.courses, { id: 'remoto', title: 'Curso remoto', type: 'article', planning: false, url: '', example: false, paused: false, art: 'nature', units: stepUnits([{ id: 'remoto-0', title: 'Leitura' }]) }],
   };
   const merged = mergeStates(local, remote);
   assert.equal(merged.courses.length, 2);

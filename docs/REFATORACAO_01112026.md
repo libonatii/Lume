@@ -51,6 +51,12 @@ flowchart LR
 
 ## Princípios para todas as frentes
 
+**Revisão final de escopo em 03/11/2026:** não há migração de dados. O modelo atual é v3,
+com `units` no domínio, API e persistência. As propostas de conversão abaixo são históricas
+e foram substituídas: formatos anteriores recebem erro explícito e permanecem no banco.
+Isso não autoriza apagar dados. Cargos são títulos sem bloqueios; disciplina vale 200 XP e
+conquista; tarefa vinculada conclui a aula, sem recompensa própria; sem vínculo, 0 XP.
+
 1. **Preservar dados.** Nenhuma etapa apaga progresso, converte preparação em aula concluída ou recalcula XP já
    concedido. Toda conversão é uma função pura testada com estados reais anonimizados antes de rodar em conta.
    O documento antigo de cada conta fica guardado, só para leitura, até a responsável autorizar a remoção.
@@ -221,10 +227,11 @@ aula, saldo legado (só para exibição na prévia, enquanto existir).
        `nextAction`, com o critério do roteiro. `nextMission` foi removido.
 6. [x] `steps`/`structure` não são persistidos nas tabelas. Leituras dos registros v1 ficam na conversão.
 
-**Limite da entrega:** `public/material-model.js` é o módulo executável, sem criar uma pasta `model/`
-só por convenção. O contrato v2 e as regras antigas ainda recebem projeções `steps`/`structure`.
-Os seletores não tornam essa migração em memória concluída; substituí-la integralmente continua parte de F2.
-As conversões têm testes sintéticos de preservação; ainda faltam os documentos reais anonimizados da Fase 0.
+**F2 implementada no contrato v3:** `public/material-model.js` define `units` com identidade,
+pai, tipo, posição, seleção e metadados. Criação, edição, reimportação, backup, domínio e API
+usam esse modelo único. Listas e árvores são derivadas e não coexistem no material.
+Validação recusa ciclos, pais inválidos, tipos e ids duplicados. Leitura antiga não é convertida.
+Slides continuam como extensão de apresentação, sem segunda lista de aulas.
 
 ### Pronto quando
 
@@ -306,12 +313,11 @@ A prévia é descartada ao recarregar ou fechar a página. Não há IndexedDB, f
 
 ### Migração das contas existentes
 
-- **Conversão preguiçosa e idempotente:** a primeira leitura de `/api/library` converte o documento do servidor
-  com `restoreState`, grava as tabelas no mesmo batch e preserva `user_state` como arquivo.
-- Uma revisão legada alterada durante a conversão força nova leitura; o teste cobre essa corrida.
-- Após a conversão, `PUT /api/state` e as rotas antigas de mutação de progresso/XP retornam
-  `409 client_outdated`. Antes dela, os caminhos de compatibilidade continuam disponíveis.
-- A medição de CPU no Worker de produção permanece pendente; não foi autorizada migração remota.
+- **Não executar migração de dados.** `/api/library` inicializa somente contas sem documento antigo.
+- Documento antigo ou `account_documents` anterior ao v3 recebe `409 library_format_unsupported`.
+- Nenhuma leitura apaga ou regrava esse documento. A biblioteca atual usa exclusivamente `units`.
+- Mutações legadas sobre biblioteca nova continuam retornando `409 client_outdated`.
+- Não houve migração remota nem publicação. `0013_titles.sql` apenas cria o esquema de títulos.
 
 ### Etapas
 
@@ -691,6 +697,22 @@ atualização deste plano.
 ---
 
 ## Registro de execução
+
+### 03/11/2026 — F2 e política aprovada (continuação)
+
+- Modelo único de materiais/unidades em domínio, transporte v3, persistência e backups.
+- Conversão automática removida; formatos antigos recusados sem apagar bancos.
+- Bônus de disciplina (200 XP + conquista) no batch de progresso, com seleção e grade completas.
+- Tarefa vinculada registra a aula no cliente e no servidor; várias tarefas não repetem XP.
+- Cargos aprovados como títulos: critérios em `title-policy.js`, concessões em `user_titles`,
+  apresentação no perfil, preservação nas pausas e reavaliação após correções.
+- Colaboração continua por convites; contribuição individual e recompensas ficam adiadas.
+- Validação final desta continuação: `npm test` com 244 aprovados e 1 ignorado (mídia no Worker);
+  após a limpeza do XP próprio de tarefas, 27 testes direcionados de domínio/tarefas aprovados.
+  `npm run build` aprovado e suíte completa de interface sobre o build final com **108 testes
+  aprovados**, desktop e mobile, um worker. Contrato inclui Node e D1 local; captura usa fixtures.
+  Links locais da documentação e `git diff --check` verificados. Sem deploy ou migração remota.
+  Os números das seções anteriores referem-se às respectivas rodadas históricas.
 
 ### 03/11/2026 — revisão do PR e persistência direta
 

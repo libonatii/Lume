@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { stepUnits } from '../../public/material-model.js';
 import assert from 'node:assert/strict';
 import { buildProfile, normalizeSharing } from '../../public/profile-domain.js';
 import { createInitialState, restoreState } from '../../public/domain.js';
@@ -12,15 +13,13 @@ function fixture() {
     ...base,
     onboarded: true,
     courses: [
-      { id: 'c1', title: 'Curso de redes', type: 'course', url: 'https://exemplo.test/redes', steps: [{ id: 's1', title: 'Aula 1' }, { id: 's2', title: 'Aula 2' }] },
-      { id: 'p1', title: 'Projeto público', type: 'project', shared: true, url: '', steps: [{ id: 's3', title: 'Entrega' }] },
-      { id: 'p2', title: 'Projeto privado', type: 'project', url: '', steps: [{ id: 's4', title: 'Entrega' }] },
-      { id: 'e1', title: 'Curso de exemplo', type: 'course', example: true, url: '', steps: [{ id: 's5', title: 'Aula' }] },
-      { id: 'c2', title: 'Curso concluído', type: 'course', url: '', steps: [{ id: 's6', title: 'Aula' }] },
+      { id: 'c1', title: 'Curso de redes', type: 'course', url: 'https://exemplo.test/redes', units: stepUnits([{ id: 's1', title: 'Aula 1' }, { id: 's2', title: 'Aula 2' }]) },
+      { id: 'p1', title: 'Projeto público', type: 'project', shared: true, url: '', units: stepUnits([{ id: 's3', title: 'Entrega' }]) },
+      { id: 'p2', title: 'Projeto privado', type: 'project', url: '', units: stepUnits([{ id: 's4', title: 'Entrega' }]) },
+      { id: 'e1', title: 'Curso de exemplo', type: 'course', example: true, url: '', units: stepUnits([{ id: 's5', title: 'Aula' }]) },
+      { id: 'c2', title: 'Curso concluído', type: 'course', url: '', units: stepUnits([{ id: 's6', title: 'Aula' }]) },
     ],
-    version: 1,
-    completed: ['s1', 's6'],
-    history: [],
+    progress: ['s1', 's6'].map((unitId, index) => ({ id: unitId, unitId, materialId: index ? 'c2' : 'c1', type: 'completion', origin: 'manual', historical: false, at: '2026-10-31T12:00:00Z' })),
   };
 }
 
@@ -93,8 +92,8 @@ test('perfil inclui atividade recente, conquistas e personalização de foto/hea
       avatar: sampleAvatarUrl,
       header: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
     },
-    history: [
-      { id: 'step:s1', courseId: 'c1', stepId: 's1', title: 'Aula 1', courseTitle: 'Curso de redes', preparation: false, xp: 10, at: '2026-10-29T15:00:00Z' },
+    progress: [
+      { id: 'step:s1', materialId: 'c1', unitId: 's1', title: 'Aula 1', materialTitle: 'Curso de redes', type: 'completion', origin: 'manual', historical: false, at: '2026-10-29T15:00:00Z' },
     ],
   };
   const restored = restoreState(JSON.stringify(state));

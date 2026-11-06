@@ -25,7 +25,7 @@ test('primeira gravação cria revisão 1 e leitura devolve o estado', async () 
   assert.equal(result.revision, 1);
   const read = await readState(db, 'u1');
   assert.equal(read.revision, 1);
-  assert.equal(read.state.version, 2);
+  assert.equal(read.state.version, 3);
 });
 
 test('revisão antiga recebe conflito e o estado atual, sem sobrescrever', async () => {
@@ -66,5 +66,5 @@ test('cliente antigo não grava o formato v1 por cima de um documento v2', async
     () => writeState(db, 'u1', { state: old, text: JSON.stringify(old), baseRevision: 1 }),
     (error) => error.code === 'client_outdated' && error.status === 409,
   );
-  assert.equal((await readState(db, 'u1')).state.version, 2);
+  assert.equal((await readState(db, 'u1')).state.version, 3);
 });

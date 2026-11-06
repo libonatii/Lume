@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { materialSteps, stepUnits } from '../../public/material-model.js';
 import { seedAccount, readAccount } from './library-helpers.js';
 import { createInitialState, STORAGE_KEY } from '../../public/domain.js';
 
@@ -18,10 +19,10 @@ function seeded() {
     resumeAt: '',
     slides: [],
     slideProgress: { seen: [], lastId: '', completedAt: null },
-    steps: [
+    units: stepUnits([
       { id: 'constitucional-0', title: 'Ler a introdução' },
       { id: 'constitucional-1', title: 'Resolver exercícios' },
-    ],
+    ]),
   }];
   state.selectedCourseId = 'constitucional';
   return state;
@@ -50,7 +51,7 @@ test('editar material muda título, tipo, retomada e etapas sem perder o curso',
   expect(saved.courses[0].title).toBe('Constitucional — revisão');
   expect(saved.courses[0].type).toBe('book');
   expect(saved.courses[0].resumeAt).toBe('capítulo 2');
-  expect(saved.courses[0].steps).toHaveLength(3);
+  expect(materialSteps(saved.courses[0])).toHaveLength(3);
 });
 
 test('criar slides, abrir no programa e concluir uma vez com cobertura do deck', async ({ page }) => {
@@ -91,7 +92,7 @@ test('criar material manualmente com tipo e etapas próprias', async ({ page }) 
   await expect(page.getByText('0 de 2 etapas concluídas')).toBeVisible();
   const saved = await readAccount(page);
   expect(saved.courses[0].type).toBe('article');
-  expect(saved.courses[0].steps).toHaveLength(2);
+  expect(materialSteps(saved.courses[0])).toHaveLength(2);
 });
 
 test('excluir material pede confirmação e remove o progresso dependente', async ({ page }) => {
