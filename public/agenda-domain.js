@@ -145,6 +145,27 @@ export function updateAppointment(state, id, patch, scope = 'one', today = local
   return next;
 }
 
+// O editor grava checklist e compromisso juntos, preservando identidade e conclusão.
+export function saveAppointment(state, input, scope = 'one') {
+  if (!input.id) return createAppointment(state, input);
+  const current = state.agenda.find((item) => item.id === input.id);
+  if (!current) fail('Compromisso não encontrado.');
+  const { tasks = [], taskChanges = [], ...patch } = input;
+  if (scope === 'future') return updateAppointment(state, input.id, patch, scope);
+  let next = state;
+  for (const change of taskChanges) {
+    const task = next.tasks.find((item) => item.id === change.id);
+    if (!task || !current.taskIds.includes(task.id)) fail('Tarefa não pertence a esta atividade.');
+    if (task.done) continue;
+    // addTask faz a mesma validação de título e vínculos usada no restante do produto.
+    const checked = addTask({ ...next, tasks: [] }, change).tasks[0];
+    next = { ...next, tasks: next.tasks.map((item) => item.id === task.id ? { ...item, title: checked.title, courseId: checked.courseId, lessonId: checked.lessonId } : item) };
+  }
+  const ids = [...(patch.taskIds || current.taskIds)];
+  for (const task of tasks) { next = addTask(next, task); ids.push(next.tasks.at(-1).id); }
+  return updateAppointment(next, input.id, { ...patch, taskIds: ids }, scope);
+}
+
 // Move só as pendências para uma nova atividade, conservando a anterior.
 export function movePending(state, id, date) {
   const current = state.agenda.find((item) => item.id === id);

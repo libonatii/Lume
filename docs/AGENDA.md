@@ -38,7 +38,8 @@ Exemplos ilustrativos:
 | Lembretes | Avisos dentro do Lume e notificações no computador, inclusive com a janela minimizada |
 | Calendários externos | Somente o Lume nesta versão, sem integração com calendários externos |
 
-A visualização inicial adotada é o dia. Os prazos já existentes nas tarefas são preservados e exibidos
+A revisão de experiência de 05/11 adota semana no computador e dia no celular como visualização inicial.
+Os prazos já existentes nas tarefas são preservados e exibidos
 como prazo, separadamente do dia escolhido para executar a atividade.
 
 ## 3. Integração com o que já existe
@@ -87,7 +88,7 @@ Estas decisões completam os detalhes abertos no plano original, sem mudar a pol
 3. **Edição e cancelamento:** esta ocorrência ou esta e as futuras pendentes; operações em série
    não alteram passadas, concluídas ou canceladas. Cancelar preserva o registro e as tarefas. Não existe
    alteração em massa retroativa de toda a série. Alterar checklists é uma operação por ocorrência.
-4. **Fuso fixo:** inicia com o fuso IANA do dispositivo, editável por compromisso, e continua visível.
+4. **Fuso fixo:** inicia com o fuso IANA do dispositivo, identificado no editor e editável em Mais opções.
    Data de término permite atravessar a meia-noite. Horários inexistentes são recusados; em horários
    ambíguos, usa a primeira ocorrência. Dias sem horário não são convertidos em instantes UTC na tela.
 5. **Sugestões por dia:** reaproveitam prioridade, disponibilidade em minutos e duração conhecida ou
@@ -206,3 +207,56 @@ release dependem de pedido explícito.
 - `node --check companion/electron/main.mjs`: passou. Links locais dos sete documentos conferidos.
 - Capturas de dia e mês foram geradas nos testes e revisadas no computador e no celular, com contexto
   de navegador novo. `git diff --check` passou. Não houve publicação nem aplicação remota do esquema.
+
+## 9. Revisão da experiência — calendário interativo
+
+A responsável aprovou substituir a grade de cartões por um calendário interativo e reduzir o cadastro.
+O motor visual é **FullCalendar Standard 7.1.4 (MIT)**, integrado ao React e aos tokens do Lume. CSS é
+importado pelo manifesto global, sem injetar estilos em tempo de execução. Não usa backend do fornecedor.
+
+- **Calendário:** semana inicial no computador, dia no celular; mês disponível nos dois. Blocos têm posição
+  e altura proporcionais ao horário e à duração, sobreposições lado a lado, linha de agora e faixa sem horário.
+- **Criação:** clicar/tocar em um horário preenche data, início e 30 minutos de duração. Arrastar seleciona
+  um intervalo; clicar num dia do mês cria sem horário. O título é a única informação ainda necessária.
+- **Editor contextual:** painel lateral no computador e inferior no celular, com foco contido, Escape e
+  devolução do foco. Mantém o calendário no lugar. Categoria, recorrência, lembrete, data final diferente e
+  edição do fuso ficam em Mais opções. O rodapé de gravação acompanha a rolagem.
+- **Checklist:** itens adicionados individualmente, cada um com material/aula próprios. É possível criar
+  e editar itens depois de salvar o compromisso. Retirar um vínculo não apaga a tarefa; tarefas concluídas
+  preservam seu vínculo e conclusão. Edição do checklist e compromisso forma uma única operação de biblioteca.
+- **Para agendar:** painel recolhível com tarefas ainda não agendadas, sugestões do Plano e pendências
+  anteriores. Arrastar uma tarefa para a grade abre revisão com título, vínculo e horário preenchidos;
+  o botão Agendar oferece o mesmo caminho sem arrasto. Sugestões só são gravadas após salvar.
+- **Reagendamento:** arrasto e redimensionamento usam as ações nomeadas e aguardam confirmação. Falhas
+  abrem o editor com os valores pretendidos; repetir conserva a operação, e conflito exige recarga e
+  reenvio explícito. Séries abrem revisão de escopo antes da gravação. Cancelar a revisão preserva a série.
+- **Fusos:** a grade mostra os instantes no fuso do dispositivo; o editor mantém o fuso original de cada
+  compromisso. Arrastar converte o instante escolhido de volta ao fuso original. Itens sem horário mantêm
+  a data civil. A resolução de horários sazonais continua no domínio compartilhado.
+- **Persistência:** mesmas tabelas e contrato v3, sem migração de dados. XP, privacidade e limites permanecem
+  os da seção 4. Recorrência continua sendo ocorrências explícitas, não eventos gerados pelo motor visual.
+
+Referências da pesquisa: [Notion Calendar](https://www.notion.com/help/manage-your-calendars-and-events),
+[Todoist — time blocking](https://www.todoist.com/help/todoist/get-started/time-blocking-in-todoist-d6Pf1uTpc),
+[FullCalendar React](https://fullcalendar.io/docs/react), [interações](https://fullcalendar.io/docs/event-dragging-resizing)
+e [licença](https://fullcalendar.io/license). O Schedule-X foi comparado, mas não adotado.
+
+Arquivos da revisão: `Agenda.jsx` compõe calendário e planejamento; `AppointmentEditor.jsx`,
+`AppointmentDetails.jsx` e `AgendaPanel.jsx` cuidam dos painéis; `calendar-model.js` adapta datas e eventos;
+`saveAppointment` em `public/agenda-domain.js` prepara a gravação atômica do checklist.
+
+### Verificação da revisão
+
+- `npm.cmd test`: **265 passaram, 1 ignorado, 0 falhas**; inclui contratos Node e D1 local.
+- `npm.cmd run build`: passou. Depois do build exercitado pela suíte, a única alteração de código
+  foi remover um import sem uso; o build final foi repetido.
+- `npm.cmd run test:e2e`: **126 passaram, 2 ignorados, 0 falhas**, em 8,1 minutos. Os dois ignorados
+  são gestos de mouse exclusivos do computador; criação por toque, editor, checklist e recuperação
+  de falhas foram exercitados também no celular. Inclui seleção na grade, duração proporcional,
+  sobreposição, arrasto, redimensionamento, escopo de série e tarefa arrastada sem duplicação.
+- `node scripts/test-agenda-desktop.mjs`: Electron minimizado, uma notificação criada e exibida,
+  zero erros e nenhuma reivindicação duplicada.
+- Revisão visual local em Azul/Roxo × claro/escuro: três eventos em cada combinação, sem estouro
+  horizontal ou erros JavaScript. Capturas do calendário e do editor foram revisadas; os testes
+  usam contextos novos e a revisão local bloqueou o service worker.
+- 51 links locais da documentação conferidos, sem arquivos ausentes. Mudanças locais, sem publicação.

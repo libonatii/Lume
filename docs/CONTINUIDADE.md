@@ -58,7 +58,7 @@ Telas React → ações nomeadas → useLibraryPersistence → /api/library/acti
 | Cursos | Importação por link/texto/arquivo/página copiada/extensão, revisão e reimportação que preserva ids e progresso |
 | Próxima ação | Hoje, Biblioteca, diálogo, roteiro, perfil e Desktop usam o critério de `study-plan.js`; `nextMission` foi removido |
 | Plano | Disponibilidade, prazos, prioridades, cronograma derivado, conflitos explicados e adiamento |
-| Agenda | Área própria com calendário diário, semanal e mensal; atividades com tarefas, recorrência finita, sobreposições, reagendamento manual e sugestões revisáveis do Plano; persistência por conta em `agenda_entries` |
+| Agenda | FullCalendar Standard: semana no computador, dia no celular e mês; criação na grade, arrasto/redimensionamento, editor contextual com checklist por item, painel Para agendar, recorrência finita e sugestões revisáveis; persistência por conta em `agenda_entries` |
 | Tarefas | Prazo, prioridade, vínculo com aula e subtarefas; concluir tarefa vinculada conclui a aula, sem XP próprio; sem vínculo, 0 XP |
 | Lembretes da Agenda | Consulta autenticada com reivindicação única por conta (`agenda_reminders`); avisos internos e canal Notification do computador; requer site/app executando e rede |
 | Sessão | Início, pausa, retomada, batimentos e encerramento; sobras de tempo, sobreposição e teto tratados no servidor |

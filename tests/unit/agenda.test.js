@@ -4,7 +4,8 @@ import { DatabaseSync } from 'node:sqlite';
 import { fileURLToPath } from 'node:url';
 import { createInitialState, addCourse, restoreState } from '../../public/domain.js';
 import { addTask, completeTask, removeTask } from '../../public/tasks-domain.js';
-import { createAppointment, updateAppointment, movePending, conflictsFor, zonedInstant, dueReminders, reminderKey, agendaSuggestions, appointmentRange } from '../../public/agenda-domain.js';
+import { createAppointment, updateAppointment, saveAppointment, movePending, conflictsFor, zonedInstant, dueReminders, reminderKey, agendaSuggestions, appointmentRange } from '../../public/agenda-domain.js';
+import { calendarEvent, calendarPatch } from '../../src/features/agenda/calendar-model.js';
 import { readBackup, mergeBackup } from '../../public/backup-domain.js';
 import { libraryActions } from '../../public/library-actions.js';
 import { buildProfile } from '../../public/profile-domain.js';
@@ -180,4 +181,45 @@ test('edição concorrente aborta a reivindicação do lembrete sem consumir o a
   } };
   await assert.rejects(claimReminders(changing, 'u1', { now: Date.parse('2026-11-10T21:45:00Z') }), { code: 'agenda_conflict' });
   assert.equal((await db.all('SELECT * FROM agenda_reminders')).length, 0);
+});
+
+test('editor salva tarefas individualmente com vínculos distintos e preserva conclusões e ids', async (t) => {
+  const db = database(t);
+  let current = await readLibrary(db, 'u1');
+  let state = addCourse(current.state, { title: 'Curso', steps: ['Aula A', 'Aula B'] }, 'c');
+  state = saveAppointment(state, input({ tasks: [{ title: 'Assistir A', courseId: 'c', lessonId: 'c-0' }, { title: 'Assistir B', courseId: 'c', lessonId: 'c-1' }] }));
+  current = await save(db, current, state);
+  state = completeTask(current.state, state.tasks[0].id).state;
+  current = await save(db, current, state);
+  const first = current.state.tasks[0];
+  state = saveAppointment(current.state, { ...current.state.agenda[0], taskChanges: [{ ...first, title: 'Não sobrescrever conclusão' }, { ...current.state.tasks[1], title: 'Rever B' }], tasks: [{ title: 'Revisar notas' }] });
+  current = await save(db, current, state);
+  assert.deepEqual(current.state.tasks[0], first);
+  assert.equal(current.state.tasks[1].title, 'Rever B');
+  assert.equal(current.state.tasks[1].lessonId, 'c-1');
+  assert.equal(current.state.tasks.length, 3);
+  assert.equal(current.state.agenda[0].taskIds.length, 3);
+  assert.equal(current.state.progress.length, 1);
+});
+
+test('editor não modifica tarefas de outro compromisso nem perde dados ao exceder limites', () => {
+  const state = createAppointment(createInitialState(), input({ tasks: [{ title: 'Original' }] }));
+  assert.throws(() => saveAppointment(state, { ...state.agenda[0], taskChanges: [{ id: 'outra', title: 'Outra' }] }), /não pertence/);
+  assert.throws(() => saveAppointment(state, { ...state.agenda[0], tasks: Array.from({ length: 50 }, () => ({ title: 'Nova' })) }), /Lista de tarefas inválida/);
+  assert.equal(state.tasks.length, 1);
+  assert.equal(state.agenda[0].taskIds.length, 1);
+});
+
+test('calendário conserva instantes, fuso, virada do dia e data civil sem horário', () => {
+  const state = createAppointment(createInitialState(), input({ date: '2026-11-10', start: '23:30', endDate: '2026-11-11', end: '00:30' }));
+  const item = state.agenda[0];
+  const event = calendarEvent(item, []);
+  assert.equal(event.start, '2026-11-11T02:30:00.000Z');
+  assert.deepEqual(calendarPatch({ ...event, start: new Date(event.start), end: new Date(event.end) }, item.timeZone), {
+    date: item.date, endDate: item.endDate, start: item.start, end: item.end, timeZone: item.timeZone,
+  });
+  assert.deepEqual(calendarPatch({ allDay: true, startStr: '2026-11-12' }, item.timeZone), { date: '2026-11-12', endDate: '2026-11-12', start: '', end: '', timeZone: item.timeZone });
+  const allDay = calendarEvent({ ...item, date: '2026-11-12', endDate: '2026-11-12', start: '', end: '' }, []);
+  assert.equal(allDay.start, '2026-11-12');
+  assert.equal(allDay.end, '2026-11-13');
 });

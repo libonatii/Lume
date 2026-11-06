@@ -147,8 +147,12 @@ Não é observação de atividade, e isso está dito na interface.
 **Implementado e verificado localmente.** Agenda centraliza as tarefas e oferece
 dia, semana e mês, atividades com checklist, recorrência finita, avisos de conflito e reagendamento manual.
 Cronograma e Roteiro permanecem no Plano; sugestões só viram compromissos após revisão e gravação.
+- Revisão visual de 05/11: FullCalendar Standard, criação diretamente na grade, arrasto/redimensionamento,
+  painéis contextuais, Mais opções e checklist editável por item. Tarefas e sugestões ficam em Para agendar.
+- Verificação da revisão: 265 testes de domínio/contrato passaram (1 ignorado), 126 e2e passaram
+  (2 gestos de mouse exclusivos do computador ignorados no mobile), build e Electron minimizado passaram.
 - Detalhes e evidências: [Agenda](AGENDA.md). Não publicado.
-- Verificação: 262 testes de domínio/contrato passaram (1 ignorado), 120 e2e na suíte completa e
+- Verificação da primeira implementação: 262 testes de domínio/contrato passaram (1 ignorado), 120 e2e na suíte completa e
   14 cenários da Agenda revalidados após os ajustes finais; build e notificação nativa no Electron passaram.
 - Limites: sem calendário externo, notificações no celular ou entrega garantida com o programa encerrado.
   A consulta requer rede; recupera avisos vencidos há até 15 minutos e os reivindica uma vez por conta.

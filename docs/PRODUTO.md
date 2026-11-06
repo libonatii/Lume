@@ -115,6 +115,11 @@ estudos livres e compromissos pessoais. Há horários opcionais, recorrência co
 avisos de sobreposição, reagendamento manual e lembretes. Cronograma e Roteiro permanecem no Plano.
 Escolhas operacionais, limites e verificação em [Agenda](AGENDA.md).
 
+A revisão de experiência usa um calendário interativo: selecionar um horário preenche data e duração,
+restando informar o título. Semana abre no computador e dia no celular. Arrastar move, ajustar a borda muda
+a duração; tarefas e sugestões ficam em “Para agendar”. Checklist e vínculos são opcionais e editáveis
+por item; repetição, lembretes e fuso ficam em Mais opções. Detalhes abrem em painel contextual.
+
 - A pessoa mantém uma lista de tarefas necessárias para estudar para uma prova, com vínculo opcional a um curso, prazo opcional e prioridade explícita. Tarefas atrasadas aparecem primeiro, também na página Hoje.
 - Definir ou mudar a prioridade é organização e não gera XP.
 - Criar, editar, organizar ou remover tarefas é preparação e não gera XP.
