@@ -9,6 +9,7 @@
 import { STATE_VERSION, restoreState } from './domain.js';
 import { materialSteps } from './material-model.js';
 import { completedUnitIds, mergeProgress } from './progress-domain.js';
+import { validateAgenda } from './agenda-domain.js';
 
 export const MAX_BACKUP_BYTES = 2 * 1024 * 1024;
 
@@ -38,6 +39,8 @@ export function readBackup(text) {
     throw new BackupError('A cópia não tem o formato de progresso do Lume.', 'invalid_version');
   }
   const restored = restoreState(JSON.stringify(raw));
+  if (raw.agenda !== undefined && (!Array.isArray(raw.agenda) || restored.agenda.length !== raw.agenda.length)) throw new BackupError('A cópia contém compromissos inválidos.', 'invalid_agenda');
+  try { validateAgenda(restored); } catch (error) { throw new BackupError(error.message, 'invalid_agenda'); }
   if (!restored || restored.version !== STATE_VERSION) throw new BackupError('Não foi possível ler a cópia.', 'invalid_state');
   return restored;
 }
@@ -112,6 +115,7 @@ export function mergeBackup(current, incoming) {
     courses,
     progress,
     tasks,
+    agenda: mergeById(current.agenda || [], incoming.agenda || []),
     studySessions: sessions,
     imports: mergeById(current.imports || [], incoming.imports || []),
     selectedCourseId: validCourses.has(current.selectedCourseId)
@@ -133,6 +137,7 @@ export function previewBackup(current, incoming) {
     newCompleted: [...completedUnitIds(incoming)].filter((id) => !currentCompleted.has(id)).length,
     newProgress: (incoming.progress || []).filter((event) => !currentEvents.has(event.id)).length,
     newTasks: (incoming.tasks || []).filter((task) => !currentTasks.has(task.id)).length,
+    newAppointments: (incoming.agenda || []).filter((item) => !(current.agenda || []).some((existing) => existing.id === item.id)).length,
     newSessions: (incoming.studySessions || []).filter((session) => !currentSessions.has(session.id)).length,
     unchanged: (incoming.courses || []).length - newCourses.length,
   };

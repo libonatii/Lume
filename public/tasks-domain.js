@@ -81,6 +81,7 @@ export function normalizeTasks(value) {
 }
 
 export function addTask(state, { title, courseId = '', lessonId = '', dueDate = '', priority = 0 }, now = new Date().toISOString()) {
+  if ((state.tasks || []).length >= MAX_TASKS) throw new Error(`Limite de ${MAX_TASKS} tarefas atingido.`);
   const cleanTitle = String(title || '').trim().slice(0, 180);
   if (!cleanTitle) throw new Error('Dê um nome para a tarefa.');
   const task = {
@@ -158,7 +159,7 @@ export function removeSubtask(state, id, subtaskId) {
 }
 
 export function removeTask(state, id) {
-  return { ...state, tasks: (state.tasks || []).filter((task) => task.id !== id) };
+  return { ...state, tasks: (state.tasks || []).filter((task) => task.id !== id), agenda: (state.agenda || []).map((item) => ({ ...item, taskIds: item.taskIds.filter((taskId) => taskId !== id) })) };
 }
 
 // Ordem de ação: pendentes antes; entre elas, atrasadas, depois prioridade

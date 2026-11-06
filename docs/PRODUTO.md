@@ -109,6 +109,12 @@ A pessoa cola o link do curso, o Lume identifica a plataforma e apresenta as ár
 
 ### Tarefas de prova (implementadas)
 
+**Agenda (implementada localmente em 05/11/2026):** as tarefas agora ficam na área Agenda, ao lado
+do calendário diário, semanal e mensal. Atividades podem reunir tarefas existentes ou novas, incluindo
+estudos livres e compromissos pessoais. Há horários opcionais, recorrência com checklist independente,
+avisos de sobreposição, reagendamento manual e lembretes. Cronograma e Roteiro permanecem no Plano.
+Escolhas operacionais, limites e verificação em [Agenda](AGENDA.md).
+
 - A pessoa mantém uma lista de tarefas necessárias para estudar para uma prova, com vínculo opcional a um curso, prazo opcional e prioridade explícita. Tarefas atrasadas aparecem primeiro, também na página Hoje.
 - Definir ou mudar a prioridade é organização e não gera XP.
 - Criar, editar, organizar ou remover tarefas é preparação e não gera XP.
@@ -220,8 +226,9 @@ As regras detalhadas estão em [Gamificação](GAMIFICACAO.md).
 | Entrada e conta | Cadastro, autenticação, recuperação por link e saída já disponíveis na API local; envio de e-mail ainda pendente |
 | Meu ritmo e interesses | Preferências e sugestões iniciais |
 | Hoje | Próxima ação única (mesmo critério do roteiro do Companion), com motivo, tempo a reservar — duração conhecida ou estimada —, link do material e o que falta; sessão; tarefas relevantes com atraso; evolução com a última recompensa |
-| Plano | Cronograma pela disponibilidade semanal, prazos e prioridades, com duração conhecida ou estimada, conflito de prazo explicado com ajustes e adiamento; abas Tarefas e Roteiro (próxima aula de cada curso) |
-| Tarefas | Lista de estudo para uma prova, com prioridade (alta, média, baixa ou sem prioridade), prazo, atraso, vínculo opcional a curso e aula, subtarefas e conclusão com XP único |
+| Plano | Cronograma pela disponibilidade semanal, prazos e prioridades, com duração conhecida ou estimada, conflito de prazo explicado com ajustes e adiamento; aba Roteiro (próxima aula de cada curso) |
+| Agenda | Calendário de dia, semana com horários e mês; atividades com checklist, tarefas isoladas, recorrência, reagendamento manual, sugestões do Plano e lembretes. Estudos e compromissos pessoais são organizados privadamente |
+| Tarefas (aba da Agenda) | Lista com prioridade, prazo, atraso, vínculo opcional a curso e aula, subtarefas, agendamento e conclusão da aula vinculada com XP único |
 | Biblioteca | Cursos, aulas, leituras, exercícios e projetos, com capas, filtros, favoritos e retomada |
 | Trilhas e projetos | Objetivos e entregas substanciais |
 | Organização | Anotações, listas de aulas e entregas, quadro de projetos e modelos básicos |

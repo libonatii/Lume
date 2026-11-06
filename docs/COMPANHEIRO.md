@@ -67,6 +67,7 @@ implementado nem decidido. Ver [Importação](IMPORTACAO.md).
 | Roteiro por prioridade | Implementado no servidor; exibido no comando `plan` e na janela |
 | Bandeja do sistema, janela principal com o site e painel de presença (Electron 45) | Implementado; abrir com `npm run companion:app` |
 | Rich Presence no Discord | Implementado no processo principal do Electron. Exige Application ID e a arte `lume_logo` no portal do Discord; sem o ID, fica inativo |
+| Agenda e lembretes | Agenda do site na janela; avisos internos e notificações nativas enquanto o aplicativo executa, inclusive minimizado. Sem entrega com o processo encerrado; detalhes em [Agenda](AGENDA.md) |
 | Instalador assinado | Pendente; a atualização pela janela já baixa e abre o instalador |
 
 A página Hoje do site usa o mesmo critério (`nextAction`, derivado de
@@ -150,7 +151,7 @@ nem uma segunda conta.
 
 | Janela | O que mostra |
 | --- | --- |
-| Principal | O site do Lume inteiro: login, Hoje, Biblioteca, Plano (cronograma, tarefas e roteiro), Amigos (contatos, mensagens e ranking), Perfil (conquistas, Meu caminho e configurações) e a página Instalar aplicativo |
+| Principal | O site do Lume inteiro: login, Hoje, Biblioteca, Plano (cronograma e roteiro), Agenda (calendário e tarefas), Amigos (contatos, mensagens e ranking), Perfil (conquistas, Meu caminho e configurações) e a página Instalar aplicativo |
 | Presença | Painel local de 400×640: dispositivo, aplicativo em uso, roteiro, pausa, pareamento e versão |
 
 A janela principal abre links externos no navegador, mantém a sessão entre
@@ -189,7 +190,7 @@ O que ainda falta nessa camada:
 | Recurso | Descrição |
 | --- | --- |
 | HUD discreto | Sempre no topo, por escolha, com tempo e próxima aula |
-| Notificações | Lembrete gentil de pausa; nunca cobrança |
+| Notificações de pausa | Lembrete de pausa ainda pendente; lembretes de compromissos da Agenda estão implementados |
 | Sessão no programa | Iniciar, pausar e encerrar a sessão declarada do site |
 | Retomada direta | Abrir a próxima aula no navegador pelo link da fonte |
 | Biblioteca local | Lista de cursos sem abrir o site |
@@ -224,6 +225,9 @@ opt-in; pausa não é punida; nada de vigilância.
   dispositivo nem o Application ID.
 - A janela principal também roda com `contextIsolation`, `sandbox` e sem Node;
   links externos vão para o navegador.
+- A janela principal usa `backgroundThrottling: false` para continuar consultando os lembretes da
+  Agenda quando minimizada ou na bandeja. O canal é a API Notification do Electron, sem IPC novo.
+  O servidor revalida a revisão e reivindica cada aviso uma única vez entre dispositivos da conta.
 - O token é criado no pareamento (código de 8 caracteres, uso único, 10 min).
 - O token só pode relatar presença e **ler** o roteiro; não altera estado.
 - O servidor guarda apenas o hash do token.
@@ -284,6 +288,11 @@ workflow `Companion release`); não precisa de Node nem do projeto.
 Ou, sem janela: `npm run companion` (agente de terminal).
 
 ## 9. Limitações atuais
+
+**Verificação da Agenda em 05/11/2026:** `node scripts/test-agenda-desktop.mjs` abriu o Electron 45.2.1
+real com conta, banco e configuração isolados; confirmou janela minimizada, aviso interno e evento
+`show` de uma notificação nativa (uma criada, uma exibida, zero erros), sem segunda reivindicação na API.
+Isso verifica o canal local, não uma release publicada nem entrega com o programa encerrado.
 
 - Windows apenas; sem suporte a Linux/macOS.
 - A janela e a bandeja foram verificadas em Chromium (mesma engine do Electron) e

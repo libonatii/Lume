@@ -287,6 +287,8 @@ function createMainWindow() {
       nodeIntegration: false,
       sandbox: true,
       spellcheck: true,
+      // A Agenda consulta lembretes mesmo com a janela minimizada/na bandeja.
+      backgroundThrottling: false,
     },
   });
 

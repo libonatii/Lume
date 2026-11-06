@@ -9,6 +9,7 @@ import { json } from '../http.js';
 import { readLibrary } from '../domain/library-store.js';
 import { applyLibraryActions } from '../domain/library-actions.js';
 import { ensureXpSettings } from '../domain/xp.js';
+import { claimReminders } from '../domain/agenda.js';
 
 const IMPORT_BODY = {
   tooLarge: () => new ImportError('O conteúdo enviado é grande demais.', 'too_large', 413),
@@ -28,6 +29,7 @@ export function libraryRoutes(router) {
     return json(await readLibrary(ctx.db, ctx.user.id));
   });
   router.add('POST', '/api/library/actions', account, async (ctx) => json(await applyLibraryActions(ctx.db, ctx.user.id, await ctx.json(3 * 1024 * 1024))));
+  router.add('POST', '/api/agenda/reminders', account, async (ctx) => json({ reminders: await claimReminders(ctx.db, ctx.user.id) }));
   router.add('GET', '/api/state', { auth: 'Entre na sua conta para ver seu progresso.', origin: true }, async (ctx) =>
     json(await readState(ctx.db, ctx.user.id)));
 

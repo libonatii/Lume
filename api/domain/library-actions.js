@@ -2,6 +2,7 @@ import { restoreState } from '../../public/domain.js';
 import { materialSteps } from '../../public/material-model.js';
 import { recordCompletion } from '../../public/progress-domain.js';
 import { ACCOUNT_FIELDS } from '../../public/library-actions.js';
+import { validateAgenda } from '../../public/agenda-domain.js';
 import { AppError } from '../errors.js';
 import { readLibrary, commitLibrary } from './library-store.js';
 import { ensureXpSettings } from './xp.js';
@@ -9,7 +10,7 @@ import { timeStatements } from './library-time.js';
 import { RULES } from './rewards.js';
 import { XP_POLICY_VERSION, localDay } from '../../public/xp-policy.js';
 
-const COLLECTIONS = { material: 'courses', task: 'tasks', session: 'studySessions', progress: 'progress' };
+const COLLECTIONS = { material: 'courses', task: 'tasks', session: 'studySessions', progress: 'progress', appointment: 'agenda' };
 const fail = (message) => { throw new AppError(message, 'invalid_library_action', 400); };
 
 // Recompensas e progresso são gravados no mesmo batch. INSERT OR IGNORE guarda
@@ -129,6 +130,7 @@ export async function applyLibraryActions(db, userId, input, { now = Date.now() 
     state = result.state;
     if (result.added) changed.units.add(JSON.stringify([course.id, lesson.id]));
   }
+  try { validateAgenda(state); } catch (error) { fail(error.message); }
   const normalized = restoreState(state);
   // A leitura de backup tolera itens quebrados; a API não pode confirmar uma
   // edição que descartou aulas silenciosamente ou vinculou progresso a outro curso.

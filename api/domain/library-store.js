@@ -5,11 +5,11 @@ import { splitMaterial, projectMaterial } from '../../public/material-model.js';
 import { AppError } from '../errors.js';
 import { reconcileSession } from '../../public/session-domain.js';
 
-const COLLECTIONS = { progress: 'study_progress', tasks: 'study_tasks', studySessions: 'study_sessions' };
+const COLLECTIONS = { progress: 'study_progress', tasks: 'study_tasks', studySessions: 'study_sessions', agenda: 'agenda_entries' };
 const json = JSON.stringify;
 
 function documentOf(state) {
-  const { courses, progress, tasks, studySessions, ...document } = state;
+  const { courses, progress, tasks, studySessions, agenda, ...document } = state;
   return document;
 }
 

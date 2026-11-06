@@ -8,6 +8,7 @@ import { addCourse, completeMission, createInitialState } from '../../public/dom
 import { client } from './harness.js';
 import { libraryActions } from '../../public/library-actions.js';
 import { applyCourseImport, normalizePayload } from '../../public/import-domain.js';
+import { createAppointment } from '../../public/agenda-domain.js';
 
 const PNG = Uint8Array.from([
   0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52,
@@ -31,6 +32,30 @@ async function register(origin, name) {
 
 export async function runContract(target, t) {
   const { origin } = target;
+
+  await t.test('Agenda e lembretes autenticados: persistência, isolamento e deduplicação', async () => {
+    const { browser } = await register(origin, 'Agenda');
+    const current = (await browser.request('GET', '/api/library')).data;
+    const now = new Date();
+    const end = new Date(now.getTime() + 3600000);
+    const next = createAppointment(current.state, { title: 'Compromisso privado', category: 'personal', date: now.toISOString().slice(0, 10), start: now.toISOString().slice(11, 16), end: end.toISOString().slice(11, 16), endDate: end.toISOString().slice(0, 10), timeZone: 'UTC', reminder: 0, tasks: [{ title: 'Preparar documento' }] });
+    const body = { id: 'agenda-create', revision: current.revision, actions: libraryActions(current.state, next) };
+    const saved = await browser.request('POST', '/api/library/actions', { body });
+    assert.equal(saved.status, 200, JSON.stringify(saved.data));
+    assert.deepEqual(saved.data.state.agenda, next.agenda);
+    assert.equal((await browser.request('POST', '/api/library/actions', { body })).data.duplicate, true);
+    const claims = await Promise.all([browser.request('POST', '/api/agenda/reminders'), browser.request('POST', '/api/agenda/reminders')]);
+    assert.ok(claims.every((result) => result.status === 200), JSON.stringify(claims));
+    assert.equal(claims.flatMap((result) => result.data.reminders).length, 1);
+    assert.equal((await browser.request('GET', '/api/xp')).data.summary.totalXP, 0);
+    const { browser: other } = await register(origin, 'OutraAgenda');
+    assert.deepEqual((await other.request('GET', '/api/library')).data.state.agenda, []);
+    assert.deepEqual((await other.request('POST', '/api/agenda/reminders')).data.reminders, []);
+    assert.equal((await client(origin).request('POST', '/api/agenda/reminders')).status, 401);
+    const invalid = await browser.request('POST', '/api/library/actions', { body: { id: 'invalid-date', revision: saved.data.revision, actions: [{ type: 'appointment.put', value: { ...next.agenda[0], date: '2026-02-30' } }] } });
+    assert.equal(invalid.status, 400);
+    assert.deepEqual((await browser.request('GET', '/api/library')).data.state.agenda, next.agenda);
+  });
 
   await t.test('biblioteca normalizada, operações idempotentes e isolamento', async () => {
     const { browser } = await register(origin, 'Biblioteca');

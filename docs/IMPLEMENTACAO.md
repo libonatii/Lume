@@ -46,7 +46,7 @@ de evidências e limitações por ambiente, não uma segunda lista de pendência
 | Biblioteca direta com revisão e repetição idempotente | Só local (revisão de 03/11) | `api/domain/library-store.js`, `library-actions.js`, `src/features/library/useLibraryPersistence.js` | contrato Node/D1 e e2e; conflito exige recarga |
 | Onboarding (três jornadas) | Implementado | `Onboarding.jsx`, `public/domain.js` | e2e local |
 | Hoje: próxima ação, sessão, tarefas, evolução | Implementado | `Study.jsx`, `public/study-plan.js` | e2e local |
-| Plano: cronograma, tarefas com prioridade e subtarefas, roteiro | Implementado | `Plan.jsx`, `Tasks.jsx`, `public/schedule-domain.js`, `public/tasks-domain.js` | e2e local |
+| Plano e Agenda: cronograma, roteiro, calendário e tarefas | Implementado localmente | `Plan.jsx`, `Tasks.jsx`, `Agenda.jsx`, `public/schedule-domain.js`, `public/tasks-domain.js`, `public/agenda-domain.js` | e2e local; detalhes em [Agenda](AGENDA.md) |
 | Biblioteca: criar, editar, excluir, tipos, slides | Implementado (imagens só local) | `Study.jsx`, `CourseEditor.jsx`, `Slides.jsx` | e2e local |
 | Importação por link, texto e página copiada | Parcial | `api/domain/import-server.js`, `public/import-domain.js` | unitário com HTML sintético; e2e com análise simulada; Coursera e Alura conferidos em 31/10 |
 | XP no servidor, níveis, tempo, correção | Implementado | `api/domain/xp.js`, `public/xp-policy.js` | unitário e e2e local |
@@ -64,7 +64,8 @@ Os dois ambientes (`server.js` e `worker.js`) servem o mesmo app de `api/`; `tes
 existentes: `users`, `sessions`, `password_resets`, `rate_limits`, `user_state`, `companion_*`, `friend*`,
 `xp_settings`, `xp_events`, `xp_time_sessions`, `user_achievements`, `direct_messages`, `contact_blocks`,
 `message_preferences`, `delivery_invites`, `materials`, `units`, `study_progress`, `study_tasks`,
-`study_sessions`, `account_documents`, `library_operations`, `library_write_guards`, `user_titles`. Não existe tabela para desbloqueios, denúncias,
+`study_sessions`, `account_documents`, `library_operations`, `library_write_guards`, `user_titles`,
+`agenda_entries`, `agenda_reminders`. Não existe tabela para desbloqueios, denúncias,
 publicações, anotações nem observação de reprodução.
 
 ---
@@ -133,7 +134,7 @@ de material, com etapas.
 tarefa com aula). Falta:
 - registrar a aula e abrir a próxima em um passo;
 - considerar o prazo das tarefas no cronograma (hoje só as aulas entram);
-- lembretes ou notificações do plano;
+- lembretes de sugestões ainda não agendadas; a Agenda oferece lembretes de compromissos explícitos (B6);
 
 A unificação do critério foi concluída em 03/11: Biblioteca e diálogo usam `nextAction`, derivado
 do roteiro; `nextMission` foi removido.
@@ -141,6 +142,18 @@ do roteiro; `nextMission` foi removido.
 ### B5 — Sessão de estudo
 **Implementado como declaração.** O tempo é declarado pela pessoa e vira XP em blocos validados no servidor.
 Não é observação de atividade, e isso está dito na interface.
+
+### B6 — Agenda com calendário e tarefas
+**Implementado e verificado localmente.** Agenda centraliza as tarefas e oferece
+dia, semana e mês, atividades com checklist, recorrência finita, avisos de conflito e reagendamento manual.
+Cronograma e Roteiro permanecem no Plano; sugestões só viram compromissos após revisão e gravação.
+- Detalhes e evidências: [Agenda](AGENDA.md). Não publicado.
+- Verificação: 262 testes de domínio/contrato passaram (1 ignorado), 120 e2e na suíte completa e
+  14 cenários da Agenda revalidados após os ajustes finais; build e notificação nativa no Electron passaram.
+- Limites: sem calendário externo, notificações no celular ou entrega garantida com o programa encerrado.
+  A consulta requer rede; recupera avisos vencidos há até 15 minutos e os reivindica uma vez por conta.
+- Disponibilidade continua em minutos por dia; não há sugestão automática de horários específicos.
+- O prazo das tarefas ainda não participa do cronograma (B4). Regras de XP permanecem as mesmas.
 
 ---
 
@@ -257,7 +270,7 @@ clique. O processo principal publica Rich Presence no Discord (curso e aula do r
 ligado por padrão). O Application ID público do Lume vai no build (`DEFAULT_DISCORD_CLIENT_ID`);
 `LUME_DISCORD_CLIENT_ID` e `discordClientId` o sobrepõem. Falta confirmar no Developer Portal que a arte
 `lume_logo` foi enviada.
-Falta também: instalador assinado; início com o Windows; notificações; abrir a próxima aula pelo painel;
+Falta também: instalador assinado; início com o Windows; notificações de pausa; abrir a próxima aula pelo painel;
 funcionamento sem rede; suporte a Linux e macOS; janela e bandeja testadas no CI. A versão local é 0.5.1 e a
 última release publicada é `companion-v0.5.0`.
 

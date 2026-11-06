@@ -50,7 +50,7 @@ export default function BackupPanel({ state, actions, account, notify }) {
     <button className="text-button accent" onClick={download}>Baixar cópia dos meus dados<Icon name="arrow"/></button>
     <div className="backup-restore">
       <strong className="title">Restaurar uma cópia</strong>
-      <p className="muted-text">Mescla cursos, progresso, histórico e tarefas de um arquivo JSON. Suas preferências, privacidade e onboarding atuais não são substituídos.</p>
+      <p className="muted-text">Mescla cursos, progresso, histórico, tarefas e Agenda de um arquivo JSON. Suas preferências, privacidade e onboarding atuais não são substituídos.</p>
       <input ref={input} type="file" accept=".json,application/json" className="sr-only" onChange={choose} aria-label="Escolher arquivo de cópia do Lume"/>
       <Button secondary onClick={() => input.current?.click()}><Icon name="return"/>Escolher arquivo JSON</Button>
       {name && <p className="quiet-note">Arquivo: {name}</p>}
@@ -58,6 +58,7 @@ export default function BackupPanel({ state, actions, account, notify }) {
       {summary && <div className="backup-preview">
         <p className="inline-note"><Icon name="info"/><span>Esta cópia acrescenta {summary.newCourseCount} {summary.newCourseCount === 1 ? 'material novo' : 'materiais novos'}, {summary.newCompleted} {summary.newCompleted === 1 ? 'conclusão' : 'conclusões'} e {summary.newTasks} {summary.newTasks === 1 ? 'tarefa' : 'tarefas'}. {summary.unchanged > 0 ? `${summary.unchanged} material(is) já existente(s) serão mesclados.` : ''}</span></p>
         {summary.newCourses.length > 0 && <ul className="backup-course-list">{summary.newCourses.map((title) => <li key={title}>{title}</li>)}</ul>}
+        <p>{summary.newAppointments} compromissos novos na Agenda.</p>
         <div className="dialog-actions inline-actions">
           <Button onClick={restore}><Icon name="check"/>Mesclar à minha biblioteca</Button>
           <Button secondary onClick={() => { setBackup(null); setName(''); }}>Cancelar</Button>

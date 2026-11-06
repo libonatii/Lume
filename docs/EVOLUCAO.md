@@ -89,6 +89,9 @@ Exemplo real de uso: Ana estuda para a OAB com um curso da Gran e quer concluir 
 
 ### 3.1 Navegação proposta: cinco destinos
 
+**Atualização de 05/11/2026:** a decisão da [Agenda](AGENDA.md) acrescenta um sexto destino próprio,
+com Calendário e Tarefas. Plano mantém Cronograma e Roteiro. A tabela abaixo preserva a proposta original.
+
 | Destino | Reúne | Pergunta que responde |
 | --- | --- | --- |
 | **Hoje** | Próxima ação, sessão, tarefas relevantes, evolução recente | O que faço agora? |

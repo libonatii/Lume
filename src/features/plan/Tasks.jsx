@@ -53,7 +53,7 @@ function Subtasks({ task, actions }) {
   </details>;
 }
 
-export default function Tasks({ state, actions, notify }) {
+export default function Tasks({ state, actions, notify, onSchedule }) {
   const [title, setTitle] = useState('');
   const [courseId, setCourseId] = useState('');
   const [lessonId, setLessonId] = useState('');
@@ -83,7 +83,7 @@ export default function Tasks({ state, actions, notify }) {
       setDueDate('');
       setPriority('0');
       setError('');
-      notify('Tarefa adicionada. Criar não gera XP; concluir gera uma vez.');
+      notify('Tarefa adicionada. Só a conclusão de uma aula vinculada pode gerar sua recompensa.');
     } catch (exception) {
       setError(exception.message);
     }
@@ -92,7 +92,7 @@ export default function Tasks({ state, actions, notify }) {
   function toggle(task) {
     if (task.done) {
       if (!actions.reopenTask(task.id)) return;
-      notify('Tarefa reaberta. O XP da conclusão sai do total enquanto ela estiver aberta.');
+      notify('Tarefa reaberta. A aula e sua recompensa foram preservadas.');
       return;
     }
     const now = new Date().toISOString();
@@ -138,13 +138,14 @@ export default function Tasks({ state, actions, notify }) {
       {!task.done && <select className="todo-priority-select" aria-label={`Prioridade de ${task.title}`} value={String(task.priority || 0)} onChange={(event) => prioritize(task, event.target.value)}>
         {TASK_PRIORITIES.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
       </select>}
+      {onSchedule && <button type="button" className="text-button" aria-label={`Agendar tarefa ${task.title}`} onClick={() => onSchedule(task)}>Agendar</button>}
       <button type="button" className="text-button" aria-label={`Remover tarefa ${task.title}`} onClick={() => remove(task)}>Remover</button>
       <Subtasks task={task} actions={actions}/>
     </motion.li>;
   }
 
   return <div className="personal-root">
-    <Heading eyebrow="Preparação para a prova" title="Tarefas">
+    <Heading eyebrow="Agenda" title="Tarefas">
       Liste as ações concretas da sua preparação e defina o que vem primeiro. Concluir uma tarefa vinculada registra a conclusão da aula. Tarefas sem aula vinculada não geram XP.
     </Heading>
 

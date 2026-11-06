@@ -11,16 +11,18 @@ import Friends from '../features/social/Friends.jsx';
 import Profile from '../features/social/Profile.jsx';
 import Companion from '../features/desktop/Companion.jsx';
 import Tasks from '../features/plan/Tasks.jsx';
+import Agenda from '../features/agenda/Agenda.jsx';
 import Ranking from '../features/social/Ranking.jsx';
 import Messages from '../features/social/Messages.jsx';
 import GitHub from '../features/library/GitHub.jsx';
 import Icon from '../ui/Icon.jsx';
 
-// Cinco destinos do menu; as telas secundárias são abas da seção.
+// Seis destinos do menu; as telas secundárias são abas da seção.
 export const SECTIONS = {
   hoje: { label: 'Hoje', icon: 'home', home: 'hoje' },
   biblioteca: { label: 'Biblioteca', icon: 'book', home: 'biblioteca' },
   plano: { label: 'Plano', icon: 'list', home: 'plano' },
+  agenda: { label: 'Agenda', icon: 'calendar', home: 'agenda' },
   amigos: { label: 'Amigos', icon: 'users', home: 'amigos' },
   perfil: { label: 'Perfil', icon: 'user', home: 'perfil' },
 };
@@ -49,7 +51,8 @@ export const ROUTES = [
   { id: 'github', title: 'GitHub', section: 'biblioteca', tab: 'GitHub', render: (ctx) => <GitHub actions={ctx.model.libraryActions} account={ctx.model.account} notify={ctx.notify} go={ctx.go}/> },
 
   { id: 'plano', title: 'Plano', section: 'plano', tab: 'Cronograma', render: (ctx) => <Schedule state={ctx.state} actions={ctx.model.planActions} open={ctx.open} notify={ctx.notify}/> },
-  { id: 'tarefas', title: 'Tarefas', section: 'plano', tab: 'Tarefas', render: (ctx) => <Tasks state={ctx.state} actions={ctx.model.planActions} notify={ctx.notify}/> },
+  { id: 'agenda', title: 'Agenda', section: 'agenda', tab: 'Calendário', render: (ctx) => <Agenda key={ctx.hash} state={ctx.state} actions={ctx.model.agendaActions} taskActions={ctx.model.planActions} confirmSave={ctx.model.confirmSave} syncStatus={ctx.model.syncStatus} params={ctx.params}/> },
+  { id: 'tarefas', title: 'Tarefas', section: 'agenda', tab: 'Tarefas', render: (ctx) => <Tasks state={ctx.state} actions={ctx.model.planActions} notify={ctx.notify} onSchedule={(task) => ctx.go(`agenda?tarefa=${encodeURIComponent(task.id)}`)}/> },
   { id: 'roteiro', title: 'Roteiro', section: 'plano', tab: 'Roteiro', render: (ctx) => <Roadmap state={ctx.state} open={ctx.open}/> },
 
   { id: 'amigos', title: 'Amigos', section: 'amigos', tab: 'Contatos', render: (ctx) => <Friends account={ctx.model.account} notify={ctx.notify} go={ctx.go}/> },

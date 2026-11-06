@@ -3,6 +3,7 @@ import { useXp } from '../features/progress/useXp.js';
 import { useAccountSession } from '../features/account/useAccountSession.js';
 import { useLibraryPersistence } from '../features/library/useLibraryPersistence.js';
 import { createPlanActions } from '../features/plan/actions.js';
+import { createAgendaActions } from '../features/agenda/actions.js';
 import { createProgressActions } from '../features/progress/actions.js';
 import { createLibraryActions } from '../features/library/actions.js';
 import { createSettingsActions } from '../features/settings/actions.js';
@@ -17,9 +18,10 @@ export function useLume(notify) {
   const session = useAccountSession(account, setAccount, library);
   const { state, act, syncStatus, saveError, retrySave } = library;
   const planActions = useMemo(() => createPlanActions(act), [act]);
+  const agendaActions = useMemo(() => createAgendaActions(act), [act]);
   const progressActions = useMemo(() => createProgressActions(act), [act]);
   const libraryActions = useMemo(() => createLibraryActions(act), [act]);
   const settingsActions = useMemo(() => createSettingsActions(act), [act]);
   const accountActions = useMemo(() => createAccountActions(act), [act]);
-  return { state, planActions, progressActions, libraryActions, settingsActions, accountActions, account, ...session, syncStatus, saveError, retrySave, xp, xpStatus, refreshXP };
+  return { state, agendaActions, planActions, progressActions, libraryActions, settingsActions, accountActions, account, ...session, syncStatus, saveError, retrySave, confirmSave: library.waitForSave, xp, xpStatus, refreshXP };
 }

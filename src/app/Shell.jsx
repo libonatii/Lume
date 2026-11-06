@@ -12,7 +12,7 @@ import { ENTRY_ROUTES } from './routes.jsx';
 
 const desktop = isDesktopApp();
 
-// Cinco destinos; as telas secundárias ficam nas abas de cada seção.
+// Seis destinos; as telas secundárias ficam nas abas de cada seção.
 const links = Object.entries(SECTIONS).map(([key, section]) => [key, section.home, section.icon, section.label]);
 const syncLabels = { loading: 'Carregando biblioteca…', saving: 'Salvando na conta…', saved: 'Progresso salvo na conta', error: 'Gravação não confirmada' };
 

@@ -109,6 +109,7 @@ export function useLibraryPersistence(notify, onSaved) {
   const waitForSave = useCallback(async () => {
     await pending.current;
     if (blocked.current) throw new Error('Resolva a gravação pendente antes de sair.');
+    return current.current;
   }, []);
 
   const reset = useCallback(() => {

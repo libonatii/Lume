@@ -192,10 +192,10 @@ test('jornada 3 preserva a rotina e não gera XP ao configurar', async ({ page }
   await expect(page.getByRole('button', { name: 'Retomar curso' })).toBeVisible();
   await page.getByRole('button', { name: 'Retomar curso' }).click();
   await page.getByRole('button', { name: 'Fechar janela' }).click();
-  // Cinco destinos no menu; as telas secundárias ficam nas abas de cada seção.
+  // Seis destinos no menu; as telas secundárias ficam nas abas de cada seção.
   const menu = page.getByRole('navigation', { name: 'Navegação' });
-  await expect(menu.getByRole('link')).toHaveCount(5);
-  for (const [section, tab, heading] of [['Plano', 'Roteiro', 'Roteiro'], ['Plano', 'Tarefas', 'Tarefas'], ['Perfil', 'Conquistas', 'Sua vitrine de conquistas'], ['Perfil', 'Meu caminho', 'Meu caminho'], ['Amigos', 'Ranking', 'Ranking']]) {
+  await expect(menu.getByRole('link')).toHaveCount(6);
+  for (const [section, tab, heading] of [['Plano', 'Roteiro', 'Roteiro'], ['Agenda', 'Tarefas', 'Tarefas'], ['Perfil', 'Conquistas', 'Sua vitrine de conquistas'], ['Perfil', 'Meu caminho', 'Meu caminho'], ['Amigos', 'Ranking', 'Ranking']]) {
     await menu.getByRole('link', { name: section, exact: true }).click();
     await page.getByRole('navigation', { name: `Seções de ${section}` }).getByRole('link', { name: tab, exact: true }).click();
     await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible();

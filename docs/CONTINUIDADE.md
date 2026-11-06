@@ -1,6 +1,6 @@
 # Lume — estado atual e continuidade de desenvolvimento
 
-Atualizado em 03/11/2026. Este é o mapa do código existente. As lacunas ficam somente em
+Atualizado em 05/11/2026. Este é o mapa do código existente. As lacunas ficam somente em
 [Implementação](IMPLEMENTACAO.md), as propostas em [Evolução](EVOLUCAO.md), as regras em
 [Produto](PRODUTO.md) e [Gamificação](GAMIFICACAO.md), e a execução arquitetural em
 [Refatoração](REFATORACAO_01112026.md). O histórico das rodadas anteriores permanece no Git.
@@ -58,7 +58,9 @@ Telas React → ações nomeadas → useLibraryPersistence → /api/library/acti
 | Cursos | Importação por link/texto/arquivo/página copiada/extensão, revisão e reimportação que preserva ids e progresso |
 | Próxima ação | Hoje, Biblioteca, diálogo, roteiro, perfil e Desktop usam o critério de `study-plan.js`; `nextMission` foi removido |
 | Plano | Disponibilidade, prazos, prioridades, cronograma derivado, conflitos explicados e adiamento |
+| Agenda | Área própria com calendário diário, semanal e mensal; atividades com tarefas, recorrência finita, sobreposições, reagendamento manual e sugestões revisáveis do Plano; persistência por conta em `agenda_entries` |
 | Tarefas | Prazo, prioridade, vínculo com aula e subtarefas; concluir tarefa vinculada conclui a aula, sem XP próprio; sem vínculo, 0 XP |
+| Lembretes da Agenda | Consulta autenticada com reivindicação única por conta (`agenda_reminders`); avisos internos e canal Notification do computador; requer site/app executando e rede |
 | Sessão | Início, pausa, retomada, batimentos e encerramento; sobras de tempo, sobreposição e teto tratados no servidor |
 | Slides | Editor, ordem, imagens, navegação por teclado e conclusão confirmada com cobertura do deck |
 | XP | Livro idempotente, bônus, tempo, extrato e correção por ajuste negativo; saldo legado separado |
@@ -76,6 +78,10 @@ Telas React → ações nomeadas → useLibraryPersistence → /api/library/acti
 A presença não é atividade validada. Importação e conclusão observada pela plataforma dependem das
 capacidades declaradas por provedor; não há rastreamento universal. O Gran tem leitor próprio;
 os testes das demais fontes usam exemplos. Consulte [Importação](IMPORTACAO.md).
+
+A navegação tem seis destinos: Hoje, Biblioteca, Plano, Agenda, Amigos e Perfil. `#tarefas` pertence
+à Agenda e preserva os registros; Plano mantém Cronograma e Roteiro. A Agenda é privada e não altera
+as projeções de perfil. Escopo, decisões operacionais e evidências da rodada em [Agenda](AGENDA.md).
 
 ## 4. Execução local
 
