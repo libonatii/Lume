@@ -301,3 +301,7 @@
   background: var(--lume-soft);
   color: var(--lume);
 }
+.empty-state > p {
+  margin: 0;
+  max-width: 60ch;
+}

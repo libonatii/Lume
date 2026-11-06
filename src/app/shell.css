@@ -208,3 +208,9 @@
   flex-wrap: wrap;
   margin-bottom: 1.75rem;
 }
+.page-heading-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
