@@ -14,12 +14,13 @@ async function register(requestContext, baseURL, name, prefix) {
 }
 
 async function markOnboarded(requestContext, baseURL) {
-  const current = await requestContext.get('/api/state', { headers: { origin: baseURL } });
+  const current = await requestContext.get('/api/library', { headers: { origin: baseURL } });
   const revision = current.ok() ? (await current.json()).revision : 0;
-  await requestContext.put('/api/state', {
-    data: { state: { ...createInitialState(), onboarded: true }, baseRevision: revision },
+  const saved = await requestContext.post('/api/library/actions', {
+    data: { id: crypto.randomUUID(), revision, actions: [{ type: 'account.update', value: { onboarded: true } }] },
     headers: { origin: baseURL },
   });
+  expect(saved.status()).toBe(200);
 }
 
 async function makeFriends(page, requestContext, baseURL, name, prefix) {

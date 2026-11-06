@@ -1,4 +1,4 @@
-import { hashPassword, verifyPassword, bcryptRounds } from '../auth.js';
+import { hashPassword, verifyPassword, bcryptRounds } from '../api/domain/auth.js';
 
 // Somente credenciais sintéticas; não lê contas nem acessa a rede.
 // Tempos locais de parede, não CPU medida pela Cloudflare.

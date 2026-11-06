@@ -1,10 +1,11 @@
 // Lista de tarefas de estudo para uma prova.
 //
-// Criar, editar ou organizar tarefas não rende XP. Concluir uma tarefa
-// identificável vale TASK_XP uma vez e entra no total do protótipo; a política
-// definitiva exige um livro de eventos validado no servidor.
+// Concluir uma tarefa vinculada registra a aula. Não existe XP próprio de
+// tarefa; a recompensa da aula é validada uma única vez no servidor.
 
-export const TASK_XP = 10;
+import { materialSteps } from './material-model.js';
+import { recordCompletion } from './progress-domain.js';
+
 export const MAX_TASKS = 200;
 // Subtarefas dividem uma tarefa quando ajuda; marcá-las nunca gera XP.
 export const MAX_SUBTASKS = 10;
@@ -80,13 +81,14 @@ export function normalizeTasks(value) {
 }
 
 export function addTask(state, { title, courseId = '', lessonId = '', dueDate = '', priority = 0 }, now = new Date().toISOString()) {
+  if ((state.tasks || []).length >= MAX_TASKS) throw new Error(`Limite de ${MAX_TASKS} tarefas atingido.`);
   const cleanTitle = String(title || '').trim().slice(0, 180);
   if (!cleanTitle) throw new Error('Dê um nome para a tarefa.');
   const task = {
     id: crypto.randomUUID(),
     title: cleanTitle,
     courseId: state.courses.some((course) => course.id === courseId) ? courseId : '',
-    lessonId: state.courses.some((course) => course.id === courseId && course.steps.some((step) => step.id === lessonId)) ? lessonId : '',
+    lessonId: state.courses.some((course) => course.id === courseId && materialSteps(course).some((step) => step.id === lessonId)) ? lessonId : '',
     subtasks: [],
     dueDate: cleanDate(dueDate),
     priority: cleanPriority(priority),
@@ -100,15 +102,22 @@ export function addTask(state, { title, courseId = '', lessonId = '', dueDate = 
 export function completeTask(state, id, now = new Date().toISOString()) {
   const task = (state.tasks || []).find((item) => item.id === id);
   if (!task || task.done) return { state, added: false, xp: 0 };
+  const course = state.courses.find((item) => item.id === task.courseId);
+  const lesson = materialSteps(course).find((item) => item.id === task.lessonId);
+  if (task.lessonId && !lesson) throw new Error('A aula vinculada não está disponível. Revise a tarefa.');
+  const progressState = lesson ? recordCompletion(state, {
+    materialId: course.id, unitId: lesson.id, origin: 'manual', at: now,
+    title: lesson.title, materialTitle: course.title,
+  }).state : state;
   return {
     state: {
-      ...state,
+      ...progressState,
       tasks: state.tasks.map((item) => item.id === id
         ? { ...item, done: true, completedAt: new Date(now).toISOString() }
         : item),
     },
     added: true,
-    xp: TASK_XP,
+    xp: 0,
   };
 }
 
@@ -150,19 +159,7 @@ export function removeSubtask(state, id, subtaskId) {
 }
 
 export function removeTask(state, id) {
-  return { ...state, tasks: (state.tasks || []).filter((task) => task.id !== id) };
-}
-
-export function taskXP(state) {
-  return (state.tasks || []).filter((task) => task.done).length * TASK_XP;
-}
-
-export function taskWeekCount(state, start, end) {
-  return (state.tasks || []).filter((task) => {
-    if (!task.done || !task.completedAt) return false;
-    const at = new Date(task.completedAt);
-    return at >= start && at < end;
-  }).length;
+  return { ...state, tasks: (state.tasks || []).filter((task) => task.id !== id), agenda: (state.agenda || []).map((item) => ({ ...item, taskIds: item.taskIds.filter((taskId) => taskId !== id) })) };
 }
 
 // Ordem de ação: pendentes antes; entre elas, atrasadas, depois prioridade

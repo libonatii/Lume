@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+import { materialSteps, stepUnits } from '../../public/material-model.js';
+import { seedAccount, readAccount } from './library-helpers.js';
 import { createInitialState, STORAGE_KEY } from '../../public/domain.js';
 
 function seeded() {
@@ -17,20 +19,17 @@ function seeded() {
     resumeAt: '',
     slides: [],
     slideProgress: { seen: [], lastId: '', completedAt: null },
-    steps: [
+    units: stepUnits([
       { id: 'constitucional-0', title: 'Ler a introdução' },
       { id: 'constitucional-1', title: 'Resolver exercícios' },
-    ],
+    ]),
   }];
   state.selectedCourseId = 'constitucional';
   return state;
 }
 
 async function openCourse(page) {
-  await page.addInitScript(({ key, state }) => {
-    localStorage.setItem(key, JSON.stringify(state));
-    sessionStorage.setItem('lume.preview-session.v1', 'open');
-  }, { key: STORAGE_KEY, state: seeded() });
+  await seedAccount(page, seeded());
   await page.goto('/#biblioteca');
   await expect(page.getByRole('heading', { name: 'Biblioteca', exact: true })).toBeVisible();
   await page.getByRole('button', { name: /^Direito Constitucional,/ }).click();
@@ -48,11 +47,11 @@ test('editar material muda título, tipo, retomada e etapas sem perder o curso',
   await page.getByRole('button', { name: 'Salvar alterações' }).click();
 
   await expect(page.getByRole('button', { name: /^Constitucional — revisão,/ })).toBeVisible();
-  const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), STORAGE_KEY);
+  const saved = await readAccount(page);
   expect(saved.courses[0].title).toBe('Constitucional — revisão');
   expect(saved.courses[0].type).toBe('book');
   expect(saved.courses[0].resumeAt).toBe('capítulo 2');
-  expect(saved.courses[0].steps).toHaveLength(3);
+  expect(materialSteps(saved.courses[0])).toHaveLength(3);
 });
 
 test('criar slides, abrir no programa e concluir uma vez com cobertura do deck', async ({ page }) => {
@@ -75,17 +74,14 @@ test('criar slides, abrir no programa e concluir uma vez com cobertura do deck',
   await page.getByRole('button', { name: 'Concluir apresentação' }).click();
   await expect(page.getByRole('dialog')).toBeHidden();
 
-  const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), STORAGE_KEY);
+  const saved = await readAccount(page);
   expect(saved.courses[0].slides).toHaveLength(2);
   expect(saved.courses[0].slideProgress.seen).toHaveLength(2);
   expect(saved.courses[0].slideProgress.completedAt).toBeTruthy();
 });
 
 test('criar material manualmente com tipo e etapas próprias', async ({ page }) => {
-  await page.addInitScript(({ key, state }) => {
-    localStorage.setItem(key, JSON.stringify(state));
-    sessionStorage.setItem('lume.preview-session.v1', 'open');
-  }, { key: STORAGE_KEY, state: { ...createInitialState(), onboarded: true } });
+  await seedAccount(page, { ...createInitialState(), onboarded: true });
   await page.goto('/#biblioteca');
   await page.getByRole('button', { name: 'Criar manualmente' }).click();
   await page.getByLabel('Título', { exact: true }).fill('Processo Penal');
@@ -94,9 +90,9 @@ test('criar material manualmente com tipo e etapas próprias', async ({ page }) 
   await page.getByRole('button', { name: 'Criar material' }).click();
   await expect(page.getByRole('dialog').getByRole('heading', { name: 'Processo Penal' })).toBeVisible();
   await expect(page.getByText('0 de 2 etapas concluídas')).toBeVisible();
-  const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), STORAGE_KEY);
+  const saved = await readAccount(page);
   expect(saved.courses[0].type).toBe('article');
-  expect(saved.courses[0].steps).toHaveLength(2);
+  expect(materialSteps(saved.courses[0])).toHaveLength(2);
 });
 
 test('excluir material pede confirmação e remove o progresso dependente', async ({ page }) => {
@@ -106,7 +102,7 @@ test('excluir material pede confirmação e remove o progresso dependente', asyn
   await expect(page.getByText(/Remove o material, as etapas e o progresso registrado nele/)).toBeVisible();
   await page.getByRole('button', { name: 'Sim, excluir' }).click();
   await expect(page.getByRole('heading', { name: 'Qual área você quer estudar?' })).toBeVisible();
-  const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), STORAGE_KEY);
+  const saved = await readAccount(page);
   expect(saved.courses).toHaveLength(0);
-  expect(saved.completed).toHaveLength(0);
+  expect(saved.progress.filter((event) => event.type === 'completion' && !event.revertedAt)).toHaveLength(0);
 });

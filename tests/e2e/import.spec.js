@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+import { materialSteps } from '../../public/material-model.js';
+import { seedAccount, readAccount } from './library-helpers.js';
 import { createInitialState, STORAGE_KEY } from '../../public/domain.js';
 
 // Cenários de importação. O fluxo por texto usa a API real do servidor local
@@ -7,10 +9,7 @@ import { createInitialState, STORAGE_KEY } from '../../public/domain.js';
 // depender de acesso real às plataformas nesta execução.
 
 async function openLibrary(page) {
-  await page.addInitScript(({ key, state }) => {
-    localStorage.setItem(key, JSON.stringify(state));
-    sessionStorage.setItem('lume.preview-session.v1', 'open');
-  }, { key: STORAGE_KEY, state: { ...createInitialState(), onboarded: true } });
+  await seedAccount(page, { ...createInitialState(), onboarded: true });
   await page.goto('/#biblioteca');
   await expect(page.getByRole('heading', { name: 'Biblioteca', exact: true })).toBeVisible();
 }
@@ -87,10 +86,7 @@ test('seleção parcial, reimportação sem duplicata e progresso preservado', a
   await page.getByRole('dialog').getByRole('button', { name: 'Continuar', exact: true }).click();
   await page.getByRole('button', { name: 'Concluí esta aula' }).click();
   await expect(page.getByText('registro manual').first()).toBeVisible();
-  const firstLesson = await page.evaluate(key => {
-    const state = JSON.parse(localStorage.getItem(key));
-    return state.completed.at(-1);
-  }, STORAGE_KEY);
+  const firstLesson = (await readAccount(page)).progress.filter((event) => event.type === 'completion' && !event.revertedAt).at(-1).unitId;
 
   // Reimportação: a mesma identidade atualiza o curso, sem duplicar.
   await page.getByRole('dialog').getByRole('button', { name: 'Atualizar grade' }).click();
@@ -113,11 +109,11 @@ test('seleção parcial, reimportação sem duplicata e progresso preservado', a
   await page.getByRole('button', { name: 'Fechar janela' }).click();
 
   await expect(page.locator('#library-results .course-card').filter({ hasText: 'Preparatório OAB' })).toHaveCount(1);
-  const state = await page.evaluate(key => JSON.parse(localStorage.getItem(key)), STORAGE_KEY);
+  const state = await readAccount(page);
   expect(state.courses.filter(course => course.title === 'Preparatório OAB')).toHaveLength(1);
-  expect(state.completed).toContain(firstLesson);
-  expect(state.studyLog).toHaveLength(1);
-  expect(state.history).toHaveLength(0);
+  expect(state.progress.filter((event) => !event.revertedAt).map((event) => event.unitId)).toContain(firstLesson);
+  expect(state.progress).toHaveLength(1);
+  expect(state.progress[0].origin).toBe('manual');
   expect(state.imports.at(-1).mode).toBe('update');
 });
 
@@ -163,12 +159,12 @@ test('biblioteca vazia pergunta a área e cria a primeira trilha sem XP', async 
   await page.getByRole('button', { name: 'Criar minha trilha' }).click();
 
   await expect(page.getByRole('button', { name: /^Direito,/ })).toBeVisible();
-  const state = await page.evaluate(key => JSON.parse(localStorage.getItem(key)), STORAGE_KEY);
+  const state = await readAccount(page);
   expect(state.courses).toHaveLength(1);
   expect(state.courses[0].title).toBe('Direito');
   expect(state.courses[0].origin).toBe('manual');
-  expect(state.courses[0].steps[0].title).toBe('Ler a introdução de processo penal');
-  expect(state.history).toEqual([]);
+  expect(materialSteps(state.courses[0])[0].title).toBe('Ler a introdução de processo penal');
+  expect(state.progress.filter((event) => event.origin === 'manual' || event.legacyXp)).toEqual([]);
 });
 
 test('página copiada da conta vira revisão sem enviar sessão', async ({ page }) => {
@@ -247,9 +243,9 @@ test('link sem https é detectado e adicionado sem abrir a revisão', async ({ p
   await expect(page.getByText(/Detectado e adicionado automaticamente/)).toBeVisible();
   await page.getByRole('button', { name: 'Ver o curso' }).click();
   await expect(page.locator('#dialog-title')).toHaveText('React Básico');
-  const state = await page.evaluate(key => JSON.parse(localStorage.getItem(key)), STORAGE_KEY);
+  const state = await readAccount(page);
   expect(state.courses).toHaveLength(1);
-  expect(state.courses[0].steps).toHaveLength(2);
-  expect(state.history).toEqual([]);
+  expect(materialSteps(state.courses[0])).toHaveLength(2);
+  expect(state.progress.filter((event) => event.origin === 'manual' || event.legacyXp)).toEqual([]);
   await page.unroute('**/api/import/analyze');
 });

@@ -1,0 +1,784 @@
+/* Vitrine do perfil. */
+
+/* ============================================================
+   Perfil estilo vitrine Steam (com paleta e tokens do Lume)
+   ============================================================ */
+
+.player-avatar-img {
+  object-fit: cover;
+  border: 1px solid var(--border-strong);
+}
+
+.steam-profile-root {
+  gap: 1.35rem;
+}
+
+.steam-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  padding: clamp(1.4rem, 3vw, 2.2rem);
+  display: grid;
+  gap: 1.35rem;
+}
+
+.steam-hero-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 90% 80% at 12% 15%, color-mix(in srgb, var(--lume) 22%, transparent), transparent 60%),
+    radial-gradient(ellipse 75% 70% at 88% 85%, color-mix(in srgb, var(--mint) 14%, transparent), transparent 60%);
+}
+
+.steam-hero.has-custom-header .steam-hero-backdrop {
+  background-image:
+    linear-gradient(95deg, color-mix(in srgb, var(--bg) 88%, transparent) 0%, rgba(13, 21, 38, 0.72) 55%, color-mix(in srgb, var(--bg) 90%, transparent) 100%),
+    var(--profile-header-image);
+  background-size: cover;
+  background-position: center;
+}
+
+html[data-theme='light'] .steam-hero.has-custom-header .steam-hero-backdrop {
+  background-image:
+    linear-gradient(95deg, color-mix(in srgb, var(--bg) 90%, transparent) 0%, rgba(255, 255, 255, 0.78) 55%, color-mix(in srgb, var(--bg) 92%, transparent) 100%),
+    var(--profile-header-image);
+}
+
+.steam-hero-inner {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 164px minmax(0, 1fr) 268px;
+  gap: 1.6rem;
+  align-items: start;
+}
+
+.steam-avatar-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.steam-avatar-frame {
+  position: relative;
+  width: 158px;
+  height: 158px;
+  border-radius: 50%;
+  padding: 5px;
+  background: linear-gradient(135deg, var(--lume) 0%, var(--mint) 52%, var(--lilac) 100%);
+  box-shadow: 0 18px 38px -14px rgba(2, 6, 15, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.16) inset;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.steam-avatar-img,
+.steam-avatar-fallback {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+}
+
+.steam-avatar-img {
+  object-fit: cover;
+  display: block;
+}
+
+.steam-avatar-fallback {
+  display: grid;
+  place-items: center;
+  font-family: var(--font-serif);
+  font-size: 3.4rem;
+  font-weight: 700;
+  color: var(--lume);
+}
+
+.steam-avatar-upload-trigger {
+  position: absolute;
+  inset: auto 18px 12px 18px;
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  color: var(--text);
+  font-size: 0.74rem;
+  font-weight: 650;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  transition: opacity 0.16s ease;
+}
+
+.steam-avatar-frame:hover .steam-avatar-upload-trigger,
+.steam-avatar-upload-trigger:focus-visible {
+  opacity: 1;
+}
+
+.steam-identity {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.steam-persona-name {
+  margin: 0.1rem 0 0;
+  font-size: clamp(1.75rem, 2.8vw, 2.5rem);
+  overflow-wrap: anywhere;
+}
+
+.steam-subname {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.steam-bio-list {
+  list-style: none;
+  margin: 0.55rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.28rem;
+  font-size: 0.88rem;
+  color: var(--text);
+}
+
+.steam-bio-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.48rem;
+}
+
+.steam-diamond {
+  color: var(--lume);
+  font-size: 0.78rem;
+  flex-shrink: 0;
+}
+
+.steam-level-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: stretch;
+}
+
+.steam-level-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.65rem;
+}
+
+.steam-level-word {
+  font-family: var(--font-serif);
+  font-size: 1.35rem;
+  color: var(--text);
+}
+
+.steam-level-circle {
+  min-width: 2.5rem;
+  height: 2.5rem;
+  padding: 0 0.5rem;
+  border-radius: 50%;
+  border: 2px solid var(--lume);
+  background: var(--lume-soft);
+  color: var(--text);
+  font-weight: 700;
+  font-size: 1.05rem;
+  display: inline-grid;
+  place-items: center;
+  box-shadow: 0 0 18px -4px var(--lume);
+}
+
+.steam-featured-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--bg) 52%, transparent);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(10px);
+}
+
+html[data-theme='light'] .steam-featured-badge {
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.steam-featured-icon {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--lume), var(--lume-2));
+  color: var(--lume-ink);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.steam-featured-copy {
+  display: grid;
+  min-width: 0;
+}
+
+.steam-featured-copy strong {
+  font-size: 0.88rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.steam-featured-copy small {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+.steam-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  justify-content: flex-end;
+}
+
+.steam-customizer {
+  position: relative;
+  z-index: 1;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 1rem;
+}
+
+.steam-customizer-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.3fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.steam-upload-box,
+.steam-bio-form {
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--bg) 55%, transparent);
+  border: 1px solid var(--border);
+  display: grid;
+  gap: 0.6rem;
+}
+
+html[data-theme='light'] .steam-upload-box,
+html[data-theme='light'] .steam-bio-form {
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.steam-body-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.9fr) minmax(270px, 0.9fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.steam-main-column {
+  display: grid;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.steam-showcase {
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.steam-showcase-header {
+  padding: 0.85rem 1.35rem;
+  background: linear-gradient(90deg, var(--surface-2) 0%, var(--surface-3) 100%);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.steam-showcase-title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 1.12rem;
+  font-weight: 560;
+  color: var(--text);
+}
+
+.steam-showcase-sub {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.steam-showcase-body {
+  padding: 1.25rem 1.35rem;
+  display: grid;
+  gap: 1.15rem;
+}
+
+.steam-collector-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.85rem;
+  padding: 0.95rem 1.1rem;
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+}
+
+.steam-stat-cell {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.steam-stat-cell strong {
+  font-family: var(--font-serif);
+  font-size: 1.9rem;
+  line-height: 1.05;
+  color: var(--text);
+}
+
+.steam-stat-cell span {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.steam-featured-shelf {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.steam-sublabel {
+  font-size: 0.78rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-subtle);
+}
+
+.steam-capsule-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.steam-capsule {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.18s ease, transform 0.18s ease;
+}
+
+.steam-capsule:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+}
+
+.steam-capsule-cover {
+  border-radius: 0;
+  aspect-ratio: 16 / 9;
+}
+
+.steam-capsule-info {
+  padding: 0.65rem 0.75rem;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.steam-capsule-info strong {
+  font-size: 0.86rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.steam-capsule-info small {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+.steam-activity-list {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.steam-activity-card {
+  padding: 1rem 1.1rem;
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  display: grid;
+  gap: 0.85rem;
+}
+
+.steam-activity-top {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+}
+
+.steam-activity-thumb {
+  height: 64px;
+  aspect-ratio: auto;
+  border-radius: 10px;
+}
+
+.steam-activity-heading {
+  min-width: 0;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.steam-activity-heading .title {
+  font-size: 1.05rem;
+}
+
+.steam-activity-heading small {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.steam-activity-meta {
+  text-align: right;
+  display: grid;
+  gap: 0.15rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.steam-activity-meta strong {
+  color: var(--text);
+}
+
+.steam-activity-progress {
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: grid;
+  gap: 0.45rem;
+}
+
+.steam-activity-progress-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.steam-activity-progress-head span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.steam-activity-progress-head .icon {
+  color: var(--lume);
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.steam-activity-step {
+  color: var(--text-subtle);
+  font-size: 0.76rem;
+}
+
+.steam-sidebar {
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-sm);
+  display: grid;
+  gap: 1.2rem;
+}
+
+.steam-status-box {
+  display: grid;
+  gap: 0.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.steam-online-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-family: var(--font-serif);
+  font-size: 1.2rem;
+  color: var(--lume);
+}
+
+.steam-side-section {
+  display: grid;
+  gap: 0.65rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.steam-side-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.steam-side-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.steam-side-count {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  color: var(--text-muted);
+}
+
+.steam-badge-row {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.steam-badge-slot {
+  aspect-ratio: 1;
+  border-radius: 11px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  display: grid;
+  place-items: center;
+  color: var(--text-subtle);
+}
+
+.steam-badge-slot.is-unlocked {
+  border-color: var(--border-strong);
+  background: linear-gradient(145deg, var(--lume-soft), var(--surface-2));
+  color: var(--lume);
+  box-shadow: 0 6px 14px -8px color-mix(in srgb, var(--lume) 55%, transparent);
+}
+
+.steam-badge-slot.is-locked {
+  opacity: 0.45;
+}
+
+.steam-side-links {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.steam-side-link-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.steam-side-link-item strong {
+  font-family: var(--font-serif);
+  font-size: 1.2rem;
+  color: var(--text);
+}
+
+.steam-side-nav-btn {
+  margin-top: 0.2rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background 0.16s ease;
+}
+
+.steam-side-nav-btn:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-3);
+}
+
+@media (max-width: 1080px) {
+  .steam-hero-inner,
+  .steam-body-grid,
+  .steam-customizer-grid {
+    grid-template-columns: 1fr;
+  }
+  .steam-level-header,
+  .steam-hero-actions {
+    justify-content: flex-start;
+  }
+  .steam-collector-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .steam-capsule-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .steam-collector-stats,
+  .steam-capsule-grid,
+  .steam-activity-top {
+    grid-template-columns: 1fr;
+  }
+  .steam-activity-meta {
+    text-align: left;
+  }
+}
+
+.user-menu-wrap {
+  position: relative;
+  display: inline-flex;
+  -webkit-app-region: no-drag;
+}
+
+.user-menu-trigger {
+  cursor: pointer;
+  color: var(--text);
+  font-weight: 600;
+  transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+}
+
+.user-menu-trigger:hover,
+.user-menu-trigger.active {
+  border-color: var(--lume);
+  background: var(--surface-3);
+  box-shadow: 0 0 0 1px var(--lume-soft);
+}
+
+.user-menu-caret {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-left: 0.1rem;
+  transition: transform 0.18s ease, color 0.18s ease;
+}
+
+.user-menu-caret.open {
+  transform: rotate(180deg);
+  color: var(--lume-strong);
+}
+
+.user-dropdown {
+  position: absolute;
+  top: calc(100% + 0.55rem);
+  right: 0;
+  min-width: 220px;
+  padding: 0.45rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  box-shadow: var(--shadow-lg);
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  -webkit-app-region: no-drag;
+}
+
+.user-dropdown-header {
+  padding: 0.55rem 0.7rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+}
+
+.user-dropdown-header strong {
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.user-dropdown-header small {
+  font-size: 0.76rem;
+  color: var(--text-subtle);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-dropdown-item {
+  width: 100%;
+  padding: 0.58rem 0.72rem;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.86rem;
+  font-weight: 500;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.user-dropdown-item .icon {
+  color: var(--text-muted);
+  width: 1rem;
+  height: 1rem;
+}
+
+.user-dropdown-item:hover,
+.user-dropdown-item.active {
+  background: var(--lume-soft);
+  color: var(--lume-strong);
+  border-color: var(--border-strong);
+}
+
+.user-dropdown-item:hover .icon,
+.user-dropdown-item.active .icon {
+  color: var(--lume);
+}
+
+.user-dropdown-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0.2rem 0.35rem;
+}
+
+.user-dropdown-item.danger {
+  color: var(--danger);
+}
+
+.user-dropdown-item.danger .icon {
+  color: var(--danger);
+}
+
+.user-dropdown-item.danger:hover {
+  background: var(--danger-soft);
+  border-color: color-mix(in srgb, var(--danger) 30%, transparent);
+  color: var(--danger);
+}

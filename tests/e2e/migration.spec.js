@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
-import { createInitialState, completeMission, STORAGE_KEY } from '../../public/domain.js';
+import { materialSteps, stepUnits } from '../../public/material-model.js';
+import { createInitialState, completeMission } from '../../public/domain.js';
+import { seedAccount, readAccount } from './library-helpers.js';
 
 // A biblioteca real começa vazia. Estes cenários de dados antigos precisam de
 // trilhas próprias para conferir busca, pausa e restauração.
@@ -7,8 +9,8 @@ function seededState() {
   const steps = (prefix, count) => Array.from({ length: count }, (_, index) => ({ id: `${prefix}-${index + 1}`, title: `Etapa ${index + 1}` }));
   const state = createInitialState();
   state.courses = [
-    { id: 'design', title: 'Design de interfaces', category: 'Design & criatividade', art: 'design', url: '', example: false, paused: false, steps: steps('design', 4) },
-    { id: 'python', title: 'Primeiros passos em Python', category: 'Tecnologia & programação', art: 'code', url: '', example: false, paused: false, steps: steps('python', 4) },
+    { id: 'design', title: 'Design de interfaces', category: 'Design & criatividade', art: 'design', url: '', example: false, paused: false, units: stepUnits(steps('design', 4)) },
+    { id: 'python', title: 'Primeiros passos em Python', category: 'Tecnologia & programação', art: 'code', url: '', example: false, paused: false, units: stepUnits(steps('python', 4)) },
   ];
   state.selectedCourseId = 'design';
   return state;
@@ -18,14 +20,13 @@ test('prévia, dados legados, busca, filtros, teclado, curso e progresso', async
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
-  const oldState = completeMission(seededState(), 'design', 'design-1').state;
+  // Biblioteca no formato atual, com uma aula já concluída.
+  const at = new Date().toISOString();
+  const oldState = completeMission(seededState(), 'design', 'design-1', { now: at }).state;
   oldState.onboarded = true;
   oldState.preferences.essential = true;
   oldState.supports = ['calm'];
-  await page.addInitScript(({ key, state }) => {
-    if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(state));
-    sessionStorage.setItem('lume.preview-session.v1', 'open');
-  }, { key: STORAGE_KEY, state: oldState });
+  await seedAccount(page, oldState);
   await page.goto('/#hoje');
   await expect(page.getByRole('heading', { name: 'Hoje', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Etapa 2', exact: true })).toBeVisible();
@@ -66,11 +67,13 @@ test('prévia, dados legados, busca, filtros, teclado, curso e progresso', async
   await expect(page.getByRole('button', { name: /^Leitura React,/ })).toBeVisible();
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Biblioteca', exact: true })).toBeVisible();
-  const restored = await page.evaluate(key => JSON.parse(localStorage.getItem(key)), STORAGE_KEY);
-  expect(restored.history).toHaveLength(1);
-  expect(restored.studyLog).toHaveLength(1);
-  expect(restored.studyLog[0].origin).toBe('manual');
-  expect(restored.completed).toContain('design-1');
+  const restored = await readAccount(page);
+  expect(restored.version).toBe(3);
+  expect('history' in restored || 'completed' in restored || 'studyLog' in restored).toBe(false);
+  const done = restored.progress.filter((event) => event.type === 'completion' && !event.revertedAt);
+  expect(done).toHaveLength(2);
+  expect(done.find((event) => event.unitId === 'design-1')).toMatchObject({ origin: 'manual' });
+  expect(done.find((event) => event.materialTitle === 'Leitura React')?.origin).toBe('manual');
   expect(restored.preferences.essential).toBe(true); // Guardado como legado, sem efeito visual.
   await page.getByRole('button', { name: /^Menu da conta/ }).click();
   await page.getByRole('menuitem', { name: 'Meu Perfil', exact: true }).click();
@@ -84,9 +87,9 @@ test('prévia, dados legados, busca, filtros, teclado, curso e progresso', async
   await page.getByRole('button', { name: 'Salvar apresentação' }).click();
   await expect(page.getByText('Estudando React e Arquitetura')).toBeVisible();
   await expect.poll(async () => {
-    const p = await page.evaluate(key => JSON.parse(localStorage.getItem(key)).profile, STORAGE_KEY);
+    const p = (await readAccount(page)).profile;
     return `${p?.avatar || ''}|${p?.header || ''}`;
-  }).toMatch(/^\/api\/media\/profiles\/preview\/avatar-\d+\.(webp|png|jpg)\|\/api\/media\/profiles\/preview\/header-\d+\.(webp|png|jpg)$/);
+  }).toMatch(/^\/api\/media\/profiles\/[^/]+\/avatar-\d+\.(webp|png|jpg)\|\/api\/media\/profiles\/[^/]+\/header-\d+\.(webp|png|jpg)$/);
   await page.screenshot({ path: `data/lume-${testInfo.project.name}-profile.png`, fullPage: true });
   await page.getByRole('link', { name: 'Configurações' }).click();
   await page.getByRole('combobox', { name: /^Tema/ }).selectOption('light');
@@ -146,8 +149,8 @@ test('cadastro, saída, login, sincronização e recuperação na API local', as
 });
 
 test('jornada 3 preserva a rotina e não gera XP ao configurar', async ({ page }) => {
+  await seedAccount(page, createInitialState());
   await page.goto('/');
-  await page.getByRole('button', { name: 'Explorar a prévia' }).click();
   await page.getByRole('heading', { name: 'Estudo com frequência', exact: true }).click();
 
   // Etapa 1: áreas
@@ -175,11 +178,11 @@ test('jornada 3 preserva a rotina e não gera XP ao configurar', async ({ page }
   await expect(page.getByRole('heading', { name: 'Hoje', exact: true })).toBeVisible();
   await expect(page.getByText('Próxima ação · curso de algoritmos')).toBeVisible();
 
-  const state = await page.evaluate(key => JSON.parse(localStorage.getItem(key)), STORAGE_KEY);
+  const state = await readAccount(page);
   expect(state.onboarded).toBe(true);
   expect(state.onboarding.status).toBe('done');
   expect(state.onboarding.journey).toBe('often');
-  expect(state.history).toEqual([]);
+  expect(state.progress).toEqual([]);
   expect(state.courses.some(course => course.title === 'curso de algoritmos' && course.origin === 'onboarding')).toBe(true);
 
   // Navegação das telas restantes continua funcionando
@@ -189,10 +192,10 @@ test('jornada 3 preserva a rotina e não gera XP ao configurar', async ({ page }
   await expect(page.getByRole('button', { name: 'Retomar curso' })).toBeVisible();
   await page.getByRole('button', { name: 'Retomar curso' }).click();
   await page.getByRole('button', { name: 'Fechar janela' }).click();
-  // Cinco destinos no menu; as telas secundárias ficam nas abas de cada seção.
+  // Seis destinos no menu; as telas secundárias ficam nas abas de cada seção.
   const menu = page.getByRole('navigation', { name: 'Navegação' });
-  await expect(menu.getByRole('link')).toHaveCount(5);
-  for (const [section, tab, heading] of [['Plano', 'Roteiro', 'Roteiro'], ['Plano', 'Tarefas', 'Tarefas'], ['Perfil', 'Conquistas', 'Sua vitrine de conquistas'], ['Perfil', 'Meu caminho', 'Meu caminho'], ['Amigos', 'Ranking', 'Ranking']]) {
+  await expect(menu.getByRole('link')).toHaveCount(6);
+  for (const [section, tab, heading] of [['Plano', 'Roteiro', 'Roteiro'], ['Agenda', 'Tarefas', 'Tarefas'], ['Perfil', 'Conquistas', 'Sua vitrine de conquistas'], ['Perfil', 'Meu caminho', 'Meu caminho'], ['Amigos', 'Ranking', 'Ranking']]) {
     await menu.getByRole('link', { name: section, exact: true }).click();
     await page.getByRole('navigation', { name: `Seções de ${section}` }).getByRole('link', { name: tab, exact: true }).click();
     await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible();
@@ -204,8 +207,8 @@ test('jornada 3 preserva a rotina e não gera XP ao configurar', async ({ page }
 
 
 test('jornada 1 leva a uma primeira atividade concreta sem XP', async ({ page }) => {
+  await seedAccount(page, createInitialState());
   await page.goto('/');
-  await page.getByRole('button', { name: 'Explorar a prévia' }).click();
   await page.getByRole('heading', { name: 'Quero começar', exact: true }).click();
 
   await page.getByLabel('Assunto').fill('fundamentos de redes');
@@ -223,12 +226,12 @@ test('jornada 1 leva a uma primeira atividade concreta sem XP', async ({ page })
   await page.getByRole('button', { name: /Criar material e continuar/ }).click();
   await page.getByRole('button', { name: /Concluir e ir para Hoje/ }).click();
 
-  const state = await page.evaluate(key => JSON.parse(localStorage.getItem(key)), STORAGE_KEY);
+  const state = await readAccount(page);
   expect(state.onboarding.journey).toBe('starting');
-  expect(state.history).toEqual([]);
+  expect(state.progress).toEqual([]);
   const material = state.courses.find(course => course.title === 'Curso de redes — módulo 1');
   expect(material.type).toBe('lesson');
-  expect(material.steps[0].title).toBe('Assistir à aula 1 completa');
+  expect(materialSteps(material)[0].title).toBe('Assistir à aula 1 completa');
   // A Hoje aponta a atividade criada e usa o tempo de sessão escolhido como estimativa rotulada.
   await expect(page.getByRole('heading', { name: 'Assistir à aula 1 completa', exact: true })).toBeVisible();
   await expect(page.getByText('Reserve 20 minutos para avançar.', { exact: false })).toBeVisible();
@@ -236,8 +239,8 @@ test('jornada 1 leva a uma primeira atividade concreta sem XP', async ({ page })
 });
 
 test('jornada 2 registra o ponto de retomada', async ({ page }) => {
+  await seedAccount(page, createInitialState());
   await page.goto('/');
-  await page.getByRole('button', { name: 'Explorar a prévia' }).click();
   await page.getByRole('heading', { name: 'Estudo de vez em quando', exact: true }).click();
 
   await page.getByLabel('Materiais em andamento').fill('Curso de estatística');
@@ -251,10 +254,10 @@ test('jornada 2 registra o ponto de retomada', async ({ page }) => {
   await page.getByRole('button', { name: /Criar material e continuar/ }).click();
   await page.getByRole('button', { name: /Concluir e ir para Hoje/ }).click();
 
-  const state = await page.evaluate(key => JSON.parse(localStorage.getItem(key)), STORAGE_KEY);
+  const state = await readAccount(page);
   expect(state.onboarding.journey).toBe('sometimes');
-  expect(state.history).toEqual([]);
+  expect(state.progress).toEqual([]);
   const material = state.courses.find(course => course.title === 'Curso de estatística');
   expect(material.resumeAt).toBe('aula 3');
-  expect(material.steps[0].title).toBe('Retomar em: aula 3');
+  expect(materialSteps(material)[0].title).toBe('Retomar em: aula 3');
 });

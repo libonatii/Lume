@@ -1,12 +1,18 @@
 # Lume — especificação de gamificação e conquistas
 
-Versão da política: **v1 em execução para contas**. O propósito e as proibições abaixo expressam a direção do produto. Os valores numéricos continuam sujeitos a balanceamento e a ajustes versionados; o histórico já concedido não muda silenciosamente.
+Versão da política: **v2 implementada localmente para contas**. O propósito e as proibições abaixo expressam a direção do produto. Os valores numéricos continuam sujeitos a balanceamento e a ajustes versionados; o histórico já concedido não muda silenciosamente.
 
 Referência de contexto: [Produto](PRODUTO.md). Divergências e migração: [Continuidade](CONTINUIDADE.md).
 
-A política v1 foi implementada no servidor: `xp.js` mantém o livro `xp_events` com chave de idempotência, origem, versão, material e data; `xp_settings` guarda o marco `eligible_since`, fuso e opt-in do ranking; `xp_time_sessions` registra o tempo declarado; `user_achievements` guarda as conquistas personalizadas. O navegador apenas envia candidatos e o servidor revalida o estado. O saldo legado do protótipo continua separado e fora do nível novo e do ranking.
+A política v1 foi implementada no servidor: `api/domain/xp.js` mantém o livro `xp_events` com chave de idempotência, origem, versão, material e data; `xp_settings` guarda o marco `eligible_since`, fuso e opt-in do ranking; `xp_time_sessions` registra o tempo declarado; `user_achievements` guarda as conquistas personalizadas. Desde 01/11/2026 as conclusões chegam ao servidor como comandos (`POST /api/progress`, `api/domain/commands.js`): cada evento do registro de progresso é gravado em `progress_events` com o relógio do servidor, e o horário informado pelo navegador só pode atrasar a conclusão (vale o menor entre os dois), nunca adiantá-la. As regras de `api/domain/rewards.js` (aula/leitura/exercício/entrega, bônus de material e apresentação) respondem na mesma requisição e gravam em `xp_events` com a chave idempotente de sempre. Uma conta que só usou clientes antigos fica no modo "documento" (o registro do documento é copiado com a confiança anterior) até o primeiro comando; depois disso, escrever uma conclusão no documento não concede XP. O saldo legado do protótipo continua separado e fora do nível novo e do ranking.
 
-A proposta de cargos, desbloqueios e do bônus de disciplina (v2) está em [Evolução §4](EVOLUCAO.md#4-gamificação-concreta). Nada dela está implementado.
+Cargos são títulos, sem bloqueio de funcionalidades. Os nomes neutros e requisitos de [Evolução §4](EVOLUCAO.md#4-gamificação-concreta) foram aprovados e implementados em `title-policy.js`/`titles.js`. Concessões ficam em `user_titles`, sobrevivem a pausas e são reavaliadas após correção de eventos. Bônus de disciplina e tarefas vinculadas integram a política v2.
+
+**Revisão arquitetural de 03/11/2026 (local, sem publicação):** o cliente passa a usar `/api/library/actions`.
+`library-actions.js` aplica as mesmas regras declarativas e grava progresso, XP e conquistas no mesmo batch;
+`library-time.js` prepara as sessões e blocos de tempo para essa transação, acumulando sobras e descontando
+intervalos sobrepostos. O navegador não mantém fila ou marcações de entrega. Nas bibliotecas novas, as rotas
+antigas de gravação de progresso/XP respondem `client_outdated`; leitura, correção e ranking permanecem.
 
 ## 1. O que XP representa
 
@@ -47,6 +53,7 @@ Esses eventos podem aparecer no histórico organizacional, mas não no livro de 
 | Artigo ou leitura delimitada concluída | 100 | Material completo identificado; marcador intermediário não é conclusão |
 | Lista de exercícios concluída | 100 | Conjunto de trabalho delimitado e critérios registrados antes da conclusão |
 | Entrega substancial de projeto | 150 | Resultado definido e concluído, como implementar e validar uma funcionalidade |
+| Disciplina completa | 200 de bônus + conquista | Todas as aulas da disciplina selecionadas, grade completa e conclusões elegíveis; uma vez por identidade |
 | Curso completo | 500 de bônus | Todas as unidades obrigatórias do curso concluídas; uma vez por curso |
 | Projeto completo | 500 de bônus | Todas as entregas obrigatórias concluídas; uma vez por projeto |
 
@@ -63,17 +70,21 @@ Esses eventos podem aparecer no histórico organizacional, mas não no livro de 
 
 ### Tarefas de prova — regra em execução no protótipo
 
-A lista de tarefas de prova foi pedida explicitamente e hoje usa uma regra transitória:
+A regra aprovada em 03/11/2026 substitui o XP próprio de tarefas:
 
 - Criar, editar, organizar ou remover uma tarefa não gera XP.
-- Concluir uma tarefa com título concreto (por exemplo, "Resolver 20 questões de constitucional") concede **10 XP uma vez**.
-- Reabrir a tarefa retira o XP até ela ser concluída de novo; reabrir e concluir não acumula uma segunda recompensa.
-- O XP da tarefa é calculado no navegador, a partir de `state.tasks` (`public/tasks-domain.js`), e não entra no ranking. A conclusão de tarefa ainda não virou evento do livro do servidor; é a exceção transitória preservada.
-- A tarefa não conclui curso nem cria conquista por material; essas regras dependem dos eventos de conclusão do servidor.
+- Concluir uma tarefa vinculada a uma aula registra a conclusão dessa aula. O servidor concede o XP da aula uma única vez, com a mesma chave da conclusão direta.
+- Tarefa sem aula vinculada concede **0 XP**. Duas tarefas para a mesma aula não duplicam recompensa nem a contagem semanal.
+- Reabrir a tarefa altera apenas sua organização: não desfaz a aula nem retira XP. A correção de conclusão é uma ação separada.
+- A aula concluída pela tarefa participa normalmente dos bônus de disciplina e material.
 - Prioridade (alta, média, baixa ou sem prioridade) e atraso só ordenam a lista e a página Hoje. Definir, mudar ou ordenar não gera XP.
-- Vincular a tarefa a uma aula e marcar subtarefas também não geram XP e não concluem a aula.
+- Vincular a tarefa a uma aula e marcar subtarefas não geram XP e não concluem a aula.
 
-A proposta de migração desta regra está em [Evolução §4.6](EVOLUCAO.md#46-transição-sem-apagar-histórico) e só deve ser aplicada com aprovação explícita. Essa exceção não deve ser copiada para tarefas genéricas de organização. Quando a conclusão de tarefa for migrada para o livro de eventos, ela precisará de chave de idempotência, origem, versão da política e revisão do valor.
+A Agenda reaproveita essa regra. Ocorrências recorrentes recebem tarefas independentes, mas a mesma
+aula mantém sua identidade de recompensa. Encerrar uma atividade não conclui seu checklist, não registra
+tempo de sessão e não concede XP. Agendamento, reagendamento, lembretes e compromissos pessoais são organização.
+
+Não há migração ou reprocessamento de dados antigos. O contrato v3 e o backup aceitam somente o modelo atual; formatos anteriores permanecem no banco e recebem erro explícito. Nenhum banco é apagado.
 
 ### Exemplos de cálculo
 
@@ -217,9 +228,9 @@ Um evento observado por um player ou integração ainda não comprova compreens�
 
 ## 9. Integridade, repetição e segurança
 
-Na implementação da nova política para contas, o servidor é a autoridade de concessão de XP e pontuação compartilhada. `xp_events` guarda a chave única, o tipo, o valor, o material, a origem, a versão da política e o dia local. A cópia de `/api/state` continua servindo à biblioteca e à retomada, mas não é fonte de XP elegível.
+Na implementação da nova política para contas, o servidor é a autoridade de concessão de XP e pontuação compartilhada. `xp_events` guarda a chave única, o tipo, o valor, o material, a origem, a versão da política e o dia local. Na revisão local de 03/11, a biblioteca e a retomada usam `/api/library`; `/api/state` é compatibilidade de contas ainda não convertidas.
 
-O perfil entre amigos exibe XP, nível e conquistas a partir do livro de eventos do servidor. Percentuais de progresso continuam vindo da cópia sincronizada; são declarados e não alimentam placar.
+O perfil entre amigos exibe XP, nível e conquistas a partir do livro de eventos do servidor. Percentuais de progresso vêm da biblioteca no servidor; continuam declarados e não alimentam o placar diretamente.
 
 Cada evento de XP deve ter uma chave única, por exemplo:
 
@@ -237,6 +248,11 @@ Manter um livro de eventos com: origem, material, sessão, valor, momento, vers�
 Autodeclaração é uma escolha de produto, não prova antifraude. Ranking público exigirá validação e moderação adicionais; a primeira experiência social deve começar entre amigos, com regras visíveis.
 
 ## 10. Migração do protótipo
+
+**Decisão vigente de 03/11/2026: não migrar dados.** Nenhuma conversão automática de
+documentos, backups ou saldo legado é executada. Dados incompatíveis permanecem no banco;
+a API informa o impedimento em vez de inicializar uma biblioteca por cima deles.
+O texto abaixo registra a política anterior e não deve orientar novas implementações.
 
 O protótipo atual concede 5 XP por preparação e 10 XP por etapas genéricas. Essas regras são **legadas e incompatíveis com a direção atual**.
 
@@ -264,8 +280,8 @@ A separação do saldo legado foi implementada: `xp_settings.eligible_since` mar
 - Curso concluído gera título personalizado e pelo menos um nível pelo bônus proposto.
 - Material manual é identificado como tal; integração indisponível não é apresentada como automática.
 - Sessão declarada não cria XP de conclusão; ao encerrar, pode criar bloco de tempo validado pelo servidor. Presença do Companion, convite e amizade não criam XP nem histórico de recompensa.
-- Criar ou organizar tarefa de prova: 0 XP; concluir a mesma tarefa duas vezes: um único evento de 10 XP.
+- Criar ou organizar tarefa: 0 XP; concluir tarefa vinculada: XP da aula uma vez; tarefa sem vínculo: 0 XP.
 - Descansar ou sair do placar não retira XP acumulado.
 - Mudança de política ou migração preserva o histórico e evita pontuação de legado no novo placar.
 
-Verificação atual: `xp.test.js` cobre idempotência, bônus, apresentação, teto diário, sobreposição e ranking; `library.test.js` cobre edição, exclusão e conclusão de slides; `tests/e2e/xp-ranking.spec.js` cobre o fluxo da API, extrato e opt-in. A medição de concorrência em produção e a correção assistida de eventos ainda não foram executadas.
+Verificação atual: `tests/unit/xp.test.js` cobre idempotência, bônus, apresentação, teto diário, sobreposição e ranking; `tests/unit/library.test.js` cobre edição, exclusão e conclusão de slides; `tests/e2e/xp-ranking.spec.js` cobre o fluxo da API, extrato e opt-in. A medição de concorrência em produção e a correção assistida de eventos ainda não foram executadas.

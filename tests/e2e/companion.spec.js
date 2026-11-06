@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createInitialState, STORAGE_KEY } from '../../public/domain.js';
+import { readAccount } from './library-helpers.js';
 
 // Fluxo real do Lume Companion: pareamento por código, presença enviada pelo
 // programa (simulada aqui com o token do dispositivo), exibição no painel e
@@ -53,9 +53,8 @@ test('conectar programa, ver presença local e revogar o acesso', async ({ page,
   await expect(page.locator('.companion-presence').getByText(/não gera XP/i)).toBeVisible();
 
   // Presença observada não cria histórico nem XP.
-  const state = await page.evaluate(key => JSON.parse(localStorage.getItem(key) || '{}'), STORAGE_KEY);
-  expect(state.history).toHaveLength(0);
-  expect(state.studyLog).toHaveLength(0);
+  const state = await readAccount(page);
+  expect(state.progress).toHaveLength(0);
 
   await page.getByRole('button', { name: 'Desconectar QA Desktop' }).click();
   await expect(page.getByText('Nenhum programa conectado ainda.')).toBeVisible();
@@ -78,10 +77,9 @@ test('presença exige token válido e painel explica a conta na prévia', async 
   expect((await request.get('/api/companion')).status()).toBe(401);
   expect((await request.post('/api/companion/redeem', { data: { code: 'ABCD-EFGH', deviceName: 'X' } })).status()).toBe(400);
 
-  await page.addInitScript(({ key, state }) => {
-    localStorage.setItem(key, JSON.stringify(state));
-    sessionStorage.setItem('lume.preview-session.v1', 'open');
-  }, { key: STORAGE_KEY, state: { ...createInitialState(), onboarded: true } });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Explorar a prévia' }).click();
+  await page.getByRole('button', { name: 'Explorar sem personalizar agora' }).click();
   await page.goto('/#aplicativo');
   await expect(page.getByRole('heading', { name: 'Lume no desktop' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Entrar para conectar' })).toBeVisible();

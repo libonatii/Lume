@@ -1,0 +1,130 @@
+/* Pareamento e presença do aplicativo de desktop. */
+
+/* ============================================================
+   Lume Companion — pareamento e presença local
+   Presença é informação temporária e privada, não progresso.
+   ============================================================ */
+
+.companion-panel {
+  display: grid;
+  gap: 0.7rem;
+}
+.companion-presence {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  background: var(--lume-soft);
+}
+.companion-presence-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+.companion-presence-row strong {
+  display: block;
+  font-size: 0.9rem;
+}
+.companion-presence-row small {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+.companion-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--mint);
+  box-shadow: 0 0 0 4px var(--mint-soft);
+  flex-shrink: 0;
+}
+.companion-tag {
+  margin-left: auto;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-subtle);
+  font-size: 0.66rem;
+  white-space: nowrap;
+}
+.companion-devices {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+.companion-devices li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.companion-device-icon {
+  display: grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 9px;
+  background: var(--lume-soft);
+  color: var(--lume);
+  flex-shrink: 0;
+}
+.companion-device-copy {
+  display: grid;
+  min-width: 0;
+  margin-right: auto;
+}
+.companion-device-copy strong {
+  font-size: 0.85rem;
+}
+.companion-device-copy small {
+  color: var(--text-subtle);
+  font-size: 0.72rem;
+}
+.companion-code {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.85rem;
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--border-strong);
+  background: var(--surface-2);
+}
+.companion-code > code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1.5rem;
+  letter-spacing: 0.12em;
+  color: var(--text);
+}
+.companion-steps {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.companion-steps code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.companion-command {
+  display: block;
+  padding: 0.5rem 0.65rem;
+  border-radius: 10px;
+  background: var(--surface-3);
+  color: var(--text);
+  font-size: 0.78rem;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+@media (max-width: 520px) {
+  .companion-devices li {
+    flex-wrap: wrap;
+  }
+  .companion-tag {
+    margin-left: 0;
+  }
+}

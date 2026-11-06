@@ -1,11 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { seedAccount, readAccount } from './library-helpers.js';
 import { createInitialState, STORAGE_KEY } from '../../public/domain.js';
 
 test('Aparência troca a paleta, aplica no documento e preserva a escolha ao recarregar', async ({ page }) => {
-  await page.addInitScript(({ key, value }) => {
-    if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(value));
-    sessionStorage.setItem('lume.preview-session.v1', 'open');
-  }, { key: STORAGE_KEY, value: { ...createInitialState(), onboarded: true } });
+  await seedAccount(page, { ...createInitialState(), onboarded: true });
 
   await page.goto('/#hoje');
   await expect(page.locator('html')).toHaveAttribute('data-palette', 'moderno');
@@ -22,7 +20,7 @@ test('Aparência troca a paleta, aplica no documento e preserva a escolha ao rec
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-palette', 'variante2');
   await expect(page.getByRole('group', { name: 'Paleta de cores' }).getByRole('radio', { name: /^Roxo/ })).toBeChecked();
-  const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).preferences.palette, STORAGE_KEY);
+  const saved = (await readAccount(page)).preferences.palette;
   expect(saved).toBe('variante2');
 
   await page.getByRole('group', { name: 'Paleta de cores' }).getByRole('radio', { name: /^Azul/ }).check();

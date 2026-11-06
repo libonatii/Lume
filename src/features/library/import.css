@@ -1,0 +1,491 @@
+/* Análise, revisão e leitura dos cursos importados. */
+
+/* ============================================================
+   Importação de cursos por link (domínio: public/import-domain.js)
+   Mantém a mesma paleta, tipografia e raios das demais telas.
+   ============================================================ */
+
+.import-dialog {
+  gap: 0.8rem;
+}
+.import-mode {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.28rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.import-mode .filter-btn {
+  flex: 1;
+  border-radius: var(--radius-pill);
+}
+.import-mode .filter-btn[aria-selected='true'] {
+  background: var(--lume-soft);
+  color: var(--text);
+}
+.import-file-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.import-capability-note {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  margin: 0;
+  padding: 0.7rem 0.85rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+.import-capability-note .icon {
+  color: var(--lume);
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+
+.import-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+.import-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.import-badge.tone-mint {
+  background: var(--mint-soft);
+  border-color: transparent;
+  color: var(--mint);
+}
+.import-badge.tone-warn {
+  background: var(--warning-soft);
+  border-color: color-mix(in srgb, var(--warning) 32%, transparent);
+  color: var(--warning);
+}
+html[data-theme='light'] .import-badge.tone-warn {
+  color: #96660c;
+}
+.import-badge .icon {
+  width: 15px;
+  height: 15px;
+}
+
+.import-warning-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+.import-warning-list li {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+.import-warning-list .icon {
+  color: var(--warning);
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.import-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  padding-top: 0.2rem;
+  border-top: 1px solid var(--border);
+}
+.import-toolbar-actions {
+  display: flex;
+  gap: 0.9rem;
+}
+.import-count {
+  font-size: 0.78rem;
+  color: var(--text-subtle);
+  font-weight: 600;
+}
+
+.import-tree {
+  display: grid;
+  gap: 0.4rem;
+  max-height: 44vh;
+  overflow-y: auto;
+  padding-right: 0.15rem;
+}
+.import-tree.compact {
+  max-height: none;
+}
+.import-discipline {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.import-discipline-head {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.6rem;
+}
+.import-check {
+  flex-shrink: 0;
+  display: inline-grid;
+  place-items: center;
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+}
+.import-check:hover {
+  border-color: var(--lume);
+  color: var(--lume);
+}
+.import-check[aria-checked='true'],
+.import-check[aria-checked='mixed'] {
+  background: var(--lume-soft);
+  border-color: transparent;
+  color: var(--lume);
+}
+.import-check.small {
+  width: 1.3rem;
+  height: 1.3rem;
+  border-radius: 7px;
+}
+.import-check .icon {
+  width: 14px;
+  height: 14px;
+}
+.import-discipline-toggle {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.15rem 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+.import-discipline-toggle small {
+  color: var(--text-subtle);
+  font-size: 0.72rem;
+  margin-left: auto;
+}
+.import-discipline-toggle .icon {
+  color: var(--text-subtle);
+  width: 16px;
+  height: 16px;
+}
+.import-discipline-title {
+  font-weight: 650;
+  font-size: 0.9rem;
+}
+.import-modules {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0 0.6rem 0.65rem 2.5rem;
+}
+.import-module-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  padding-top: 0.25rem;
+}
+.import-lessons {
+  list-style: none;
+  margin: 0.25rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.2rem;
+}
+.import-lessons li {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.2rem 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  border-radius: 8px;
+}
+.import-lessons li.is-done .import-lesson-title {
+  color: var(--text-subtle);
+  text-decoration: line-through;
+  text-decoration-color: var(--border-strong);
+}
+.import-lesson-title {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.35;
+}
+.import-lesson-time,
+.import-origin {
+  font-size: 0.68rem;
+  color: var(--text-subtle);
+  white-space: nowrap;
+}
+.import-origin {
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+}
+.import-observed {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  cursor: pointer;
+}
+.import-observed input {
+  flex: none;
+  margin-top: 0.2rem;
+  accent-color: var(--lume);
+}
+.import-flag {
+  display: inline-block;
+  margin-left: 0.35rem;
+  font-size: 0.66rem;
+  color: var(--warning);
+}
+
+.import-exam,
+.import-capabilities,
+.import-edital {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  padding: 0.65rem 0.8rem;
+}
+.import-exam summary,
+.import-capabilities summary {
+  cursor: pointer;
+  font-weight: 650;
+  font-size: 0.86rem;
+}
+.import-exam[open] summary,
+.import-capabilities[open] summary {
+  margin-bottom: 0.5rem;
+}
+.import-capabilities ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+.import-capabilities li {
+  display: grid;
+  gap: 0.1rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.import-capabilities strong {
+  font-weight: 600;
+}
+.import-capabilities .available {
+  color: var(--mint);
+}
+.import-capabilities .unavailable {
+  color: var(--text-subtle);
+}
+
+.import-progress,
+.import-discipline-progress,
+.import-next,
+.import-source,
+.import-edital {
+  display: grid;
+  gap: 0.5rem;
+}
+.import-discipline-progress {
+  gap: 0.45rem;
+}
+.import-discipline-progress-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px auto;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.import-discipline-progress-row strong {
+  font-size: 0.74rem;
+  color: var(--text-subtle);
+}
+.import-next {
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+}
+.import-next strong {
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+.import-next small {
+  color: var(--text-subtle);
+  font-size: 0.75rem;
+}
+
+.import-analyzing {
+  display: grid;
+  gap: 0.5rem;
+}
+.import-progress-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+.import-progress-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.86rem;
+  color: var(--text-muted);
+}
+.import-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--lume);
+  animation: import-pulse 1.4s ease-in-out infinite;
+}
+@keyframes import-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+.import-error,
+.import-done {
+  display: grid;
+  gap: 0.7rem;
+}
+.import-summary {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+.import-summary li {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+.import-summary .icon {
+  color: var(--lume);
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+
+.dialog-emblem.tone-warn {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.course-source-chip {
+  position: absolute;
+  top: 0.65rem;
+  left: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-pill);
+  background: rgba(14, 13, 20, 0.78);
+  color: var(--text);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+.course-source-chip + .course-resume-chip {
+  bottom: 0.65rem;
+}
+
+.import-inspector {
+  display: grid;
+  gap: 0.5rem;
+}
+.import-inspector-next {
+  display: flex;
+  gap: 0.45rem;
+  align-items: flex-start;
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+.import-inspector-next .icon {
+  color: var(--lume);
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+.import-inspector-areas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+.import-inspector-areas li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--border);
+}
+.import-inspector-areas li:last-child {
+  border-bottom: 0;
+}
+.import-inspector-areas strong {
+  color: var(--text-subtle);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 520px) {
+  .import-discipline-progress-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .import-discipline-progress-row .progress {
+    grid-column: 1 / -1;
+  }
+  .import-tree {
+    max-height: none;
+  }
+  .import-file-row,
+  .import-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .import-file-row .button {
+    width: 100%;
+  }
+}

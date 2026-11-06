@@ -13,7 +13,9 @@
 // aqui concede XP; planejar, adiar e priorizar são organização.
 
 import { courseLessons } from './import-domain.js';
+import { materialSteps } from './material-model.js';
 import { DEFAULT_SESSION_MINUTES, studyPlan } from './study-plan.js';
+import { completedUnitIds } from './progress-domain.js';
 
 export const WEEKDAYS = Object.freeze([
   { id: 1, short: 'seg', label: 'Segunda' },
@@ -137,7 +139,7 @@ function sessionEstimate(state) {
 }
 
 function queues(state, plan, today) {
-  const completed = new Set(state.completed || []);
+  const completed = completedUnitIds(state);
   const roadmap = studyPlan(state, { limit: 1 });
   const order = new Map(roadmap.courses.map((course, index) => [course.id, index]));
   const estimate = sessionEstimate(state);
@@ -150,7 +152,7 @@ function queues(state, plan, today) {
         course,
         goal,
         order: order.get(course.id),
-        lessons: course.steps.filter((step) => !completed.has(step.id)).map((step) => {
+        lessons: materialSteps(course).filter((step) => !completed.has(step.id)).map((step) => {
           const seconds = durations.get(step.id);
           const known = Number.isFinite(seconds) && seconds > 0;
           return {

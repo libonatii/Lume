@@ -21,10 +21,6 @@ function clampDuration(value) {
   return Math.min(Math.round(value), MAX_SESSION_MS);
 }
 
-export function emptySessionState() {
-  return { activeSession: null, studySessions: [] };
-}
-
 export function normalizeActiveSession(value) {
   if (!value || typeof value !== 'object') return null;
   const startedAt = Date.parse(value.startedAt);

@@ -1,6 +1,9 @@
 # Lume — diagnóstico e plano de evolução
 
-Versão: 1.0 (31/10/2026). Este documento consolida o diagnóstico do protótipo e a proposta para transformar o Lume em uma plataforma social de estudos integrada: **organizar → saber o próximo passo → estudar → registrar avanço → receber XP → evoluir de nível e cargo → desbloquear possibilidades → compartilhar e colaborar**.
+Propostas de produto de 31/10/2026, com referências revistas em 03/11. O estado implementado está somente
+em [Continuidade](CONTINUIDADE.md); a lista vigente de lacunas e decisões, em [Implementação](IMPLEMENTACAO.md).
+Este documento preserva o raciocínio e os critérios das propostas: **organizar → saber o próximo passo → estudar
+→ registrar avanço → receber XP → evoluir de nível e cargo → desbloquear possibilidades → compartilhar e colaborar**.
 
 Leia antes: [Produto](PRODUTO.md), [Gamificação](GAMIFICACAO.md), [Continuidade](CONTINUIDADE.md), [Importação](IMPORTACAO.md) e [Lume (desktop)](COMPANHEIRO.md). Tudo o que está marcado como **proposta** aqui ainda não existe; a seção 7 registra o que a Etapa 1 implementou.
 
@@ -17,17 +20,22 @@ Legenda de estado usada em todo o documento:
 
 ## 1. Diagnóstico fundamentado
 
+**Registro histórico de 31/10, não retrato do código atual.** A persistência agora é direta pela API,
+sem cópia persistida ou reconciliação no navegador. O critério de próxima aula já foi unificado em
+`study-plan.js`; `nextMission` foi removido. Navegação, prioridade e cronograma estão implementados.
+As tabelas abaixo explicam a origem das propostas; não devem ser usadas como lista de trabalho.
+
 ### 1.1 O que já está bem resolvido e deve ser aproveitado
 
 | Recurso | Estado | Evidência |
 | --- | --- | --- |
-| Contas, sessão, recuperação | Local verificado | `auth.js`, `auth.test.js`, `tests/e2e/session.spec.js` |
-| Livro de XP com idempotência, bônus, teto diário, ajuste negativo | Local verificado; rota publicada (`GET /api/xp` → 401 sem sessão) | `xp.js`, `xp.test.js`, `tests/e2e/xp-ranking.spec.js` |
-| Ranking de amigos (nível, cursos, empenho) | Local verificado; rota publicada (`/api/ranking` → 401) | `xp.js`, `Ranking.jsx` |
-| Mensagens diretas, bloqueio, não lidas | Local verificado; rota publicada (`/api/messages/unread` → 401) | `messages.js`, `messages.test.js`, `tests/e2e/messages.spec.js` |
-| Importação por link, texto e página copiada | Local verificado; extração real conferida em Coursera e Alura (parcial) | `import-server.js`, `import.test.js`, [Importação §4](IMPORTACAO.md) |
-| Revisão otimista do estado entre dispositivos | Local verificado | `state.js`, `merge.test.js`, `tests/e2e/state-conflict.spec.js` |
-| Roteiro por prioridade explícita | Local verificado | `public/study-plan.js`, `study-plan.test.js` |
+| Contas, sessão, recuperação | Local verificado | `api/domain/auth.js`, `tests/unit/auth.test.js`, `tests/e2e/session.spec.js` |
+| Livro de XP com idempotência, bônus, teto diário, ajuste negativo | Local verificado; rota publicada (`GET /api/xp` → 401 sem sessão) | `api/domain/xp.js`, `tests/unit/xp.test.js`, `tests/e2e/xp-ranking.spec.js` |
+| Ranking de amigos (nível, cursos, empenho) | Local verificado; rota publicada (`/api/ranking` → 401) | `api/domain/xp.js`, `Ranking.jsx` |
+| Mensagens diretas, bloqueio, não lidas | Local verificado; rota publicada (`/api/messages/unread` → 401) | `api/domain/messages.js`, `tests/unit/messages.test.js`, `tests/e2e/messages.spec.js` |
+| Importação por link, texto e página copiada | Local verificado; extração real conferida em Coursera e Alura (parcial) | `api/domain/import-server.js`, `tests/unit/import.test.js`, [Importação §4](IMPORTACAO.md) |
+| Revisão otimista do estado entre dispositivos | Local verificado | `api/domain/state.js`, `tests/unit/merge.test.js`, `tests/e2e/state-conflict.spec.js` |
+| Roteiro por prioridade explícita | Local verificado | `public/study-plan.js`, `tests/unit/study-plan.test.js` |
 | Aplicativo de desktop (Electron): o Lume completo, bandeja e presença por allowlist | Verificado por checagem de sintaxe e Chromium; bandeja validada manualmente | [Lume §9](COMPANHEIRO.md) |
 
 As consultas ao site publicado foram feitas em 31/10/2026 apenas com `GET` anônimo: elas mostram que as rotas existem, não que os fluxos autenticados funcionam em produção.
@@ -36,15 +44,15 @@ As consultas ao site publicado foram feitas em 31/10/2026 apenas com `GET` anôn
 
 | Problema | Onde aparece | Evidência no código |
 | --- | --- | --- |
-| **Duas respostas diferentes para "o que fazer agora"** | Hoje e Missões usam `nextMission` (primeira etapa pendente do curso selecionado, na ordem da biblioteca, incluindo cursos de exemplo). O Companion e o perfil usam `studyPlan` (continuidade, primeiro passo, perto do fim, sem exemplos) | `src/components/Study.jsx:15`, `src/components/Personal.jsx:14`, `public/study-plan.js`. [Lume §2](COMPANHEIRO.md) afirma que o site usa o mesmo critério, o que não é verdade |
+| **Duas respostas diferentes para "o que fazer agora"** | Hoje e Missões usam `nextMission` (primeira etapa pendente do curso selecionado, na ordem da biblioteca, incluindo cursos de exemplo). O Companion e o perfil usam `studyPlan` (continuidade, primeiro passo, perto do fim, sem exemplos) | `src/features/library/Study.jsx:15`, `src/features/settings/Personal.jsx:14`, `public/study-plan.js`. [Lume §2](COMPANHEIRO.md) afirma que o site usa o mesmo critério, o que não é verdade |
 | **"Ação focal única" cercada de sete blocos** | A Hoje tinha: foco, cartão de pausa com imagem, sessão, três métricas, jornada e lembrete de conforto | `Study.jsx` (antes da Etapa 1) |
-| **Indicadores repetidos** | Nível aparece na barra lateral e na barra superior; o estado de sincronização aparece na barra superior e no rodapé | `src/components/Shell.jsx` |
-| **Métrica que mistura preparação com conclusão** | "Ritmo da semana" soma preparações, etapas, aulas e tarefas como "passos" | `weekCount` em `public/domain.js:500` |
+| **Indicadores repetidos** | Nível aparece na barra lateral e na barra superior; o estado de sincronização aparece na barra superior e no rodapé | `src/app/Shell.jsx` |
+| **Métrica que mistura preparação com conclusão** | Resolvido em 01/11/2026: `weekCount` conta só conclusões não históricas e tarefas; preparação não entra | `public/domain.js` |
 | **Navegação com dez itens de mesmo peso** | Hoje, Tarefas, Biblioteca, Missões, Conquistas, Meu caminho, Amigos, Mensagens, Ranking, Configurações — mais GitHub, Perfil e Instalar fora do menu | `links` em `Shell.jsx` |
 | **Tarefas sem prioridade nem relação com o plano** | Ordem só por prazo; nada indica atraso; tarefas não aparecem na Hoje | `sortTasks` em `public/tasks-domain.js` |
 | **Duração conhecida descartada** | A importação guarda `duration` por aula, mas nenhuma tela usa esse dado para dizer quanto tempo reservar | `normalizeDuration` em `public/import-domain.js:165` |
 | **Nível sem consequência** | Subir de nível não muda nada além do número; não existem cargos nem desbloqueios | Busca por `cargo`/`desbloque` não encontra regra de produto |
-| **Paleta monocromática** | Fundo, superfícies, bordas e ação principal são variações do mesmo azul; verde (`--mint`) aparece só em detalhes | Tokens em `public/lume.css:21-72` |
+| **Paleta monocromática** | Fundo, superfícies, bordas e ação principal são variações do mesmo azul; verde (`--mint`) aparece só em detalhes | Tokens em `src/styles/00-tokens.css` |
 | **Tom condescendente** | "O começo pode ser pequeno", "Se hoje não der, você pode descansar", "Pausar sem culpa", "Que bom ter você aqui" | Seção 8 deste documento |
 
 ### 1.3 Contradições na documentação (corrigidas nesta rodada)
@@ -55,7 +63,7 @@ As consultas ao site publicado foram feitas em 31/10/2026 apenas com `GET` anôn
 | GAMIFICACAO §6 | Aula importada concluída "não concede XP" | `completionKindForCourse` trata aula importada como `lesson` elegível: 100 XP pelo servidor |
 | GAMIFICACAO §9 | Perfil exibe XP declarado da cópia | Perfil usa XP do livro do servidor |
 | CONTINUIDADE §3, §5 | Mensagens, bloqueio, colaboração e reconciliação pendentes | Implementados |
-| IMPORTACAO §10 | Leitura de repositórios GitHub não existe | `github.js` lê repositórios públicos |
+| IMPORTACAO §10 | Leitura de repositórios GitHub não existe | `api/domain/github.js` lê repositórios públicos |
 | COMPANHEIRO §2, §8 | Roteiro igual no site; mensagens diretas pendentes | Ver primeira linha da tabela 1.2; mensagens existem |
 
 ---
@@ -68,7 +76,7 @@ Exemplo real de uso: Ana estuda para a OAB com um curso da Gran e quer concluir 
 | --- | --- | --- | --- |
 | 1. Informar o curso | Cola o link do curso ou a página copiada da área do aluno | Disciplinas, módulos, aulas e durações encontradas, marcadas como completas ou parciais | Implementado |
 | 2. Revisar | Escolhe Constitucional e Penal; desmarca o que não interessa | "68 aulas selecionadas · 41 h de duração conhecida · 9 aulas sem duração" | Contagem implementada; total de horas é **proposta** |
-| 3. Planejar | Informa disponibilidade (seg/qua/sex, 1 h) e prazo | Cronograma semanal com aulas na sequência; se não couber, mostra o conflito e opções | **Proposta (Etapa 2)** |
+| 3. Planejar | Informa disponibilidade (seg/qua/sex, 1 h) e prazo | Cronograma semanal com aulas na sequência; se não couber, mostra o conflito e opções | Implementado em 01/11 |
 | 4. Abrir a próxima aula | Toca em "Abrir aula" na Hoje | Abre o link da fonte; mostra por que essa aula está primeiro e quanto tempo reservar | **Etapa 1** |
 | 5. Estudar | Começa a sessão; assiste à aula | Sessão declarada; com a extensão, cobertura observada do vídeo | Sessão implementada; observação é **proposta (Etapa 5)** |
 | 6. Registrar | Confirma a conclusão | Servidor concede 100 XP uma vez; aula some do roteiro; cronograma recalcula | XP implementado; recálculo é **Etapa 2** |
@@ -80,6 +88,9 @@ Exemplo real de uso: Ana estuda para a OAB com um curso da Gran e quer concluir 
 ## 3. Arquitetura de informação
 
 ### 3.1 Navegação proposta: cinco destinos
+
+**Atualização de 05/11/2026:** a decisão da [Agenda](AGENDA.md) acrescenta um sexto destino próprio,
+com Calendário e Tarefas. Plano mantém Cronograma e Roteiro. A tabela abaixo preserva a proposta original.
 
 | Destino | Reúne | Pergunta que responde |
 | --- | --- | --- |
@@ -105,7 +116,7 @@ No celular, os cinco destinos ocupam a barra inferior sem rótulo abreviado. "In
 | --- | --- | --- | --- | --- |
 | Vazio | "Adicione o primeiro curso para receber a próxima ação." + botão importar | "Sua biblioteca está vazia. Importe um curso por link ou crie um material." | "Sem tarefas. Defina a próxima ação concreta para sua prova." | "Convide alguém com um código de 7 dias." |
 | Carregando | Esqueleto do bloco de próxima ação, sem animação decorativa | Esqueleto dos cartões | Esqueleto da lista | Esqueleto da lista |
-| Erro | "Não foi possível sincronizar. Sua cópia local está preservada." + tentar de novo | Igual | Igual | "Não foi possível carregar seus amigos." + tentar de novo |
+| Erro | "Gravação não confirmada. Tente novamente antes de fechar a página."; conflito pede recarga | Igual | Igual | "Não foi possível carregar seus amigos." + tentar de novo |
 | Conclusão | "Você concluiu {aula}. +100 XP. Próxima: {aula}." | Curso concluído com conquista | Tarefa riscada, sem XP se organizacional | — |
 | Integração indisponível | "Esta fonte não informa progresso. Registre a conclusão quando terminar." | Selo "registro manual" no cartão | — | — |
 
@@ -127,7 +138,7 @@ No celular, os cinco destinos ocupam a barra inferior sem rótulo abreviado. "In
 
 A v1 (`public/xp-policy.js`) continua como base: 100 por aula, leitura, lista de exercícios e apresentação; 150 por entrega; 500 de bônus por curso ou projeto; 25 por bloco de 30 min (teto de 200 por dia); nível a cada 500 XP. **Não recomendo mudar a curva de nível**: ela já está publicada, é linear e explicável, e qualquer mudança alteraria níveis exibidos a pessoas com histórico.
 
-Proposta v2 (exige aprovação da responsável): **bônus de disciplina concluída, 200 XP**. Justificativa: cursos de concurso têm centenas de aulas; o bônus de curso fica a meses de distância, e a disciplina é o marco que a pessoa reconhece ("terminei Constitucional"). Regras: uma vez por identidade de disciplina; exige a disciplina inteira selecionada e grade não parcial nela; não retroativo — disciplinas concluídas antes da v2 recebem a conquista, não o XP.
+Política v2 aprovada e implementada localmente: **bônus de disciplina concluída, 200 XP e conquista**. Uma vez por identidade de disciplina; exige todas as aulas selecionadas, grade completa e conclusões elegíveis. Não há migração ou concessão retroativa de dados antigos. A disciplina é o marco intermediário de cursos extensos.
 
 ### 4.3 Unidades e proteção contra duplicidade
 
@@ -158,6 +169,13 @@ O teto diário de tempo limita quem tenta acumular XP só com relógio; conclus�
 
 ### 4.5 Cargos, requisitos e desbloqueios (proposta)
 
+**Decisão de 03/11/2026:** nomes e requisitos abaixo aprovados para títulos, com formas neutras.
+As colunas de desbloqueio são propostas históricas e não são requisitos de acesso: todas as
+funcionalidades disponíveis valem para todos os cargos. Pausas preservam os títulos; correções
+de eventos reavaliam os requisitos. `public/title-policy.js` é a política executável e `user_titles`
+registra a concessão idempotente. O perfil exibe títulos e critérios, respeitando a privacidade de XP.
+Colaboração permanece por convites; contribuição individual e suas recompensas ficam adiadas.
+
 Os requisitos combinam nível com **marcos concretos**, para que o cargo diga o que a pessoa fez, e não só quanto tempo passou. Nenhuma ferramenta fundamental (estudar, importar, tarefas, sessão, mensagens, amigos, ranking) fica atrás de um cargo.
 
 | Cargo | Requisitos | Recompensa | Desbloqueio funcional | Valor do desbloqueio |
@@ -177,6 +195,11 @@ Regras: desbloqueios são permanentes; ficam registrados no servidor (`user_unlo
 
 ### 4.6 Transição sem apagar histórico
 
+**Substituída pela decisão de 03/11/2026: não migrar dados.** O contrato atual é v3;
+formatos antigos são recusados explicitamente, sem apagar bancos ou converter documentos.
+Tarefa vinculada conclui a aula (recompensa da aula, uma vez); tarefa sem vínculo concede 0 XP.
+Os passos abaixo registram a proposta antiga, não uma autorização de migração.
+
 1. `user_unlocks` é calculado a partir de `xp_events` e `user_achievements` existentes: quem já tem nível e marcos recebe os cargos ao abrir a versão nova, com o critério visível.
 2. O saldo legado (5/10 XP) continua fora de nível, cargo e ranking.
 3. Tarefas de prova: a regra transitória de 10 XP permanece até aprovação desta migração — **tarefa vinculada a uma aula conclui a aula (100 XP pelo servidor, uma vez); tarefa sem vínculo é organizacional (0 XP)**. O XP legado já obtido por tarefas fica no saldo legado.
@@ -193,6 +216,9 @@ Regras: desbloqueios são permanentes; ficam registrados no servidor (`user_unlo
 3. **Observar reprodução** — exige acesso ao player no navegador da própria pessoa.
 
 ### 5.2 Matriz por plataforma
+
+Referência histórica da pesquisa de 31/10. Capacidades e conferências atuais ficam em
+[Importação](IMPORTACAO.md); em especial, o Gran passou a ter leitor próprio pela API da página em 01/11.
 
 | | Alura | Coursera | Gran Cursos | Estratégia Concursos |
 | --- | --- | --- | --- | --- |
@@ -228,7 +254,8 @@ continua proposta. A leitura foi testada com páginas de exemplo, não com conta
 - **Tempo efetivo**: tempo de relógio em reprodução (sem pausa, sem buffering). A 2×, uma aula de 60 min gera ~30 min de tempo efetivo.
 - **Saltos** não criam cobertura; **chegar ao fim** não conclui.
 - **Conclusão observada**: cobertura ≥ 95% e trecho final reproduzido. Mesmo assim, a pessoa confirma; a origem do registro fica "observado pela extensão".
-- **Falhas de conexão**: a extensão guarda lotes localmente e reenvia com chave de idempotência (aula + sequência do lote).
+- **Falhas de conexão**: o desenho de lotes persistidos desta proposta não foi aprovado. A decisão de 03/11
+  exige API direta, sem fila offline; uma futura observação deve definir recuperação explícita sem reintroduzi-la.
 - Observar reprodução não comprova compreensão; a interface diz "reprodução observada", não "aula assimilada".
 
 ### 5.5 Primeira prova técnica recomendada
@@ -238,7 +265,7 @@ continua proposta. A leitura foi testada com páginas de exemplo, não com conta
 1. A extensão, instalada sem empacotamento, detecta o `<video>` da aula e envia lotes ao servidor local.
 2. Assistir 3 min, pular 5 min e assistir mais 2 min resulta em cobertura de ~5 min, não 10.
 3. Assistir a 2× por 4 min de relógio gera 4 min de tempo efetivo e ~8 min de cobertura.
-4. Desligar a rede por 1 min e religar não perde nem duplica lotes.
+4. Desligar a rede informa a interrupção; ao religar, a retomada não duplica registros confirmados.
 5. Fechar o navegador e voltar preserva a cobertura acumulada.
 
 Em paralelo, um **roteiro de inspeção manual** (30 min, com a conta da responsável) para Gran e Estratégia: o player é `<video>` no DOM? Em iframe de qual origem? A URL da aula é estável? Só depois dessa resposta a extensão ganha permissão para esses domínios.

@@ -11,7 +11,7 @@ const source = join(root, 'extension');
 const output = join(root, 'dist-extension');
 // Documentação e imagens da ficha da loja não vão dentro do pacote.
 const SKIP = new Set(['LEIAME.md', 'LOJA.md']);
-const SKIP_DIRS = ['store/'];
+const SKIP_DIRS = ['store/', 'src/'];
 const isLocal = (pattern) => /^https?:\/\/(localhost|127\.0\.0\.1)[:/]/.test(pattern);
 
 function storeManifest(text) {

@@ -5,7 +5,9 @@
 // protótipo (5 XP por preparação, 10 XP por etapa/tarefa) fica separado e nunca
 // entra aqui, no nível novo ou no ranking.
 
-export const XP_POLICY_VERSION = 'v1';
+import { materialSteps } from './material-model.js';
+
+export const XP_POLICY_VERSION = 'v2';
 export const LEVEL_XP = 500;
 export const TIME_BLOCK_SECONDS = 30 * 60;
 export const TIME_BLOCK_XP = 25;
@@ -20,11 +22,12 @@ export const XP_VALUES = Object.freeze({
   slide: 100,
   course_bonus: 500,
   project_bonus: 500,
+  discipline_bonus: 200,
 });
 
 export const STEP_KINDS = Object.freeze(['lesson', 'reading', 'exercise', 'delivery']);
 export const BONUS_KINDS = Object.freeze(['course_bonus', 'project_bonus']);
-export const ALL_KINDS = Object.freeze([...STEP_KINDS, ...BONUS_KINDS, 'slide', 'time_block', 'adjustment']);
+export const ALL_KINDS = Object.freeze([...STEP_KINDS, ...BONUS_KINDS, 'discipline_bonus', 'slide', 'time_block', 'adjustment']);
 
 export const XP_KIND_LABELS = Object.freeze({
   lesson: 'Aula concluída',
@@ -34,6 +37,7 @@ export const XP_KIND_LABELS = Object.freeze({
   slide: 'Apresentação concluída',
   course_bonus: 'Curso completo',
   project_bonus: 'Projeto completo',
+  discipline_bonus: 'Disciplina concluída',
   time_block: 'Bloco de 30 minutos',
   adjustment: 'Ajuste de integridade',
 });
@@ -58,7 +62,7 @@ export function xpForKind(kind) {
 }
 
 export function isImportedCourse(course) {
-  return Boolean(course && course.source && Array.isArray(course.structure));
+  return Boolean(course?.source && course.units?.some((unit) => unit.kind === 'discipline'));
 }
 
 // Um curso "planejado" (por exemplo, "definir o próximo marco") organiza a
@@ -69,8 +73,7 @@ export function isEligibleCourse(course) {
     && course.example !== true
     && course.planning !== true
     && course.source?.demo !== true
-    && Array.isArray(course.steps)
-    && course.steps.length > 0;
+    && materialSteps(course).length > 0;
 }
 
 export function completionKindForCourse(course) {
@@ -124,92 +127,13 @@ export function slideProgressSnapshot(course) {
   };
 }
 
-// Data da conclusão declarada. Aulas importadas usam studyLog; cursos manuais
-// usam o histórico da etapa. Sem data, o registro é tratado como legado.
-export function completionTimestamp(state, course, stepId) {
-  if (!course || !stepId) return null;
-  if (isImportedCourse(course)) {
-    const entries = (state?.studyLog || []).filter((entry) => entry.stepId === stepId
-      && !entry.revertedAt
-      && entry.origin !== 'import'
-      && entry.historical !== true);
-    const latest = entries[entries.length - 1];
-    const at = Date.parse(latest?.at);
-    return Number.isFinite(at) ? at : null;
-  }
-  const entry = (state?.history || []).find((item) => item.id === `step:${stepId}`);
-  const at = Date.parse(entry?.at);
-  return Number.isFinite(at) ? at : null;
-}
-
-export function courseIsComplete(state, course) {
-  return Boolean(course?.steps?.length)
-    && course.steps.every((step) => (state?.completed || []).includes(step.id));
-}
-
 // Uma grade completa da fonte não basta: se a pessoa escolheu só parte das
 // disciplinas, o curso inteiro continua em aberto e o bônus não é liberado.
 export function courseGradeIsComplete(course) {
   if (!isImportedCourse(course)) return true;
   if (course.source.completeness !== 'complete') return false;
-  const total = (course.structure || [])
-    .flatMap((discipline) => discipline.modules || [])
-    .flatMap((module) => module.lessons || [])
-    .filter((lesson) => lesson && lesson.removedFromSource !== true)
-    .length;
-  return total > 0 && course.steps.length >= total;
-}
-
-// Candidatos que o navegador envia ao servidor. O servidor revalida tudo:
-// conclusão registrada, data posterior ao início da política e integridade.
-export function collectCompletionCandidates(state, eligibleSince) {
-  const since = Date.parse(eligibleSince);
-  const steps = [];
-  const bonuses = [];
-  const slides = [];
-  if (!Number.isFinite(since)) return { steps, bonuses, slides };
-  for (const course of state?.courses || []) {
-    if (!isEligibleCourse(course)) continue;
-    const kind = completionKindForCourse(course);
-    let allSince = true;
-    for (const step of course.steps) {
-      if (!(state.completed || []).includes(step.id)) {
-        allSince = false;
-        continue;
-      }
-      const at = completionTimestamp(state, course, step.id);
-      if (!Number.isFinite(at) || at < since) {
-        allSince = false;
-        continue;
-      }
-      steps.push({
-        key: stepEventKey(kind, course.id, step.id),
-        body: { courseId: course.id, stepId: step.id },
-      });
-    }
-    if (allSince && courseIsComplete(state, course)) {
-      // Grade parcial ou seleção parcial não conclui o curso inteiro.
-      if (courseGradeIsComplete(course)) {
-        // Um curso manual de uma única etapa não recebe bônus de contêiner.
-        const minimum = course.type === 'project' ? 1 : 2;
-        if (isImportedCourse(course) || course.steps.length >= minimum) {
-          const bonusKind = bonusKindForCourse(course);
-          bonuses.push({
-            key: bonusEventKey(bonusKind, course.id),
-            body: { courseId: course.id },
-          });
-        }
-      }
-    }
-    const deck = slideProgressSnapshot(course);
-    if (deck.completed && Number.isFinite(Date.parse(deck.completedAt)) && Date.parse(deck.completedAt) >= since) {
-      slides.push({
-        key: slideEventKey(course.id),
-        body: { courseId: course.id },
-      });
-    }
-  }
-  return { steps, bonuses, slides };
+  const lessons = course.units.filter((unit) => unit.kind === 'lesson' && !unit.data.removedFromSource);
+  return lessons.length > 0 && lessons.every((unit) => unit.selected);
 }
 
 export function normalizeTimeZone(value) {

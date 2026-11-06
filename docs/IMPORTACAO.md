@@ -1,5 +1,11 @@
 # Lume — importação de cursos por link
 
+**Modelo vigente (F2, 03/11/2026):** a análise continua entregando disciplinas/módulos/aulas
+para revisão. Ao confirmar, o material contém somente `units` (pai, tipo, ordem, seleção e
+metadados). Árvores exibidas são derivadas; domínio, API v3 e banco não guardam `steps` e
+`structure` em paralelo. Reimportação preserva ids, referências externas e progresso.
+Não há conversão de bibliotecas antigas ao abrir a conta.
+
 Status: **implementado** — o endpoint `/api/import/analyze` existe no servidor local e no Worker, e a versão
 por link está publicada no site de referência. A leitura de **página copiada** da conta foi implementada depois
 do último deploy e depende de uma nova publicação; consulte a seção 12. Verificado com build, testes de domínio
@@ -112,7 +118,7 @@ dela**, quando ela clica no ícone. Ver [extension/LEIAME.md](../extension/LEIAM
 - **Progresso e XP:** a primeira leitura de um curso importa as conclusões visíveis como **histórico sem XP**.
   Nas leituras seguintes do mesmo curso (mesma identidade), aulas que aparecem concluídas e que o Lume ainda não
   tinha são oferecidas em uma caixa **marcada por padrão**, que a pessoa pode desmarcar. Se confirmada, a conclusão
-  entra no `studyLog` com origem `integration` e o servidor decide o XP pela política vigente (100 XP por aula,
+  entra no registro `progress` com origem `integration` e o servidor decide o XP pela política vigente (100 XP por aula,
   teto diário). Aula do histórico nunca é convertida em XP. É uma observação da plataforma confirmada pela pessoa,
   não prova de que a aula foi assistida.
 - **Estrutura completa:** a leitura abre seções dentro de seções (disciplina → aula → vídeos, até 600 cliques e 4 minutos). Quando abrir uma seção fecha as outras (como o Gran faz com as disciplinas), lê uma por vez e junta o que cada uma mostra; espera os vídeos chegarem por rede antes de ler; filtra atalhos como "Conteúdo" e "Retomar". Em cursos grandes leva um ou dois minutos
@@ -175,6 +181,12 @@ ainda podem gerar itens indevidos — por isso a revisão existe e a grade é ma
 
 ## 7. Modelo de dados e persistência
 
+**Revisão local de 03/11/2026:** materiais e unidades são persistidos em tabelas pela API; `steps` e `structure`
+abaixo são projeções de compatibilidade para as telas. A biblioteca não é salva em localStorage ou IndexedDB.
+A identidade externa é preservada na restauração e na reimportação com fallback para DOM: um caminho de
+títulos único pode manter o id existente quando a nova leitura não traz `externalId`; caminhos ambíguos não
+são unidos. Isso não acrescenta leitores reais às demais plataformas.
+
 `public/import-domain.js` é a fonte das regras, compartilhada por navegador, servidor e testes.
 
 - Curso importado = `course` com `steps` (lista plana das aulas selecionadas, compatível com as telas atuais) e
@@ -185,9 +197,9 @@ ainda podem gerar itens indevidos — por isso a revisão existe e a grade é ma
   não apaga conclusões.
 - `course.source` guarda provedor, identidade, data da análise, tipo de extração, completude, capacidades,
   avisos e a marca de demonstração.
-- Progresso continua separado do conteúdo: `completed` (ids de aula concluída), `studyLog` (registro com origem
+- Progresso continua separado do conteúdo: o registro único `progress` (cada conclusão com origem
   `manual` ou `integration`, data e possível desfazer) e `imports` (histórico de importações).
-- `restoreState` aceita dados antigos sem `studyLog`/`imports` e descarta registros inválidos sem zerar o progresso.
+- `restoreState` aceita documentos v1 (`completed`/`history`/`studyLog`, convertidos para `progress`) e descarta registros inválidos um a um, sem zerar o progresso.
 
 Reimportação:
 
@@ -202,11 +214,11 @@ Reimportação:
   explicitamente na conclusão.
 - Concluir uma aula importada registra progresso **manual**, com origem visível. A conclusão manual é elegível
   para 100 XP de aula, concedidos pelo servidor no livro de eventos; não usa a recompensa legada de 10 XP por etapa.
-- A página copiada da conta pode marcar aulas como concluídas. Elas entram como `studyLog` com origem `import` e
+- A página copiada da conta pode marcar aulas como concluídas. Elas entram no registro `progress` com origem `import` e
   `historical: true`, somam no progresso exibido, mas **não geram XP** e não podem ser desfeitas como conclusão
   manual. O Lume não converte progresso antigo em recompensa nova.
 - Importar, escolher disciplinas, atualizar a grade e conectar uma fonte continuam sem XP. A política de XP vive
-  em `xp.js`/`xp_events`, com chave de idempotência; `/api/state` continua sendo a cópia do estado, não a
+  em `api/domain/xp.js`/`xp_events`, com chave de idempotência; `/api/state` continua sendo a cópia do estado, não a
   autoridade de pontuação.
 - Não há observação de vídeo assistido por API. "Concluí esta aula" é autodeclaração identificada; sem integração
   compatível, não existe retomada automática.
@@ -225,7 +237,7 @@ Reimportação:
 
 - `deliveryCandidates(repository)` transforma issues abertas em **sugestões** que exigem validação, com a nota de
   que issue aberta não significa projeto incompleto.
-- A leitura pública de repositórios existe em `github.js` (README, issues e milestones, sem token e sem
+- A leitura pública de repositórios existe em `api/domain/github.js` (README, issues e milestones, sem token e sem
   repositórios privados). Conexão por OAuth, validação automática de entregas e escrita no GitHub não existem.
 - Quando a integração for implementada, ela deve ser opcional, com escopo mínimo, escolha explícita de
   repositórios e nada de repositórios privados expostos por padrão.
@@ -254,8 +266,9 @@ prova de observação de reprodução estão em [Evolução §5](EVOLUCAO.md#5-i
   vídeo, com duração, código do curso e endereço). Do Gran falta ver como um vídeo **assistido** aparece (o
   arquivo analisado não tinha nenhum); a leitura supõe ícone `circle-check` ou selo "Concluído" na aula. Udemy,
   Alura, Coursera e Rocketseat não foram testadas com páginas reais.
-- **Tamanho:** o Lume aceita até 600 aulas por importação e 320 KB de estado por conta; um curso grande do Gran
-  (31 disciplinas) pode passar disso. A leitura avisa e corta; elevar o limite é decisão de produto pendente.
+- **Tamanho:** o importador aceita até 600 aulas. O caminho novo da biblioteca usa operações de até 3 MB e
+  tabelas por entidade, sem o teto global de 320 KB do documento antigo. Uma grade de 600 aulas passa no
+  contrato Node/D1 local; aumentar o limite do importador e medir produção continuam pendentes.
 - **Extensão, o que falta:** conferir o DOM real de cada plataforma (ícones e classes de conclusão incluídos) e
   ajustar as regras. A extensão também não foi carregada no Chrome como extensão; a ponte e a entrega pelo service worker não têm teste automatizado.
   Publicação na Chrome Web Store, ícones e configuração de outro endereço do Lume não existem.
@@ -269,3 +282,32 @@ prova de observação de reprodução estão em [Evolução §5](EVOLUCAO.md#5-i
 - A estrutura importada é guardada na cópia do estado da conta; ela não é validada no servidor como conteúdo oficial.
 - A leitura de página copiada (`analyzeSnapshot`) depende de publicar o Worker com `npx wrangler deploy`, não
   executado nesta tarefa. O limite de corpo da rota passou de 96 KB para 3 MB nos dois backends.
+
+## Provedores (desde 01/11/2026)
+
+Cada plataforma tem uma implementação própria em `public/providers/<id>.js`, registrada em
+`public/providers/registry.js`. O provedor declara:
+
+- **capacidades** — `syllabus` (`full`, `partial`, `none`), `progress` (`none` ou `lesson-flags`: lê a marca de
+  concluído que a plataforma mostra na leitura logada), `resume` e `requiresLogin`. A revisão da importação mostra
+  essas capacidades, não um texto fixo;
+- **identify(url)** — reconhece o curso a partir da página aberta (ex.: `/course/<id>` na Udemy, `/learn/<id>` no
+  Coursera, `/aluno/curso/video/codigo/<código>` no Gran) e devolve o endereço canônico, que é a identidade na
+  reimportação;
+- **leitores** — `page` (extensão, página aberta com a conta), `public` e `snapshot` (servidor).
+
+Estado atual dos leitores:
+
+| Provedor | Leitor próprio | Caminho em uso |
+| --- | --- | --- |
+| Gran | `page`: rotas JSON da página (disciplinas → aulas → vídeos), com `externalId` por aula | Extensão; DOM como reserva |
+| Estratégia, Alura, Rocketseat, Udemy, Coursera, DIO, Hotmart | Ainda não | Leitura de tela da extensão e leitor de página compartilhado do servidor (schema.org e estrutura visível) |
+| Fonte desconhecida | — | Leitor compartilhado, **sem** ler marcas de concluído |
+
+Um provedor só passa a ter leitor próprio com fixture gravada de página real (anonimizada) em
+`tests/fixtures/providers/<id>/`, teste do leitor e conferência manual datada nesta página.
+
+**Identidade das aulas.** Quando o leitor entrega `externalId`, o id da aula no Lume deriva dele, não do título:
+renomear a aula na plataforma não cria outra aula. Aulas importadas antes (id por título) mantêm o id na primeira
+reimportação com `externalId` e passam a guardá-lo; progresso, XP e tarefas continuam ligados.
+

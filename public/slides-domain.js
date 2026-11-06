@@ -1,12 +1,12 @@
 // Slides de estudo: criação, edição, ordem, visualização e progresso.
 //
-// O conteúdo fica no documento da conta, junto do material, para funcionar
-// offline e sem depender de um site externo. O XP não é concedido ao abrir:
+// O conteúdo fica na biblioteca da conta, junto do material, sem depender de
+// um site externo para apresentar os slides. O XP não é concedido ao abrir:
 // exige cobertura de pelo menos 80% dos slides, chegada ao último slide e uma
 // confirmação explícita. O servidor revalida tudo em xp.js.
 
 import { XP_VALUES, slideProgressSnapshot } from './xp-policy.js';
-import { sanitizeSlideImage } from '../media.js';
+import { sanitizeSlideImage } from '../api/domain/media.js';
 
 export const MAX_SLIDES = 60;
 export const MAX_SLIDE_TITLE = 120;

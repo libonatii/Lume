@@ -1,10 +1,19 @@
+import { materialSteps, stepUnits, normalizeMaterialUnits } from './material-model.js';
 import { normalizeActiveSession, normalizeStudySessions } from './session-domain.js';
-import { normalizeTasks, taskWeekCount, taskXP } from './tasks-domain.js';
+import { normalizeTasks } from './tasks-domain.js';
+import { normalizeAgenda } from './agenda-domain.js';
 import { emptyPlan, normalizePlan } from './schedule-domain.js';
 import { levelProgress } from './xp-policy.js';
 import { normalizeSlideProgress, normalizeSlides } from './slides-domain.js';
+import {
+  activeCompletions, completedUnitIds, hasPreparationFor, isCompleted, legacyProgressXp, materialHasActivity,
+  normalizeProgress, pruneProgress, recordCompletion, recordPreparation,
+} from './progress-domain.js';
 
 export const STORAGE_KEY = 'lume.prototype.v1';
+// Formato v3: materiais com units e registro único progress. Versões anteriores
+// são recusadas; não existe migração automática de dados.
+export const STATE_VERSION = 3;
 export const HABITS = [
   { id: 'starting', icon: 'sprout', title: 'Quero começar', text: 'Ainda não tenho uma rotina de estudos.' },
   { id: 'sometimes', icon: 'leaf', title: 'Estudo de vez em quando', text: 'Começo, mas nem sempre consigo manter.' },
@@ -202,6 +211,10 @@ export function saveOnboardingAnswer(state, patch, step) {
 
 // Conclui o onboarding sem conceder XP: criar material e escolher ritmo não são
 // eventos elegíveis na política de recompensas.
+export function skipJourney(state, now = new Date().toISOString()) {
+  return { ...state, onboarded: true, onboarding: { ...emptyOnboarding(), status: 'done', finishedAt: now } };
+}
+
 export function completeJourney(state) {
   const current = normalizeOnboarding(state.onboarding);
   const rhythm = STUDY_RHYTHMS.find((item) => item.id === current.journey);
@@ -223,8 +236,8 @@ export function completeJourney(state) {
 // Plano inicial por jornada, usado na página Hoje e na revisão do ritmo.
 export function journeyPlan(state) {
   const journey = normalizeOnboarding(state.onboarding).journey ?? state.habit;
-  const pending = state.courses.find((course) => !course.paused && course.steps.some((step) => !state.completed.includes(step.id)));
-  const resumed = pending ? pending.steps.find((step) => !state.completed.includes(step.id)) : null;
+  const pending = state.courses.find((course) => !course.paused && materialSteps(course).some((step) => !isCompleted(state, step.id)));
+  const resumed = pending ? materialSteps(pending).find((step) => !isCompleted(state, step.id)) : null;
   const base = { journey, title: 'Seu próximo passo', detail: 'Registro manual, no seu tempo.', firstActivity: resumed?.title ?? null, course: pending?.title ?? null };
   if (journey === 'starting') return { ...base, title: 'Comece por uma coisa só', detail: 'Uma atividade concreta, sem montar um sistema inteiro.' };
   if (journey === 'sometimes') return { ...base, title: 'Continuar de onde parei', detail: 'Retome o material que ficou aberto, sem recomeçar do zero.' };
@@ -258,21 +271,6 @@ export function studyRhythm(state) {
   };
 }
 
-export function applyStudyRhythm(state, { habit, supports = [] }) {
-  if (!STUDY_RHYTHMS.some(item => item.id === habit)) throw new Error('Escolha o ritmo que combina com seu momento.');
-  const cleanSupports = [...new Set(supports.filter(id => STUDY_SUPPORTS.some(item => item.id === id)))];
-  const changedRhythm = !state.onboarded || state.habit !== habit;
-  const changedCalm = !state.onboarded || (state.supports || []).includes('calm') !== cleanSupports.includes('calm');
-  const manualGoal = state.preferences.weeklyGoalSource === 'manual';
-  const next = { ...state, onboarded: true, habit, supports: cleanSupports };
-  return { ...next, preferences: { ...state.preferences,
-    // Meta ajustada à mão não é substituída por sugestão de ritmo.
-    weeklyGoal: manualGoal || !changedRhythm ? state.preferences.weeklyGoal : studyRhythm(next).weeklyGoal,
-    weeklyGoalSource: manualGoal ? 'manual' : 'suggested',
-    essential: changedCalm ? cleanSupports.includes('calm') : state.preferences.essential,
-  } };
-}
-
 export const MAX_PROFILE_IMAGE_LENGTH = 256;
 export const MAX_PROFILE_BIO_LENGTH = 240;
 
@@ -301,7 +299,7 @@ export function normalizeProfileCard(value) {
 
 export function createInitialState() {
   return {
-    version: 1,
+    version: STATE_VERSION,
     onboarded: false,
     habit: null,
     challenges: [],
@@ -310,17 +308,16 @@ export function createInitialState() {
     preferences: { essential: false, gamification: true, theme: 'dark', palette: 'moderno', textSize: 'normal', weeklyGoal: 3, weeklyGoalSource: 'suggested', sharing: { library: true, queue: true, progress: true, xp: true } },
     onboarding: emptyOnboarding(),
     courses: [],
-    completed: [],
-    history: [],
-    // Registro de estudo sem XP: aulas importadas concluídas por declaração
-    // manual. A atribuição de XP da nova política exige validação no servidor.
-    studyLog: [],
+    // Registro único de conclusões e preparações. O XP elegível é concedido pelo
+    // servidor; aqui fica só o que a pessoa fez e de onde veio.
+    progress: [],
     imports: [],
     // Sessão declarada pela pessoa: tempo de continuidade, nunca XP.
     activeSession: null,
     studySessions: [],
     // Tarefas de estudo para provas. Concluir vale XP uma vez; criar não.
     tasks: [],
+    agenda: [],
     // Plano: disponibilidade semanal, prazos e prioridades por curso e aulas
     // adiadas. O cronograma é derivado daqui e do progresso; não gera XP.
     plan: emptyPlan(),
@@ -335,28 +332,6 @@ function sanitizeCapabilities(value) {
     label: item.label,
     value: typeof item.value === 'string' ? item.value : '',
     available: item.available === true,
-  }));
-}
-
-function sanitizeStructure(value) {
-  if (!Array.isArray(value)) return [];
-  return value.filter((discipline) => discipline && typeof discipline.id === 'string' && typeof discipline.title === 'string' && Array.isArray(discipline.modules)).map((discipline) => ({
-    id: discipline.id,
-    title: discipline.title,
-    removedFromSource: discipline.removedFromSource === true,
-    modules: discipline.modules.filter((module) => module && typeof module.id === 'string' && Array.isArray(module.lessons)).map((module) => ({
-      id: module.id,
-      title: typeof module.title === 'string' ? module.title : 'Conteúdo',
-      removedFromSource: module.removedFromSource === true,
-      lessons: module.lessons.filter((lesson) => lesson && typeof lesson.id === 'string' && typeof lesson.title === 'string').map((lesson) => ({
-        id: lesson.id,
-        title: lesson.title,
-        url: typeof lesson.url === 'string' ? lesson.url : '',
-        duration: Number.isFinite(lesson.duration) ? lesson.duration : null,
-        completedInSource: lesson.completedInSource === true,
-        removedFromSource: lesson.removedFromSource === true,
-      })),
-    })),
   }));
 }
 
@@ -378,12 +353,11 @@ function sanitizeCourse(course) {
     slideProgress: normalizeSlideProgress(course.slideProgress, slides),
     slidesUpdatedAt: Number.isFinite(Date.parse(course.slidesUpdatedAt)) ? course.slidesUpdatedAt : null,
   };
-  if (!course.source || typeof course.source !== 'object' || !Array.isArray(course.structure)) return base;
+  if (!course.source || typeof course.source !== 'object') return base;
   const source = course.source;
   const extraction = source.extraction && typeof source.extraction === 'object' ? source.extraction : {};
   return {
     ...base,
-    structure: sanitizeStructure(course.structure),
     source: {
       provider: typeof source.provider === 'string' ? source.provider : 'unknown',
       providerLabel: typeof source.providerLabel === 'string' ? source.providerLabel : 'Fonte não reconhecida',
@@ -403,27 +377,8 @@ function sanitizeCourse(course) {
       importedAt: Number.isFinite(Date.parse(source.importedAt)) ? source.importedAt : null,
       lastUpdatedAt: Number.isFinite(Date.parse(source.lastUpdatedAt)) ? source.lastUpdatedAt : null,
     },
-    selection: { lessonIds: Array.isArray(course.selection?.lessonIds) ? course.selection.lessonIds.filter((id) => typeof id === 'string') : [] },
     edital: course.edital && typeof course.edital === 'object' ? course.edital : null,
   };
-}
-
-function sanitizeStudyLog(value) {
-  if (!Array.isArray(value)) return [];
-  return value.filter((entry) => entry && typeof entry.id === 'string' && typeof entry.courseId === 'string' && typeof entry.stepId === 'string'
-    && ['manual', 'integration', 'import'].includes(entry.origin) && Number.isFinite(Date.parse(entry.at)))
-    .slice(-500)
-    .map((entry) => ({
-      id: entry.id,
-      courseId: entry.courseId,
-      stepId: entry.stepId,
-      courseTitle: typeof entry.courseTitle === 'string' ? entry.courseTitle : '',
-      lessonTitle: typeof entry.lessonTitle === 'string' ? entry.lessonTitle : '',
-      origin: entry.origin,
-      historical: entry.historical === true || entry.origin === 'import',
-      at: entry.at,
-      ...(Number.isFinite(Date.parse(entry.revertedAt)) ? { revertedAt: entry.revertedAt } : {}),
-    }));
 }
 
 function sanitizeImports(value) {
@@ -442,31 +397,22 @@ function sanitizeImports(value) {
 }
 
 export function courseProgress(state, course) {
-  const done = course.steps.filter((step) => state.completed.includes(step.id)).length;
-  return { done, total: course.steps.length, percent: Math.round(done / course.steps.length * 100) };
+  const completed = completedUnitIds(state);
+  const steps = materialSteps(course);
+  const done = steps.filter((step) => completed.has(step.id)).length;
+  return { done, total: steps.length, percent: steps.length ? Math.round(done / steps.length * 100) : 0 };
 }
 
 export function courseStatus(state, course) {
   const progress = courseProgress(state, course);
   if (progress.done === progress.total) return 'completed';
   if (course.paused) return 'paused';
-  if (progress.done || state.history.some((entry) => entry.courseId === course.id)) return 'active';
+  if (progress.done || materialHasActivity(state, course.id)) return 'active';
   return 'new';
 }
 
-export function nextMission(state, courseId = state.selectedCourseId) {
-  const preferred = state.courses.find((course) => course.id === courseId);
-  const candidates = preferred ? [preferred, ...state.courses.filter((course) => course.id !== preferred.id)] : state.courses;
-  for (const course of candidates) {
-    if (course.paused) continue;
-    const step = course.steps.find((item) => !state.completed.includes(item.id));
-    if (step) return { course, step };
-  }
-  return null;
-}
-
 export function hasPreparation(state, stepId) {
-  return state.history.some((entry) => entry.id === `prepare:${stepId}`);
+  return hasPreparationFor(state, stepId);
 }
 
 // A preparação organiza o caminho, mas não é estudo. A partir da política v1,
@@ -475,26 +421,17 @@ export function hasPreparation(state, stepId) {
 // 5 ou 10 XP continuam preservados como histórico do protótipo.
 export function completeMission(state, courseId, stepId, { preparation = false, now = new Date().toISOString() } = {}) {
   const course = state.courses.find((item) => item.id === courseId);
-  const step = course?.steps.find((item) => item.id === stepId);
-  if (!step || course.paused || state.completed.includes(stepId)) return { state, added: false, xp: 0 };
-  const id = preparation ? `prepare:${stepId}` : `step:${stepId}`;
-  if (state.history.some((entry) => entry.id === id)) return { state, added: false, xp: 0 };
-  const xp = 0;
-  const entry = { id, courseId, stepId, title: preparation ? `Preparar o material: ${course.title}` : step.title, courseTitle: course.title, preparation, xp, policy: 'v1', at: now };
-  return {
-    state: {
-      ...state,
-      selectedCourseId: courseId,
-      completed: preparation ? [...state.completed] : [...state.completed, stepId],
-      history: [...state.history, entry],
-    },
-    added: true,
-    xp,
-  };
+  const step = materialSteps(course).find((item) => item.id === stepId);
+  if (!step || course.paused || isCompleted(state, stepId)) return { state, added: false, xp: 0 };
+  const result = preparation
+    ? recordPreparation(state, { materialId: courseId, unitId: stepId, at: now, title: `Preparar o material: ${course.title}`, materialTitle: course.title })
+    : recordCompletion(state, { materialId: courseId, unitId: stepId, origin: 'manual', at: now, title: step.title, materialTitle: course.title });
+  if (!result.added) return { state, added: false, xp: 0 };
+  return { state: { ...result.state, selectedCourseId: courseId }, added: true, xp: 0 };
 }
 
 export function totalXP(state) {
-  return state.history.reduce((total, entry) => total + entry.xp, 0) + taskXP(state);
+  return legacyProgressXp(state);
 }
 
 // Nível do saldo legado, usado apenas na prévia sem conta. Em uma conta, o
@@ -514,17 +451,19 @@ export function weekCount(state, now = new Date()) {
   start.setDate(start.getDate() - (start.getDay() + 6) % 7);
   const end = new Date(start);
   end.setDate(end.getDate() + 7);
-  const inWeek = (entry) => new Date(entry.at) >= start && new Date(entry.at) < end;
-  const lessons = (state.studyLog || []).filter((entry) => !entry.revertedAt && inWeek(entry)).length;
-  return state.history.filter(inWeek).length + lessons + taskWeekCount(state, start, end);
+  const inWeek = (entry) => entry.at && new Date(entry.at) >= start && new Date(entry.at) < end;
+  // Só estudo concluído conta; preparar o material e registros históricos, não.
+  const lessons = activeCompletions(state).filter((entry) => !entry.historical && inWeek(entry)).length;
+  return lessons;
 }
 
 export function achievements(state) {
   const completedCourses = state.courses.filter((course) => courseStatus(state, course) === 'completed').length;
-  const days = new Set(state.history.map((entry) => localDay(entry.at))).size;
+  const done = activeCompletions(state).filter((entry) => !entry.historical && entry.at);
+  const days = new Set(done.map((entry) => localDay(entry.at))).size;
   const definitions = [
-    { id: 'first', title: 'A primeira faísca', text: 'Concluir sua primeira missão, do tamanho que for.', icon: 'spark', current: state.history.length, target: 1 },
-    { id: 'three', title: 'Passo a passo', text: 'Concluir três missões, sem prazo para chegar lá.', icon: 'steps', current: state.history.length, target: 3 },
+    { id: 'first', title: 'A primeira faísca', text: 'Concluir sua primeira missão, do tamanho que for.', icon: 'spark', current: done.length, target: 1 },
+    { id: 'three', title: 'Passo a passo', text: 'Concluir três missões, sem prazo para chegar lá.', icon: 'steps', current: done.length, target: 3 },
     { id: 'course', title: 'Uma nova descoberta', text: 'Concluir todas as etapas de um curso.', icon: 'flag', current: completedCourses, target: 1 },
     { id: 'own', title: 'Do meu jeito', text: 'Adicionar seu próprio curso à biblioteca.', icon: 'book', current: state.courses.filter((course) => !course.example).length, target: 1 },
     { id: 'days', title: 'No meu ritmo', text: 'Estudar em cinco dias diferentes. Não precisam ser seguidos.', icon: 'leaf', current: days, target: 5 },
@@ -557,7 +496,7 @@ export function addCourse(state, { title, url = '', steps, art = 'design' }, id 
     example: false, paused: false, type: 'course', planning: false, resumeAt: '',
     position: null,
     slides: [], slideProgress: { seen: [], lastId: '', completedAt: null },
-    steps: cleanSteps.map((step, index) => ({ id: `${id}-${index}`, title: step })),
+    units: stepUnits(cleanSteps.map((step, index) => ({ id: `${id}-${index}`, title: step }))),
   };
   return { ...state, courses: [...state.courses, course], selectedCourseId: id };
 }
@@ -590,6 +529,18 @@ export function updateCourse(state, courseId, patch = {}) {
   return { ...state, courses: state.courses.map((item) => item.id === courseId ? next : item) };
 }
 
+export function toggleCoursePause(state, courseId) {
+  return { ...state, courses: state.courses.map((course) => course.id === courseId ? { ...course, paused: !course.paused } : course) };
+}
+
+export function selectCourse(state, courseId) {
+  return { ...state, selectedCourseId: courseId };
+}
+
+export function setCourseEdital(state, courseId, edital) {
+  return { ...state, courses: state.courses.map((course) => course.id === courseId ? { ...course, edital } : course) };
+}
+
 export function replaceCourseSteps(state, courseId, steps = []) {
   const course = (state.courses || []).find((item) => item.id === courseId);
   if (!course) throw new Error('Material não encontrado.');
@@ -598,12 +549,12 @@ export function replaceCourseSteps(state, courseId, steps = []) {
   if (!cleanSteps.length) throw new Error('Mantenha pelo menos uma etapa.');
   if (cleanSteps.length > 40) throw new Error('São permitidas até 40 etapas.');
   if (cleanSteps.some((step) => step.length > 180)) throw new Error('Cada etapa pode ter até 180 caracteres.');
-  const previous = new Map(course.steps.map((step) => [step.id, step]));
+  const previous = new Map(materialSteps(course).map((step) => [step.id, step]));
   const used = new Set();
   const nextSteps = cleanSteps.map((title, index) => {
-    const exact = course.steps.find((step) => step.title === title && !used.has(step.id));
+    const exact = materialSteps(course).find((step) => step.title === title && !used.has(step.id));
     if (exact) { used.add(exact.id); return exact; }
-    const sameIndex = course.steps[index];
+    const sameIndex = materialSteps(course)[index];
     if (sameIndex && !used.has(sameIndex.id)) {
       used.add(sameIndex.id);
       return { ...sameIndex, title };
@@ -616,10 +567,8 @@ export function replaceCourseSteps(state, courseId, steps = []) {
   const validIds = new Set(nextSteps.map((step) => step.id));
   return {
     ...state,
-    courses: state.courses.map((item) => item.id === courseId ? { ...item, steps: nextSteps } : item),
-    completed: state.completed.filter((id) => !course.steps.some((step) => step.id === id) || validIds.has(id)),
-    history: state.history.filter((entry) => entry.courseId !== courseId || validIds.has(entry.stepId)),
-    studyLog: (state.studyLog || []).filter((entry) => entry.courseId !== courseId || validIds.has(entry.stepId)),
+    courses: state.courses.map((item) => item.id === courseId ? { ...item, units: stepUnits(nextSteps) } : item),
+    progress: (state.progress || []).filter((event) => event.materialId !== courseId || validIds.has(event.unitId)),
   };
 }
 
@@ -629,14 +578,12 @@ export function replaceCourseSteps(state, courseId, steps = []) {
 export function deleteCourse(state, courseId) {
   const course = (state.courses || []).find((item) => item.id === courseId);
   if (!course) return state;
-  const stepIds = new Set(course.steps.map((step) => step.id));
+  const stepIds = new Set(materialSteps(course).map((step) => step.id));
   const courses = state.courses.filter((item) => item.id !== courseId);
   return {
     ...state,
     courses,
-    completed: state.completed.filter((id) => !stepIds.has(id)),
-    history: state.history.filter((entry) => entry.courseId !== courseId),
-    studyLog: (state.studyLog || []).filter((entry) => entry.courseId !== courseId),
+    progress: (state.progress || []).filter((event) => event.materialId !== courseId && !stepIds.has(event.unitId)),
     imports: (state.imports || []).filter((entry) => entry.courseId !== courseId),
     studySessions: (state.studySessions || []).filter((session) => session.courseId !== courseId),
     activeSession: state.activeSession?.courseId === courseId ? null : state.activeSession,
@@ -648,50 +595,59 @@ export function deleteCourse(state, courseId) {
 // Cursos de exemplo não são mais criados. Um exemplo antigo só permanece se a
 // pessoa tiver algum progresso nele; exemplos intocados são removidos na
 // restauração, sem tocar em cursos reais nem em histórico.
-function exampleHasProgress(course, value) {
-  const stepIds = new Set(course.steps.map((step) => step.id));
-  return value.completed.some((id) => stepIds.has(id))
-    || value.history.some((entry) => entry.courseId === course.id)
-    || (Array.isArray(value.studyLog) && value.studyLog.some((entry) => entry.courseId === course.id))
+function exampleHasProgress(course, value, progress) {
+  const stepIds = new Set(materialSteps(course).map((step) => step.id));
+  return progress.some((event) => event.materialId === course.id || stepIds.has(event.unitId))
     || (Array.isArray(value.studySessions) && value.studySessions.some((session) => session.courseId === course.id))
     || value.activeSession?.courseId === course.id;
 }
 
+// Curso e etapas válidos; ids repetidos ficam com a primeira ocorrência.
+function validCourses(list) {
+  const ids = new Set();
+  const stepIds = new Set();
+  const courses = [];
+  for (let course of Array.isArray(list) ? list : []) {
+    if (!course || typeof course.id !== 'string' || ids.has(course.id) || typeof course.title !== 'string') continue;
+    if (!Array.isArray(course.units) || 'steps' in course || 'structure' in course || 'selection' in course || safeCourseURL(course.url || '') === null) continue;
+    course = { ...course, units: normalizeMaterialUnits(course.units.filter((unit) => !stepIds.has(unit?.id))) };
+    const steps = materialSteps(course);
+    if (!steps.length || course.units.some((unit) => stepIds.has(unit.id))) continue;
+    ids.add(course.id);
+    course.units.forEach((unit) => stepIds.add(unit.id));
+    courses.push(course);
+  }
+  return courses;
+}
+
+// Valida o formato atual por material e registro. Formatos antigos são
+// recusados explicitamente, sem produzir um estado vazio para gravar por cima.
 export function restoreState(raw) {
   const fallback = createInitialState();
   if (!raw) return fallback;
+  let value;
   try {
-    const value = JSON.parse(raw);
-    if (value.version !== 1 || !Array.isArray(value.courses) || !Array.isArray(value.completed) || !Array.isArray(value.history)) return fallback;
-    const ids = new Set();
-    const stepIds = new Set();
-    const validCourses = value.courses.every((course) => {
-      if (!course || typeof course.id !== 'string' || ids.has(course.id) || typeof course.title !== 'string' || !Array.isArray(course.steps) || !course.steps.length || safeCourseURL(course.url || '') === null) return false;
-      ids.add(course.id);
-      return course.steps.every((step) => {
-        if (!step || typeof step.id !== 'string' || stepIds.has(step.id) || typeof step.title !== 'string') return false;
-        stepIds.add(step.id);
-        return true;
-      });
-    });
-    const eventIds = new Set();
-    const validHistory = value.history.every((entry) => {
-      if (!entry || typeof entry.id !== 'string' || eventIds.has(entry.id) || !ids.has(entry.courseId) || !stepIds.has(entry.stepId) || typeof entry.title !== 'string' || typeof entry.courseTitle !== 'string' || ![0, 5, 10].includes(entry.xp) || !Number.isFinite(Date.parse(entry.at))) return false;
-      eventIds.add(entry.id);
-      return true;
-    });
-    if (!validCourses || !validHistory || value.completed.some((id) => !stepIds.has(id))) return fallback;
-    const keptCourses = value.courses.filter((course) => course.example !== true || exampleHasProgress(course, value));
+    value = typeof raw === 'string' ? JSON.parse(raw) : raw;
+  } catch {
+    return fallback;
+  }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return fallback;
+  if (value.version !== STATE_VERSION) throw new Error('Formato de dados incompatível. Nenhuma migração automática será realizada.');
+  try {
+    const courses = validCourses(value.courses);
+    const progress = normalizeProgress(value.progress);
+    const keptCourses = courses.filter((course) => course.example !== true || exampleHasProgress(course, value, progress));
     const keptIds = new Set(keptCourses.map((course) => course.id));
-    const keptStepIds = new Set(keptCourses.flatMap((course) => course.steps.map((step) => step.id)));
+    const keptStepIds = new Set(keptCourses.flatMap((course) => materialSteps(course).map((step) => step.id)));
     const selectedCourseId = keptIds.has(value.selectedCourseId) ? value.selectedCourseId : keptCourses[0]?.id ?? null;
     const preferences = value.preferences || {};
+    const { completed: _completed, history: _history, studyLog: _studyLog, ...rest } = value;
     return {
-      ...fallback, ...value,
+      ...fallback, ...rest,
+      version: STATE_VERSION,
       courses: keptCourses.map((course) => sanitizeCourse(course)),
-      completed: value.completed.filter((id) => keptStepIds.has(id)),
+      progress: pruneProgress(progress, keptStepIds),
       selectedCourseId,
-      studyLog: sanitizeStudyLog(value.studyLog),
       imports: sanitizeImports(value.imports),
       activeSession: normalizeActiveSession(value.activeSession),
       studySessions: normalizeStudySessions(value.studySessions),
@@ -701,6 +657,7 @@ export function restoreState(raw) {
       supports: Array.isArray(value.supports) ? [...new Set(value.supports.filter(id => STUDY_SUPPORTS.some(item => item.id === id)))] : [],
       profile: normalizeProfileCard(value.profile),
       tasks: normalizeTasks(value.tasks),
+      agenda: normalizeAgenda(value.agenda),
       plan: normalizePlan(value.plan, keptIds),
       preferences: {
         essential: preferences.essential === true,

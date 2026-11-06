@@ -1,0 +1,140 @@
+/* Hoje orientada à ação, funções de cor e abas de seção. */
+
+/* Hoje orientada à ação: um bloco de destaque, depois sessão, tarefas e evolução. */
+.today-root {
+  display: grid;
+  gap: 1.1rem;
+}
+.next-action {
+  border-color: var(--border-strong);
+  gap: 0.85rem;
+}
+.next-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 1.4rem;
+  margin: 0.2rem 0;
+}
+.next-facts div {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.next-facts dt {
+  color: var(--text-subtle);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.next-facts dd {
+  margin: 0;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.fact-source {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+.today-grid {
+  display: grid;
+  align-items: start;
+}
+.today-task-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+.evolution-level {
+  margin: 0;
+}
+.todo-late {
+  font-weight: 700;
+}
+.todo-priority {
+  color: var(--text);
+  font-weight: 600;
+}
+.todo-item.priority-1:not(.is-done) .todo-check {
+  border-width: 2px;
+}
+.todo-priority-select {
+  flex: 0 0 auto;
+  max-width: 9.5rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+@media (max-width: 820px) {
+  .next-facts,
+  .today-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .todo-item {
+    flex-wrap: wrap;
+  }
+  .todo-priority-select {
+    margin-left: 2.75rem;
+  }
+}
+
+/* Funções de cor aplicadas: recompensa (XP), sucesso e alerta. */
+.success-xp {
+  background: var(--reward-soft);
+  color: var(--reward);
+}
+.completed-message {
+  color: var(--success);
+}
+.todo-overdue-note {
+  border-color: var(--warning);
+  background: var(--warning-soft);
+}
+.todo-late {
+  color: var(--warning);
+}
+.todo-item.is-late {
+  border-color: color-mix(in srgb, var(--warning) 55%, transparent);
+}
+/* No computador o nível fica no cartão da barra lateral; no celular, na barra superior. */
+@media (min-width: 821px) {
+  .level-chip {
+    display: none;
+  }
+}
+
+/* Abas de seção: Plano, Amigos, Perfil e Biblioteca. */
+.section-tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin: 0 0 1.25rem;
+  padding: 0.25rem;
+  border: 1px solid var(--border);
+  width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.section-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.95rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.92rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.section-tab:hover,
+.section-tab:focus-visible {
+  color: var(--text);
+  background: var(--surface-2);
+}
+.section-tab .nav-badge {
+  margin-left: 0;
+}

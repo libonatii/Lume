@@ -1,11 +1,11 @@
-// Perfil compartilhado: monta a visão que outra pessoa vê a partir da cópia de
-// estado que a própria pessoa sincronizou. XP e progresso são declarados pelo
-// navegador, não validados pelo servidor — por isso não alimentam ranking e a
-// interface precisa dizer isso.
+// Perfil compartilhado: projeta somente as seções autorizadas da biblioteca.
+// Nas contas, XP e conquistas vêm do livro do servidor; percentuais de progresso
+// continuam sendo registros declarados, não prova de compreensão.
 import {
   achievements, courseProgress, courseStatus, levelInfo, normalizeProfileCard, STUDY_TYPES,
 } from './domain.js';
 import { studyPlan } from './study-plan.js';
+import { materialSteps } from './material-model.js';
 
 export const STUDYING_LIMIT = 6;
 export const PROJECTS_LIMIT = 8;
@@ -30,7 +30,7 @@ function typeLabel(course) {
 
 function realCourses(state) {
   const courses = Array.isArray(state?.courses) ? state.courses : [];
-  return courses.filter((course) => course && course.example !== true && Array.isArray(course.steps) && course.steps.length > 0);
+  return courses.filter((course) => course && course.example !== true && materialSteps(course).length > 0);
 }
 
 // Um projeto só aparece no perfil quando a pessoa marca explicitamente.
@@ -68,11 +68,9 @@ function buildRecentActivity(state, courses, { sharing, now }) {
     eventsByCourse.set(courseId, current);
   };
 
-  for (const entry of state?.history || []) {
-    touch(entry.courseId, entry.at, entry.title, !entry.preparation);
-  }
-  for (const entry of state?.studyLog || []) {
-    if (!entry.revertedAt) touch(entry.courseId, entry.at, entry.lessonTitle, true);
+  for (const entry of state?.progress || []) {
+    if (entry.revertedAt || !entry.at) continue;
+    touch(entry.materialId, entry.at, entry.title, entry.type === 'completion');
   }
   for (const session of state?.studySessions || []) {
     if (!visibleIds.has(session.courseId)) continue;
@@ -195,6 +193,7 @@ export function buildProfile(state, { now = Date.now(), validated = null } = {})
       status: courseStatus(state, course),
       progress: sharing.progress ? courseProgress(state, course) : null,
     })),
+    titles: sharing.xp ? (validated?.titles || []) : [],
     achievements: allAchievements
       ? allAchievements.map(({ id, title, text, icon, unlocked, current, target }) => ({
         id, title, text, icon, unlocked, current, target,

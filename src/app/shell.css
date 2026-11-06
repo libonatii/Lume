@@ -1,0 +1,216 @@
+/* Casca, navegação e cabeçalhos do aplicativo. */
+
+/* App Shell Principal (Sidebar + Workspace) */
+.app-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 272px minmax(0, 1fr);
+}
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+}
+.nav {
+  display: flex;
+  flex-direction: column;
+}
+.nav-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  transition: color 0.16s ease;
+}
+.nav-highlight {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.nav-link > :not(.nav-highlight) {
+  position: relative;
+  z-index: 1;
+}
+.nav-short {
+  display: none;
+}
+
+.nav-planned {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+.nav-section {
+  padding: 0 0.85rem 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-subtle);
+}
+.nav-link.planned {
+  opacity: 0.62;
+  cursor: default;
+  justify-content: space-between;
+}
+.nav-link.planned .nav-label {
+  margin-right: auto;
+}
+
+.install-app {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding: 0.7rem 0.85rem;
+  color: var(--text);
+  font-weight: 650;
+  font-size: 0.86rem;
+  text-decoration: none;
+  transition: border-color 0.16s ease, color 0.16s ease;
+}
+.install-app:hover,
+.install-app:focus-visible {
+  border-color: var(--lume);
+  color: var(--lume);
+}
+.install-app svg {
+  flex: none;
+}
+.player-card {
+  margin-top: 0.4rem;
+  padding: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.player-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.player-copy strong {
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.player-copy span {
+  font-size: 0.76rem;
+}
+
+.avatar {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  font-family: var(--font-serif);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.avatar.small {
+  width: 1.65rem;
+  height: 1.65rem;
+  font-size: 0.78rem;
+}
+
+.workspace {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  padding: 0.9rem clamp(1.1rem, 3vw, 2.5rem);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.today {
+  font-size: 0.85rem;
+}
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.level-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.38rem 0.8rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 0.82rem;
+}
+.level-chip .icon {
+  color: var(--lume);
+}
+.level-chip .progress {
+  width: 64px;
+  height: 0.38rem;
+}
+.sync-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--text-subtle);
+}
+.account-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.25rem 0.65rem 0.25rem 0.3rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 0.82rem;
+}
+
+.workspace main {
+  flex: 1;
+  padding: clamp(1.4rem, 3vw, 2.4rem) clamp(1.1rem, 3vw, 2.5rem);
+  max-width: 1360px;
+  width: 100%;
+  margin: 0 auto;
+}
+.page-footer {
+  padding: 1.1rem clamp(1.1rem, 3vw, 2.5rem);
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.82rem;
+  color: var(--text-subtle);
+}
+
+/* Cabeçalhos de Página */
+.page-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.75rem;
+}
+.page-heading-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}

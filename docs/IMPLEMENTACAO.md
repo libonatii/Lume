@@ -1,6 +1,6 @@
 # Lume — o que falta implementar
 
-> Atualizado em 01/11/2026 a partir de uma revisão do projeto inteiro: rotas da API nos dois backends, tabelas
+> Atualizado em 03/11/2026 a partir de uma revisão do projeto inteiro: rotas da API nos dois backends, tabelas
 > das migrações, telas e textos da interface, testes, configuração publicada e documentos. Este é o registro
 > único de **lacunas**: o que não existe, o que está parcial e o que funciona só em parte dos ambientes.
 > O que já funciona está em [Continuidade](CONTINUIDADE.md); a direção do produto, em [Produto](PRODUTO.md);
@@ -26,44 +26,46 @@ Em ordem de impacto para quem usa o site publicado.
 | 2 | **Imagens indisponíveis em produção** | Foto de perfil, capa e imagens de slides respondem 503: o binding R2 `MEDIA` está comentado em `wrangler.jsonc` porque o R2 não está habilitado na conta | Só local | [C6](#c6--imagens-de-perfil-e-de-slides) |
 | 3 | **Nenhum fluxo com conta foi verificado em produção** | XP, ranking, mensagens, colaboração, sincronização e Companion só foram exercitados no servidor local e nos e2e. Em produção, apenas `GET` anônimos confirmam que as rotas existem. O custo de bcrypt 6 no Worker também não foi medido | Só local | [O1](#o1--verificação-em-produção) |
 | 4 | **Acompanhamento de aulas externas ainda não foi provado** | É o problema central declarado. A extensão do navegador lê a grade e as conclusões que a plataforma mostra, mas só foi testada com páginas de exemplo e um trecho salvo do Gran; nunca rodou num Chrome real nem numa conta real. Não há observação de reprodução nem retomada automática, e um curso grande do Gran ultrapassa o limite de 600 aulas | Protótipo | [I2](#i2--progresso-e-reprodução-de-aulas-externas), [I6](#i6--limite-de-tamanho-de-cursos-grandes) |
-| 5 | **Nível sem consequência** | Não existem cargos nem desbloqueios; a pessoa não escolhe quais conquistas aparecem no perfil | Não implementado | [G2](#g2--cargos-e-desbloqueios), [G3](#g3--conquistas-no-perfil) |
-| 6 | **XP de tarefas fora do servidor** | Concluir uma tarefa de prova vale 10 XP calculados no navegador (saldo antigo), fora do nível, do ranking e do livro de eventos. A migração depende de decisão | Parcial (transitório) | [G4](#g4--xp-das-tarefas-de-prova) |
+| 5 | **Escolha de conquistas no perfil** | Cargos já são títulos sem bloqueio; falta escolher quais conquistas exibir | Parcial | [G3](#g3--conquistas-no-perfil) |
 | 7 | **Social sem segurança nem reconhecimento** | Não há denúncia de abuso (exigida em Produto §7), compartilhamento de aprendizados nem reconhecimento a conquistas de amigos. Colaboração não registra contribuição. Mensagens chegam por consulta periódica, sem notificação | Parcial | [S2](#s2--segurança-social-e-moderação)–[S5](#s5--colaboração-com-contribuição-identificável) |
 | 8 | **Conta e dados pessoais incompletos** | Não é possível trocar senha ou e-mail estando logada, excluir a conta nem ver sessões ativas. Não há termos de uso nem política de privacidade, embora o site guarde e-mail e progresso | Parcial | [C2](#c2--gestão-da-conta), [C3](#c3--termos-privacidade-e-exclusão-de-dados) |
 | 9 | **Organização ao estilo Notion** | Sem anotações ligadas ao material, quadro de projeto, trilhas como sequência de materiais ou modelos | Não implementado | [B3](#b3--anotações-trilhas-e-modelos) |
-| 10 | **Visual novo só na Hoje** | O Redesign Moderno (Stitch) tem layout próprio apenas na Hoje; as demais telas herdaram cores e cartões, mas não foram desenhadas. Há CSS legado sobreposto e cinco folhas sem uso | Parcial | [V1](#v1--redesign-nas-demais-telas), [D1](#d1--css-legado) |
+| 10 | **Visual novo só na Hoje** | O Redesign Moderno (Stitch) tem layout próprio apenas na Hoje; as demais telas herdaram cores e cartões, mas não foram desenhadas. Há CSS legado sobreposto | Parcial | [V1](#v1--redesign-nas-demais-telas), [D1](#d1--css-legado) |
 
 ---
 
 ## 2. Mapa do que existe
 
-Visão rápida para saber de onde partir. "Verificado" indica onde o fluxo foi exercitado.
+O mapa vigente está em [Continuidade](CONTINUIDADE.md#3-o-que-existe). A tabela abaixo é um índice
+de evidências e limitações por ambiente, não uma segunda lista de pendências.
 
 | Área | Estado | Onde está | Verificado |
 | --- | --- | --- | --- |
-| Conta: cadastro, login, saída, sessão | Implementado | `auth.js`, rotas `/api/register`, `/api/login`, `/api/logout`, `/api/me` | e2e local; em produção só `GET /api/me` |
-| Recuperação de senha | Só local | `/api/password/*`, `email.js` | e2e local com link de teste |
-| Estado sincronizado e mesclagem entre dispositivos | Implementado | `state.js`, `public/merge-domain.js` | e2e local |
+| Conta: cadastro, login, saída, sessão | Implementado | `api/domain/auth.js`, rotas `/api/register`, `/api/login`, `/api/logout`, `/api/me` | e2e local; em produção só `GET /api/me` |
+| Recuperação de senha | Só local | `/api/password/*`, `api/domain/email.js` | e2e local com link de teste |
+| Biblioteca direta com revisão e repetição idempotente | Só local (revisão de 03/11) | `api/domain/library-store.js`, `library-actions.js`, `src/features/library/useLibraryPersistence.js` | contrato Node/D1 e e2e; conflito exige recarga |
 | Onboarding (três jornadas) | Implementado | `Onboarding.jsx`, `public/domain.js` | e2e local |
 | Hoje: próxima ação, sessão, tarefas, evolução | Implementado | `Study.jsx`, `public/study-plan.js` | e2e local |
-| Plano: cronograma, tarefas com prioridade e subtarefas, roteiro | Implementado | `Plan.jsx`, `Tasks.jsx`, `public/schedule-domain.js`, `public/tasks-domain.js` | e2e local |
+| Plano e Agenda: cronograma, roteiro, calendário e tarefas | Implementado localmente | `Plan.jsx`, `Tasks.jsx`, `Agenda.jsx`, `public/schedule-domain.js`, `public/tasks-domain.js`, `public/agenda-domain.js` | e2e local; detalhes em [Agenda](AGENDA.md) |
 | Biblioteca: criar, editar, excluir, tipos, slides | Implementado (imagens só local) | `Study.jsx`, `CourseEditor.jsx`, `Slides.jsx` | e2e local |
-| Importação por link, texto e página copiada | Parcial | `import-server.js`, `public/import-domain.js` | unitário com HTML sintético; e2e com análise simulada; Coursera e Alura conferidos em 31/10 |
-| XP no servidor, níveis, tempo, correção | Implementado | `xp.js`, `public/xp-policy.js` | unitário e e2e local |
+| Importação por link, texto e página copiada | Parcial | `api/domain/import-server.js`, `public/import-domain.js` | unitário com HTML sintético; e2e com análise simulada; Coursera e Alura conferidos em 31/10 |
+| XP no servidor, níveis, tempo, correção | Implementado | `api/domain/xp.js`, `public/xp-policy.js` | unitário e e2e local |
 | Conquistas por material | Parcial | `user_achievements` | unitário e e2e local |
 | Ranking de amigos | Implementado | `/api/ranking`, `Ranking.jsx` | e2e local |
-| Amigos por convite e perfil entre amigos | Implementado | `friends.js`, `public/profile-domain.js` | e2e local |
-| Mensagens diretas e bloqueio | Implementado | `messages.js`, `Messages.jsx` | e2e local |
-| Colaboração em entregas | Parcial | `collaboration.js` | unitário local |
-| GitHub (leitura pública) | Parcial | `github.js`, `GitHub.jsx` | unitário com resposta simulada |
+| Amigos por convite e perfil entre amigos | Implementado | `api/domain/friends.js`, `public/profile-domain.js` | e2e local |
+| Mensagens diretas e bloqueio | Implementado | `api/domain/messages.js`, `Messages.jsx` | e2e local |
+| Colaboração em entregas | Parcial (sem contribuição individual) | `api/domain/collaboration.js` | unitário e e2e local de envio, aceite e cancelamento |
+| GitHub (leitura pública) | Parcial | `api/domain/github.js`, `GitHub.jsx` | unitário com resposta simulada |
 | Aplicativo de desktop | Parcial | `companion/` | CI (sintaxe e contrato); janela e bandeja só manualmente |
 | Extensão do navegador | Protótipo | `extension/`, `src/lib/extension.js`, `ImportCourse.jsx` | e2e com páginas de exemplo e trecho salvo do Gran; nunca carregada no Chrome |
-| Aparência (Azul e Roxo, escuro e claro) | Implementado | `public/lume.css`, `Personal.jsx` | e2e local |
+| Aparência (Azul e Roxo, escuro e claro) | Implementado | `src/styles/` (tokens/tema), `src/features/*/*.css`, `Personal.jsx` | e2e local; comparação de estilos em 32 combinações |
 
-Os dois backends (`server.js` e `worker.js`) expõem as mesmas rotas `/api/*` (conferido em 01/11). Tabelas
+Os dois ambientes (`server.js` e `worker.js`) servem o mesmo app de `api/`; `tests/unit/api-contract.test.js` confere as rotas `/api/*` nos dois. Tabelas
 existentes: `users`, `sessions`, `password_resets`, `rate_limits`, `user_state`, `companion_*`, `friend*`,
 `xp_settings`, `xp_events`, `xp_time_sessions`, `user_achievements`, `direct_messages`, `contact_blocks`,
-`message_preferences`, `delivery_invites`. Não existe tabela para cargos, desbloqueios, denúncias,
+`message_preferences`, `delivery_invites`, `materials`, `units`, `study_progress`, `study_tasks`,
+`study_sessions`, `account_documents`, `library_operations`, `library_write_guards`, `user_titles`,
+`agenda_entries`, `agenda_reminders`. Não existe tabela para desbloqueios, denúncias,
 publicações, anotações nem observação de reprodução.
 
 ---
@@ -72,7 +74,7 @@ publicações, anotações nem observação de reprodução.
 
 ### C1 — Recuperação de acesso
 **Só local.** O fluxo existe (`/api/password/request` e `/api/password/reset`, token de 30 minutos e uso
-único), e `email.js` envia pelo Resend quando há `LUME_EMAIL_PROVIDER=resend`, `RESEND_API_KEY` e
+único), e `api/domain/email.js` envia pelo Resend quando há `LUME_EMAIL_PROVIDER=resend`, `RESEND_API_KEY` e
 `LUME_EMAIL_FROM`. Em produção não há nenhum segredo configurado, então o link não sai.
 - Falta: escolher o provedor, configurar os segredos no Worker, um remetente verificado e testar a entrega real.
 - O texto de `Auth.jsx` afirma que "o envio por e-mail ainda não está disponível" em qualquer ambiente; precisa
@@ -94,9 +96,9 @@ privacidade nem exclusão de conta. A exportação em JSON já existe em Configu
   estado, mensagens, amizades e eventos, com confirmação; definição do que acontece com mensagens já enviadas.
 
 ### C4 — Migração da prévia para a conta
-**Parcial.** Ao entrar, a cópia local fica guardada como `before-account`, mas o estado da conta substitui o
-local sem oferecer mesclagem.
-- Pronto quando: ao entrar com progresso local, a pessoa escolhe mesclar ou descartar, com prévia.
+**Fora do escopo por decisão de 03/11/2026.** O cliente passa a acessar diretamente a API; dados de estudo do
+navegador são descartados. A prévia é temporária em memória. Não há migração de dados: formatos antigos
+permanecem no servidor, com erro explícito de incompatibilidade, sem conversão nem exclusão.
 
 ### C5 — Senhas e custo de hash
 **Parcial.** bcrypt com custo 6 no Worker, abaixo do mínimo 10 da OWASP, por limite de CPU do plano gratuito.
@@ -104,7 +106,7 @@ Hashes PBKDF2 antigos só migram na redefinição. A medição de CPU em produç
 - Falta: medir cadastro, login e redefinição no Worker publicado e decidir o custo com base nisso.
 
 ### C6 — Imagens de perfil e de slides
-**Só local.** `media.js` grava avatar, capa e imagens de slides em R2 (Worker) ou `data/media/` (Node). Em
+**Só local.** `api/domain/media.js` grava avatar, capa e imagens de slides em R2 (Worker) ou `data/media/` (Node). Em
 produção o binding `MEDIA` está comentado e as rotas respondem 503.
 - Falta: habilitar R2 na conta Cloudflare, criar o bucket `lume-media`, descomentar o binding e repetir o e2e
   de upload.
@@ -132,13 +134,30 @@ de material, com etapas.
 tarefa com aula). Falta:
 - registrar a aula e abrir a próxima em um passo;
 - considerar o prazo das tarefas no cronograma (hoje só as aulas entram);
-- lembretes ou notificações do plano;
-- unificar o diálogo de cada curso com o critério do roteiro (`StudyDialog.jsx` e `Personal.jsx` ainda usam
-  `nextMission`, que segue a ordem da biblioteca).
+- lembretes de sugestões ainda não agendadas; a Agenda oferece lembretes de compromissos explícitos (B6);
+
+A unificação do critério foi concluída em 03/11: Biblioteca e diálogo usam `nextAction`, derivado
+do roteiro; `nextMission` foi removido.
 
 ### B5 — Sessão de estudo
 **Implementado como declaração.** O tempo é declarado pela pessoa e vira XP em blocos validados no servidor.
 Não é observação de atividade, e isso está dito na interface.
+
+### B6 — Agenda com calendário e tarefas
+**Implementado e verificado localmente.** Agenda centraliza as tarefas e oferece
+dia, semana e mês, atividades com checklist, recorrência finita, avisos de conflito e reagendamento manual.
+Cronograma e Roteiro permanecem no Plano; sugestões só viram compromissos após revisão e gravação.
+- Revisão visual de 05/11: FullCalendar Standard, criação diretamente na grade, arrasto/redimensionamento,
+  painéis contextuais, Mais opções e checklist editável por item. Tarefas e sugestões ficam em Para agendar.
+- Verificação da revisão: 265 testes de domínio/contrato passaram (1 ignorado), 126 e2e passaram
+  (2 gestos de mouse exclusivos do computador ignorados no mobile), build e Electron minimizado passaram.
+- Detalhes e evidências: [Agenda](AGENDA.md). Não publicado.
+- Verificação da primeira implementação: 262 testes de domínio/contrato passaram (1 ignorado), 120 e2e na suíte completa e
+  14 cenários da Agenda revalidados após os ajustes finais; build e notificação nativa no Electron passaram.
+- Limites: sem calendário externo, notificações no celular ou entrega garantida com o programa encerrado.
+  A consulta requer rede; recupera avisos vencidos há até 15 minutos e os reivindica uma vez por conta.
+- Disponibilidade continua em minutos por dia; não há sugestão automática de horários específicos.
+- O prazo das tarefas ainda não participa do cronograma (B4). Regras de XP permanecem as mesmas.
 
 ---
 
@@ -172,9 +191,10 @@ Não existe:
   passam com uma aula real autorizada.
 
 ### I6 — Limite de tamanho de cursos grandes
-**Decisão pendente.** O Lume aceita até 600 aulas por importação e 320 KB de estado por conta. Um curso grande do
-Gran (31 disciplinas) passa disso; a leitura avisa e corta. Elevar o limite exige rever o tamanho do estado
-sincronizado e a validação nos dois backends.
+**Parcial.** O importador ainda aceita até 600 aulas. A revisão local de 03/11/2026 retirou o documento global
+de 320 KB do caminho novo: operações têm limite de corpo de 3 MB e a grade é gravada em lote nas tabelas.
+O contrato verifica uma importação de 600 aulas no Node e no D1 local. Elevar o limite do importador e medir
+CPU/volume em produção continuam pendentes; isso não demonstra suporte a milhares de aulas em produção.
 
 ### I3 — Edital e cobertura
 **Parcial.** O registro de editais verificados (`EDITAL_SOURCES`) está vazio de propósito; a comparação de
@@ -198,24 +218,22 @@ com motivo. Falta: teste de concorrência entre dispositivos no Worker publicado
 evento.
 
 ### G2 — Cargos e desbloqueios
-**Não implementado.** A proposta (oito cargos, requisitos, desbloqueios funcionais e transição) está em
-[Evolução §4.5](EVOLUCAO.md#45-cargos-requisitos-e-desbloqueios-proposta). Exige tabela nova (`user_unlocks`),
-cálculo no servidor a partir do livro e uma tela de progressão.
-- Pronto quando: um cargo é concedido uma única vez mesmo com requisições repetidas, aparece no perfil, não some
-  com pausas, e o primeiro desbloqueio pode ser usado de fato.
+**Implementado localmente:** oito critérios de títulos aprovados em [Evolução §4.5](EVOLUCAO.md#45-cargos-requisitos-e-desbloqueios-proposta),
+concessão idempotente em `user_titles`, perfil com critérios e reavaliação nas correções.
+Bloqueios funcionais foram rejeitados: todas as funcionalidades disponíveis são acessíveis a todos.
+Modelos, trilhas e desafios continuam recursos futuros independentes de cargo.
 
 ### G3 — Conquistas no perfil
 **Parcial.** Conquistas por material existem; a pessoa não escolhe quais aparecem no perfil (todas aparecem
 quando o XP está compartilhado).
 
 ### G4 — XP das tarefas de prova
-**Parcial (regra transitória).** 10 XP calculados no navegador, uma vez por tarefa, fora do servidor, do nível
-e do ranking. A proposta de migração (tarefa ligada a aula conclui a aula; tarefa sem vínculo não gera XP) está
-em [Evolução §4.6](EVOLUCAO.md#46-transição-sem-apagar-histórico) e depende de aprovação.
+**Implementado localmente:** tarefa vinculada conclui a aula e usa sua recompensa no servidor, uma vez.
+Tarefa sem vínculo concede 0 XP. Reabrir tarefa não desfaz a aula. Não há migração de saldos antigos.
 
 ### G5 — Bônus de disciplina
-**Não implementado; proposta.** 200 XP por disciplina concluída, não retroativo
-([Evolução §4.2](EVOLUCAO.md#42-política-de-xp-manter-a-v1-e-acrescentar-uma-unidade)). Depende de aprovação.
+**Implementado localmente:** 200 XP e conquista por disciplina, uma vez por identidade.
+Exige grade completa, todas as aulas selecionadas e conclusões elegíveis. Sem concessão retroativa.
 
 ---
 
@@ -256,7 +274,7 @@ clique. O processo principal publica Rich Presence no Discord (curso e aula do r
 ligado por padrão). O Application ID público do Lume vai no build (`DEFAULT_DISCORD_CLIENT_ID`);
 `LUME_DISCORD_CLIENT_ID` e `discordClientId` o sobrepõem. Falta confirmar no Developer Portal que a arte
 `lume_logo` foi enviada.
-Falta também: instalador assinado; início com o Windows; notificações; abrir a próxima aula pelo painel;
+Falta também: instalador assinado; início com o Windows; notificações de pausa; abrir a próxima aula pelo painel;
 funcionamento sem rede; suporte a Linux e macOS; janela e bandeja testadas no CI. A versão local é 0.5.1 e a
 última release publicada é `companion-v0.5.0`.
 
@@ -287,22 +305,27 @@ Configurações não têm tela correspondente no Stitch. As telas exportadas em 
 
 ## 10. Dívida técnica
 
+A reestruturação que trata estes itens e as causas de arquitetura por trás de várias lacunas acima está em
+[Plano de refatoração](REFATORACAO_01112026.md).
+
 ### D1 — CSS legado
-`public/entry.css`, `neurofocus.css`, `styles.css`, `stitch.css` e `motion.css` não são carregados por nenhuma
-página, mas continuam sendo publicados. `public/lume.css` acumula regras antigas sobrescritas pelas camadas
-novas (Plano e Redesign Moderno) no fim do arquivo.
+Limpeza estrutural realizada em 03/11: estilos de 22 folhas foram colocados junto das funcionalidades
+e da casca; declarações sobrescritas do mesmo seletor/contexto foram removidas. Tokens e tema continuam
+globais, com ordem explícita em `src/styles/lume.css`. Isso não implementa o redesenho V1 das demais telas.
+Ver [Refatoração F7](REFATORACAO_01112026.md#f7--css-por-componente-sobre-tokens).
 
 ### D2 — Regras antigas ainda em uso
-`nextMission` (ordem da biblioteca), `weekCount` (soma preparação e conclusão), `applyStudyRhythm`, `HABITS` e
-`CHALLENGES` sobrevivem por compatibilidade ou testes antigos. O saldo legado (5/10 XP) continua no navegador.
-Separar o que é compatibilidade de dados do que é código morto antes de remover.
+`nextMission` e `applyStudyRhythm` foram removidos. `HABITS` e `CHALLENGES` continuam validando campos
+de documentos antigos em `restoreState`; `weekCount` tem consumidores reais e não conta preparações.
+O saldo legado continua separado do livro do servidor. F2 usa `units` no domínio e contrato v3;
+`steps`/`structure` são somente visualizações derivadas. Documentos antigos não são convertidos.
 
 ### D3 — Exportações sem consumidor
-`importXp()` e `selectedCount()` (`import-domain.js`), `providerSummary()` (`import-server.js`),
-`emptySessionState()` (`session-domain.js`) e `GITHUB_CAPABILITIES`.
+Resolvido em 01/11/2026: `importXp`, `selectedCount`, `providerSummary`, `emptySessionState`, `GITHUB_CAPABILITIES`,
+`collectCompletionCandidates`, `completionTimestamp`, `courseIsComplete` e `applyStudyRhythm` foram removidos.
 
 ### D4 — Dependência sem uso
-`@fontsource-variable/fraunces` continua em `package.json`, mas a página não a importa desde o Redesign Moderno.
+Resolvido em 01/11/2026: `@fontsource-variable/fraunces` saiu do `package.json`.
 
 ---
 
@@ -317,9 +340,9 @@ Não há rotina documentada de backup ou exportação do D1 de produção.
 
 ### O3 — Comandos de verificação
 ```sh
-npm test          # 166 testes Node (01/11/2026, commit da extensão incluído)
+npm test          # unitários e contrato HTTP Node/Worker
 npm run build     # Astro + CSP
-npm run test:e2e  # 90 cenários (45 desktop + 45 celular)
+npm run test:e2e  # cenários desktop e celular; build prévio obrigatório
 ```
 - Não rode dois Playwright ao mesmo tempo no mesmo diretório: compartilham `test-results/` e a porta 4187.
 - A análise por link nos e2e é simulada; não prova extração real de plataformas.
@@ -335,12 +358,9 @@ npm run test:e2e  # 90 cenários (45 desktop + 45 celular)
 | Provedor de e-mail e remetente da recuperação | C1 |
 | Habilitar R2 na conta Cloudflare | C6 |
 | Textos de termos de uso e política de privacidade; regra de exclusão de conta | C3 |
-| Migração do XP das tarefas de prova | G4 |
-| Bônus de 200 XP por disciplina | G5 |
-| Nomes e requisitos dos cargos | G2 |
 | Manter ou escurecer o *hover* dos botões | V3 |
 | Publicar a versão 0.5.1 do aplicativo de desktop | §8 |
-| Elevar o limite de 600 aulas e 320 KB por conta | I6 |
+| Elevar o limite de 600 aulas após medir o formato por entidade | I6 |
 | Publicar a extensão na Chrome Web Store | I2 |
 
 ## 13. Fora do escopo (decisões tomadas)
@@ -361,10 +381,8 @@ seções acima.
 
 ## Anexo A — brief de 31/10/2026: plataforma social de estudos sem grupos
 
-> Pedido vigente registrado nesta rodada. A base social sem grupos, a biblioteca editável, os slides, o XP
-> validado e o ranking de amigos já foram implementados; mensagens diretas, colaboração e GitHub continuam
-> pendentes. A mudança de escopo social já foi refletida nos documentos de produto. Onde este brief contrariar
-> seções anteriores, prevalece o brief. O anexo ao fim é histórico.
+> Pedido histórico de 31/10, preservado como evidência. As seções atuais acima prevalecem quanto ao
+> estado de implementação: mensagens, convites de colaboração e leitura pública do GitHub já existem.
 
 Quero evoluir o Lume como uma plataforma social de estudos gamificada, inspirada na biblioteca e progressão da Steam, na comunicação direta do Discord e na organização do Notion.
 
@@ -476,7 +494,7 @@ Entregue o que funciona, o que foi verificado e as dependências ainda pendentes
 ## Anexo B — brief histórico: onboarding (rodada anterior)
 
 > Preservado como registro. Este texto descreve uma tarefa já executada e não é a lista vigente de
-> pendências; consulte as seções acima. O brief vigente está na seção 13. Onde este anexo mencionar grupos,
+> pendências; consulte as seções acima. Onde este anexo mencionar grupos,
 > vale o escopo atual sem grupos. A tabela "Situação da implementação" no fim do anexo é daquela rodada
 > (28 testes de domínio e 10 cenários de navegador) e não representa o estado atual.
 

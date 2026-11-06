@@ -37,7 +37,7 @@ Fora da pasta do projeto, use o iniciador (funciona de qualquer lugar) ou dê do
 - **Motion** anima seleção de ritmo, destaque do menu e dos filtros, reorganização dos cartões, contadores com mola (`AnimatedNumber`), progresso, diálogos, avisos e respostas dos botões.
 - **Paper Shaders (`@paper-design/shaders-react`)**, listada na [FGLibs](https://fglibs.com/), projeta campos de luz ambiente em WebGL2 (`MeshGradient`) no painel de entrada, na ação focal do estudo, no resumo do plano e nas celebrações, com fallback estático em CSS.
 - **Atropos (`atropos`)**, listada na [FGLibs](https://fglibs.com/), adiciona profundidade e inclinação tátil suave à capa da trilha em foco na Biblioteca e aos selos conquistados na vitrine.
-- O sistema visual (`public/lume.css`) segue o **Redesign Moderno** do Stitch (Projeto Lume): sidebar com o item ativo em destaque luminoso, cartões Bento com cantos de 24 px e linha de destaque no topo, brilho ambiente no fundo e tipografia única em **Plus Jakarta Sans** local. Em Configurações › **Aparência**, a pessoa escolhe a paleta **Azul** (padrão: azul-noite `#090d1f`, ação `#2563eb`) ou **Roxo** (`#0b0b18`, ação `#7c3aed`), além de tema escuro ou claro e tamanho do texto. Nas duas, o âmbar (`#f59e0b`) marca sessão, XP e nível, e a barra de XP vai da cor da paleta ao âmbar. Os textos principais têm contraste AA (≥ 4,5:1) nos quatro temas; as cores de *hover* dos botões seguem a especificação do Stitch e ficam abaixo disso com texto branco. A navegação tem cinco destinos — Hoje, Biblioteca, Plano, Amigos e Perfil — com abas dentro de cada seção. O logo não foi alterado.
+- O sistema visual (`src/styles/`) segue o **Redesign Moderno** do Stitch (Projeto Lume): sidebar com o item ativo em destaque luminoso, cartões Bento com cantos de 24 px e linha de destaque no topo, brilho ambiente no fundo e tipografia única em **Plus Jakarta Sans** local. Em Configurações › **Aparência**, a pessoa escolhe a paleta **Azul** (padrão: azul-noite `#090d1f`, ação `#2563eb`) ou **Roxo** (`#0b0b18`, ação `#7c3aed`), além de tema escuro ou claro e tamanho do texto. Nas duas, o âmbar (`#f59e0b`) marca sessão, XP e nível, e a barra de XP vai da cor da paleta ao âmbar. Os textos principais têm contraste AA (≥ 4,5:1) nos quatro temas; as cores de *hover* dos botões seguem a especificação do Stitch e ficam abaixo disso com texto branco. A navegação tem cinco destinos — Hoje, Biblioteca, Plano, Amigos e Perfil — com abas dentro de cada seção. O logo não foi alterado.
 - Por decisão explícita da responsável, **não há modo essencial nem tratamento de movimento reduzido**. Preferências antigas permanecem nos dados apenas para compatibilidade.
 - A API existente continua no **Cloudflare Worker com D1**, ou no servidor Node local. O frontend não exige renderização no servidor.
 
@@ -84,7 +84,18 @@ A verificação atual passou o build, os **165 testes Node de domínio/autentica
 
 ## Dados e limites atuais
 
-O formato e a chave `lume.prototype.v1` são preservados, assim como cursos, histórico, XP e conquistas legadas. As contas usam cookies HttpOnly e a sincronização básica envia uma cópia do progresso por `/api/state`. Há cópia local, exportação JSON e restauração com prévia e mesclagem; o estado anterior à restauração fica em `lume.prototype.v1.before-import`. **A reconciliação de conflitos entre dispositivos ainda não existe.** O XP elegível não vem dessa cópia: ele é atribuído no livro `xp_events` do servidor. Cursos importados acrescentam `structure`, `source`, `studyLog` e `imports` ao mesmo documento, sem alterar a versão; slides usam `slides`/`slideProgress`, sessões declaradas usam `activeSession`/`studySessions`, e tarefas de prova usam `tasks` com XP de legado calculado no navegador. Dados antigos sem esses campos continuam válidos.
+As contas usam cookies HttpOnly e persistência direta na API: `GET /api/library` carrega a biblioteca e
+`POST /api/library/actions` grava operações por entidade. Materiais, unidades hierárquicas, progresso, tarefas
+e sessões ficam em tabelas separadas. Revisão otimista impede sobrescrita concorrente; repetir a mesma
+operação não duplica XP. Conflitos pedem recarga, sem reconciliação de documentos no navegador.
+
+Dados de estudo antigos do navegador são descartados por decisão explícita; não há IndexedDB, fila offline
+ou cópia em localStorage. A prévia dura só enquanto a página está aberta. Os documentos já existentes em
+`user_state` são convertidos no servidor e preservados como arquivo; clientes antigos recebem
+`client_outdated` ao tentar gravar depois da conversão. Exportação JSON e restauração explícita com prévia
+continuam disponíveis, sem backup no navegador. `steps` e `structure` ainda são projeções de compatibilidade
+das telas. O XP elegível fica em `xp_events`, separado do saldo legado das tarefas. Esta revisão ainda não
+foi publicada.
 
 O banco ganhou `xp_settings`, `xp_events`, `xp_time_sessions`, `user_achievements`, `direct_messages`, `contact_blocks`, `message_preferences`, `delivery_invites`, `companion_devices`, `companion_pair_codes`, `companion_presence`, `friendships` e `friend_invites`. Tokens de dispositivo, códigos de convite e códigos de pareamento são guardados apenas como hash. Presença expira em 90 segundos sem batimento e amizade não compartilha biblioteca nem progresso.
 
@@ -94,11 +105,11 @@ Mensagens diretas entre amizades, bloqueio, não lidas, notificações, comparti
 
 ## Hospedagem
 
-O endereço de referência é [lume.lume-prototype.workers.dev](https://lume.lume-prototype.workers.dev), que responde com o build React/Astro e mantém o backend e os vínculos com D1. A configuração de Wrangler gera o build antes de publicar e envia `dist/`. A publicação atual inclui a base React/Astro, o sistema visual de `public/lume.css`, o service worker, a API de importação, XP/ranking, mensagens e colaboração. **O R2 não está habilitado nesta conta**, então o binding `MEDIA` está comentado: avatares, capas e imagens de slides respondem 503 até o R2 ser ativado e o binding ser restaurado. Nenhum plano pago foi ativado.
+O endereço de referência é [lume.lume-prototype.workers.dev](https://lume.lume-prototype.workers.dev), que responde com o build React/Astro e mantém o backend e os vínculos com D1. A configuração de Wrangler gera o build antes de publicar e envia `dist/`. A publicação atual inclui a base React/Astro, o sistema visual de `src/styles/`, o service worker, a API de importação, XP/ranking, mensagens e colaboração. **O R2 não está habilitado nesta conta**, então o binding `MEDIA` está comentado: avatares, capas e imagens de slides respondem 503 até o R2 ser ativado e o binding ser restaurado. Nenhum plano pago foi ativado.
 
 O build gera hashes CSP dos scripts e estilos inline exatos do Astro e grava `dist/_headers`, utilizado também pelo servidor Node. Não libera execução genérica de scripts inline.
 
-Novas senhas e redefinições usam **bcrypt (`bcryptjs`), com custo 6** no Node e no Worker. `BCRYPT_ROUNDS` aceita inteiros de 4 a 12; o padrão está em `auth.js` e o Worker configura explicitamente 6. Valores inválidos geram erro, sem redução silenciosa. `PBKDF2_ITERATIONS` deixou de configurar a criação de senhas.
+Novas senhas e redefinições usam **bcrypt (`bcryptjs`), com custo 6** no Node e no Worker. `BCRYPT_ROUNDS` aceita inteiros de 4 a 12; o padrão está em `api/domain/auth.js` e o Worker configura explicitamente 6. Valores inválidos geram erro, sem redução silenciosa. `PBKDF2_ITERATIONS` deixou de configurar a criação de senhas.
 
 O custo 6 é um compromisso com o [limite de 10 ms de CPU por requisição do Workers Free](https://developers.cloudflare.com/workers/platform/limits/) e fica abaixo do [mínimo 10 recomendado pela OWASP para bcrypt](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#bcrypt), oferecendo menor resistência a ataques offline. Medição local inicial com `bcryptjs` encontrou aproximadamente 5 ms por hash aquecido com custo 6 e 77 ms com custo 10. A primeira execução local com custo 6 levou cerca de 13 ms. Isso **não comprova** o orçamento de CPU no Worker publicado. Antes de considerar a configuração validada para o Free, medir cadastro, login e redefinição completos, incluindo partidas frias, e conferir erros `exceededCpu`. A API mantém o limite de tentativas antes do trabalho criptográfico; esse limite não protege um banco vazado. A API assíncrona do bcrypt não amplia o orçamento de CPU.
 
@@ -113,8 +124,9 @@ Verificação desta troca: testes de autenticação/domínio, build estático, b
 | Caminho | Função |
 | --- | --- |
 | `src/pages/index.astro` | Documento HTML e entrada da ilha React |
-| `src/components/` | Telas, navegação, formulários, cartões, progresso e diálogos |
-| `src/hooks/useLume.js` | Estado persistente, sessão e sincronização básica |
+| `src/app/` | Casca: `App.jsx`, tabela de rotas (`routes.jsx`), diálogos (`modals.jsx`), menu e `useLume.js` (estado, conta, sincronização e `act`) |
+| `src/features/<área>/` | Telas por funcionalidade: `account`, `library`, `progress`, `plan`, `social`, `settings`, `desktop` |
+| `src/ui/` | Componentes visuais compartilhados e ícones |
 | `src/lib/api.js` | Cliente das APIs existentes |
 | `public/domain.js` | Domínio legado e restauração dos dados, preservados |
 | `public/import-domain.js` | Regras de importação: provedores, normalização, mesclagem, progresso de aulas |
@@ -123,23 +135,24 @@ Verificação desta troca: testes de autenticação/domínio, build estático, b
 | `public/slides-domain.js` | Slides: criação, edição, ordem, progresso e conclusão do deck |
 | `public/xp-policy.js` | Política de XP v1, níveis, blocos, fuso e candidatos de conclusão |
 | `public/backup-domain.js` | Leitura, prévia e mesclagem de cópias JSON |
-| `xp.js` | Livro de eventos, conquistas, tempo elegível e ranking no servidor |
+| `api/domain/xp.js` | Livro de eventos, conquistas, tempo elegível e ranking no servidor |
 | `public/study-plan.js` | Roteiro por prioridade e contagem de aulas restantes |
 | `public/companion-domain.js` | Regras do aplicativo de desktop: allowlist, presença e categorias |
 | `extension/` | Extensão do navegador (Manifest V3, sem build): leitor de curso acionado pela pessoa, ponte para o Lume e popup; ver `extension/LEIAME.md` |
 | `src/lib/extension.js` | Recebe a leitura da extensão por `postMessage` e abre a revisão da importação |
 | `public/profile-domain.js` | Projeção do perfil entre amigos, com as escolhas de compartilhamento |
-| `import-server.js` | Análise de fontes no servidor: validação de URL, limites, extração e organizador por IA |
-| `companion.js` / `companion/` | Aplicativo de desktop (nome técnico Companion): janela com o Lume completo, bandeja, pareamento, presença, roteiro e atualização; núcleo, agente local e app Electron |
+| `api/domain/import-server.js` | Análise de fontes no servidor: validação de URL, limites, extração e organizador por IA |
+| `api/domain/companion.js` / `companion/` | Aplicativo de desktop (nome técnico Companion): janela com o Lume completo, bandeja, pareamento, presença, roteiro e atualização; núcleo, agente local e app Electron |
 | `companion/electron-builder.yml` | Empacotamento do instalador Windows (NSIS) |
 | `lume.cmd` | Iniciador do app de bandeja; funciona de qualquer pasta |
 | `.github/workflows/` | CI do site e da extensão, e publicação do instalador do aplicativo de desktop |
-| `friends.js` | Convites, amizades e remoção |
+| `api/domain/friends.js` | Convites, amizades e remoção |
 | `public/*.css` | Estilos, sistema visual unificado e interações |
 | `public/assets/` | Fontes e imagens locais |
-| `auth.js` | Validação, derivação de senha, tokens e cookies |
-| `server.js` | API local e entrega do build estático |
-| `worker.js` / `wrangler.jsonc` | API Cloudflare, D1 e configuração de build |
+| `api/domain/auth.js` | Validação, derivação de senha, tokens e cookies |
+| `api/` | App HTTP único: rotas, sessão, limites, erros e adaptadores de banco e imagens |
+| `server.js` | Adaptador Node: SQLite local, imagens em `data/media/` e entrega do build estático |
+| `worker.js` / `wrangler.jsonc` | Adaptador Cloudflare (D1, R2, estáticos) e configuração de build |
 | `migrations/` | Esquema do banco existente |
 | `scripts/` | Desenvolvimento e geração de cabeçalhos CSP |
 | `tests/e2e/` | Verificação dos fluxos no navegador |

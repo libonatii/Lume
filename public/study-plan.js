@@ -9,7 +9,9 @@
 // Cursos pausados e concluídos ficam fora do roteiro. Cursos de exemplo não
 // entram: eles não representam o estudo real da pessoa. Nada aqui concede XP.
 
+import { materialSteps } from './material-model.js';
 import { courseLessons, isImportedCourse, sourceLabel } from './import-domain.js';
+import { completedUnitIds } from './progress-domain.js';
 
 export const PLAN_LIMIT = 8;
 export const RECENT_DAYS = 7;
@@ -25,7 +27,7 @@ const REASONS = {
 };
 
 function lessonsOf(course) {
-  return (course.steps || []).map((step) => ({
+  return materialSteps(course).map((step) => ({
     id: step.id,
     title: typeof step.title === 'string' ? step.title : 'Aula',
     discipline: typeof step.discipline === 'string' ? step.discipline : '',
@@ -39,8 +41,7 @@ function lastTouched(state) {
     const time = Date.parse(at);
     if (courseId && Number.isFinite(time)) map.set(courseId, Math.max(map.get(courseId) || 0, time));
   };
-  for (const entry of state.studyLog || []) if (!entry.revertedAt) mark(entry.courseId, entry.at);
-  for (const entry of state.history || []) mark(entry.courseId, entry.at);
+  for (const entry of state.progress || []) if (!entry.revertedAt) mark(entry.materialId, entry.at);
   for (const session of state.studySessions || []) mark(session.courseId, session.startedAt);
   return map;
 }
@@ -53,13 +54,13 @@ function reasonFor(item) {
 }
 
 export function studyPlan(state, { limit = PLAN_LIMIT, now = Date.now() } = {}) {
-  const completed = new Set(state.completed || []);
+  const completed = completedUnitIds(state);
   const touchedMap = lastTouched(state);
   const cutoff = now - RECENT_DAYS * 24 * 60 * 60 * 1000;
   const limitValue = Math.max(1, Math.min(Number(limit) || PLAN_LIMIT, 20));
 
   const prepared = (state.courses || [])
-    .filter((course) => course && course.example !== true && Array.isArray(course.steps) && course.steps.length)
+    .filter((course) => course && course.example !== true && materialSteps(course).length)
     .map((course, index) => {
       const lessons = lessonsOf(course);
       const remainingLessons = lessons.filter((lesson) => !completed.has(lesson.id));
@@ -157,8 +158,8 @@ export function nextAction(state, { now = Date.now() } = {}) {
   const lessons = new Map(courseLessons(course).map((lesson) => [lesson.id, lesson]));
   const lesson = lessons.get(step.lessonId);
   const known = Number.isFinite(lesson?.duration) && lesson.duration > 0;
-  const completed = new Set(state.completed || []);
-  const remainingSteps = course.steps.filter((item) => !completed.has(item.id));
+  const completed = completedUnitIds(state);
+  const remainingSteps = materialSteps(course).filter((item) => !completed.has(item.id));
   const durations = remainingSteps.map((item) => lessons.get(item.id)?.duration).filter((value) => Number.isFinite(value) && value > 0);
   return {
     courseId: course.id,
@@ -174,7 +175,7 @@ export function nextAction(state, { now = Date.now() } = {}) {
     imported: isImportedCourse(course),
     partial: planned?.partial === true,
     remaining: step.remaining,
-    total: planned?.total || course.steps.length,
+    total: planned?.total || materialSteps(course).length,
     remainingKnownMinutes: Math.round(durations.reduce((sum, value) => sum + value, 0) / 60),
     remainingWithoutDuration: remainingSteps.length - durations.length,
   };

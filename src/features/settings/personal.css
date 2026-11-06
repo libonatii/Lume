@@ -1,0 +1,307 @@
+/* Conquistas, Meu caminho e configurações. */
+
+/* Missões, Conquistas, Meu Caminho e Configurações */
+.mission-list, .history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+.task-card {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1.15rem;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+.task-cover {
+  height: 76px;
+  aspect-ratio: auto;
+}
+.task-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+.task-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.task-step-pill {
+  font-size: 0.74rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+
+.inline-note {
+  margin: 0;
+  padding: 0.8rem 1rem;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.inline-note .icon {
+  color: var(--lume);
+}
+
+.achievement-summary {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  padding: 1.6rem;
+  box-shadow: var(--shadow-lg);
+}
+.achievement-summary-body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+.trophy-emblem {
+  width: 3.4rem;
+  height: 3.4rem;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--lume), var(--lume-2));
+  color: var(--lume-ink);
+}
+.trophy-emblem .icon {
+  width: 1.6rem;
+  height: 1.6rem;
+}
+.achievement-summary-copy {
+  flex: 1;
+  min-width: 200px;
+}
+
+.achievement-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.1rem;
+}
+.achievement-atropos {
+  height: 100%;
+  border-radius: var(--radius-lg);
+}
+.achievement-card {
+  height: 100%;
+  padding: 1.35rem;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  box-shadow: var(--shadow-sm);
+}
+.achievement-card.unlocked {
+  border-color: var(--border-strong);
+  background: linear-gradient(165deg, var(--lume-soft), var(--surface) 60%);
+}
+.achievement-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.achievement-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+.achievement-card.unlocked .achievement-icon {
+  background: var(--lume);
+  color: var(--lume-ink);
+}
+.achievement-status {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  color: var(--text-subtle);
+}
+.achievement-card.unlocked .achievement-status {
+  color: var(--lume);
+}
+.achievement-progress {
+  margin-top: auto;
+  padding-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.history-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.1rem;
+}
+.stat-value {
+  font-family: var(--font-serif);
+  font-size: 2.2rem;
+  line-height: 1.05;
+  color: var(--text);
+}
+.history-entry {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.history-dot {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--mint-soft);
+  color: var(--mint);
+  flex-shrink: 0;
+}
+.history-dot.prep {
+  background: var(--lume-soft);
+  color: var(--lume);
+}
+.history-copy {
+  flex: 1;
+  min-width: 0;
+}
+.history-date {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+  font-size: 0.82rem;
+  color: var(--text-subtle);
+}
+.xp-pill {
+  padding: 0.18rem 0.55rem;
+  border-radius: var(--radius-pill);
+  background: var(--lume-soft);
+  color: var(--lume);
+  font-weight: 650;
+  font-size: 0.75rem;
+}
+
+.settings-layout {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+.settings-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+.settings-panel {
+  gap: 1rem;
+}
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border);
+}
+.setting-row > span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.setting-row > span span {
+  font-size: 0.83rem;
+  color: var(--text-muted);
+}
+.setting-row select {
+  padding: 0.5rem 0.8rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+}
+.switch {
+  appearance: none;
+  width: 2.9rem;
+  height: 1.65rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.18s ease;
+}
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  background: var(--text);
+  transition: transform 0.18s ease;
+}
+.switch:checked {
+  background: var(--mint);
+}
+.switch:checked::after {
+  transform: translateX(1.22rem);
+  background: #0a1f17;
+}
+
+.empty-state {
+  grid-column: 1 / -1;
+  padding: 2.4rem 1.5rem;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+}
+.empty-icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: var(--lume-soft);
+  color: var(--lume);
+}
+.empty-state > p {
+  margin: 0;
+  max-width: 60ch;
+}

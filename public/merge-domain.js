@@ -5,8 +5,10 @@
 // continua sendo quem decide a revisão. O XP elegível não faz parte deste
 // documento e nunca é mesclado aqui.
 
-import { restoreState } from './domain.js';
+import { STATE_VERSION, restoreState } from './domain.js';
+import { mergeProgress } from './progress-domain.js';
 import { mergeBackup } from './backup-domain.js';
+import { materialSteps } from './material-model.js';
 
 function onboardingTime(value) {
   const candidate = value && typeof value === 'object' ? value : {};
@@ -32,7 +34,6 @@ export function mergeStates(local, remote) {
   const merged = mergeBackup(left, right);
   const onboarding = newerOnboarding(left.onboarding, right.onboarding);
   const courses = merged.courses || [];
-  const importedStepIds = new Set(courses.filter((course) => course.source).flatMap((course) => course.steps.map((step) => step.id)));
   const remoteTasks = new Map((right.tasks || []).map((task) => [task.id, task]));
   const tasks = (merged.tasks || []).map((task) => {
     const other = remoteTasks.get(task.id);
@@ -43,28 +44,18 @@ export function mergeStates(local, remote) {
     }
     return task;
   });
-  const remoteHistory = new Map((right.history || []).map((entry) => [entry.id, entry]));
-  const history = (merged.history || []).map((entry) => {
-    const other = remoteHistory.get(entry.id);
-    return other?.revertedAt ? { ...entry, revertedAt: other.revertedAt } : entry;
-  });
-  const remoteLog = new Map((right.studyLog || []).map((entry) => [entry.id, entry]));
-  const studyLog = (merged.studyLog || []).map((entry) => {
-    const other = remoteLog.get(entry.id);
-    return other?.revertedAt ? { ...entry, revertedAt: other.revertedAt } : entry;
-  });
-  const completed = (merged.completed || []).filter((id) => !importedStepIds.has(id)
-    || studyLog.some((entry) => entry.stepId === id && !entry.revertedAt));
+  // Entre dispositivos, desfazer uma conclusão num deles vale para o outro.
+  const stepIds = new Set(courses.flatMap((course) => materialSteps(course).map((step) => step.id)));
+  const progress = mergeProgress(left.progress || [], right.progress || [], { revertWins: true })
+    .filter((event) => stepIds.has(event.unitId));
   const selected = courses.some((course) => course.id === merged.selectedCourseId)
     ? merged.selectedCourseId
     : (courses[0]?.id ?? null);
   return {
     ...merged,
-    version: 1,
+    version: STATE_VERSION,
     courses,
-    completed,
-    history,
-    studyLog,
+    progress,
     tasks,
     // O plano é configuração, como as preferências: vale o desta sessão.
     plan: left.plan || right.plan,

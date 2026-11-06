@@ -41,7 +41,7 @@ O Lume não promete liberação de dopamina, eficácia clínica, aprendizado gar
 
 ## 3. Ciclo principal de uso
 
-1. A pessoa cria uma conta e entra no produto completo. O protótipo oferece cadastro e login com e-mail e senha e sincronização de uma cópia do progresso com revisão otimista: alterações de outro dispositivo são mescladas antes de salvar.
+1. A pessoa cria uma conta e entra no produto completo. Cadastro e login usam e-mail e senha. A biblioteca é lida e gravada diretamente na API, com revisão otimista: alterações concorrentes pedem recarga e repetição explícita, sem mescla automática de documentos no navegador.
 2. Informa seu ritmo, áreas de interesse e apoios desejados.
 3. Adiciona cursos, aulas, artigos, livros, exercícios ou projetos à biblioteca.
 4. Retoma um material do ponto salvo ou inicia uma atividade de estudo.
@@ -54,7 +54,7 @@ Preparar o ambiente e tornar uma atividade menor são apoios possíveis nesse ci
 
 ## 4. Entrada e personalização
 
-**O cadastro e o login com e-mail e senha já funcionam.** Esse acesso faz parte do produto, com recuperação de senha, saída da conta e cópia do progresso associada à pessoa autenticada. A sincronização usa revisão otimista e mescla alterações de outro dispositivo; o XP elegível é validado no servidor, em um livro de eventos separado da cópia do estado. O acesso demonstrativo da prévia continua existindo e não substitui a conta. Login com Google pode complementar o acesso; não substitui o requisito de e-mail e senha.
+**O cadastro e o login com e-mail e senha já funcionam.** Esse acesso faz parte do produto, com recuperação de senha, saída da conta e biblioteca associada à pessoa autenticada no servidor. O XP elegível é validado no servidor, em um livro de eventos. A prévia demonstrativa dura somente enquanto a página está aberta, sem persistência de estudo no navegador; não substitui a conta. Login com Google pode complementar o acesso; não substitui o requisito de e-mail e senha.
 
 O onboarding deve identificar:
 
@@ -109,12 +109,23 @@ A pessoa cola o link do curso, o Lume identifica a plataforma e apresenta as ár
 
 ### Tarefas de prova (implementadas)
 
+**Agenda (implementada localmente em 05/11/2026):** as tarefas agora ficam na área Agenda, ao lado
+do calendário diário, semanal e mensal. Atividades podem reunir tarefas existentes ou novas, incluindo
+estudos livres e compromissos pessoais. Há horários opcionais, recorrência com checklist independente,
+avisos de sobreposição, reagendamento manual e lembretes. Cronograma e Roteiro permanecem no Plano.
+Escolhas operacionais, limites e verificação em [Agenda](AGENDA.md).
+
+A revisão de experiência usa um calendário interativo: selecionar um horário preenche data e duração,
+restando informar o título. Semana abre no computador e dia no celular. Arrastar move, ajustar a borda muda
+a duração; tarefas e sugestões ficam em “Para agendar”. Checklist e vínculos são opcionais e editáveis
+por item; repetição, lembretes e fuso ficam em Mais opções. Detalhes abrem em painel contextual.
+
 - A pessoa mantém uma lista de tarefas necessárias para estudar para uma prova, com vínculo opcional a um curso, prazo opcional e prioridade explícita. Tarefas atrasadas aparecem primeiro, também na página Hoje.
 - Definir ou mudar a prioridade é organização e não gera XP.
 - Criar, editar, organizar ou remover tarefas é preparação e não gera XP.
-- Concluir uma tarefa de estudo definida concede XP uma vez; reabrir retira o XP até concluir de novo, sem acumular. A regra em execução é transitória e está detalhada em [Gamificação](GAMIFICACAO.md#tarefas-de-prova--regra-em-execução-no-protótipo).
-- O XP da tarefa é declarado no navegador no protótipo e não vale para ranking até existir validação no servidor. A migração proposta (tarefa vinculada a aula conclui a aula; tarefa sem vínculo é organizacional) está em [Evolução §4.6](EVOLUCAO.md#46-transição-sem-apagar-histórico) e depende de aprovação.
-- Tarefas não concluem curso, não criam conquista por material e não substituem a sessão de estudo declarada.
+- Concluir tarefa vinculada a uma aula conclui a aula; o servidor concede sua recompensa uma única vez, mesmo com várias tarefas para ela. Tarefa sem vínculo é organizacional e concede 0 XP.
+- Reabrir tarefa não desfaz a aula nem retira XP. Correções de estudo são ações separadas e identificadas.
+- A aula registrada participa dos bônus de disciplina e curso; a tarefa não tem bônus próprio nem substitui a sessão de estudo declarada.
 
 ### Sessão declarada e aplicativo de desktop (implementados)
 
@@ -192,7 +203,7 @@ Cada conquista possui uma página ou detalhe que explica o que foi concluído. A
 - O perfil reúne o que a pessoa está estudando, o roteiro que aparece em Hoje, os projetos que ela marcou como públicos, os materiais concluídos e os números de progresso e XP.
 - Abrir o perfil exige amizade. Não existe perfil público por link, busca por e-mail nem página anônima.
 - Cada seção pode ser desligada em Configurações › O que amigos veem, e cada projeto nasce privado até ser marcado. Projeto privado não aparece em lugar nenhum, nem nas contagens.
-- XP, nível e conquistas de contas vêm do livro de eventos do servidor e são validados; percentuais de progresso continuam declarados pela cópia sincronizada. O saldo legado não entra no perfil como XP validado.
+- XP, nível e conquistas de contas vêm do livro de eventos do servidor e são validados; percentuais de progresso vêm da biblioteca no servidor e continuam declarados. O saldo legado não entra no perfil como XP validado.
 - A escolha individual de conquistas para o perfil e o compartilhamento de aprendizados continuam pendentes. Mensagens diretas entre amizades estão implementadas.
 
 ### Placares
@@ -220,8 +231,9 @@ As regras detalhadas estão em [Gamificação](GAMIFICACAO.md).
 | Entrada e conta | Cadastro, autenticação, recuperação por link e saída já disponíveis na API local; envio de e-mail ainda pendente |
 | Meu ritmo e interesses | Preferências e sugestões iniciais |
 | Hoje | Próxima ação única (mesmo critério do roteiro do Companion), com motivo, tempo a reservar — duração conhecida ou estimada —, link do material e o que falta; sessão; tarefas relevantes com atraso; evolução com a última recompensa |
-| Plano | Cronograma pela disponibilidade semanal, prazos e prioridades, com duração conhecida ou estimada, conflito de prazo explicado com ajustes e adiamento; abas Tarefas e Roteiro (próxima aula de cada curso) |
-| Tarefas | Lista de estudo para uma prova, com prioridade (alta, média, baixa ou sem prioridade), prazo, atraso, vínculo opcional a curso e aula, subtarefas e conclusão com XP único |
+| Plano | Cronograma pela disponibilidade semanal, prazos e prioridades, com duração conhecida ou estimada, conflito de prazo explicado com ajustes e adiamento; aba Roteiro (próxima aula de cada curso) |
+| Agenda | Calendário de dia, semana com horários e mês; atividades com checklist, tarefas isoladas, recorrência, reagendamento manual, sugestões do Plano e lembretes. Estudos e compromissos pessoais são organizados privadamente |
+| Tarefas (aba da Agenda) | Lista com prioridade, prazo, atraso, vínculo opcional a curso e aula, subtarefas, agendamento e conclusão da aula vinculada com XP único |
 | Biblioteca | Cursos, aulas, leituras, exercícios e projetos, com capas, filtros, favoritos e retomada |
 | Trilhas e projetos | Objetivos e entregas substanciais |
 | Organização | Anotações, listas de aulas e entregas, quadro de projetos e modelos básicos |
@@ -250,7 +262,7 @@ As regras detalhadas estão em [Gamificação](GAMIFICACAO.md).
 
 1. Preparar o material não altera XP, nível ou placar.
 2. Concluir uma aula elegível gera recompensa uma única vez e preserva a próxima ação da trilha.
-3. Concluir uma tarefa de prova definida gera XP uma única vez; criar ou organizar a lista não gera nada.
+3. Concluir tarefa vinculada registra a aula e seu XP uma única vez; sem vínculo, criar ou organizar não gera nada.
 4. Um curso concluído gera uma conquista com seu nome e o bônus de curso definido na política.
 5. Um artigo incompleto permanece em andamento com marcador de retomada; sua conclusão gera uma conquista própria.
 6. A aula pode ser retomada automaticamente apenas nas fontes com essa capacidade; nas demais, a interface informa o registro manual.
@@ -259,3 +271,4 @@ As regras detalhadas estão em [Gamificação](GAMIFICACAO.md).
 9. O ranking permite alternar entre nível, cursos concluídos e empenho no período, com regras visíveis e dados autorizados. A visão acumulada não desaparece na virada da semana.
 10. Mudar o ritmo ou precisar de uma pausa não retira conquistas.
 11. A experiência funciona com teclado, temas e texto ajustável; os recursos sociais podem ser ocultos quando a pessoa assim escolher. Modo essencial e tratamento de movimento reduzido foram retirados do escopo por decisão explícita da responsável.
+12. Disciplina completa concede 200 XP e conquista uma vez, com grade completa e aulas elegíveis. Cargos são títulos de progressão; não bloqueiam funcionalidades.

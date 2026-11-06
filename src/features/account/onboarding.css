@@ -1,0 +1,306 @@
+/* Personalização inicial por jornada. */
+
+/* Onboarding */
+.onboarding-root, .onboarding-step-shell {
+  max-width: 980px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+.onboarding-step-shell {
+  max-width: 720px;
+}
+.onboarding-header {
+  max-width: 68ch;
+}
+.rhythm-grid {
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.1rem;
+}
+.pace-card {
+  position: relative;
+  text-align: left;
+  padding: 1.4rem;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.pace-card:hover {
+  border-color: var(--border-strong);
+}
+.pace-card.selected {
+  border-color: var(--lume);
+  background: linear-gradient(180deg, var(--lume-soft), var(--surface) 65%);
+}
+.pace-card.compact {
+  padding: 1.05rem;
+}
+.pace-card.row {
+  flex-direction: row;
+  align-items: center;
+  padding: 0.95rem 1.1rem;
+}
+.pace-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.35rem;
+}
+.pace-icon {
+  width: 2.4rem;
+  height: 2.4rem;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.card-indicator {
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: var(--lume-ink);
+}
+.card-indicator.square {
+  border-radius: 6px;
+}
+.pace-card.selected .card-indicator {
+  background: var(--lume);
+  border-color: var(--lume);
+}
+.pace-detail {
+  margin-top: auto;
+  padding-top: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-subtle);
+}
+
+.resume-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  background: var(--mint-soft);
+  color: var(--mint);
+  font-size: 0.9rem;
+}
+
+.onboarding-progress {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.onboarding-segments {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.4rem;
+}
+.segment {
+  height: 0.38rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+  overflow: hidden;
+  position: relative;
+}
+.segment.active {
+  background: var(--lume);
+}
+.segment-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--lume-2);
+}
+
+.onboarding-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: clamp(1.5rem, 3vw, 2.3rem);
+  display: flex;
+  flex-direction: column;
+  gap: 1.35rem;
+  box-shadow: var(--shadow-lg);
+}
+.step-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.step-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding-top: 0.5rem;
+}
+.option-grid {
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.85rem;
+}
+.option-grid.two-col {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.span-two {
+  grid-column: 1 / -1;
+}
+.option-stack {
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+.pill-group, .filter-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.filter-btn {
+  position: relative;
+  padding: 0.52rem 0.95rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.filter-btn[aria-pressed='true'], .filter-btn.selected {
+  color: var(--lume-ink);
+  border-color: var(--lume);
+  background: var(--lume);
+}
+.selection-highlight {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--lume);
+  z-index: 0;
+}
+.filter-btn > span:last-child {
+  position: relative;
+  z-index: 1;
+}
+
+.plan-summary-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  padding: 1.5rem;
+}
+.plan-summary-body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.plan-bullets {
+  list-style: none;
+  padding: 0;
+  margin: 0.25rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+}
+.plan-bullets li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.plan-bullets .icon {
+  color: var(--mint);
+}
+.plan-material-highlight {
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-md);
+  background: rgba(14, 13, 20, 0.45);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+html[data-theme='light'] .plan-material-highlight {
+  background: rgba(255, 253, 248, 0.82);
+}
+.plan-material-highlight span {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-subtle);
+}
+
+.social-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
+  align-items: stretch;
+}
+/* Os três cartões dividem a mesma altura e o botão fica no rodapé de cada um. */
+.social-preview-grid > .card-surface {
+  min-width: 0;
+}
+.social-preview-grid .card-surface > :last-child {
+  margin-top: auto;
+}
+.social-preview-grid .title {
+  font-size: 1.05rem;
+  line-height: 1.3;
+}
+/* Em coluna estreita o rótulo quebra em vez de vazar para fora do cartão. */
+.social-preview-grid .button {
+  max-width: 100%;
+  white-space: normal;
+  line-height: 1.25;
+  text-align: center;
+}
+.social-preview-grid .text-link {
+  flex-wrap: wrap;
+  max-width: 100%;
+  white-space: normal;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.soon-badge.is-ready {
+  background: color-mix(in srgb, var(--lume) 16%, transparent);
+  color: var(--lume);
+}
+.invite-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1.05rem;
+  letter-spacing: 0.12em;
+  word-break: break-all;
+  text-align: center;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+}

@@ -1,0 +1,36 @@
+/* Manifesto da cascata. Estrutura por funcionalidade, tokens e tema globais.
+   A ordem permanece explícita para não depender da ordem de montagem React.
+   Novos estilos pertencem à funcionalidade; cores vêm de 00-tokens.css. */
+
+@import './00-tokens.css';
+@import './01-shader.css';
+@import './02-base.css';
+@import '../features/account/entry.css';
+@import '../features/account/onboarding.css';
+@import '../features/social/shared-profile.css';
+@import '../app/shell.css';
+@import '../features/library/home.css';
+@import '../features/library/library.css';
+@import '../features/settings/personal.css';
+@import './40-dialogos.css';
+@import './41-responsivo.css';
+@import '../features/library/import.css';
+@import '../features/desktop/desktop.css';
+@import '../features/progress/session.css';
+@import '../features/social/friends.css';
+@import '../features/social/profile.css';
+@import '../features/desktop/window.css';
+@import '../features/plan/tasks.css';
+@import '../features/library/materials.css';
+@import '../features/progress/xp.css';
+@import '../features/settings/backup.css';
+@import '../features/social/messages.css';
+@import '../features/library/slides.css';
+@import '../features/progress/adjustment.css';
+@import '../features/library/collaboration.css';
+@import './70-hoje-acao.css';
+@import '../features/plan/schedule.css';
+@import './80-redesign-moderno.css';
+@import '@fullcalendar/react/skeleton.css';
+@import '@fullcalendar/react/themes/classic/theme.css';
+@import '../features/agenda/agenda.css';
