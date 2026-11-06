@@ -4,8 +4,8 @@ import { DatabaseSync } from 'node:sqlite';
 import { fileURLToPath } from 'node:url';
 import { createInitialState, addCourse, restoreState } from '../../public/domain.js';
 import { addTask, completeTask, removeTask } from '../../public/tasks-domain.js';
-import { createAppointment, updateAppointment, saveAppointment, movePending, conflictsFor, zonedInstant, dueReminders, reminderKey, agendaSuggestions, appointmentRange } from '../../public/agenda-domain.js';
-import { calendarEvent, calendarPatch } from '../../src/features/agenda/calendar-model.js';
+import { createAppointment, updateAppointment, saveAppointment, movePending, conflictsFor, zonedInstant, dueReminders, reminderKey, agendaSuggestions, appointmentRange, occurrenceDates, deleteAppointment, restoreAppointments } from '../../public/agenda-domain.js';
+import { calendarEvent, calendarPatch, timeOptions, durationLabel } from '../../src/features/agenda/calendar-model.js';
 import { readBackup, mergeBackup } from '../../public/backup-domain.js';
 import { libraryActions } from '../../public/library-actions.js';
 import { buildProfile } from '../../public/profile-domain.js';
@@ -222,4 +222,43 @@ test('calendário conserva instantes, fuso, virada do dia e data civil sem horá
   const allDay = calendarEvent({ ...item, date: '2026-11-12', endDate: '2026-11-12', start: '', end: '' }, []);
   assert.equal(allDay.start, '2026-11-12');
   assert.equal(allDay.end, '2026-11-13');
+});
+
+test('repetição semanal por dias da semana e por data final, sem passar de 52 ocorrências', () => {
+  // 2026-11-10 é terça; seg/qua/sex começa na quarta seguinte.
+  assert.deepEqual(occurrenceDates('2026-11-10', { recurrence: 'weekly', count: 4, weekdays: [1, 3, 5] }), ['2026-11-11', '2026-11-13', '2026-11-16', '2026-11-18']);
+  assert.deepEqual(occurrenceDates('2026-11-10', { recurrence: 'daily', until: '2026-11-13' }), ['2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13']);
+  assert.deepEqual(occurrenceDates('2026-11-10', { recurrence: 'weekly', until: '2026-11-20', weekdays: [2] }), ['2026-11-10', '2026-11-17']);
+  assert.throws(() => occurrenceDates('2026-11-10', { recurrence: 'daily', until: '2027-06-01' }), /52/);
+  assert.throws(() => occurrenceDates('2026-11-10', { recurrence: 'daily', until: '2026-11-09' }), /data final/);
+  assert.throws(() => occurrenceDates('2026-11-10', { recurrence: 'weekly', until: '2026-11-11', weekdays: [5] }), /Nenhum dia/);
+  const state = createAppointment(createInitialState(), input({ recurrence: 'weekly', count: 3, weekdays: [1, 3], tasks: [{ title: 'Ler' }] }));
+  assert.deepEqual(state.agenda.map((item) => item.date), ['2026-11-11', '2026-11-16', '2026-11-18']);
+  assert.equal(state.tasks.length, 3);
+  assert.equal(new Set(state.agenda.map((item) => item.seriesId)).size, 1);
+  assert.equal('weekdays' in state.agenda[0], false);
+});
+test('excluir remove só o horário, preserva tarefas e o desfazer devolve a posição original', () => {
+  let state = createAppointment(createInitialState(), input({ title: 'Outro' }));
+  state = createAppointment(state, input({ recurrence: 'daily', count: 4, tasks: [{ title: 'Ler' }] }));
+  state = updateAppointment(state, state.agenda[3].id, { done: true });
+  const before = structuredClone(state);
+  const single = deleteAppointment(state, state.agenda[0].id);
+  assert.equal(single.agenda.length, 4);
+  assert.deepEqual(single.tasks, before.tasks);
+  const future = deleteAppointment(state, state.agenda[2].id, 'future', '2026-11-10');
+  assert.deepEqual(future.agenda.map((item) => item.id), [before.agenda[0].id, before.agenda[1].id, before.agenda[3].id]);
+  const ids = before.agenda.filter((item) => !future.agenda.some((kept) => kept.id === item.id)).map((item) => item.id);
+  assert.deepEqual(restoreAppointments(future, before.agenda, ids).agenda, before.agenda);
+  const moved = updateAppointment(state, state.agenda[1].id, { start: '08:00', end: '09:00' });
+  assert.deepEqual(restoreAppointments(moved, before.agenda, [before.agenda[1].id]).agenda, before.agenda);
+  assert.throws(() => restoreAppointments({ ...single, tasks: [] }, before.agenda, [before.agenda[0].id]), /tarefa/);
+});
+test('horários do editor em 24 h, com o valor atual preservado e a duração legível', () => {
+  assert.equal(timeOptions('').length, 96);
+  assert.deepEqual(timeOptions('09:07', '').includes('09:07'), true);
+  assert.equal(timeOptions('', '23:00').join(','), '23:15,23:30,23:45');
+  assert.equal(durationLabel(30), '30 min');
+  assert.equal(durationLabel(90), '1 h 30 min');
+  assert.equal(durationLabel(120), '2 h');
 });

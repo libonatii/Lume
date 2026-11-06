@@ -6,6 +6,8 @@ export const MAX_APPOINTMENTS = 1000;
 export const CATEGORIES = { study: 'Estudo', exam: 'Prova', delivery: 'Entrega', personal: 'Pessoal' };
 export const REMINDERS = [-1, 0, 5, 15, 30, 60];
 export const RECURRENCES = { none: 'Não repetir', daily: 'Diariamente', weekly: 'Semanalmente', monthly: 'Mensalmente' };
+export const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+export const MAX_OCCURRENCES = 52;
 const formatters = new Map();
 const ranges = new WeakMap();
 const fail = (message) => { throw new Error(message); };
@@ -89,11 +91,38 @@ function recurrenceDate(date, recurrence, index) {
   const last = new Date(Date.UTC(year, month + index, 0)).getUTCDate();
   return new Date(Date.UTC(year, month - 1 + index, Math.min(day, last), 12)).toISOString().slice(0, 10);
 }
+export const weekdayOf = (date) => new Date(`${date}T12:00:00Z`).getUTCDay();
+// Datas de uma série: por número de ocorrências ou até uma data final.
+// A semanal aceita dias da semana; sem eles, repete no dia da primeira data.
+export function occurrenceDates(date, { recurrence = 'none', count = 1, until = '', weekdays = [] } = {}) {
+  if (!Object.hasOwn(RECURRENCES, recurrence)) fail('Repetição inválida.');
+  if (!validDate(date)) fail('Data inválida.');
+  if (recurrence === 'none') return [date];
+  if (until && (!validDate(until) || until < date)) fail('A data final deve ser igual ou posterior ao início.');
+  if (!until && (!Number.isInteger(count) || count < 1 || count > MAX_OCCURRENCES)) fail(`Escolha de 1 a ${MAX_OCCURRENCES} ocorrências.`);
+  if (!Array.isArray(weekdays) || weekdays.some((day) => !Number.isInteger(day) || day < 0 || day > 6)) fail('Dias da semana inválidos.');
+  const days = recurrence === 'weekly' && weekdays.length ? new Set(weekdays) : null;
+  const limit = until ? MAX_OCCURRENCES + 1 : count;
+  const dates = [];
+  if (days) {
+    for (let cursor = date; dates.length < limit && (!until || cursor <= until); cursor = shiftDate(cursor, 1)) {
+      if (days.has(weekdayOf(cursor))) dates.push(cursor);
+    }
+  } else {
+    for (let index = 0; dates.length < limit; index++) {
+      const next = recurrenceDate(date, recurrence, index);
+      if (until && next > until) break;
+      dates.push(next);
+    }
+  }
+  if (!dates.length) fail('Nenhum dia escolhido cai nesse período.');
+  if (dates.length > MAX_OCCURRENCES) fail(`A série passa de ${MAX_OCCURRENCES} ocorrências. Escolha uma data final mais próxima.`);
+  return dates;
+}
 export function createAppointment(state, input) {
   const recurrence = input.recurrence || 'none';
-  if (!Object.hasOwn(RECURRENCES, recurrence)) fail('Repetição inválida.');
-  const count = recurrence === 'none' ? 1 : Number(input.count);
-  if (!Number.isInteger(count) || count < 1 || count > 52) fail('Escolha de 1 a 52 ocorrências.');
+  const dates = occurrenceDates(input.date, { recurrence, count: Number(input.count), until: input.until || '', weekdays: input.weekdays || [] });
+  const count = dates.length;
   const taskIds = input.taskIds || [];
   const templates = input.tasks || [];
   if (!Array.isArray(templates) || templates.length + taskIds.length > 50) fail('Use até 50 tarefas por atividade.');
@@ -102,7 +131,7 @@ export function createAppointment(state, input) {
   if (state.tasks.length + needed > MAX_TASKS) fail(`A série ultrapassa o limite de ${MAX_TASKS} tarefas. Reduza as ocorrências.`);
   if ((state.agenda || []).length + count > MAX_APPOINTMENTS) fail('Limite de compromissos atingido.');
   const seriesId = count > 1 ? crypto.randomUUID() : '';
-  const base = normalizeAppointment({ ...input, id: crypto.randomUUID(), taskIds, seriesId, recurrence });
+  const base = normalizeAppointment({ ...input, id: crypto.randomUUID(), taskIds, seriesId, recurrence, endDate: shiftDate(dates[0], Math.round((Date.parse(`${input.endDate || input.date}T12:00Z`) - Date.parse(`${input.date}T12:00Z`)) / 86400000)), date: dates[0] });
   const daySpan = Math.round((Date.parse(`${base.endDate}T12:00Z`) - Date.parse(`${base.date}T12:00Z`)) / 86400000);
   let next = state;
   const entries = [];
@@ -115,7 +144,7 @@ export function createAppointment(state, input) {
       next = { ...next, tasks: next.tasks.map((item) => item.id === task.id ? { ...item, dueDate: '', subtasks: (template.subtasks || []).map((subtask) => ({ id: crypto.randomUUID(), title: subtask.title, done: false })) } : item) };
       ids.push(task.id);
     }
-    const date = recurrenceDate(base.date, recurrence, i);
+    const date = dates[i];
     entries.push(normalizeAppointment({ ...base, id: i ? crypto.randomUUID() : base.id, date, originalDate: date, endDate: shiftDate(date, daySpan), taskIds: ids, done: false, cancelled: false }));
   }
   next = { ...next, agenda: [...(state.agenda || []), ...entries] };
@@ -140,6 +169,29 @@ export function updateAppointment(state, id, patch, scope = 'one', today = local
     }
     return normalizeAppointment({ ...item, ...delta, id: item.id, seriesId: item.seriesId, originalDate: item.originalDate, recurrence: item.recurrence });
   });
+  const next = { ...state, agenda };
+  validateAgenda(next);
+  return next;
+}
+
+// Excluir remove só o horário reservado: as tarefas do checklist continuam em Tarefas.
+// Na série, "future" segue o mesmo recorte da edição (pendentes a partir de hoje).
+export function deleteAppointment(state, id, scope = 'one', today = localDate()) {
+  const current = (state.agenda || []).find((item) => item.id === id);
+  if (!current) fail('Compromisso não encontrado.');
+  if (!['one', 'future'].includes(scope)) fail('Escolha esta ocorrência ou as futuras.');
+  const removed = (item) => item.id === id || (scope === 'future' && current.seriesId && item.seriesId === current.seriesId
+    && item.originalDate >= current.originalDate && item.date >= today && !item.done && !item.cancelled);
+  return { ...state, agenda: state.agenda.filter((item) => !removed(item)) };
+}
+
+// Desfazer: devolve a versão anterior dos compromissos indicados, na posição original.
+export function restoreAppointments(state, previous, ids) {
+  const wanted = new Set(ids);
+  const current = new Map((state.agenda || []).map((item) => [item.id, item]));
+  const known = new Set(previous.map((item) => item.id));
+  const agenda = previous.flatMap((item) => wanted.has(item.id) ? [item] : current.has(item.id) ? [current.get(item.id)] : []);
+  for (const item of state.agenda || []) if (!known.has(item.id)) agenda.push(item);
   const next = { ...state, agenda };
   validateAgenda(next);
   return next;

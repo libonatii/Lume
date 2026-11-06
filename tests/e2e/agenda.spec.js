@@ -14,8 +14,8 @@ async function saveForm(page) {
 }
 async function hours(page, start, end) {
   await page.getByRole('checkbox', { name: 'Sem horário', exact: true }).uncheck();
-  await page.getByLabel('Início', { exact: true }).fill(start);
-  await page.getByLabel('Fim', { exact: true }).fill(end);
+  await page.getByLabel('Início', { exact: true }).selectOption(start);
+  await page.getByLabel('Fim', { exact: true }).selectOption(end);
 }
 async function openEvent(page, title) {
   await page.getByLabel(`Abrir compromisso ${title}`, { exact: true }).first().click();
@@ -47,7 +47,7 @@ test('calendário proporcional, criação rápida, checklist editável e sobrepo
   await page.getByRole('checkbox', { name: 'Concluir tarefa Ler anotações' }).check();
   await expect(dialog(page)).toContainText('Checklist · 1/2');
   await readAccount(page);
-  await page.getByRole('button', { name: 'Editar / reagendar' }).click();
+  await page.getByRole('button', { name: 'Editar', exact: true }).click();
   await page.getByLabel('Item 2', { exact: true }).fill('Resolver dez questões');
   await page.getByRole('button', { name: '+ Adicionar checklist', exact: true }).click();
   await page.getByLabel('Item 3', { exact: true }).fill('Revisar erros');
@@ -75,7 +75,7 @@ test('calendário proporcional, criação rápida, checklist editável e sobrepo
   await page.getByRole('button', { name: 'Dia', exact: true }).click();
   await page.getByRole('button', { name: 'Hoje', exact: true }).click();
   await openEvent(page, 'Consulta');
-  await page.getByRole('button', { name: 'Editar / reagendar' }).click();
+  await page.getByRole('button', { name: 'Editar', exact: true }).click();
   await hours(page, '11:00', '11:30');
   await saveForm(page);
   await page.reload();
@@ -128,7 +128,7 @@ test('recorrência recebe checklist novo e edição futura preserva a ocorrênci
   await page.getByText('Mais ações', { exact: true }).click();
   await page.getByRole('button', { name: 'Encerrar atividade' }).click();
   await readAccount(page);
-  await page.getByRole('button', { name: 'Editar / reagendar' }).click();
+  await page.getByRole('button', { name: 'Editar', exact: true }).click();
   await page.getByLabel('Título do compromisso').fill('Revisão ajustada');
   await page.getByLabel('Aplicar alteração').selectOption('future');
   await saveForm(page);
@@ -252,6 +252,8 @@ test('selecionar horário abre criação já preenchida e mês cria sem horário
   await page.getByLabel('Título do compromisso').fill('Criado na grade');
   await page.screenshot({ path: testInfo.outputPath('agenda-quick-add.png'), fullPage: true });
   await saveForm(page);
+  // O aviso de confirmação fica sobre o canto da grade; fechá-lo libera a última célula.
+  await page.getByRole('button', { name: 'Fechar aviso' }).click();
   await page.getByRole('button', { name: 'Mês', exact: true }).click();
   // A célula mensal oferece a mesma criação por seleção, sem horário artificial.
   const cell = page.locator('.agenda-calendar [data-date]').last();
@@ -344,4 +346,44 @@ test('arrastar série pede escopo antes de gravar; cancelar preserva datas', asy
   await page.getByLabel('Aplicar alteração').selectOption('future');
   await saveForm(page);
   expect((await readAccount(page)).agenda.map((item) => item.start)).toEqual(['10:00', '10:00', '10:00']);
+});
+
+test('criação rápida expande, filtro por tipo, exclusão com desfazer e visões Lista e 3 dias', async ({ page, isMobile }) => {
+  await seedAccount(page, initial());
+  await page.goto('/#agenda');
+  await expect(page.getByText('Sua agenda está livre')).toBeVisible();
+  if (isMobile) {
+    await page.getByRole('button', { name: 'Novo compromisso', exact: true }).click();
+    await page.getByLabel('Título do compromisso').fill('Prova de direito');
+    await hours(page, '10:00', '10:30');
+    await page.getByText('Mais opções', { exact: true }).click();
+  } else {
+    await page.getByRole('button', { name: 'Dia', exact: true }).click();
+    const point = await slotPoint(page, '10:00');
+    await page.mouse.click(point.x, point.y);
+    await expect(page.getByLabel('Início', { exact: true })).toHaveValue('10:00');
+    await page.getByLabel('Título do compromisso').fill('Prova de direito');
+    await dialog(page).getByRole('button', { name: 'Mais opções', exact: true }).click();
+    await expect(page.getByLabel('Título do compromisso')).toHaveValue('Prova de direito');
+  }
+  await page.getByRole('combobox', { name: 'Tipo', exact: true }).selectOption('exam');
+  const saved = await saveForm(page);
+  expect(saved.agenda[0]).toEqual(expect.objectContaining({ title: 'Prova de direito', category: 'exam', start: '10:00', end: '10:30' }));
+  await expect(page.getByText('Compromisso agendado.')).toBeVisible();
+  await expect(page.getByText('Sua agenda está livre')).toHaveCount(0);
+  const event = page.getByLabel('Abrir compromisso Prova de direito', { exact: true });
+  await page.getByRole('button', { name: 'Prova', exact: true }).click();
+  await expect(event).toHaveCount(0);
+  await page.getByRole('button', { name: 'Prova', exact: true }).click();
+  await event.first().click();
+  await dialog(page).getByRole('button', { name: 'Excluir', exact: true }).click();
+  await expect(dialog(page)).toHaveCount(0);
+  await expect.poll(async () => (await readAccount(page)).agenda.length).toBe(0);
+  await page.getByRole('button', { name: 'Desfazer', exact: true }).click();
+  await expect.poll(async () => (await readAccount(page)).agenda).toEqual(saved.agenda);
+  await page.getByRole('button', { name: 'Lista', exact: true }).click();
+  await expect(page.getByLabel('Calendário: lista')).toContainText('Prova de direito');
+  await page.getByRole('button', { name: '3 dias', exact: true }).click();
+  await expect(page.getByLabel('Calendário: 3 dias')).toContainText('Prova de direito');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 });

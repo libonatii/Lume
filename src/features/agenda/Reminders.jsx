@@ -8,7 +8,9 @@ export async function requestNotifications() {
 export function showNotification(item) {
   if (!('Notification' in window) || Notification.permission !== 'granted') return false;
   try {
-    const notification = new Notification('Lume · Agenda', { body: `${item.title} · ${item.start || 'Hoje'} (${item.timeZone})`, tag: item.key });
+    // O fuso só aparece quando difere do dispositivo, em forma legível.
+    const zone = item.timeZone && item.timeZone !== Intl.DateTimeFormat().resolvedOptions().timeZone ? ` (${item.timeZone.replaceAll('_', ' ')})` : '';
+    const notification = new Notification('Lume · Agenda', { body: `${item.title} · ${item.start || 'Hoje'}${zone}`, tag: item.key });
     notification.onclick = () => { window.focus(); location.hash = `agenda?dia=${item.date}`; notification.close(); };
     return true;
   } catch { return false; }

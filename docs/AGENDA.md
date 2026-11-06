@@ -260,3 +260,44 @@ Arquivos da revisão: `Agenda.jsx` compõe calendário e planejamento; `Appointm
   horizontal ou erros JavaScript. Capturas do calendário e do editor foram revisadas; os testes
   usam contextos novos e a revisão local bloqueou o service worker.
 - 51 links locais da documentação conferidos, sem arquivos ausentes. Mudanças locais, sem publicação.
+
+## 10. Revisão de UI/UX — 06/11/2026
+
+Revisão aprovada pela responsável em 06/11/2026, sem mudar XP, privacidade, limites ou esquema.
+
+- **Leitura da grade:** faixas de 30 minutos mais altas (`slotMinHeight`), título em até duas linhas e horário
+  só em eventos longos; o horário completo fica no `title`. A rolagem inicial vai para perto da hora atual,
+  sem esconder o início de um compromisso de hoje.
+- **Tipos distinguíveis:** Estudo, Prova, Entrega e Pessoal têm cor própria (`--cat-*` em `agenda.css`, derivadas
+  de `--lume`, `--danger`, `--reward` e `--success`) e ícone. Os filtros servem de legenda; canceladas ficam
+  ocultas por padrão, com filtro próprio. Filtros valem só para a página aberta.
+- **Cabeçalho compacto:** título, Para agendar, sino de Lembretes (menu suspenso) e Novo compromisso numa linha;
+  navegação ‹ Hoje › agrupada; com a navegação inferior (≤ 820 px), Novo compromisso vira botão flutuante.
+  O texto de ajuda fixo saiu: a orientação aparece só com a Agenda vazia, flutuando sobre a grade.
+- **Visões:** Dia, 3 dias, Semana, Mês e Lista (plugin `list` do mesmo pacote). Toque longo de 400 ms para
+  arrastar no celular.
+- **Criação rápida:** no computador, selecionar um horário ou soltar uma tarefa abre um popover não modal junto
+  ao ponto escolhido (título, horário e Salvar). Uma nova seleção substitui o rascunho; Mais opções abre o
+  painel completo com os dados preenchidos. No celular continua o painel inferior.
+- **Horários em 24 h:** início e fim são listas de 15 minutos, independentes do idioma do navegador; o fim
+  mostra a duração, e mudar o início preserva a duração. O fuso é escolhido numa lista IANA.
+- **Repetição:** semanal por dias da semana e término por número de ocorrências ou por data final
+  (`occurrenceDates`), ainda limitada a 52 ocorrências e só na criação. Os dias escolhidos não são gravados:
+  a série continua sendo ocorrências explícitas.
+- **Excluir e desfazer:** `deleteAppointment` remove o horário (esta ocorrência ou esta e as futuras pendentes),
+  sem apagar as tarefas do checklist, que voltam a Para agendar. Mover por arrasto e excluir mostram aviso
+  com Desfazer por 8 s (`restoreAppointments`, mesma revisão otimista e gravação em batch).
+- **Detalhes:** Editar e Excluir à vista; Encerrar, Cancelar e Mover pendências ficam em Mais ações, cada um
+  com a explicação do efeito.
+- **Movimento:** tokens `--ease-out`, `--ease-spring`, `--dur-fast` e `--dur-base`. Painéis entram deslizando
+  (`@starting-style`), o popover cresce a partir do horário, o bloco salvo ou movido assenta uma vez (Web
+  Animations, sem redesenhar eventos), o período desliza alguns pixels na direção da navegação, o seletor de
+  visão desliza (`motion`), o check do checklist é desenhado e a barra de progresso avança, com brilho único
+  ao completar. Nada repete em ciclo; encerrar atividade não tem celebração, porque não é conclusão de estudo.
+- **Cuidados técnicos:** o FullCalendar guarda a posição da grade; nada acima dela pode mudar de altura depois
+  de montada (o aviso de Agenda vazia e os Lembretes flutuam), senão arrastos usam coordenadas antigas.
+  O aviso em saída não intercepta cliques.
+
+Pendente: horário habitual de estudo destacado na grade (`businessHours`) depende de uma configuração de
+janelas de disponibilidade, que a decisão 5 da seção 4 deixou fora desta versão. Um compromisso sem
+horário continua contando como sobreposição com tudo do mesmo dia (regra do domínio, não alterada).
