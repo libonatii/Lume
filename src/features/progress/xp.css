@@ -154,9 +154,9 @@
   color: var(--text-subtle);
   text-align: center;
 }
-.ranking-position.top-1 { color: #f7cf62; }
-.ranking-position.top-2 { color: #c9d6ea; }
-.ranking-position.top-3 { color: #d19a6a; }
+.ranking-position.top-1 { color: var(--medal-1); }
+.ranking-position.top-2 { color: var(--medal-2); }
+.ranking-position.top-3 { color: var(--medal-3); }
 .ranking-avatar {
   width: 2.3rem;
   height: 2.3rem;

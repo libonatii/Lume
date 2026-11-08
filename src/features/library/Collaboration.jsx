@@ -74,7 +74,7 @@ export function CollaborationPanel({ course, account, notify }) {
     {friends.length === 0
       ? <p className="inline-note"><Icon name="users"/><span>Convide alguém na página Amigos para poder colaborar.</span></p>
       : <form className="form-stack" onSubmit={send}>
-        <div className="field-row">
+        <div className="form-grid">
           <label className="field">Amizade
             <select value={friendId} onChange={(event) => setFriendId(event.target.value)} required>
               <option value="">Escolha uma pessoa</option>

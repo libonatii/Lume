@@ -38,30 +38,6 @@
   display: none;
 }
 
-.nav-planned {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--border);
-}
-.nav-section {
-  padding: 0 0.85rem 0.25rem;
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text-subtle);
-}
-.nav-link.planned {
-  opacity: 0.62;
-  cursor: default;
-  justify-content: space-between;
-}
-.nav-link.planned .nav-label {
-  margin-right: auto;
-}
-
 .install-app {
   display: flex;
   align-items: center;
@@ -187,16 +163,6 @@
   max-width: 1360px;
   width: 100%;
   margin: 0 auto;
-}
-.page-footer {
-  padding: 1.1rem clamp(1.1rem, 3vw, 2.5rem);
-  border-top: 1px solid var(--border);
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-  font-size: 0.82rem;
-  color: var(--text-subtle);
 }
 
 /* Cabeçalhos de Página */

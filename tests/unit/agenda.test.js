@@ -219,6 +219,10 @@ test('calendário conserva instantes, fuso, virada do dia e data civil sem horá
     date: item.date, endDate: item.endDate, start: item.start, end: item.end, timeZone: item.timeZone,
   });
   assert.deepEqual(calendarPatch({ allDay: true, startStr: '2026-11-12' }, item.timeZone), { date: '2026-11-12', endDate: '2026-11-12', start: '', end: '', timeZone: item.timeZone });
+  // Arrastar no mês escolhe só o dia: o horário de um bloco com hora é removido.
+  assert.deepEqual(calendarPatch({ ...event, startStr: '2026-11-18T14:00:00' }, item.timeZone, { month: true }), {
+    date: '2026-11-18', endDate: '2026-11-18', start: '', end: '', timeZone: item.timeZone,
+  });
   const allDay = calendarEvent({ ...item, date: '2026-11-12', endDate: '2026-11-12', start: '', end: '' }, []);
   assert.equal(allDay.start, '2026-11-12');
   assert.equal(allDay.end, '2026-11-13');

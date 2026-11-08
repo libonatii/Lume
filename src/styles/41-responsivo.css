@@ -3,14 +3,11 @@
 /* Responsividade (Tablet e Mobile) */
 @media (max-width: 1080px) {
   .auth-layout,
-  .hero-bento,
   .library-grid,
-  .Split-bento,
   .settings-layout {
     grid-template-columns: 1fr;
   }
   .rhythm-grid,
-  .metrics-bento,
   .achievement-grid,
   .history-stats,
   .social-preview-grid {
@@ -39,7 +36,6 @@
     align-items: center;
   }
   .sidebar .brand,
-  .sidebar .nav-planned,
   .sidebar .install-app,
   .sidebar .player-card {
     display: none;
@@ -67,21 +63,12 @@
     justify-content: flex-end;
   }
   .rhythm-grid,
-  .metrics-bento,
   .course-grid,
   .achievement-grid,
   .history-stats,
   .social-preview-grid,
   .option-grid.two-col {
     grid-template-columns: 1fr;
-  }
-  .task-card {
-    grid-template-columns: 1fr;
-    align-items: flex-start;
-  }
-  .task-cover {
-    width: 100%;
-    height: 120px;
   }
   .toast-region {
     bottom: 5rem;

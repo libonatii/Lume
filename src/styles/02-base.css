@@ -31,7 +31,7 @@
   border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--bg) 55%, transparent);
   border: 1px solid rgba(158, 198, 255, 0.22);
-  color: #cfe4ff;
+  color: var(--text);
   backdrop-filter: blur(8px);
   width: fit-content;
 }
@@ -84,6 +84,7 @@ html[data-theme='light'] .glow {
   align-items: center;
   justify-content: center;
   gap: 0.55rem;
+  min-height: 2.75rem;
   padding: 0.72rem 1.2rem;
   font-size: 0.94rem;
   border: 1px solid transparent;
@@ -92,6 +93,7 @@ html[data-theme='light'] .glow {
   white-space: nowrap;
 }
 .button.large {
+  min-height: 3rem;
   padding: 0.88rem 1.4rem;
   font-size: 1rem;
 }
@@ -105,6 +107,76 @@ html[data-theme='light'] .glow {
 }
 .full-width {
   width: 100%;
+}
+
+/* Mensagens de validação e falha usam sempre o mesmo bloco. */
+.form-error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
+  color: var(--danger);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+.form-error p {
+  margin: 0;
+}
+.form-error-block {
+  flex-wrap: wrap;
+}
+.form-error-block .button {
+  margin-top: var(--space-2);
+}
+.form-error-block .text-button {
+  margin-top: var(--space-1);
+}
+.page-alert {
+  margin-bottom: var(--space-4);
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: var(--space-3);
+  align-items: start;
+}
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.42rem;
+  min-width: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+/* Rótulo e ação na mesma linha (ex.: "Senha" e "Esqueci minha senha"). */
+.field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.field input, .field select, .field textarea, .auth-input {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.75rem 0.95rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 450;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+.field input:focus, .field select:focus, .field textarea:focus, .auth-input:focus {
+  outline: none;
 }
 
 .chip-button {
@@ -132,15 +204,26 @@ html[data-theme='light'] .glow {
   gap: 0.4rem;
   background: none;
   border: none;
-  padding: 0.25rem 0;
   color: var(--text-muted);
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
-  transition: color 0.16s ease;
+  transition: color 0.16s ease, background-color 0.16s ease;
+}
+.text-button {
+  min-height: 2.25rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: var(--radius-md);
 }
 .text-button:hover, .text-link:hover, .text-button.accent, .text-link {
   color: var(--lume);
+}
+.text-button:hover {
+  background: color-mix(in srgb, var(--lume) 10%, transparent);
+}
+.text-button.danger:hover {
+  color: var(--danger);
+  background: var(--danger-soft);
 }
 .centered {
   justify-content: center;

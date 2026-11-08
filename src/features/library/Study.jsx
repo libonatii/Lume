@@ -70,13 +70,15 @@ export function Home({ state, open, go, planActions, progressActions, notify, ac
         {agenda.overdue > 0 && <p className="inline-note todo-overdue-note" role="status"><Icon name="flag"/><span>{overdueMessage(agenda.overdue)}</span></p>}
         {agenda.next.length
           ? <ul className="today-task-list">{agenda.next.map((task) => <li key={task.id} className="todo-item">
-            <button type="button" role="checkbox" aria-checked="false" aria-label={`Concluir tarefa ${task.title}`} className="todo-check" onClick={() => {
-              const now = new Date().toISOString();
-              const result = planActions.completeTask(task.id, now);
-              if (!result?.added) return;
-              notify(`Tarefa concluída: ${task.title}.`);
-            }}><Icon name="plus"/></button>
-            <span className="todo-copy"><strong>{task.title}</strong><small className="todo-meta">{taskMeta(task)}</small></span>
+            <div className="todo-main">
+              <button type="button" role="checkbox" aria-checked="false" aria-label={`Concluir tarefa ${task.title}`} className="todo-check" onClick={() => {
+                const now = new Date().toISOString();
+                const result = planActions.completeTask(task.id, now);
+                if (!result?.added) return;
+                notify(`Tarefa concluída: ${task.title}.`);
+              }}><Icon name="plus"/></button>
+              <span className="todo-copy"><strong>{task.title}</strong><small className="todo-meta">{taskMeta(task)}</small></span>
+            </div>
           </li>)}</ul>
           : <p className="muted-text">Sem tarefas pendentes. Defina a próxima ação concreta da sua preparação em Tarefas.</p>}
         {agenda.pending > agenda.next.length && <p className="quiet-note">Mais {agenda.pending - agenda.next.length} na lista.</p>}

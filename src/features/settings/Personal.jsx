@@ -50,7 +50,7 @@ export function Achievements({ state, account, xp }) {
           </Ring>
         </div>
       </section>
-      {validated && !validated.length && <Empty title="Sua vitrine personalizada começa na primeira conclusão.">Concluir um curso, uma leitura, uma lista de exercícios ou uma apresentação cria uma memória com o nome do material.</Empty>}
+      {validated && !validated.length && <Empty icon="trophy" title="Sua vitrine personalizada começa na primeira conclusão.">Concluir um curso, uma leitura, uma lista de exercícios ou uma apresentação cria uma memória com o nome do material.</Empty>}
       <div className="achievement-grid">
         {all.map((item, index) => {
           const card = <article className={`achievement-card ${item.unlocked ? 'unlocked' : ''}`}>
@@ -76,7 +76,7 @@ export function Achievements({ state, account, xp }) {
         <p className="quiet-note">Estes seis selos contam ações do modelo antigo e não entram no ranking nem no nível novo. Eles permanecem para não apagar a memória do que já existia.</p>
         <ul className="legacy-seal-list">{legacy.map((item) => <li key={item.id} className={item.unlocked ? 'is-unlocked' : ''}><Icon name={item.icon}/><span>{item.title}</span><strong>{item.current}/{item.target}</strong></li>)}</ul>
       </details>}
-    </> : <Empty title="Um caminho sem pontuação.">Você ocultou os indicadores. Seu histórico continua guardado.</Empty>}
+    </> : <Empty icon="history" title="Um caminho sem pontuação.">Você ocultou os indicadores. Seu histórico continua guardado.</Empty>}
   </div>;
 }
 
@@ -154,7 +154,7 @@ export function History({ state, account, xp, refreshXP, notify }) {
             <p className="quiet-note">A correção não apaga o evento original: cria um ajuste negativo com motivo no extrato e revoga a conquista vinculada. O bônus de um curso não é revogado automaticamente ao corrigir uma aula.</p>
           </form>}
         </li>)}</ul>
-        : <Empty title={xp ? 'Nenhum evento elegível ainda.' : 'Sincronizando seu XP…'}>Concluir uma aula, uma leitura, uma lista de exercícios, uma apresentação ou uma entrega cria o primeiro evento. Abrir ou preparar o material não concede XP.</Empty>}
+        : <Empty icon="spark" title={xp ? 'Nenhum evento elegível ainda.' : 'Sincronizando seu XP…'}>Concluir uma aula, uma leitura, uma lista de exercícios, uma apresentação ou uma entrega cria o primeiro evento. Abrir ou preparar o material não concede XP.</Empty>}
     </section>}
 
     {(state.studySessions || []).length > 0 && <section className="session-history" aria-labelledby="session-history-title">
@@ -172,7 +172,7 @@ export function History({ state, account, xp, refreshXP, notify }) {
       </ul>
     </section>}
 
-    {steps.length ? <section className="history-list" aria-label="Histórico de passos">
+    {steps.length > 0 && <section className="history-list" aria-label="Histórico de passos">
       {[...steps].reverse().map((entry, index) => <motion.article className="history-entry" key={entry.id} {...stagger(index)}>
         <span className={`history-dot ${entry.type === 'preparation' ? 'prep' : 'done'}`}><Icon name={entry.type === 'preparation' ? 'sprout' : 'check'}/></span>
         <div className="history-copy">
@@ -185,7 +185,7 @@ export function History({ state, account, xp, refreshXP, notify }) {
           {state.preferences.gamification && account && entry.type === 'completion' && entry.origin !== 'legacy' && <span className="xp-pill tone-muted">XP elegível no extrato</span>}
         </div>
       </motion.article>)}
-    </section> : <Empty title="Sua história começa com um passo.">Quando você registrar uma etapa, ela aparece aqui.</Empty>}
+    </section>}
 
     {legacy > 0 && <details className="legacy-details">
       <summary>Saldo legado: {legacy} XP (fora do nível e do ranking)</summary>
@@ -264,6 +264,7 @@ export function Preferences({ state, actions, libraryActions, notify, onPersonal
       Aparência, ritmo, privacidade, ranking e mensagens.
     </Heading>
     <div className="settings-layout">
+      <div className="settings-column">
       <section className="card-surface settings-panel" aria-labelledby="appearance-title">
         <div className="panel-title"><span className="pace-icon"><Icon name="sun"/></span><div><h2 className="title" id="appearance-title">Aparência</h2><p className="muted-text">Paleta de cores, tema e tamanho do texto. A escolha fica salva na sua conta.</p></div></div>
         <fieldset className="palette-options">
@@ -294,7 +295,6 @@ export function Preferences({ state, actions, libraryActions, notify, onPersonal
         </label>
       </section>
 
-      <div className="settings-column">
         <section className="card-surface settings-panel">
           <div className="panel-title"><span className="pace-icon"><Icon name="sprout"/></span><div><h2 className="title">Seu momento</h2><p className="muted-text">{studyRhythm(state).title}</p></div></div>
           <Button secondary onClick={onPersonalize}>Revisar perguntas iniciais<Icon name="arrow"/></Button>
@@ -309,7 +309,7 @@ export function Preferences({ state, actions, libraryActions, notify, onPersonal
           <ul className="legacy-review-list">
             {legacyCourses.map((course) => <li key={course.id}>
               <strong>{course.title}</strong>
-              <div className="field-row">
+              <div className="form-grid">
                 <label className="field">Tipo
                   <select value={course.type || 'lesson'} onChange={(event) => classifyCourse(course.id, { type: event.target.value })}>
                     {STUDY_TYPES.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
@@ -350,7 +350,9 @@ export function Preferences({ state, actions, libraryActions, notify, onPersonal
             </>
             : <p className="inline-note"><Icon name="lock"/><span>Mensagens exigem conta e amizade aceita.</span></p>}
         </section>
+      </div>
 
+      <div className="settings-column">
         <section className="card-surface settings-panel" aria-labelledby="notifications-title">
           <div className="panel-title"><span className="pace-icon"><Icon name="mail"/></span><div><h2 className="title" id="notifications-title">Outros lembretes</h2><p className="muted-text">Lembretes de pausa, e-mail e notificações nativas ainda não existem. Não há um controle que finja um envio que não acontece.</p></div></div>
           <p className="quiet-note">Quando existirem, os lembretes serão opcionais e não concederão XP.</p>

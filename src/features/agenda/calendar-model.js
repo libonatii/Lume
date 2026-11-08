@@ -8,8 +8,12 @@ export function wallParts(instant, timeZone) {
   const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(instant).map(({ type, value }) => [type, value]));
   return { date: `${parts.year}-${parts.month}-${parts.day}`, time: `${parts.hour}:${parts.minute}` };
 }
-export function calendarPatch(event, timeZone = browserZone()) {
-  if (event.allDay) return { date: event.startStr.slice(0, 10), endDate: event.startStr.slice(0, 10), start: '', end: '', timeZone };
+export function calendarPatch(event, timeZone = browserZone(), { month = false } = {}) {
+  // No mês a posição indica só o dia: mover um bloco remove o horário.
+  if (month || event.allDay) {
+    const date = event.startStr.slice(0, 10);
+    return { date, endDate: date, start: '', end: '', timeZone };
+  }
   const start = wallParts(event.start, timeZone);
   const end = wallParts(event.end || new Date(event.start.getTime() + 30 * 60000), timeZone);
   return { date: start.date, start: start.time, endDate: end.date, end: end.time, timeZone };
