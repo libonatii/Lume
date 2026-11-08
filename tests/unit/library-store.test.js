@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { fileURLToPath } from 'node:url';
 import { sqliteAdapter, applyMigrations } from '../../api/adapters/sqlite.js';
-import { readLibrary, libraryStatements } from '../../api/domain/library-store.js';
+import { readLibrary, readStoredLibrary, libraryStatements } from '../../api/domain/library-store.js';
 import { applyLibraryActions } from '../../api/domain/library-actions.js';
 import { libraryActions } from '../../public/library-actions.js';
 import { addCourse, completeMission, createInitialState, restoreState } from '../../public/domain.js';
@@ -94,31 +94,22 @@ test('cargos derivam de eventos válidos, sobrevivem a pausas e respondem a corr
   assert.equal((await getXpSnapshot(db, 'u1')).titles.some((title) => title.id === 'student'), false);
 });
 
-test('recusa documento antigo sem converter nem apagar dados', async (t) => {
+test('conta com documento antigo entra com biblioteca vazia e preserva o arquivo', async (t) => {
   const { db } = fixture(t);
   const old = addCourse(createInitialState(), { title: 'Curso preservado', steps: ['Aula 1', 'Aula 2'] }, 'c1');
   await db.run('INSERT INTO user_state(user_id,state,revision,updated_at) VALUES (?,?,1,?)', ['u1', JSON.stringify(old), '2026-01-01']);
-  await assert.rejects(readLibrary(db, 'u1'), { code: 'library_format_unsupported' });
+  const { state } = await readLibrary(db, 'u1');
+  assert.equal(state.courses.length, 0);
   assert.equal((await db.all('SELECT * FROM units')).length, 0);
-  assert.equal((await db.all('SELECT * FROM account_documents')).length, 0);
+  assert.equal((await db.all('SELECT * FROM account_documents')).length, 1);
   assert.equal((await db.first('SELECT state FROM user_state')).state, JSON.stringify(old));
 });
 
-test('rejeição de formato antigo não inicia batch de conversão', async (t) => {
+test('leitura compartilhada de documento antigo devolve estado vazio sem erro', async (t) => {
   const { db } = fixture(t);
-  const old = addCourse(createInitialState(), { title: 'Antes', steps: ['Aula'] }, 'c1');
-  const updated = { ...old, courses: old.courses.map((course) => ({ ...course, title: 'Última gravação' })) };
+  const old = { ...addCourse(createInitialState(), { title: 'Antes', steps: ['Aula'] }, 'c1'), version: 2 };
   await db.run('INSERT INTO user_state(user_id,state,revision,updated_at) VALUES (?,?,1,?)', ['u1', JSON.stringify(old), '2026-01-01']);
-  let raced = false;
-  const racingDb = { ...db, async batch(statements) {
-    if (!raced) {
-      raced = true;
-      await db.run('UPDATE user_state SET state=?,revision=2 WHERE user_id=?', [JSON.stringify(updated), 'u1']);
-    }
-    return db.batch(statements);
-  } };
-  await assert.rejects(readLibrary(racingDb, 'u1'), { code: 'library_format_unsupported' });
-  assert.equal(raced, false);
+  assert.equal((await readStoredLibrary(db, 'u1')).state, null);
 });
 
 test('vínculo histórico inconsistente é preservado sem bloquear edição do material', async (t) => {

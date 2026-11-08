@@ -34,8 +34,8 @@ Telas React → ações nomeadas → useLibraryPersistence → /api/library/acti
   revisão otimista e idempotência. Falha permite repetir o mesmo id; conflito exige recarga.
   Requisições em andamento são serializadas somente em memória.
 - `0012_library.sql` persiste materiais, unidades, progresso, tarefas, sessões e preferências.
-  Não há migração de dados: documentos antigos permanecem no banco e recebem erro explícito
-  `library_format_unsupported`. Escritas legadas sobre bibliotecas novas recebem `client_outdated`. Não há IndexedDB, fila offline ou reconciliação
+  Não há migração de dados: documentos antigos permanecem no banco como arquivo (`user_state`) e a conta
+  entra com uma biblioteca nova e vazia. Escritas legadas sobre bibliotecas novas recebem `client_outdated`. Não há IndexedDB, fila offline ou reconciliação
   de documentos no navegador. A prévia dura somente enquanto a página está aberta.
 - `material-model.js` define materiais com `units` no domínio, transporte v3 e banco.
   `materialSteps`, `materialStructure` e `materialLesson` são visualizações derivadas:
