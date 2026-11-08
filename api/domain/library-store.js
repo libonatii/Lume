@@ -61,8 +61,9 @@ export function libraryStatements(userId, previous, next) {
 
 export async function ensureLibrary(db, userId) {
   if (await db.first('SELECT user_id FROM account_documents WHERE user_id=?', [userId])) return;
-  const old = await db.first('SELECT state,revision FROM user_state WHERE user_id=?', [userId]);
-  if (old?.state) throw new AppError('Esta conta possui dados em formato antigo. Os dados foram preservados; a migração não está disponível.', 'library_format_unsupported', 409);
+  // Conta com documento antigo entra com biblioteca vazia: o conteúdo antigo não
+  // é convertido, mas a linha de user_state permanece intacta como arquivo.
+  const old = await db.first('SELECT revision FROM user_state WHERE user_id=?', [userId]);
   const state = createInitialState();
   const statements = [
     ['INSERT INTO library_write_guards (user_id,valid) VALUES (?,CASE WHEN COALESCE((SELECT revision FROM user_state WHERE user_id=?),0)=? THEN 1 ELSE 0 END)', [userId, userId, old?.revision || 0]],
@@ -87,7 +88,7 @@ export async function readStoredLibrary(db, userId) {
   const row = await db.first('SELECT state,revision,updated_at FROM user_state WHERE user_id=?', [userId]);
   if (!row?.state) return { state: null, revision: 0, updatedAt: null };
   const state = JSON.parse(row.state);
-  if (state.version !== STATE_VERSION) throw new AppError('Formato de biblioteca incompatível. Os dados existentes foram preservados.', 'library_format_unsupported', 409);
+  if (state.version !== STATE_VERSION) return { state: null, revision: 0, updatedAt: null };
   return { state: restoreState(state), revision: row.revision, updatedAt: row.updated_at };
 }
 
