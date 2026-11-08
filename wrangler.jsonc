@@ -23,16 +23,13 @@
     }
   ],
 
-  // O bucket R2 ainda não está habilitado nesta conta Cloudflare. Sem o
-  // binding, uploads de avatar/capa/slide respondem 503 e o restante do site
-  // funciona. Depois de habilitar R2 no painel e criar `lume-media`, descomente
-  // este bloco e rode o deploy novamente.
-  // "r2_buckets": [
-  //   {
-  //     "binding": "MEDIA",
-  //     "bucket_name": "lume-media"
-  //   }
-  // ],
+  // Imagens de avatar, capa e slides. Sem o binding, os uploads respondem 503.
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "lume-media"
+    }
+  ],
 
   "vars": {
     // Em produção o link de recuperação não volta na resposta da API: ele vai
