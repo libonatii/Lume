@@ -69,7 +69,7 @@ test('cronograma distribui aulas, explica conflito, recalcula após conclusão e
   expect(saved.progress.some((event) => event.legacyXp)).toBe(false);
 });
 
-test('tarefa vinculada conclui a aula uma vez; subtarefas e reabertura não geram XP', async ({ page }) => {
+test('tarefa vinculada conclui a aula uma vez; subtarefa vale 10 XP uma vez e reabertura não repete', async ({ page }) => {
   await seedAccount(page, seeded());
 
   await page.goto('/#tarefas');
@@ -99,13 +99,13 @@ test('tarefa vinculada conclui a aula uma vez; subtarefas e reabertura não gera
   const completed = await readAccount(page);
   expect(completed.progress.filter((event) => !event.revertedAt)).toHaveLength(1);
   const xp = async () => (await (await page.request.get('/api/xp', { headers: { origin: 'http://127.0.0.1:4187' } })).json()).summary.totalXP;
-  expect(await xp()).toBe(100);
+  expect(await xp()).toBe(110);
   await page.getByRole('checkbox', { name: 'Reabrir tarefa Revisar Aula 1 com questões' }).click();
   await expect(page.getByRole('checkbox', { name: 'Concluir tarefa Revisar Aula 1 com questões' })).not.toBeChecked();
   await page.getByRole('checkbox', { name: 'Concluir tarefa Revisar Aula 1 com questões' }).click();
   await expect(page.getByRole('checkbox', { name: 'Reabrir tarefa Revisar Aula 1 com questões' })).toBeChecked();
   await readAccount(page);
-  expect(await xp()).toBe(100);
+  expect(await xp()).toBe(110);
   await page.goto('/#perfil');
   await expect(page.getByRole('region', { name: 'Cargos de estudo' })).toContainText('Iniciante');
   await expect(page.getByRole('region', { name: 'Cargos de estudo' })).toContainText('Todas as funcionalidades');

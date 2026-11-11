@@ -2,17 +2,19 @@ import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import Atropos from 'atropos/react';
 import { studyRhythm, hasPreparation, courseProgress, courseStatus, materialType } from '../../../public/domain.js';
-import { materialSteps } from '../../../public/material-model.js';
+import { materialLesson, materialSteps } from '../../../public/material-model.js';
 import { nextAction } from '../../../public/study-plan.js';
-import { isOverdue, priorityLabel, taskAgenda } from '../../../public/tasks-domain.js';
+import { focusedTask, isOverdue, priorityLabel, taskAgenda } from '../../../public/tasks-domain.js';
 import { XP_KIND_LABELS, levelProgress } from '../../../public/xp-policy.js';
 import { overdueMessage } from '../plan/Tasks.jsx';
 import { courseSummary, isImportedCourse, sourceLabel } from '../../../public/import-domain.js';
 import { slidePositionLabel, slidesSummary } from '../../../public/slides-domain.js';
 import StudySession from '../progress/StudySession.jsx';
 import Icon from '../../ui/Icon.jsx';
-import { Button, Cover, Empty, Heading, Progress, ease, enter } from '../../ui/ui.jsx';
+import { Button, Cover, Empty, Heading, Progress, Skeleton, ease, enter } from '../../ui/ui.jsx';
 import { isCompleted } from '../../../public/progress-domain.js';
+import { materialStanding, subjectOf } from '../../../public/subject-domain.js';
+import { readingLabel } from '../../../public/pdf-domain.js';
 
 export function Home({ state, open, go, planActions, progressActions, notify, account, xp }) {
   const action = nextAction(state);
@@ -21,18 +23,70 @@ export function Home({ state, open, go, planActions, progressActions, notify, ac
   const unit = action?.imported ? 'aula' : 'etapa';
   const prepare = action && !action.imported && plan.prepareFirst && !hasPreparation(state, action.lessonId);
   const course = action ? state.courses.find((item) => item.id === action.courseId) : null;
+  const focus = focusedTask(state);
+  const focusCourse = focus?.courseId ? state.courses.find((item) => item.id === focus.courseId) : null;
+  const focusLesson = focusCourse && focus.lessonId ? materialLesson(focusCourse, focus.lessonId) : null;
+  function completeTask(task) {
+    const now = new Date().toISOString();
+    const result = planActions.completeTask(task.id, now);
+    if (!result?.added) return;
+    notify(`Tarefa concluída: ${task.title}.${task.lessonId ? ' A conclusão da aula vinculada foi registrada.' : ''}`);
+  }
+  function toggleFocus(task) {
+    if (focus?.id === task.id) {
+      if (planActions.clearTaskFocus()) notify(`${task.title} saiu do foco. A Hoje volta a sugerir pelo roteiro.`);
+      return;
+    }
+    if (planActions.focusTask(task.id)) notify(`Foco agora: ${task.title}.`);
+  }
   return <div className="study-root today-root">
     <Heading
       eyebrow="Visão diária"
       title="Hoje"
       actions={<button className="chip-button" onClick={() => go('inicio')}><Icon name="settings"/>Ritmo: {plan.title}</button>}
-    >{action
-      ? <>Sua próxima {unit} é <strong>{action.title}</strong>. Reserve {action.minutes} minutos para avançar.</>
-      : 'Adicione um curso ou material à biblioteca para receber a próxima ação.'}</Heading>
+    >{focus
+      ? <>Seu foco agora é <strong>{focus.title}</strong>, escolhido por você.</>
+      : action?.pdf
+        ? <>Continue <strong>{action.courseTitle}</strong> na página {action.pdf.page}. Reserve {action.minutes} minutos para avançar.</>
+      : action
+        ? <>Sua próxima {unit} é <strong>{action.title}</strong>. Reserve {action.minutes} minutos para avançar.</>
+        : 'Adicione um curso ou material à biblioteca para receber a próxima ação.'}</Heading>
 
     <div className="today-bento">
-    <section className="card-surface next-action" aria-labelledby="next-title">
-      {action ? <>
+    <section className={`card-surface next-action ${focus ? 'is-focus' : ''}`} aria-labelledby="next-title">
+      {focus ? <>
+        <span className="pill"><Icon name="focus"/>Foco agora · escolhido por você</span>
+        <h2 id="next-title" className="headline">{focus.title}</h2>
+        <dl className="next-facts">
+          <div><dt>Prazo e prioridade</dt><dd>{taskMeta(focus)}</dd></div>
+          <div><dt>Vínculo</dt><dd>{focusCourse
+            ? <>{focusCourse.title}{focusLesson ? <span className="fact-source"> · {focusLesson.title}</span> : null}</>
+            : 'Sem curso vinculado. Estude pelo seu material e conclua a tarefa ao terminar.'}</dd></div>
+          {focus.subtasks?.length > 0 && <div><dt>Subtarefas</dt><dd>{focus.subtasks.filter((item) => item.done).length} de {focus.subtasks.length} feitas</dd></div>}
+          {action && <div><dt>Roteiro</dt><dd>Próxima {unit}: {action.title} <span className="fact-source">· {action.courseTitle}</span></dd></div>}
+        </dl>
+        <div className="action-row">
+          {focusLesson && <Button onClick={() => open({ type: 'session', id: focusCourse.id, stepId: focusLesson.id })}><Icon name="play"/>Abrir a aula</Button>}
+          <Button secondary={Boolean(focusLesson)} onClick={() => completeTask(focus)}><Icon name="check"/>Concluir tarefa</Button>
+          <Button ghost onClick={() => toggleFocus(focus)}>Tirar do foco</Button>
+        </div>
+        <p className="quiet-note">Focar organiza a Hoje e dá nome à sessão de estudo; não conclui nada nem gera XP.{focus.lessonId ? ' Concluir a tarefa conclui a aula vinculada.' : ''}</p>
+      </> : action?.pdf ? <>
+        <span className="pill"><Icon name="focus"/>Próxima ação · PDF{subjectOf(state, course) ? ` · ${subjectOf(state, course).title}` : ''}</span>
+        <h2 id="next-title" className="headline">{action.pdf.started ? `Continuar ${action.courseTitle} na página ${action.pdf.page}` : `Começar ${action.courseTitle}`}</h2>
+        {action.pdf.section && <p className="muted-text">{action.pdf.section}</p>}
+        <dl className="next-facts">
+          <div><dt>Por que agora</dt><dd><strong>{action.reason.label}.</strong> {action.reason.detail}</dd></div>
+          <div><dt>Reserve</dt><dd><strong>{action.minutes} min</strong> <span className="fact-source">estimativa</span></dd></div>
+          <div><dt>Onde parou</dt><dd>{action.pdf.started ? readingLabel(course.reading, action.pdf.pages) : `${action.pdf.pages} páginas, ainda não aberto`}</dd></div>
+        </dl>
+        <Progress value={materialStanding(state, course).percent} max={100} tone="lume" label={`Avanço em ${action.courseTitle}`}/>
+        <div className="action-row">
+          <Button onClick={() => open({ type: 'pdf', id: action.courseId })}><Icon name="book"/>{action.pdf.started ? `Continuar na p. ${action.pdf.page}` : 'Abrir no leitor'}</Button>
+          <Button ghost onClick={() => open({ type: 'course', id: action.courseId })}>Ver o material<Icon name="arrow"/></Button>
+        </div>
+        <p className="quiet-note">A página fica salva ao virar. O XP vem ao concluir a leitura do PDF inteiro.</p>
+      </> : action ? <>
         <span className="pill"><Icon name="focus"/>Próxima ação · {action.courseTitle}</span>
         <h2 id="next-title" className="headline">{action.title}</h2>
         {(action.discipline || action.module) && <p className="muted-text">{[action.discipline, action.module].filter(Boolean).join(' · ')}</p>}
@@ -61,7 +115,9 @@ export function Home({ state, open, go, planActions, progressActions, notify, ac
       </>}
     </section>
 
-    <StudySession active={state.activeSession} actions={progressActions} mission={action ? { course: { id: action.courseId }, step: { id: action.lessonId, title: action.title } } : null} notify={notify} account={account}/>
+    <StudySession active={state.activeSession} actions={progressActions} mission={focus
+      ? { course: { id: focus.courseId || '' }, step: { id: focus.lessonId || '', title: focus.title } }
+      : action ? { course: { id: action.courseId }, step: { id: action.lessonId, title: action.title } } : null} notify={notify} account={account}/>
     </div>
 
     <div className="today-grid">
@@ -69,16 +125,10 @@ export function Home({ state, open, go, planActions, progressActions, notify, ac
         <div className="card-heading"><div><span className="card-icon"><Icon name="list"/></span><h2 id="today-tasks-title" className="title">Tarefas</h2></div><a className="text-link" href="#tarefas">Abrir lista<Icon name="arrow"/></a></div>
         {agenda.overdue > 0 && <p className="inline-note todo-overdue-note" role="status"><Icon name="flag"/><span>{overdueMessage(agenda.overdue)}</span></p>}
         {agenda.next.length
-          ? <ul className="today-task-list">{agenda.next.map((task) => <li key={task.id} className="todo-item">
-            <div className="todo-main">
-              <button type="button" role="checkbox" aria-checked="false" aria-label={`Concluir tarefa ${task.title}`} className="todo-check" onClick={() => {
-                const now = new Date().toISOString();
-                const result = planActions.completeTask(task.id, now);
-                if (!result?.added) return;
-                notify(`Tarefa concluída: ${task.title}.`);
-              }}><Icon name="plus"/></button>
-              <span className="todo-copy"><strong>{task.title}</strong><small className="todo-meta">{taskMeta(task)}</small></span>
-            </div>
+          ? <ul className="today-task-list">{agenda.next.map((task) => <li key={task.id} className={`todo-item ${focus?.id === task.id ? 'is-focus' : ''}`}>
+            <button type="button" aria-pressed={focus?.id === task.id} title={focus?.id === task.id ? 'Tirar do foco' : 'Focar na Hoje'} aria-label={focus?.id === task.id ? `Tirar ${task.title} do foco` : `Focar em ${task.title} na Hoje`} className="todo-focus" onClick={() => toggleFocus(task)}><Icon name="focus"/></button>
+            <span className="todo-copy"><strong>{task.title}</strong><small className="todo-meta">{focus?.id === task.id ? 'Em foco · ' : ''}{taskMeta(task)}</small></span>
+            <button type="button" role="checkbox" aria-checked="false" title="Concluir" aria-label={`Concluir tarefa ${task.title}`} className="todo-check today-task-done" onClick={() => completeTask(task)}><Icon name="check"/></button>
           </li>)}</ul>
           : <p className="muted-text">Sem tarefas pendentes. Defina a próxima ação concreta da sua preparação em Tarefas.</p>}
         {agenda.pending > agenda.next.length && <p className="quiet-note">Mais {agenda.pending - agenda.next.length} na lista.</p>}
@@ -134,7 +184,7 @@ function Evolution({ state, account, xp }) {
           ? <p className="muted-text">Última recompensa: <strong>+{last.xp} XP</strong> · {XP_KIND_LABELS[last.kind] || 'Evento'}{last.stepTitle || last.materialTitle ? ` · ${last.stepTitle || last.materialTitle}` : ''}</p>
           : <p className="muted-text">Conclua uma aula, leitura ou entrega para receber o primeiro XP validado.</p>}
         {achievement && <p className="muted-text">Conquista mais recente: <strong>{achievement.title}</strong></p>}
-      </> : <p className="muted-text">Carregando XP confirmado pelo servidor…</p>)
+      </> : <Skeleton label="Carregando XP confirmado pelo servidor…" rows={2} variant="text"/>)
       : <p className="muted-text">A prévia é temporária e não gera XP validado. Entre na conta para salvar o progresso, o nível e as conquistas.</p>}
   </section>;
 }
@@ -170,19 +220,24 @@ export function CourseCard({ course, state, open }) {
   const summary = imported ? courseSummary(state, course) : null;
   const scope = imported ? `${summary.done} de ${summary.total} aulas` : `${progress.done} de ${progress.total} etapas`;
   const deck = slidesSummary(course);
-  return <div className="course-card-wrap"><motion.button {...enter} whileHover={{ y: -4 }} whileTap={{ scale: .99 }} className={`course-card ${state.selectedCourseId === course.id ? 'selected-course' : ''}`} onClick={() => open({ type: 'course', id: course.id })} aria-label={`${course.title}, ${statuses[status]}, ${scope}`}>
+  const reading = course.pdf ? materialStanding(state, course) : null;
+  const subject = subjectOf(state, course);
+  const shownScope = reading ? reading.label : scope;
+  const percent = reading ? reading.percent : progress.percent;
+  return <div className="course-card-wrap"><motion.button {...enter} whileHover={{ y: -4 }} whileTap={{ scale: .99 }} className={`course-card ${state.selectedCourseId === course.id ? 'selected-course' : ''}`} onClick={() => open({ type: 'course', id: course.id })} aria-label={`${course.title}, ${statuses[status]}, ${shownScope}`}>
     <div className="course-image">
       <Cover art={art}/>
       <span className={`course-status status-${status}`}>{statuses[status]}</span>
       {imported && <span className="course-source-chip">{sourceLabel(course.source)}</span>}
+      {course.pdf && <span className="course-source-chip"><Icon name="book"/>PDF · {course.pdf.pages} p.</span>}
       {deck.total > 0 && <span className="course-slide-chip"><Icon name="book"/>{deck.total} slides</span>}
       {course.resumeAt && <span className="course-resume-chip"><Icon name="return"/>{course.resumeAt}</span>}
     </div>
     <div className="course-card-body">
       <h3 className="title">{course.title}</h3>
-      <p className="course-description">{materialType(course.type).title}{imported ? ` · ${sourceLabel(course.source)}` : ''}{course.example ? ' · Exemplo' : ''}{imported && summary.partial ? ' · grade parcial' : ''}</p>
-      <div className="course-progress-label"><span>{scope}</span><strong>{progress.percent}%</strong></div>
-      <Progress value={progress.percent} tone={status === 'completed' ? 'mint' : 'lume'} label={`Progresso de ${course.title}`}/>
+      <p className="course-description">{materialType(course.type).title}{subject ? ` · ${subject.title}` : ''}{imported ? ` · ${sourceLabel(course.source)}` : ''}{course.example ? ' · Exemplo' : ''}{imported && summary.partial ? ' · grade parcial' : ''}</p>
+      <div className="course-progress-label"><span>{shownScope}</span><strong>{percent}%</strong></div>
+      <Progress value={percent} tone={status === 'completed' ? 'mint' : 'lume'} label={`Progresso de ${course.title}`}/>
     </div>
   </motion.button><CourseMenu course={course} open={open}/></div>;
 }
@@ -190,7 +245,10 @@ export function CourseCard({ course, state, open }) {
 export function Library({ state, open, actions }) {
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
-  const courses = state.courses.filter(course => (filter === 'all' || courseStatus(state, course) === filter) && course.title.toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR')));
+  const [subjectFilter, setSubjectFilter] = useState('');
+  const courses = state.courses.filter(course => (filter === 'all' || courseStatus(state, course) === filter)
+    && (!subjectFilter || (subjectFilter === 'none' ? !course.subjectId : course.subjectId === subjectFilter))
+    && course.title.toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR')));
   const selected = state.courses.find(course => course.id === state.selectedCourseId) || state.courses[0];
   const action = selected && nextAction({ ...state, courses: [selected] });
   const next = action && { course: selected, step: materialSteps(selected).find((step) => step.id === action.lessonId) };
@@ -198,8 +256,8 @@ export function Library({ state, open, actions }) {
   const selectedDeck = selected ? slidesSummary(selected) : null;
 
   return <div className="library-root">
-    <Heading eyebrow="Estante viva & continuidade" title="Biblioteca" actions={<><Button secondary onClick={() => open({ type: 'manual' })}><Icon name="edit"/>Criar manualmente</Button><Button onClick={() => open({ type: 'new' })}><Icon name="plus"/>Adicionar curso</Button></>}>
-      Seus cursos, leituras e projetos, com o ponto onde cada um parou e o que falta para concluir.
+    <Heading eyebrow="Estante viva & continuidade" title="Biblioteca" actions={<><Button secondary onClick={() => open({ type: 'manual' })}><Icon name="edit"/>Criar manualmente</Button><Button secondary onClick={() => open({ type: 'pdf-attach' })}><Icon name="book"/>Anexar PDF</Button><Button onClick={() => open({ type: 'new' })}><Icon name="plus"/>Adicionar curso</Button></>}>
+      Seus cursos, PDFs, leituras e projetos, com o ponto onde cada um parou e o que falta para concluir.
     </Heading>
 
     {state.courses.length > 0 && <div className="library-toolbar">
@@ -214,6 +272,14 @@ export function Library({ state, open, actions }) {
           <span>{title} ({id === 'all' ? state.courses.length : state.courses.filter(course => courseStatus(state, course) === id).length})</span>
         </button>)}
       </div>
+      {(state.subjects || []).length > 0 && <label className="subject-filter">
+        <span className="sr-only">Filtrar por disciplina</span>
+        <select value={subjectFilter} onChange={(event) => setSubjectFilter(event.target.value)} aria-label="Filtrar por disciplina">
+          <option value="">Todas as disciplinas</option>
+          {state.subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.title}</option>)}
+          <option value="none">Sem disciplina</option>
+        </select>
+      </label>}
     </div>}
 
     {state.courses.length === 0
@@ -242,12 +308,16 @@ export function Library({ state, open, actions }) {
             </div>
           </div>
         </Atropos>
-        <Button className="full-width" onClick={() => open({ type: next ? 'session' : 'course', id: selected.id })}><Icon name={next ? 'play' : 'book'}/>{next ? 'Continuar meu próximo passo' : 'Ver detalhes da trilha'}</Button>
+        {selected.pdf
+          ? <Button className="full-width" onClick={() => open({ type: next ? 'pdf' : 'course', id: selected.id })}><Icon name="book"/>{next ? (selected.reading ? `Continuar na p. ${selected.reading.page}` : 'Abrir no leitor') : 'Ver detalhes do PDF'}</Button>
+          : <Button className="full-width" onClick={() => open({ type: next ? 'session' : 'course', id: selected.id })}><Icon name={next ? 'play' : 'book'}/>{next ? 'Continuar meu próximo passo' : 'Ver detalhes da trilha'}</Button>}
         {selectedDeck?.total > 0 && <Button secondary className="full-width" onClick={() => open({ type: 'slides', id: selected.id })}><Icon name="book"/>Abrir apresentação · <small>{slidePositionLabel(selectedDeck)}</small></Button>}
         {isImportedCourse(selected)
           ? <ImportedInspector course={selected} state={state}/>
-          : <Steps course={selected} state={state}/>}
-        <Progress value={courseProgress(state, selected).percent} tone="lume" label={`Progresso de ${selected.title}`}/>
+          : selected.pdf
+            ? <p className="quiet-note">{materialStanding(state, selected).label}{subjectOf(state, selected) ? ` · ${subjectOf(state, selected).title}` : ''}</p>
+            : <Steps course={selected} state={state}/>}
+        <Progress value={selected.pdf ? materialStanding(state, selected).percent : courseProgress(state, selected).percent} tone="lume" label={`Progresso de ${selected.title}`}/>
         <p className="quiet-note">Pausar um curso tira suas aulas do roteiro e preserva o progresso e o XP.</p>
       </aside>}
     </div>}
@@ -289,6 +359,7 @@ function FirstStudyArea({ actions, open }) {
       <Button type="submit"><Icon name="plus"/>Criar minha trilha</Button>
     </form>
     <p className="quiet-note">Já tem um link? <button className="text-button accent" type="button" onClick={() => open({ type: 'new' })}>Detectar o curso pelo link<Icon name="arrow"/></button></p>
+    <p className="quiet-note">Estuda por PDF? <button className="text-button accent" type="button" onClick={() => open({ type: 'pdf-attach' })}>Anexar um PDF, sem curso<Icon name="arrow"/></button></p>
   </section>;
 }
 

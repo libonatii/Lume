@@ -61,3 +61,40 @@ test('prioridade e atraso aparecem na lista e na Hoje e sobrevivem ao recarregam
   expect(saved.tasks.find((task) => task.id === 'plain').priority).toBe(1);
   expect(saved.progress).toEqual([]);
 });
+
+test('subtarefas são renomeadas e reordenadas pelo teclado e arrastando, sem XP', async ({ page }) => {
+  const subtasks = ['Ler aula 6', 'Ler aula 7', 'Ler aula 8'].map((title, index) => ({ id: `s${index}`, title, done: false }));
+  await seedAccount(page, { ...createInitialState(), onboarded: true, tasks: [
+    { id: 'falencia', title: 'A2 - Falência', courseId: '', dueDate: '', priority: 1, done: false, createdAt: '2026-11-01T10:00:00.000Z', completedAt: null, subtasks },
+  ] });
+  await page.goto('/#tarefas');
+
+  await page.getByRole('button', { name: 'Renomear subtarefa Ler aula 7' }).click();
+  const rename = page.getByLabel('Novo nome da subtarefa Ler aula 7');
+  await rename.fill('Ler aula 7 e fazer resumo');
+  await rename.press('Enter');
+  await expect(page.getByRole('checkbox', { name: 'Ler aula 7 e fazer resumo' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Mover subtarefa Ler aula 8', exact: true }).press('ArrowUp');
+  await expect(page.locator('.subtask-list li').first()).not.toContainText('Ler aula 8');
+  await expect(page.locator('.subtask-list li').nth(1)).toContainText('Ler aula 8');
+
+  // Arrasta "Ler aula 6" pela alça até o fim da lista.
+  await page.locator('.subtask-list').scrollIntoViewIfNeeded();
+  // Mede só depois que a animação do movimento anterior assentar.
+  await page.waitForFunction(() => [...document.querySelectorAll('.subtask-list li')].every((li) => getComputedStyle(li).transform === 'none'));
+  const handle = page.getByRole('button', { name: 'Mover subtarefa Ler aula 6', exact: true });
+  const from = await handle.boundingBox();
+  const to = await page.locator('.subtask-list li').last().boundingBox();
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(from.x + from.width / 2, to.y + to.height - 4, { steps: 15 });
+  await page.mouse.up();
+  await expect(page.locator('.subtask-list li').last()).toContainText('Ler aula 6');
+
+  const saved = await readAccount(page);
+  expect(saved.tasks[0].subtasks.map((item) => item.title)).toEqual(['Ler aula 8', 'Ler aula 7 e fazer resumo', 'Ler aula 6']);
+  expect(saved.progress).toEqual([]);
+  await page.reload();
+  await expect(page.locator('.subtask-list li').first()).toContainText('Ler aula 8');
+});

@@ -9,7 +9,7 @@ import { applyLibraryActions } from '../../api/domain/library-actions.js';
 import { libraryActions } from '../../public/library-actions.js';
 import { addCourse, completeMission, createInitialState, restoreState } from '../../public/domain.js';
 import { ensureXpSettings, getXpSnapshot, adjustEvent } from '../../api/domain/xp.js';
-import { addTask, completeTask, reopenTask } from '../../public/tasks-domain.js';
+import { addSubtask, addTask, completeTask, renameSubtask, reopenTask, toggleSubtask } from '../../public/tasks-domain.js';
 import { completeLesson, revertLessonCompletion } from '../../public/import-domain.js';
 import { normalizePayload, applyCourseImport } from '../../public/import-domain.js';
 import { writeState } from '../../api/domain/state.js';
@@ -271,4 +271,35 @@ test('batch de sessões respeita o teto diário e ignora intervalos futuros', as
   await applyLibraryActions(db, 'u1', { id: 'long', revision: current.revision, actions }, { now });
   assert.equal((await db.first('SELECT SUM(xp) AS xp FROM xp_events')).xp, 200);
   assert.equal((await db.all('SELECT * FROM xp_time_sessions')).length, 2);
+});
+
+test('subtarefa concluída vale 10 XP uma vez, com teto diário de 50', async (t) => {
+  const { db } = fixture(t);
+  await ensureXpSettings(db, 'u1', { now: Date.now() - 1000 });
+  let current = await readLibrary(db, 'u1');
+  const write = async (id, change) => {
+    current = await applyLibraryActions(db, 'u1', { id, revision: current.revision, actions: libraryActions(current.state, change(current.state)) });
+  };
+  await write('task', (state) => {
+    let next = addTask(state, { title: 'A2 - Falência' });
+    for (let index = 1; index <= 7; index += 1) next = addSubtask(next, next.tasks[0].id, `Passo ${index}`);
+    return next;
+  });
+  const taskId = current.state.tasks[0].id;
+  const ids = current.state.tasks[0].subtasks.map((item) => item.id);
+  const total = async () => (await getXpSnapshot(db, 'u1')).summary.totalXP;
+  assert.equal(await total(), 0);
+
+  await write('check-1', (state) => toggleSubtask(state, taskId, ids[0]));
+  assert.equal(await total(), 10);
+  await write('uncheck-1', (state) => toggleSubtask(state, taskId, ids[0]));
+  await write('recheck-1', (state) => toggleSubtask(state, taskId, ids[0]));
+  await write('rename-1', (state) => renameSubtask(state, taskId, ids[0], 'Passo 1 revisado'));
+  assert.equal(await total(), 10);
+
+  await write('check-rest', (state) => ids.slice(1).reduce((next, id) => toggleSubtask(next, taskId, id), state));
+  const snapshot = await getXpSnapshot(db, 'u1');
+  assert.equal(snapshot.summary.totalXP, 50);
+  assert.equal(snapshot.events.filter((event) => event.kind === 'subtask').length, 5);
+  assert.equal(current.state.tasks[0].subtasks.filter((item) => item.done).length, 7);
 });

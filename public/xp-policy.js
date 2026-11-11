@@ -12,6 +12,9 @@ export const LEVEL_XP = 500;
 export const TIME_BLOCK_SECONDS = 30 * 60;
 export const TIME_BLOCK_XP = 25;
 export const DAILY_TIME_XP_CAP = 200;
+// Subtarefa concluída (decisão de 11/11/2026): XP uma única vez por subtarefa,
+// com teto diário próprio, porque o texto da subtarefa é livre.
+export const DAILY_SUBTASK_XP_CAP = 50;
 export const DEFAULT_TIME_ZONE = 'America/Sao_Paulo';
 
 export const XP_VALUES = Object.freeze({
@@ -23,11 +26,12 @@ export const XP_VALUES = Object.freeze({
   course_bonus: 500,
   project_bonus: 500,
   discipline_bonus: 200,
+  subtask: 10,
 });
 
 export const STEP_KINDS = Object.freeze(['lesson', 'reading', 'exercise', 'delivery']);
 export const BONUS_KINDS = Object.freeze(['course_bonus', 'project_bonus']);
-export const ALL_KINDS = Object.freeze([...STEP_KINDS, ...BONUS_KINDS, 'discipline_bonus', 'slide', 'time_block', 'adjustment']);
+export const ALL_KINDS = Object.freeze([...STEP_KINDS, ...BONUS_KINDS, 'discipline_bonus', 'slide', 'time_block', 'subtask', 'adjustment']);
 
 export const XP_KIND_LABELS = Object.freeze({
   lesson: 'Aula concluída',
@@ -39,6 +43,7 @@ export const XP_KIND_LABELS = Object.freeze({
   project_bonus: 'Projeto completo',
   discipline_bonus: 'Disciplina concluída',
   time_block: 'Bloco de 30 minutos',
+  subtask: 'Subtarefa concluída',
   adjustment: 'Ajuste de integridade',
 });
 
@@ -79,7 +84,7 @@ export function isEligibleCourse(course) {
 export function completionKindForCourse(course) {
   if (!course) return 'lesson';
   if (isImportedCourse(course)) return 'lesson';
-  if (course.type === 'article' || course.type === 'book') return 'reading';
+  if (course.type === 'article' || course.type === 'book' || course.type === 'pdf') return 'reading';
   if (course.type === 'exercise') return 'exercise';
   if (course.type === 'project') return 'delivery';
   return 'lesson';
@@ -99,6 +104,10 @@ export function bonusEventKey(kind, courseId) {
 
 export function timeEventKey(sessionId, index) {
   return `time|${sessionId}|${index}`;
+}
+
+export function subtaskEventKey(taskId, subtaskId) {
+  return `subtask|${taskId}|${subtaskId}`;
 }
 
 export function slideEventKey(courseId) {

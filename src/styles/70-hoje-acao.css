@@ -55,6 +55,9 @@
   .today-grid {
     grid-template-columns: minmax(0, 1fr);
   }
+  .todo-item {
+    flex-wrap: wrap;
+  }
 }
 
 /* Funções de cor aplicadas: recompensa (XP), sucesso e alerta. */

@@ -1,6 +1,6 @@
 # Lume — o que falta implementar
 
-> Atualizado em 10/11/2026 sobre a revisão de 03/11 (rotas da API nos dois backends, tabelas das migrações, telas
+> Atualizado em 11/11/2026 (PDFs e disciplinas, B7) sobre a revisão de 03/11 (rotas da API nos dois backends, tabelas das migrações, telas
 > e textos da interface, testes, configuração publicada e documentos). Desde então: Agenda mesclada na `main`
 > (PR #3), binding R2 e Resend configurados em `wrangler.jsonc`, release 0.6.0 do aplicativo de desktop.
 > Configuração versionada não prova o ambiente publicado: segredos e bucket não foram consultados. Este é o registro
@@ -50,6 +50,7 @@ de evidências e limitações por ambiente, não uma segunda lista de pendência
 | Hoje: próxima ação, sessão, tarefas, evolução | Implementado | `Study.jsx`, `public/study-plan.js` | e2e local |
 | Plano e Agenda: cronograma, roteiro, calendário e tarefas | Implementado localmente | `Plan.jsx`, `Tasks.jsx`, `Agenda.jsx`, `public/schedule-domain.js`, `public/tasks-domain.js`, `public/agenda-domain.js` | e2e local; detalhes em [Agenda](AGENDA.md) |
 | Biblioteca: criar, editar, excluir, tipos, slides | Implementado (imagens em produção não verificadas) | `Study.jsx`, `CourseEditor.jsx`, `Slides.jsx` | e2e local |
+| PDFs anexados, leitor embutido e disciplinas | Só local (11/11/2026) | `public/pdf-domain.js`, `public/subject-domain.js`, `api/domain/library-files.js`, `AttachPdf.jsx`, `PdfReader.jsx`, `Subjects.jsx` | unitário (`pdf.test.js`) e e2e (`pdf.spec.js`) locais; R2 publicado não verificado — ver [B7](#b7--pdfs-leitor-embutido-e-disciplinas) |
 | Importação por link, texto e página copiada | Parcial | `api/domain/import-server.js`, `public/import-domain.js` | unitário com HTML sintético; e2e com análise simulada; Coursera e Alura conferidos em 31/10 |
 | XP no servidor, níveis, tempo, correção | Implementado | `api/domain/xp.js`, `public/xp-policy.js` | unitário e e2e local |
 | Conquistas por material | Parcial | `user_achievements` | unitário e e2e local |
@@ -67,7 +68,7 @@ existentes: `users`, `sessions`, `password_resets`, `rate_limits`, `user_state`,
 `xp_settings`, `xp_events`, `xp_time_sessions`, `user_achievements`, `direct_messages`, `contact_blocks`,
 `message_preferences`, `delivery_invites`, `materials`, `units`, `study_progress`, `study_tasks`,
 `study_sessions`, `account_documents`, `library_operations`, `library_write_guards`, `user_titles`,
-`agenda_entries`, `agenda_reminders`. Não existe tabela para desbloqueios, denúncias,
+`agenda_entries`, `agenda_reminders`, `study_subjects`, `library_files`, `storage_plans`. Não existe tabela para desbloqueios, denúncias,
 publicações, anotações nem observação de reprodução.
 
 ---
@@ -138,7 +139,6 @@ de material, com etapas.
 ### B4 — Plano
 **Implementado o núcleo** (disponibilidade, prazo, prioridade, conflito, adiamento, subtarefas, vínculo de
 tarefa com aula). Falta:
-- registrar a aula e abrir a próxima em um passo;
 - considerar o prazo das tarefas no cronograma (hoje só as aulas entram);
 - lembretes de sugestões ainda não agendadas; a Agenda oferece lembretes de compromissos explícitos (B6);
 
@@ -165,6 +165,40 @@ Cronograma e Roteiro permanecem no Plano; sugestões só viram compromissos apó
   A consulta requer rede; recupera avisos vencidos há até 15 minutos e os reivindica uma vez por conta.
 - Disponibilidade continua em minutos por dia; não há sugestão automática de horários específicos.
 - O prazo das tarefas ainda não participa do cronograma (B4). Regras de XP permanecem as mesmas.
+
+### B7 — PDFs, leitor embutido e disciplinas
+**Implementado e verificado localmente em 11/11/2026; não publicado.** Pedido da responsável: estudar por PDF sem
+curso, com leitor no programa, identificação da matéria e categoria "disciplina". Decisões tomadas em 11/11/2026:
+- **Armazenamento só no servidor.** O PDF vai para R2 (`env.MEDIA`, chave `pdfs/<conta>/<arquivo>.pdf`) ou
+  `data/media/` no Node; o site e o aplicativo de desktop leem com conexão. "Estudo offline" foi entendido como
+  material próprio, sem curso online; não há cópia no navegador, IndexedDB nem fila offline.
+- **Limites:** plano gratuito 50 MB por arquivo e 1 GB por conta; o plano `plus` (100 MB e 2 GB) existe na regra
+  (`PDF_PLANS`, tabela `storage_plans`), mas **não há assinatura, cobrança nem tela** para obtê-lo.
+- **XP:** abrir, rolar e virar página não geram XP. O PDF tem uma etapa, "Ler o PDF até o fim"; concluí-la é
+  leitura delimitada (100 XP e conquista, uma vez, no servidor). Material de uma etapa não recebe bônus de curso.
+  Disciplina é organização: sem XP e sem o bônus de 200 XP da disciplina de curso importado.
+- **Leitor inteligente:** determinístico no navegador (sumário, título da página, termos, palavras-chave da
+  disciplina). "Identificar com IA" é opcional, sob clique, só com `LUME_AI_API_KEY`, e envia o texto da página
+  aberta (até 4.000 caracteres) e os nomes das disciplinas para `POST /api/library/identify`.
+
+Verificação local (11/11/2026): `tests/unit/pdf.test.js` e `tests/e2e/pdf.spec.js` (computador e celular)
+passam; fluxo conferido no navegador (anexar, ler, recarregar, retomar na página, concluir com 100 XP uma vez).
+Na suíte e2e completa, as falhas restantes vieram do limite de cadastros dos e2e (já elevado para 1000 em
+`playwright.config.js`) e de mudanças de tarefas/subtarefas em andamento em outra frente, não dos PDFs.
+
+Limites conhecidos:
+- PDF digitalizado (só imagem) não tem texto extraível: sem OCR, o painel diz isso e não identifica assuntos.
+- Imagens JPEG 2000 podem aparecer em branco: o WebAssembly do pdf.js fica desligado porque a CSP não libera wasm.
+- O envio lê o arquivo inteiro na memória da requisição. No Worker (128 MB) isso cabe nos 50 MB do plano
+  gratuito; os 100 MB do plano `plus` exigiriam envio em partes antes de serem oferecidos.
+- O backup v3 leva os metadados do PDF, não o arquivo. Restaurar um PDF numa conta que não tem o arquivo é
+  recusado ("O PDF não foi encontrado"); é preciso anexar de novo.
+- Envio que não virou material (a pessoa desistiu ou a gravação falhou) é removido na hora pela interface ou,
+  se ela fechar a página, no próximo envio depois de uma hora.
+- Sem marcações, destaques ou anotações no PDF (ver [B3](#b3--anotações-trilhas-e-modelos)); sem sincronizar a
+  página entre duas janelas abertas ao mesmo tempo (a última gravação vence, como no restante da biblioteca).
+- Produção não verificada: migração `0015_subjects_pdf.sql` no D1, upload ao R2 e o tipo servido para
+  `_astro/pdf.worker.*.mjs` pelos assets do Worker (o servidor Node passou a servir `.mjs` como JavaScript).
 
 ---
 
@@ -225,7 +259,7 @@ com motivo. Falta: teste de concorrência entre dispositivos no Worker publicado
 evento.
 
 ### G2 — Cargos e desbloqueios
-**Implementado localmente:** oito critérios de títulos aprovados em [Evolução §4.5](EVOLUCAO.md#45-cargos-requisitos-e-desbloqueios-proposta),
+**Implementado localmente:** oito critérios de títulos aprovados em [Evolução §4.5](EVOLUCAO.md#45-cargos-e-requisitos-títulos-implementados-desbloqueios-rejeitados),
 concessão idempotente em `user_titles`, perfil com critérios e reavaliação nas correções.
 Bloqueios funcionais foram rejeitados: todas as funcionalidades disponíveis são acessíveis a todos.
 Modelos, trilhas e desafios continuam recursos futuros independentes de cargo.
@@ -296,7 +330,10 @@ Configurações não têm tela correspondente no Stitch. As telas exportadas em 
 "Variante 2") não foram salvas em `designs/stitch/`.
 
 ### V2 — Estados de carregamento
-**Parcial.** Há estados vazios e de erro, mas o carregamento é um texto genérico; não há esqueletos por tela.
+**Implementado (10/11/2026).** `Skeleton` e `PageSkeleton` (`src/ui/ui.jsx`) mostram a forma do conteúdo:
+Hoje, Biblioteca, Plano, Tarefas, Roteiro, Perfil, Conquistas, Meu caminho e Configurações enquanto a biblioteca
+da conta recarrega (campo `loading` em `src/app/routes.jsx`); amigos, conversas, ranking, perfil de amizade,
+dispositivos do desktop e XP enquanto o recurso chega. A primeira carga continua atrás de "Verificando sua sessão".
 
 ### V3 — Contraste do *hover* dos botões
 **Decisão pendente.** As cores especificadas para o *hover* (`#3b82f6` no Azul e `#8b5cf6` no Roxo) dão 3,7:1 e
@@ -370,6 +407,8 @@ npm run test:e2e  # cenários desktop e celular; build prévio obrigatório
 | Manter ou escurecer o *hover* dos botões | V3 |
 | Elevar o limite de 600 aulas após medir o formato por entidade | I6 |
 | Publicar a extensão na Chrome Web Store | I2 |
+| Preço, cobrança e tela da assinatura que amplia PDFs para 100 MB por arquivo e 2 GB por conta | B7 |
+| OCR para PDFs digitalizados (onde roda, custo e o que é enviado) | B7 |
 
 ## 13. Fora do escopo (decisões tomadas)
 

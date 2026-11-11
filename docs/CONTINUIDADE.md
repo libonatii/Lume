@@ -1,6 +1,6 @@
 # Lume — estado atual e continuidade de desenvolvimento
 
-Atualizado em 10/11/2026. Este é o mapa do código existente. As lacunas ficam somente em
+Atualizado em 11/11/2026. Este é o mapa do código existente. As lacunas ficam somente em
 [Implementação](IMPLEMENTACAO.md), as propostas em [Evolução](EVOLUCAO.md), as regras em
 [Produto](PRODUTO.md) e [Gamificação](GAMIFICACAO.md), e a execução arquitetural em
 [Refatoração](REFATORACAO_01112026.md). O histórico das rodadas anteriores permanece no Git.
@@ -37,6 +37,9 @@ Telas React → ações nomeadas → useLibraryPersistence → /api/library/acti
   Não há migração de dados: documentos antigos permanecem no banco como arquivo (`user_state`) e a conta
   entra com uma biblioteca nova e vazia. Escritas legadas sobre bibliotecas novas recebem `client_outdated`. Não há IndexedDB, fila offline ou reconciliação
   de documentos no navegador. A prévia dura somente enquanto a página está aberta.
+- `0015_subjects_pdf.sql` acrescenta `study_subjects` (disciplinas, entidade `subject.put/delete/order`
+  no mesmo batch), `library_files` (tamanho de cada PDF para a cota) e `storage_plans` (sem linha =
+  plano gratuito). O arquivo do PDF fica em R2 (`env.MEDIA`) ou `data/media/pdfs/`, nunca no navegador.
 - `material-model.js` define materiais com `units` no domínio, transporte v3 e banco.
   `materialSteps`, `materialStructure` e `materialLesson` são visualizações derivadas:
   nenhum material mantém `steps`, `structure` ou `selection` em paralelo.
@@ -57,13 +60,17 @@ Telas React → ações nomeadas → useLibraryPersistence → /api/library/acti
 | Onboarding | Três jornadas, perguntas próprias, retomada, primeira atividade e preferências sem XP |
 | Biblioteca | Busca, filtros, tipos, criação, edição, exclusão confirmada, pausa e posição manual |
 | Cursos | Importação por link/texto/arquivo/página copiada/extensão, revisão e reimportação que preserva ids e progresso |
-| Próxima ação | Hoje, Biblioteca, diálogo, roteiro, perfil e Desktop usam o critério de `study-plan.js`; `nextMission` foi removido |
+| Próxima ação | Hoje, Biblioteca, diálogo, roteiro, perfil e Desktop usam o critério de `study-plan.js`; `nextMission` foi removido. Registrar a aula oferece "Concluir e abrir a próxima" (importada) e "Concluir e seguir para a próxima" (etapa manual); o curso importado aceita registrar em lote as aulas em aberto até uma escolhida, cada uma como registro manual |
+| Carregamento | Esqueletos com a forma da tela (`Skeleton`, `PageSkeleton`) ao recarregar a biblioteca da conta e enquanto amigos, conversas, ranking, perfis, dispositivos e XP chegam |
 | Plano | Disponibilidade, prazos, prioridades, cronograma derivado, conflitos explicados e adiamento |
 | Agenda | FullCalendar Standard: semana no computador, dia no celular e mês; criação na grade, arrasto/redimensionamento (no mês, arrastar move o dia e remove o horário), editor contextual com checklist por item, painel Para agendar, recorrência finita e sugestões revisáveis; persistência por conta em `agenda_entries` |
-| Tarefas | Prazo, prioridade, vínculo com aula e subtarefas; concluir tarefa vinculada conclui a aula, sem XP próprio; sem vínculo, 0 XP |
+| Tarefas | Prazo, prioridade, vínculo com aula e subtarefas (renomear no lugar; reordenar arrastando pela alça ou com as setas); concluir tarefa vinculada conclui a aula, sem XP próprio; sem vínculo, 0 XP. Subtarefa concluída vale 10 XP uma vez, até 50 XP por dia, validados no servidor (`library-subtasks.js`). Na Hoje, o botão à esquerda da tarefa a coloca em foco: ela ocupa o cartão principal, dá nome à sessão de estudo e fica salva na conta (`focusTaskId`) até ser concluída, removida ou tirada do foco; concluir fica no botão à direita |
 | Lembretes da Agenda | Consulta autenticada com reivindicação única por conta (`agenda_reminders`); avisos internos e canal Notification do computador; requer site/app executando e rede |
 | Sessão | Início, pausa, retomada, batimentos e encerramento; sobras de tempo, sobreposição e teto tratados no servidor |
 | Slides | Editor, ordem, imagens, navegação por teclado e conclusão confirmada com cobertura do deck |
+| PDFs | "Anexar PDF" na Biblioteca (inclusive na biblioteca vazia): o navegador lê páginas, título e sumário, o arquivo vai para `PUT /api/library/files/:id` (privado, 50 MB por arquivo e 1 GB por conta no plano gratuito) e vira material `type: 'pdf'` com uma etapa "Ler o PDF até o fim". Leitor embutido (pdf.js) no site e no aplicativo de desktop, com sumário, zoom, texto selecionável e retomada por página (`reading`), gravada depois de uma pausa curta. Hoje/roteiro sugerem "Continuar o PDF na página N". Concluir o PDF = leitura concluída (100 XP, uma vez); páginas não geram XP. Excluir o material libera o arquivo e a cota |
+| Disciplinas | Aba Disciplinas na Biblioteca (`#disciplinas`, `#disciplinas?id=`): criar, renomear, palavras-chave, excluir (só desfaz vínculos), vincular PDFs e outros materiais, progresso, páginas abertas, seções do sumário percorridas e "Continuar" no material tocado por último; filtro por disciplina na estante. Sem XP nem bônus próprio |
+| Leitor inteligente | Determinístico no navegador (`pdf-domain.js`): seção pelo sumário ou título da página, termos frequentes, disciplina pelo vínculo ou pelo texto e aviso quando a página cita mais outra disciplina; sugestão de disciplina ao anexar. "Identificar com IA" só aparece com `LUME_AI_API_KEY` e envia ao servidor apenas o texto da página aberta (até 4.000 caracteres) e os nomes das disciplinas |
 | XP | Livro idempotente, bônus, tempo, extrato e correção por ajuste negativo; saldo legado separado |
 | Conquistas | Marcos personalizados por material e disciplina; disciplina completa recebe 200 XP uma vez |
 | Cargos | Títulos por nível e marcos, calculados no servidor e exibidos no perfil; sem bloqueios funcionais |
@@ -106,6 +113,10 @@ comprova plataformas reais; D1 local não comprova CPU do Worker publicado. O ce
 Worker é ignorado quando não há binding. O binding R2 `MEDIA` e o Resend estão declarados em
 `wrangler.jsonc`, mas a entrega real de e-mail e o upload de imagens no site publicado não foram verificados
 (segredo `RESEND_API_KEY`, bucket e deploy a confirmar).
+
+PDFs e disciplinas (11/11/2026) foram verificados localmente (Node + `data/media`); a migração
+remota `0015`, o envio de PDF ao R2 publicado e o tipo servido para `pdf.worker.*.mjs` pelos assets do
+Worker não foram verificados.
 
 Site de referência: <https://lumeacademy.site>. A Agenda foi mesclada na `main` (PR #3) e o
 aplicativo de desktop tem a release `companion-v0.6.2`; o deploy do Worker, a migração remota `0014` e a

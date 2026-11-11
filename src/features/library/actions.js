@@ -1,6 +1,8 @@
 import { addMaterial, deleteCourse, replaceCourseSteps, selectCourse, setCourseEdital, toggleCoursePause, updateCourse } from '../../../public/domain.js';
 import { applyCourseImport, isImportedCourse } from '../../../public/import-domain.js';
 import { createGitHubProject } from '../../../public/github-domain.js';
+import { addPdfMaterial, setReadingPage } from '../../../public/pdf-domain.js';
+import { addSubject, deleteSubject, linkMaterialSubject, updateSubject } from '../../../public/subject-domain.js';
 import { addSlide, markSlideSeen, moveSlide, removeSlide, setSlideImage, updateSlide } from '../../../public/slides-domain.js';
 
 export function createLibraryActions(act) {
@@ -25,5 +27,21 @@ export function createLibraryActions(act) {
     moveSlide: (id, slideId, direction) => change(moveSlide, id, slideId, direction),
     setSlideImage: (id, slideId, url) => change(setSlideImage, id, slideId, url),
     markSlideSeen: (id, slideId) => change(markSlideSeen, id, slideId),
+    // PDF e disciplina na mesma gravação: uma disciplina nova nasce junto com o
+    // material, sem estado intermediário para desfazer se a gravação falhar.
+    addPdf: ({ title, file, subjectId = '', newSubject = '' }) => act((state) => {
+      let next = state;
+      let subject = subjectId;
+      if (newSubject.trim()) {
+        subject = crypto.randomUUID();
+        next = addSubject(next, { title: newSubject }, subject);
+      }
+      return { state: addPdfMaterial(next, { title, file, subjectId: subject }) };
+    }),
+    setReadingPage: (id, position) => change(setReadingPage, id, position),
+    addSubject: (input) => change(addSubject, input),
+    updateSubject: (id, input) => change(updateSubject, id, input),
+    deleteSubject: (id) => change(deleteSubject, id),
+    linkSubject: (materialId, subjectId) => change(linkMaterialSubject, materialId, subjectId),
   };
 }

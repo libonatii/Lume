@@ -1,10 +1,12 @@
 import { materialSteps, stepUnits, normalizeMaterialUnits } from './material-model.js';
 import { normalizeActiveSession, normalizeStudySessions } from './session-domain.js';
-import { normalizeTasks } from './tasks-domain.js';
+import { normalizeFocusTaskId, normalizeTasks } from './tasks-domain.js';
 import { normalizeAgenda } from './agenda-domain.js';
 import { emptyPlan, normalizePlan } from './schedule-domain.js';
 import { levelProgress } from './xp-policy.js';
 import { normalizeSlideProgress, normalizeSlides } from './slides-domain.js';
+import { normalizePdfMeta, normalizeReading } from './pdf-domain.js';
+import { normalizeSubjects } from './subject-domain.js';
 import {
   activeCompletions, completedUnitIds, hasPreparationFor, isCompleted, legacyProgressXp, materialHasActivity,
   normalizeProgress, pruneProgress, recordCompletion, recordPreparation,
@@ -53,8 +55,12 @@ export const STUDY_TYPES = [
   { id: 'course', title: 'Curso completo' },
 ];
 
+// PDF anexado é um formato próprio, criado só pelo envio do arquivo
+// (pdf-domain.js); por isso não aparece na escolha de tipo dos formulários.
+const PDF_TYPE = { id: 'pdf', title: 'PDF' };
+
 export function materialType(type) {
-  return STUDY_TYPES.find((item) => item.id === type) || STUDY_TYPES[0];
+  return type === 'pdf' ? PDF_TYPE : STUDY_TYPES.find((item) => item.id === type) || STUDY_TYPES[0];
 }
 
 // Rótulos de retomada por tipo de material. O campo continua sendo um texto
@@ -318,10 +324,14 @@ export function createInitialState() {
     // Tarefas de estudo para provas. Concluir vale XP uma vez; criar não.
     tasks: [],
     agenda: [],
+    // Disciplinas criadas pela pessoa para agrupar materiais (subject-domain.js).
+    subjects: [],
     // Plano: disponibilidade semanal, prazos e prioridades por curso e aulas
     // adiadas. O cronograma é derivado daqui e do progresso; não gera XP.
     plan: emptyPlan(),
     selectedCourseId: null,
+    // Tarefa que a pessoa escolheu focar na Hoje (tasks-domain.js). Não gera XP.
+    focusTaskId: null,
   };
 }
 
@@ -339,12 +349,16 @@ function sanitizeCapabilities(value) {
 // válidos, o curso e suas etapas continuam intactos: nenhum progresso é
 // descartado. Esta função também garante que o estado antigo receba a estrutura
 // de slides vazia, sem inventar conteúdo.
-function sanitizeCourse(course) {
+function sanitizeCourse(course, subjectIds = new Set()) {
   if (!course || typeof course !== 'object') return course;
   const slides = normalizeSlides(course.slides);
-  const type = STUDY_TYPES.some((item) => item.id === course.type) ? course.type : 'lesson';
+  const pdf = normalizePdfMeta(course.pdf);
+  const type = pdf ? 'pdf' : STUDY_TYPES.some((item) => item.id === course.type) ? course.type : 'lesson';
+  const { pdf: _pdf, reading: _reading, ...rest } = course;
   const base = {
-    ...course,
+    ...rest,
+    ...(pdf ? { pdf, reading: normalizeReading(course.reading, pdf.pages) } : {}),
+    subjectId: subjectIds.has(course.subjectId) ? course.subjectId : '',
     type,
     planning: course.planning === true,
     resumeAt: typeof course.resumeAt === 'string' ? course.resumeAt.slice(0, 120) : '',
@@ -510,7 +524,7 @@ export function updateCourse(state, courseId, patch = {}) {
   if (!cleanTitle) throw new Error('Dê um nome ao material.');
   const cleanURL = patch.url === undefined ? course.url : safeCourseURL(String(patch.url || ''));
   if (cleanURL === null) throw new Error('Confira o link do material.');
-  const type = patch.type === undefined ? course.type : (STUDY_TYPES.some((item) => item.id === patch.type) ? patch.type : course.type);
+  const type = course.pdf || patch.type === undefined ? course.type : (STUDY_TYPES.some((item) => item.id === patch.type) ? patch.type : course.type);
   const position = patch.position === undefined ? normalizePosition(course.position, type) : normalizePosition(patch.position, type);
   const resumeAt = patch.resumeAt === undefined
     ? (patch.position !== undefined ? positionLabel(type, position) : course.resumeAt)
@@ -642,10 +656,13 @@ export function restoreState(raw) {
     const selectedCourseId = keptIds.has(value.selectedCourseId) ? value.selectedCourseId : keptCourses[0]?.id ?? null;
     const preferences = value.preferences || {};
     const { completed: _completed, history: _history, studyLog: _studyLog, ...rest } = value;
+    const subjects = normalizeSubjects(value.subjects);
+    const subjectIds = new Set(subjects.map((subject) => subject.id));
     return {
       ...fallback, ...rest,
       version: STATE_VERSION,
-      courses: keptCourses.map((course) => sanitizeCourse(course)),
+      courses: keptCourses.map((course) => sanitizeCourse(course, subjectIds)),
+      subjects,
       progress: pruneProgress(progress, keptStepIds),
       selectedCourseId,
       imports: sanitizeImports(value.imports),
@@ -657,6 +674,7 @@ export function restoreState(raw) {
       supports: Array.isArray(value.supports) ? [...new Set(value.supports.filter(id => STUDY_SUPPORTS.some(item => item.id === id)))] : [],
       profile: normalizeProfileCard(value.profile),
       tasks: normalizeTasks(value.tasks),
+      focusTaskId: normalizeFocusTaskId(value.focusTaskId, normalizeTasks(value.tasks)),
       agenda: normalizeAgenda(value.agenda),
       plan: normalizePlan(value.plan, keptIds),
       preferences: {

@@ -3,8 +3,10 @@ import assert from 'node:assert/strict';
 import { addCourse, createInitialState, restoreState, totalXP, weekCount } from '../../public/domain.js';
 import {
   MAX_TASKS, addTask, completeTask, isOverdue, normalizeTasks, priorityLabel, removeTask, reopenTask,
-  setTaskPriority, sortTasks, taskAgenda,
+  setTaskPriority, sortTasks, taskAgenda, clearTaskFocus, focusTask, focusedTask,
+  addSubtask, moveSubtask, renameSubtask, toggleSubtask,
 } from '../../public/tasks-domain.js';
+import { ACCOUNT_FIELDS, libraryActions } from '../../public/library-actions.js';
 
 function stateWithTask() {
   const course = addCourse(createInitialState(), { title: 'Concurso', steps: ['Ler edital'] }, 'concurso');
@@ -107,4 +109,51 @@ test('prioridade sobrevive à restauração e valores inválidos viram "sem prio
   assert.equal(priorityLabel(restored.tasks[0].priority), 'Média');
   assert.equal(normalizeTasks([{ id: 'a', title: 'Antiga sem campo' }])[0].priority, 0);
   assert.equal(normalizeTasks([{ id: 'b', title: 'Inválida', priority: 9 }])[0].priority, 0);
+});
+
+test('focar uma tarefa organiza a Hoje sem concluir nada nem gerar XP', () => {
+  const base = stateWithTask();
+  const id = base.tasks[0].id;
+  assert.equal(focusedTask(base), null);
+  const focused = focusTask(base, id);
+  assert.equal(focusedTask(focused).id, id);
+  assert.equal(focused.tasks[0].done, false, 'focar não conclui');
+  assert.equal(totalXP(focused), totalXP(base));
+  assert.equal(focusTask(focused, id), focused, 'focar de novo não muda nada');
+  assert.equal(focusedTask(clearTaskFocus(focused)), null);
+  assert.throws(() => focusTask(base, 'nao-existe'));
+
+  // Concluir ou remover a tarefa em foco libera o foco.
+  const done = completeTask(focused, id, '2026-11-10T12:00:00Z').state;
+  assert.equal(done.focusTaskId, null);
+  assert.throws(() => focusTask(done, id), /Reabra/);
+  assert.equal(removeTask(focused, id).focusTaskId, null);
+
+  // O foco sobrevive à leitura do estado, mas não aponta para tarefa concluída.
+  assert.equal(restoreState(JSON.stringify(focused)).focusTaskId, id);
+  assert.equal(restoreState(JSON.stringify({ ...done, focusTaskId: id })).focusTaskId, null);
+  assert.equal(restoreState(JSON.stringify({ ...base, focusTaskId: 42 })).focusTaskId, null);
+
+  // Gravado na conta como campo próprio, pelo mesmo caminho das preferências.
+  assert.ok(ACCOUNT_FIELDS.includes('focusTaskId'));
+  assert.deepEqual(libraryActions(base, focused), [{ type: 'account.update', value: { focusTaskId: id } }]);
+});
+
+test('renomear e reordenar subtarefas preserva id e marcação', () => {
+  let state = stateWithTask();
+  const id = state.tasks[0].id;
+  for (const title of ['Ler aula 6', 'Ler aula 7', 'Ler aula 8']) state = addSubtask(state, id, title);
+  const [first, second, third] = state.tasks[0].subtasks;
+  state = toggleSubtask(state, id, first.id);
+
+  state = renameSubtask(state, id, first.id, '  Ler aula 6 e resumir  ');
+  assert.deepEqual(state.tasks[0].subtasks[0], { id: first.id, title: 'Ler aula 6 e resumir', done: true });
+  assert.throws(() => renameSubtask(state, id, first.id, '   '), /nome/);
+
+  state = moveSubtask(state, id, first.id, 2);
+  assert.deepEqual(state.tasks[0].subtasks.map((item) => item.id), [second.id, third.id, first.id]);
+  state = moveSubtask(state, id, third.id, -5);
+  assert.deepEqual(state.tasks[0].subtasks.map((item) => item.id), [third.id, second.id, first.id]);
+  assert.equal(state.tasks[0].subtasks[2].done, true);
+  assert.equal(totalXP(state), 0);
 });

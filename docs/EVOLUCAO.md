@@ -44,14 +44,14 @@ As consultas ao site publicado foram feitas em 31/10/2026 apenas com `GET` anôn
 
 | Problema | Onde aparece | Evidência no código |
 | --- | --- | --- |
-| **Duas respostas diferentes para "o que fazer agora"** | Hoje e Missões usam `nextMission` (primeira etapa pendente do curso selecionado, na ordem da biblioteca, incluindo cursos de exemplo). O Companion e o perfil usam `studyPlan` (continuidade, primeiro passo, perto do fim, sem exemplos) | `src/features/library/Study.jsx:15`, `src/features/settings/Personal.jsx:14`, `public/study-plan.js`. [Lume §2](COMPANHEIRO.md) afirma que o site usa o mesmo critério, o que não é verdade |
+| **Duas respostas diferentes para "o que fazer agora"** | Resolvido em 03/11/2026: Hoje, Biblioteca, diálogo do curso, roteiro, perfil e Companion usam `nextAction`/`studyPlan`; `nextMission` foi removido | `public/study-plan.js` |
 | **"Ação focal única" cercada de sete blocos** | A Hoje tinha: foco, cartão de pausa com imagem, sessão, três métricas, jornada e lembrete de conforto | `Study.jsx` (antes da Etapa 1) |
 | **Indicadores repetidos** | Nível aparece na barra lateral e na barra superior; o estado de sincronização aparece na barra superior e no rodapé | `src/app/Shell.jsx` |
 | **Métrica que mistura preparação com conclusão** | Resolvido em 01/11/2026: `weekCount` conta só conclusões não históricas e tarefas; preparação não entra | `public/domain.js` |
-| **Navegação com dez itens de mesmo peso** | Hoje, Tarefas, Biblioteca, Missões, Conquistas, Meu caminho, Amigos, Mensagens, Ranking, Configurações — mais GitHub, Perfil e Instalar fora do menu | `links` em `Shell.jsx` |
-| **Tarefas sem prioridade nem relação com o plano** | Ordem só por prazo; nada indica atraso; tarefas não aparecem na Hoje | `sortTasks` em `public/tasks-domain.js` |
-| **Duração conhecida descartada** | A importação guarda `duration` por aula, mas nenhuma tela usa esse dado para dizer quanto tempo reservar | `normalizeDuration` em `public/import-domain.js:165` |
-| **Nível sem consequência** | Subir de nível não muda nada além do número; não existem cargos nem desbloqueios | Busca por `cargo`/`desbloque` não encontra regra de produto |
+| **Navegação com dez itens de mesmo peso** | Resolvido na Etapa 3: o menu tem seis destinos (Hoje, Biblioteca, Plano, Agenda, Amigos, Perfil) e as demais telas são abas de seção | `SECTIONS` em `src/app/routes.jsx` |
+| **Tarefas sem prioridade nem relação com o plano** | Resolvido nas Etapas 1 e 2: prioridade, atraso, tarefas na Hoje, subtarefas e vínculo com aula | `public/tasks-domain.js` |
+| **Duração conhecida descartada** | Resolvido na Etapa 1 para a próxima aula (Hoje mostra o tempo a reservar e se veio da fonte ou é estimativa). O total de horas na revisão da importação continua proposta (§2) | `nextAction` em `public/study-plan.js` |
+| **Nível sem consequência** | Resolvido em 03/11/2026 com títulos (cargos) concedidos no servidor; desbloqueios funcionais foram rejeitados (§4.5) | `public/title-policy.js`, `api/domain/titles.js` |
 | **Paleta monocromática** | Fundo, superfícies, bordas e ação principal são variações do mesmo azul; verde (`--mint`) aparece só em detalhes | Tokens em `src/styles/00-tokens.css` |
 | **Tom condescendente** | "O começo pode ser pequeno", "Se hoje não der, você pode descansar", "Pausar sem culpa", "Que bom ter você aqui" | Seção 8 deste documento |
 
@@ -77,10 +77,10 @@ Exemplo real de uso: Ana estuda para a OAB com um curso da Gran e quer concluir 
 | 1. Informar o curso | Cola o link do curso ou a página copiada da área do aluno | Disciplinas, módulos, aulas e durações encontradas, marcadas como completas ou parciais | Implementado |
 | 2. Revisar | Escolhe Constitucional e Penal; desmarca o que não interessa | "68 aulas selecionadas · 41 h de duração conhecida · 9 aulas sem duração" | Contagem implementada; total de horas é **proposta** |
 | 3. Planejar | Informa disponibilidade (seg/qua/sex, 1 h) e prazo | Cronograma semanal com aulas na sequência; se não couber, mostra o conflito e opções | Implementado em 01/11 |
-| 4. Abrir a próxima aula | Toca em "Abrir aula" na Hoje | Abre o link da fonte; mostra por que essa aula está primeiro e quanto tempo reservar | **Etapa 1** |
+| 4. Abrir a próxima aula | Toca em "Abrir aula" na Hoje | Abre o link da fonte; mostra por que essa aula está primeiro e quanto tempo reservar | Implementado (Etapa 1) |
 | 5. Estudar | Começa a sessão; assiste à aula | Sessão declarada; com a extensão, cobertura observada do vídeo | Sessão implementada; observação é **proposta (Etapa 5)** |
-| 6. Registrar | Confirma a conclusão | Servidor concede 100 XP uma vez; aula some do roteiro; cronograma recalcula | XP implementado; recálculo é **Etapa 2** |
-| 7. Evoluir | Atinge o nível 5 com 12 aulas concluídas | Cargo "Estudante dedicada" e desbloqueio de modelos de cronograma | **Proposta (Etapa 4)** |
+| 6. Registrar | Confirma a conclusão, ou "Concluir e abrir a próxima" | Servidor concede 100 XP uma vez; aula some do roteiro; cronograma recalcula; a aula seguinte já abre | Implementado (Etapa 2) |
+| 7. Evoluir | Atinge o nível 5 com 12 aulas concluídas | Título "Estudante dedicada" no perfil, com o critério | Título implementado (Etapa 4); modelos de cronograma são **proposta** independente de cargo |
 | 8. Compartilhar | Compartilha a conquista "Concluí o módulo de Controle de Constitucionalidade" | Amigos veem e reconhecem; um amigo propõe um desafio de 10 aulas até sexta | Mensagens com referência implementadas; reconhecimento e desafio são **propostas (Etapa 6)** |
 
 ---
@@ -167,7 +167,7 @@ Semana típica de quem estuda 5 h: 6 aulas (600) + 10 blocos de tempo (250) = 85
 
 O teto diário de tempo limita quem tenta acumular XP só com relógio; conclusões continuam sendo a maior parte do XP.
 
-### 4.5 Cargos, requisitos e desbloqueios (proposta)
+### 4.5 Cargos e requisitos (títulos implementados; desbloqueios rejeitados)
 
 **Decisão de 03/11/2026:** nomes e requisitos abaixo aprovados para títulos, com formas neutras.
 As colunas de desbloqueio são propostas históricas e não são requisitos de acesso: todas as
@@ -200,9 +200,9 @@ formatos antigos são recusados explicitamente, sem apagar bancos ou converter d
 Tarefa vinculada conclui a aula (recompensa da aula, uma vez); tarefa sem vínculo concede 0 XP.
 Os passos abaixo registram a proposta antiga, não uma autorização de migração.
 
-1. `user_unlocks` é calculado a partir de `xp_events` e `user_achievements` existentes: quem já tem nível e marcos recebe os cargos ao abrir a versão nova, com o critério visível.
+1. (Não adotado: os títulos ficam em `user_titles`, sem `user_unlocks`.) `user_unlocks` é calculado a partir de `xp_events` e `user_achievements` existentes: quem já tem nível e marcos recebe os cargos ao abrir a versão nova, com o critério visível.
 2. O saldo legado (5/10 XP) continua fora de nível, cargo e ranking.
-3. Tarefas de prova: a regra transitória de 10 XP permanece até aprovação desta migração — **tarefa vinculada a uma aula conclui a aula (100 XP pelo servidor, uma vez); tarefa sem vínculo é organizacional (0 XP)**. O XP legado já obtido por tarefas fica no saldo legado.
+3. Tarefas de prova: **substituído pela regra implementada em 03/11/2026** — tarefa vinculada conclui a aula e usa a recompensa dela no servidor, uma vez; tarefa sem vínculo concede 0 XP. A regra transitória de 10 XP no navegador não existe mais.
 4. A v2 entra com `XP_POLICY_VERSION = 'v2'`; eventos v1 não são reprocessados.
 
 ---
@@ -275,7 +275,7 @@ Em paralelo, um **roteiro de inspeção manual** (30 min, com a conta da respons
 Hoje: abrir a aula pelo Lume e voltar para marcar a conclusão. Evolução proposta, em ordem:
 
 1. **Etapa 1 (feito)**: a Hoje mostra a aula, o tempo a reservar e o link direto.
-2. **Etapa 2**: concluir uma aula oferece "Concluir e abrir a próxima" em um toque; conclusão em lote para aulas sequenciais já vistas.
+2. **Etapa 2 (feito, 10/11/2026)**: o registro da aula importada oferece "Concluir e abrir a próxima" (registra, abre a próxima aula na plataforma e mostra o registro dela) e o material criado à mão, "Concluir e seguir para a próxima"; no curso importado, "Já assisti várias aulas em sequência" registra de uma vez as aulas em aberto até a escolhida, cada uma como registro manual próprio, sem XP extra pelo lote.
 3. **Etapa 5**: a extensão propõe a conclusão quando a cobertura passa de 95%; a pessoa confirma com um clique na própria página da aula.
 
 ---
@@ -311,9 +311,9 @@ Uma ação principal por vez na Hoje; instruções com verbo e objeto ("Assista 
 | Etapa | Escopo | Depende de | Critérios de aceite (comportamento) |
 | --- | --- | --- | --- |
 | **1. Hoje orientada à ação** — **implementada nesta rodada** | Roteiro único (`nextAction` em `study-plan.js`) usado pela Hoje; tempo conhecido × estimado; link da aula; tarefas com prioridade e atraso; bloco de evolução; revisão de tom; documentação coerente | — | Hoje e Companion mostram a mesma próxima aula; concluir uma aula muda a próxima ação após recarregar; tarefa atrasada aparece primeiro com a mensagem de impacto; prioridade sobrevive ao recarregamento; criar ou priorizar tarefa não altera XP |
-| 2. Plano — **implementada (01/11/2026), exceto "Concluir e abrir a próxima"** | Disponibilidade semanal, prazo, cronograma, conflitos, adiar/recalcular, subtarefas, tarefa vinculada a aula, "Concluir e abrir a próxima" | 1 | Concluir uma aula recalcula a semana; fechar e abrir o app preserva o plano; conflito explica números e oferece três ajustes |
-| 3. Identidade visual e navegação — **implementada (01/11/2026), exceto esqueletos de carregamento** | Tokens azul + verde com superfícies neutras; cinco destinos; estados vazios/erro/carregamento; logo intocado | 1 | Contraste AA em todos os pares de token; nenhum estado comunicado só por cor; navegação com cinco itens no celular |
-| 4. Cargos e desbloqueios | `user_unlocks` no servidor, cálculo a partir do livro, tela de progressão, primeiro desbloqueio utilizável (modelos de cronograma) | 2 | Cargo concedido uma única vez mesmo com requisições repetidas; o modelo de cronograma pode ser salvo e reaplicado; pausa de 30 dias não retira cargo |
+| 2. Plano — **implementada (01/11 e 10/11/2026)** | Disponibilidade semanal, prazo, cronograma, conflitos, adiar/recalcular, subtarefas, tarefa vinculada a aula, "Concluir e abrir a próxima" | 1 | Concluir uma aula recalcula a semana; fechar e abrir o app preserva o plano; conflito explica números e oferece três ajustes |
+| 3. Identidade visual e navegação — **implementada (01/11 e 10/11/2026)**; o contraste do *hover* dos botões depende de decisão (V3 em [Implementação](IMPLEMENTACAO.md)) | Tokens azul + verde com superfícies neutras; cinco destinos (seis desde a Agenda, 05/11); estados vazios/erro/carregamento com esqueletos (`Skeleton` e `PageSkeleton` em `src/ui/ui.jsx`); logo intocado | 1 | Contraste AA em todos os pares de token; nenhum estado comunicado só por cor; navegação com os destinos do menu no celular |
+| 4. Cargos e desbloqueios — **títulos implementados (03/11/2026); desbloqueios rejeitados** | Títulos em `user_titles`, calculados no servidor a partir do livro e exibidos no perfil com o critério. Filtros salvos, modelos de cronograma, trilhas, página de projeto, revisão de entregas e especialização por área seguem como recursos futuros sem relação com cargo | 2 | Cargo concedido uma única vez mesmo com requisições repetidas; pausa não retira cargo; correção de evento reavalia o requisito |
 | 5. Extensão observadora | Prova Coursera da seção 5.5; inspeção Gran/Estratégia | 1 | Os cinco critérios da seção 5.5 com aula real |
 | 6. Social com propósito | Reconhecimento a conquistas de amigos, compartilhamento de aprendizados, desafios entre amigos (desbloqueio) | 4 | Reconhecer não gera XP; bloqueio impede reconhecimento e mensagens; preferências de notificação respeitadas |
 

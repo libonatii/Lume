@@ -612,6 +612,51 @@ export function completeLesson(state, courseId, lessonId, { origin = 'manual', n
   return { state: result.state, added: result.added, xp: 0 };
 }
 
+// Aulas selecionadas, na ordem do curso (a mesma de courseSummary).
+function selectedLessons(course) {
+  const selected = new Set(materialSteps(course).map((step) => step.id));
+  return courseLessons(course).filter((lesson) => selected.has(lesson.id));
+}
+
+export function openLessons(state, course) {
+  return selectedLessons(course).filter((lesson) => !isCompleted(state, lesson.id));
+}
+
+// Aulas ainda em aberto até a escolhida, inclusive, na ordem do curso: o que a
+// pessoa diz já ter assistido em sequência. Aula fora da seleção devolve vazio.
+export function pendingLessonsThrough(state, course, lessonId) {
+  const lessons = selectedLessons(course);
+  const index = lessons.findIndex((lesson) => lesson.id === lessonId);
+  if (index < 0) return [];
+  return lessons.slice(0, index + 1).filter((lesson) => !isCompleted(state, lesson.id));
+}
+
+// Conclusão em lote: cada aula vira um registro manual próprio, como se fosse
+// marcada uma a uma. Não há XP extra pelo lote; o servidor aplica a mesma regra
+// a cada aula.
+export function completeLessonsThrough(state, courseId, lessonId, { now = new Date().toISOString() } = {}) {
+  const course = (state.courses || []).find((item) => item.id === courseId);
+  if (!course) return { state, added: 0, lessonIds: [] };
+  let next = state;
+  const lessonIds = [];
+  for (const lesson of pendingLessonsThrough(state, course, lessonId)) {
+    const result = completeLesson(next, courseId, lesson.id, { origin: 'manual', now });
+    if (!result.added) continue;
+    next = result.state;
+    lessonIds.push(lesson.id);
+  }
+  return { state: next, added: lessonIds.length, lessonIds };
+}
+
+// Próxima aula em aberto depois da indicada, na ordem do curso; se não houver
+// nenhuma depois, a primeira que ficou para trás.
+export function nextLessonAfter(state, course, lessonId) {
+  const lessons = selectedLessons(course);
+  const index = lessons.findIndex((lesson) => lesson.id === lessonId);
+  const open = (lesson) => !isCompleted(state, lesson.id);
+  return lessons.slice(index + 1).find(open) || lessons.slice(0, Math.max(index, 0)).find(open) || null;
+}
+
 export function revertLessonCompletion(state, courseId, lessonId, { now = new Date().toISOString() } = {}) {
   const course = (state.courses || []).find((item) => item.id === courseId);
   if (!course || !isCompleted(state, lessonId)) return { state, reverted: false };

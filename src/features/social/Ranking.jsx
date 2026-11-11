@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { api, apiError } from '../../lib/api.js';
 import Icon from '../../ui/Icon.jsx';
-import { Button, Empty, Heading, Progress, stagger } from '../../ui/ui.jsx';
+import { Button, Empty, Heading, Progress, Skeleton, stagger } from '../../ui/ui.jsx';
 import { useResource } from '../../lib/resources.js';
 
 const TABS = [
@@ -122,7 +122,7 @@ export default function Ranking({ account, xp, refreshXP, notify, go }) {
     <p className="quiet-note">{TABS.find((item) => item.id === tab)?.hint} {periodText(data?.period)}</p>
     {error && <p className="form-error" role="alert">{error}</p>}
 
-    {loading && !data && <p className="muted-text">Carregando o ranking…</p>}
+    {loading && !data && <Skeleton label="Carregando o ranking…" rows={4}/>}
     {!loading && data && entries.length === 0 && <Empty icon="users" title="Ninguém participando ainda.">Convide amigos e combine de entrar no ranking. Quem não entrar não aparece, e isso não muda o XP de ninguém.</Empty>}
 
     {entries.length > 0 && <ol className="ranking-list" aria-label={`Ranking por ${TABS.find((item) => item.id === tab)?.label}`}>

@@ -1,11 +1,12 @@
-import { useState } from 'react';
-import { motion } from 'motion/react';
+import { useRef, useState } from 'react';
+import { Reorder, motion, useDragControls } from 'motion/react';
 import {
   MAX_SUBTASKS, MAX_TASKS, TASK_PRIORITIES, isOverdue, localDate,
   priorityLabel, sortTasks,
 } from '../../../public/tasks-domain.js';
 import Icon from '../../ui/Icon.jsx';
 import { materialSteps } from '../../../public/material-model.js';
+import { DAILY_SUBTASK_XP_CAP, XP_VALUES } from '../../../public/xp-policy.js';
 import { Button, Empty, Heading, stagger } from '../../ui/ui.jsx';
 
 // Lista de tarefas de estudo para uma prova. Criar e organizar não gera XP;
@@ -23,12 +24,84 @@ function dateLabel(value) {
   return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
 }
 
+const NO_SUBTASKS = [];
+
+// Uma subtarefa: arrastar pela alça (ou setas do teclado nela), renomear no
+// lugar com Enter/Esc, marcar e remover.
+function SubtaskItem({ task, item, index, count, actions, onDragEnd, onError }) {
+  const controls = useDragControls();
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(item.title);
+  const [dragging, setDragging] = useState(false);
+  function startEditing() {
+    setName(item.title);
+    setEditing(true);
+  }
+  function save() {
+    if (name.trim() === item.title) {
+      setEditing(false);
+      return;
+    }
+    try {
+      if (!actions.renameSubtask(task.id, item.id, name)) return;
+      setEditing(false);
+      onError('');
+    } catch (exception) {
+      onError(exception.message);
+    }
+  }
+  function moveWithKeys(event) {
+    const step = event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : 0;
+    if (!step) return;
+    event.preventDefault();
+    const target = index + step;
+    if (target >= 0 && target < count) actions.moveSubtask(task.id, item.id, target);
+  }
+  return <Reorder.Item as="li" value={item} dragListener={false} dragControls={controls} onDragStart={() => setDragging(true)} onDragEnd={() => { setDragging(false); onDragEnd(item); }} className={`${item.done ? 'is-done' : ''} ${editing ? 'is-editing' : ''} ${dragging ? 'is-dragging' : ''}`}>
+    {count > 1 && <button type="button" className="subtask-handle" title="Arraste ou use as setas para mover" aria-label={`Mover subtarefa ${item.title}`} onPointerDown={(event) => controls.start(event)} onKeyDown={moveWithKeys}><Icon name="grip"/></button>}
+    {editing
+      ? <span className="subtask">
+        <input type="checkbox" checked={item.done} aria-label={item.title} onChange={() => actions.toggleSubtask(task.id, item.id)}/>
+        <input
+          className="subtask-rename"
+          aria-label={`Novo nome da subtarefa ${item.title}`}
+          maxLength={140}
+          value={name}
+          autoFocus
+          onChange={(event) => setName(event.target.value)}
+          onBlur={save}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') { event.preventDefault(); save(); }
+            if (event.key === 'Escape') { event.preventDefault(); setEditing(false); onError(''); }
+          }}
+        />
+      </span>
+      : <label className="subtask"><input type="checkbox" checked={item.done} onChange={() => actions.toggleSubtask(task.id, item.id)}/><span onDoubleClick={(event) => { event.preventDefault(); startEditing(); }}>{item.title}</span></label>}
+    {!editing && <button type="button" className="todo-icon-button" title="Renomear subtarefa" aria-label={`Renomear subtarefa ${item.title}`} onClick={startEditing}><Icon name="edit"/></button>}
+    <button type="button" className="todo-icon-button is-danger" title="Remover subtarefa" aria-label={`Remover subtarefa ${item.title}`} onMouseDown={(event) => editing && event.preventDefault()} onClick={() => actions.removeSubtask(task.id, item.id)}><Icon name="close"/></button>
+  </Reorder.Item>;
+}
+
 // Subtarefas: aparecem só quando a pessoa decide dividir a tarefa.
 function Subtasks({ task, actions }) {
   const [draft, setDraft] = useState('');
   const [error, setError] = useState('');
-  const items = task.subtasks || [];
+  const items = task.subtasks || NO_SUBTASKS;
   const done = items.filter((item) => item.done).length;
+  // Ordem provisória só durante o arrasto; grava uma vez, ao soltar.
+  const [dragOrder, setDragOrder] = useState(null);
+  const dragRef = useRef(null);
+  const order = dragOrder || items;
+  function reorder(next) {
+    dragRef.current = next;
+    setDragOrder(next);
+  }
+  function drop(item) {
+    const index = (dragRef.current || items).indexOf(item);
+    dragRef.current = null;
+    setDragOrder(null);
+    if (index >= 0 && index !== items.indexOf(item)) actions.moveSubtask(task.id, item.id, index);
+  }
   function add(event) {
     event.preventDefault();
     try {
@@ -39,15 +112,20 @@ function Subtasks({ task, actions }) {
       setError(exception.message);
     }
   }
-  return <details className="todo-subtasks" open={items.length > 0 && done < items.length ? true : undefined}>
-    <summary>{items.length ? `Subtarefas ${done}/${items.length}` : 'Dividir em subtarefas'}</summary>
-    {items.length > 0 && <ul className="subtask-list">{items.map((item) => <li key={item.id}>
-      <label className="subtask"><input type="checkbox" checked={item.done} onChange={() => actions.toggleSubtask(task.id, item.id)}/><span className={item.done ? 'is-done' : ''}>{item.title}</span></label>
-      <button type="button" className="icon-button subtask-remove" title="Remover subtarefa" aria-label={`Remover subtarefa ${item.title}`} onClick={() => actions.removeSubtask(task.id, item.id)}><Icon name="trash"/></button>
-    </li>)}</ul>}
+  const percent = items.length ? Math.round(done / items.length * 100) : 0;
+  return <details className={`todo-subtasks ${items.length ? 'has-items' : ''}`} open={items.length > 0 && done < items.length ? true : undefined}>
+    <summary>
+      <Icon name="chevron"/>
+      <span>{items.length ? `Subtarefas ${done}/${items.length}` : 'Dividir em subtarefas'}</span>
+      {items.length > 0 && <span className={`subtask-meter ${done === items.length ? 'is-full' : ''}`} aria-hidden="true"><span style={{ width: `${percent}%` }}/></span>}
+    </summary>
+    {items.length > 0 && <Reorder.Group as="ul" axis="y" className="subtask-list" values={order} onReorder={reorder}>
+      {order.map((item, index) => <SubtaskItem key={item.id} task={task} item={item} index={index} count={order.length} actions={actions} onDragEnd={drop} onError={setError}/>)}
+    </Reorder.Group>}
     {!task.done && items.length < MAX_SUBTASKS && <form className="subtask-form" onSubmit={add}>
-      <input aria-label={`Nova subtarefa de ${task.title}`} maxLength={140} value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Ex.: Ler os artigos 5º a 7º"/>
-      <Button secondary type="submit">Adicionar</Button>
+      <Icon name="plus"/>
+      <input aria-label={`Nova subtarefa de ${task.title}`} maxLength={140} value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Próximo passo pequeno, ex.: ler os artigos 5º a 7º"/>
+      <button type="submit" className="subtask-add" disabled={!draft.trim()}>Adicionar</button>
     </form>}
     {error && <p className="form-error" role="alert">{error}</p>}
   </details>;
@@ -114,47 +192,41 @@ export default function Tasks({ state, actions, notify, onSchedule }) {
     const course = task.courseId ? courses.get(task.courseId) : '';
     const late = isOverdue(task, today);
     return <motion.li className={`todo-item ${task.done ? 'is-done' : ''} ${late ? 'is-late' : ''} priority-${task.priority || 0}`} key={task.id} {...stagger(index)}>
-      <div className="todo-main">
-        <button
-          type="button"
-          role="checkbox"
-          aria-checked={task.done ? 'true' : 'false'}
-          aria-label={task.done ? `Reabrir tarefa ${task.title}` : `Concluir tarefa ${task.title}`}
-          className="todo-check"
-          onClick={() => toggle(task)}
-        >
-          <Icon name={task.done ? 'check' : 'plus'}/>
-        </button>
-        <span className="todo-copy">
-          <strong>{task.title}</strong>
-          <small className="todo-meta">
-            {task.done && task.priority > 0 && <span className="todo-priority">Prioridade {priorityLabel(task.priority).toLowerCase()} · </span>}
-            {late && <span className="todo-late">Atrasada · </span>}
-            {course || 'Sem curso vinculado'}
-            {task.lessonId && lessons.get(task.lessonId) ? ` · ${lessons.get(task.lessonId)}` : ''}
-            {task.dueDate ? ` · ${late ? 'venceu' : 'vence'} em ${dateLabel(task.dueDate)}` : ''}
-            {task.done && task.lessonId ? ' · Aula vinculada' : ''}
-          </small>
+      <button
+        type="button"
+        role="checkbox"
+        aria-checked={task.done ? 'true' : 'false'}
+        aria-label={task.done ? `Reabrir tarefa ${task.title}` : `Concluir tarefa ${task.title}`}
+        className="todo-check"
+        onClick={() => toggle(task)}
+      >
+        <Icon name="check"/>
+      </button>
+      <span className="todo-copy">
+        <strong>{task.title}</strong>
+        <span className="todo-chips">
+          {!task.done && task.priority > 0 && <span className="todo-chip todo-priority">Prioridade {priorityLabel(task.priority).toLowerCase()}</span>}
+          {late && <span className="todo-chip todo-late">Atrasada</span>}
+          {task.dueDate && <span className="todo-chip"><Icon name="calendar"/>{late ? 'Venceu' : 'Vence'} em {dateLabel(task.dueDate)}</span>}
+          {course && <span className="todo-chip"><Icon name="book"/>{course}</span>}
+          {task.lessonId && lessons.get(task.lessonId) && <span className="todo-chip">{lessons.get(task.lessonId)}</span>}
+          {task.done && task.lessonId && <span className="todo-chip">Aula vinculada</span>}
         </span>
-        {!task.done && <div className="todo-controls"><select className="todo-priority-select" aria-label={`Prioridade de ${task.title}`} value={String(task.priority || 0)} onChange={(event) => prioritize(task, event.target.value)}>
+      </span>
+      <span className="todo-actions">
+        {!task.done && <select className="todo-priority-select" aria-label={`Prioridade de ${task.title}`} value={String(task.priority || 0)} onChange={(event) => prioritize(task, event.target.value)}>
           {TASK_PRIORITIES.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
-        </select>
-        <div className="todo-actions">
-          {onSchedule && <button type="button" className="text-button" aria-label={`Agendar tarefa ${task.title}`} onClick={() => onSchedule(task)}>Agendar</button>}
-          <button type="button" className="text-button danger" aria-label={`Remover tarefa ${task.title}`} onClick={() => remove(task)}>Remover</button>
-        </div></div>}
-        {task.done && <div className="todo-controls"><div className="todo-actions">
-          {onSchedule && <button type="button" className="text-button" aria-label={`Agendar tarefa ${task.title}`} onClick={() => onSchedule(task)}>Agendar</button>}
-          <button type="button" className="text-button danger" aria-label={`Remover tarefa ${task.title}`} onClick={() => remove(task)}>Remover</button>
-        </div></div>}
-      </div>
+        </select>}
+        {onSchedule && <button type="button" className="todo-icon-button" title="Agendar" aria-label={`Agendar tarefa ${task.title}`} onClick={() => onSchedule(task)}><Icon name="calendar"/></button>}
+        <button type="button" className="todo-icon-button is-danger" title="Remover" aria-label={`Remover tarefa ${task.title}`} onClick={() => remove(task)}><Icon name="trash"/></button>
+      </span>
       <Subtasks task={task} actions={actions}/>
     </motion.li>;
   }
 
   return <div className="personal-root">
     <Heading eyebrow="Agenda" title="Tarefas">
-      Liste as ações concretas da sua preparação e defina o que vem primeiro. Concluir uma tarefa vinculada registra a conclusão da aula. Tarefas sem aula vinculada não geram XP.
+      Liste as ações concretas da sua preparação e defina o que vem primeiro. Concluir uma tarefa vinculada registra a conclusão da aula. Tarefas sem aula vinculada não geram XP; cada subtarefa concluída rende um pouco de XP.
     </Heading>
 
     <section className="card-surface settings-panel">
@@ -163,7 +235,7 @@ export default function Tasks({ state, actions, notify, onSchedule }) {
         <label className="field">Tarefa
           <input name="task-title" maxLength={180} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Ex.: Resolver 20 questões de constitucional" autoComplete="off"/>
         </label>
-        <div className="form-grid">
+        <div className="form-grid todo-form-row">
           <label className="field">Curso ou prova (opcional)
             <select name="task-course" value={courseId} onChange={(event) => { setCourseId(event.target.value); setLessonId(''); }}>
               <option value="">Sem vínculo</option>
@@ -189,7 +261,7 @@ export default function Tasks({ state, actions, notify, onSchedule }) {
         <Button type="submit" disabled={(state.tasks || []).length >= MAX_TASKS}><Icon name="plus"/>Adicionar tarefa</Button>
       </form>
       {gamified
-        ? <p className="quiet-note">O servidor concede o XP da aula vinculada uma única vez, mesmo com várias tarefas. Reabrir a tarefa não desfaz a aula nem repete a recompensa.</p>
+        ? <p className="quiet-note">O servidor concede o XP da aula vinculada uma única vez, mesmo com várias tarefas. Reabrir a tarefa não desfaz a aula nem repete a recompensa. Cada subtarefa concluída vale {XP_VALUES.subtask} XP uma única vez, até {DAILY_SUBTASK_XP_CAP} XP por dia.</p>
         : <p className="quiet-note">Os indicadores de XP estão ocultos nas preferências. As tarefas continuam funcionando.</p>}
     </section>
 

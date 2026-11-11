@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import Icon from '../../ui/Icon.jsx';
-import { AnimatedNumber, Button, Cover, Glow, Heading, Progress, stagger } from '../../ui/ui.jsx';
+import { AnimatedNumber, Button, Cover, Glow, Heading, Progress, Skeleton, stagger } from '../../ui/ui.jsx';
 import { api, apiError } from '../../lib/api.js';
 import { buildProfile } from '../../../public/profile-domain.js';
 import { MAX_PROFILE_BIO_LENGTH, studyRhythm } from '../../../public/domain.js';
@@ -108,7 +108,8 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
   </div>;
 
   if (!view) return <div className="personal-root">
-    <Heading eyebrow="Perfil" title="Carregando…"/>
+    <Heading eyebrow="Perfil" title="Perfil"/>
+    <Skeleton label="Carregando o perfil…" rows={4}/>
   </div>;
 
   const {

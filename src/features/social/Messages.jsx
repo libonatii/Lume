@@ -4,7 +4,7 @@ import { api, apiError } from '../../lib/api.js';
 import { invalidateResources, mutateResource, useResource } from '../../lib/resources.js';
 import { materialType } from '../../../public/domain.js';
 import Icon from '../../ui/Icon.jsx';
-import { Button, Empty, Heading } from '../../ui/ui.jsx';
+import { Button, Empty, Heading, Skeleton } from '../../ui/ui.jsx';
 
 function timeLabel(value) {
   if (!value) return '';
@@ -142,7 +142,8 @@ export default function Messages({ account, state, notify, go, contactId = '' })
           <strong className="title">Conversas</strong>
           <span className="muted-text">{conversations.length} {conversations.length === 1 ? 'amizade' : 'amizades'}</span>
         </div>
-        {conversations.length === 0 && <p className="inline-note"><Icon name="users"/><span>Nenhuma amizade ainda. <a href="#amigos" className="text-link">Convide alguém</a> para começar.</span></p>}
+        {!conversationsResource.data && !conversationsResource.error && <Skeleton label="Carregando as conversas…" rows={3}/>}
+        {conversationsResource.data && conversations.length === 0 && <p className="inline-note"><Icon name="users"/><span>Nenhuma amizade ainda. <a href="#amigos" className="text-link">Convide alguém</a> para começar.</span></p>}
         <ul className="conversation-list">
           {conversations.map((conversation) => <li key={conversation.id}>
             <button className={`conversation-item ${selected === conversation.id ? 'active' : ''}`} onClick={() => selectConversation(conversation.id)} aria-current={selected === conversation.id ? 'true' : undefined}>
@@ -162,7 +163,7 @@ export default function Messages({ account, state, notify, go, contactId = '' })
 
       <section className="card-surface message-thread" aria-label="Conversa selecionada">
         {!selected && <div className="messages-placeholder"><Icon name="mail"/><h2 className="title">Escolha uma conversa.</h2><p className="muted-text">Só amizades aceitas podem trocar mensagens. Não há conversas em grupo, canais ou mensagens de desconhecidos.</p></div>}
-        {selected && loading && <p className="muted-text">Carregando a conversa…</p>}
+        {selected && loading && <Skeleton label="Carregando a conversa…" rows={3} variant="text"/>}
         {selected && thread && <>
           <header className="message-thread-head">
             <div>

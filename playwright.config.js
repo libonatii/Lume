@@ -13,7 +13,7 @@ export default defineConfig({
   projects: [{ name: 'desktop', use: { ...devices['Desktop Chrome'] } }, { name: 'mobile', use: { ...devices['iPhone 13'], defaultBrowserType: 'chromium' } }],
   webServer: {
     command: 'node server.js', url: 'http://127.0.0.1:4187/api/me',
-    env: { PORT: '4187', LUME_DATA_DIR: `data/e2e-${Date.now()}`, BCRYPT_ROUNDS: '6', LUME_ATTEMPT_LIMIT: '200' },
+    env: { PORT: '4187', LUME_DATA_DIR: `data/e2e-${Date.now()}`, BCRYPT_ROUNDS: '6', LUME_ATTEMPT_LIMIT: '1000' },
     reuseExistingServer: false,
   },
 });

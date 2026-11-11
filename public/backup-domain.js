@@ -116,6 +116,7 @@ export function mergeBackup(current, incoming) {
     progress,
     tasks,
     agenda: mergeById(current.agenda || [], incoming.agenda || []),
+    subjects: mergeById(current.subjects || [], incoming.subjects || []),
     studySessions: sessions,
     imports: mergeById(current.imports || [], incoming.imports || []),
     selectedCourseId: validCourses.has(current.selectedCourseId)

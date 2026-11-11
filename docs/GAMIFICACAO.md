@@ -49,8 +49,9 @@ Esses eventos podem aparecer no histórico organizacional, mas não no livro de 
 | Evento elegível | XP inicial | Critério |
 | --- | ---: | --- |
 | 30 minutos de estudo efetivo | 25 | Bloco acumulado e ainda não recompensado; máximo de 200 XP de tempo por dia |
+| Subtarefa concluída | 10 | Uma vez por subtarefa; máximo de 50 XP de subtarefas por dia |
 | Aula concluída | 100 | Aula identificada, com conclusão observada em fonte compatível ou declarada explicitamente |
-| Artigo ou leitura delimitada concluída | 100 | Material completo identificado; marcador intermediário não é conclusão |
+| Artigo ou leitura delimitada concluída | 100 | Material completo identificado; marcador intermediário não é conclusão. PDF anexado: concluir a etapa única "Ler o PDF até o fim"; página aberta não conta |
 | Lista de exercícios concluída | 100 | Conjunto de trabalho delimitado e critérios registrados antes da conclusão |
 | Entrega substancial de projeto | 150 | Resultado definido e concluído, como implementar e validar uma funcionalidade |
 | Disciplina completa | 200 de bônus + conquista | Todas as aulas da disciplina selecionadas, grade completa e conclusões elegíveis; uma vez por identidade |
@@ -68,6 +69,15 @@ Esses eventos podem aparecer no histórico organizacional, mas não no livro de 
 - O tamanho arbitrário de uma tarefa não determina recompensa. Dividir uma aula em dez microtarefas não cria dez aulas elegíveis.
 - Os tipos e valores podem evoluir, mas nunca de forma silenciosa no histórico já concedido.
 
+### PDFs anexados e disciplinas da biblioteca — decisão de 11/11/2026
+
+- Anexar, abrir, rolar, virar página, identificar o assunto (inclusive com IA) e vincular a uma disciplina não geram XP.
+- O PDF anexado tem uma única etapa; concluí-la concede 100 XP de leitura e a conquista "Leitura delimitada concluída",
+  uma vez por material, validados no servidor. Por ter uma etapa, não recebe bônus de curso.
+- A disciplina criada pela pessoa na biblioteca é organização: não tem XP nem bônus. O bônus de 200 XP continua
+  valendo só para a disciplina da grade de um curso importado, que é fechada pela fonte.
+- O tempo estudado no PDF entra pela sessão declarada, como em qualquer material (25 XP a cada 30 minutos elegíveis).
+
 ### Tarefas de prova — regra em execução no protótipo
 
 A regra aprovada em 03/11/2026 substitui o XP próprio de tarefas:
@@ -78,7 +88,9 @@ A regra aprovada em 03/11/2026 substitui o XP próprio de tarefas:
 - Reabrir a tarefa altera apenas sua organização: não desfaz a aula nem retira XP. A correção de conclusão é uma ação separada.
 - A aula concluída pela tarefa participa normalmente dos bônus de disciplina e material.
 - Prioridade (alta, média, baixa ou sem prioridade) e atraso só ordenam a lista e a página Hoje. Definir, mudar ou ordenar não gera XP.
-- Vincular a tarefa a uma aula e marcar subtarefas não geram XP e não concluem a aula.
+- Vincular a tarefa a uma aula não gera XP. Marcar subtarefa não conclui a aula. Criar, renomear ou reordenar subtarefas é organização e não gera XP.
+- **Subtarefa concluída (decisão de 11/11/2026):** vale **10 XP** (`XP_VALUES.subtask`, tipo `subtask`), concedidos pelo servidor no mesmo batch da biblioteca (`api/domain/library-subtasks.js`) uma única vez por subtarefa, com a chave `subtask|<tarefa>|<subtarefa>`: desmarcar, marcar de novo ou renomear não repete, e desmarcar não retira o XP. Teto de **50 XP por dia** vindos de subtarefas (`DAILY_SUBTASK_XP_CAP`); o que passar do teto não é concedido depois. Conta no nível e no ranking. Como o texto da subtarefa é livre, o teto é a proteção contra acúmulo artificial.
+- Focar uma tarefa na Hoje (`focusTaskId`) só organiza a tela e dá nome à sessão de estudo: não conclui a tarefa nem a aula vinculada e não gera XP.
 
 A Agenda reaproveita essa regra. Ocorrências recorrentes recebem tarefas independentes, mas a mesma
 aula mantém sua identidade de recompensa. Encerrar uma atividade não conclui seu checklist, não registra
