@@ -50,7 +50,7 @@ export function discordFieldsFrom(value = {}) {
   return {
     discordPresence: value.discordPresence !== false,
     discordClientId: typeof value.discordClientId === 'string' ? value.discordClientId.trim() : '',
-    discordPublicUrl: typeof value.discordPublicUrl === 'string' ? value.discordPublicUrl.trim() : '',
+    discordPublicUrl: typeof value.discordPublicUrl === 'string' ? value.discordPublicUrl.trim().replace(/^https:\/\/lume\.lume-prototype\.workers\.dev(?=\/|$)/, PUBLIC_SITE_URL) : '',
   };
 }
 

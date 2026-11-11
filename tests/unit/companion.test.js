@@ -8,7 +8,7 @@ import {
   normalizeCategory, normalizePairCode, normalizeProcessName, parseTasklist, presenceState,
 } from '../../public/companion-domain.js';
 import { CompanionError, redeemPairCode } from '../../api/domain/companion.js';
-import { addAllowlistEntry, configPath, readConfig, removeAllowlistEntry, setPaused } from '../../companion/core.mjs';
+import { addAllowlistEntry, configPath, migrateLegacyUrl, readConfig, removeAllowlistEntry, setPaused } from '../../companion/core.mjs';
 import { hashSessionToken } from '../../api/domain/auth.js';
 
 const TASKLIST = [
@@ -169,4 +169,10 @@ test('configuração local cria padrões, evita duplicata e respeita pausa', { s
     else process.env.APPDATA = previous;
     rmSync(directory, { recursive: true, force: true });
   }
+});
+
+test('endereço workers.dev salvo em versões antigas passa para o domínio atual', () => {
+  assert.equal(migrateLegacyUrl('https://lume.lume-prototype.workers.dev'), 'https://lumeacademy.site');
+  assert.equal(migrateLegacyUrl('http://127.0.0.1:4173'), 'http://127.0.0.1:4173');
+  assert.equal(migrateLegacyUrl('não é url'), 'não é url');
 });

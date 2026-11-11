@@ -283,7 +283,7 @@ ligado por padrão). O Application ID público do Lume vai no build (`DEFAULT_DI
 `lume_logo` foi enviada.
 Falta também: instalador assinado; início com o Windows; notificações de pausa; abrir a próxima aula pelo painel;
 funcionamento sem rede; suporte a Linux e macOS; janela e bandeja testadas no CI. A última release publicada é
-`companion-v0.6.1` (10/11/2026, a mesma versão de `companion/package.json`), com o Discord e o endereço `lumeacademy.site`. O endereço antigo (`lume.lume-prototype.workers.dev`) foi desligado por decisão da responsável: o site vive só em `lumeacademy.site`. A 0.6.0 ainda embute o endereço antigo e perde a conexão; a 0.6.1 corrige isso. A extensão 0.2.1 (manifesto com o domínio novo) precisa ser recarregada no Chrome.
+`companion-v0.6.2` (10/11/2026, a mesma versão de `companion/package.json`), com o Discord e o endereço `lumeacademy.site`; a 0.6.2 migra o endereço antigo salvo em `%APPDATA%umempanion.json`. O endereço antigo (`lume.lume-prototype.workers.dev`) foi desligado por decisão da responsável: o site vive só em `lumeacademy.site`. A 0.6.0 ainda embute o endereço antigo e perde a conexão; a atualização pelo menu da bandeja (Verificar atualização) corrige isso. A extensão 0.2.1 (manifesto com o domínio novo) precisa ser recarregada no Chrome.
 
 ---
 

@@ -19,6 +19,18 @@ const exec = promisify(execFile);
 export const DEFAULT_API = process.env.LUME_API_URL || 'https://lumeacademy.site';
 export const PLAN_REFRESH_TICKS = 12;
 
+// O endereço workers.dev foi desligado em 10/11/2026. Configurações salvas por versões
+// anteriores ainda o guardam e levariam a janela a uma página de erro.
+const LEGACY_HOST = 'lume.lume-prototype.workers.dev';
+export function migrateLegacyUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.hostname === LEGACY_HOST ? DEFAULT_API : value;
+  } catch {
+    return value;
+  }
+}
+
 export const DEFAULT_ALLOWLIST = [
   { process: 'anki', label: 'Anki', category: 'study' },
   { process: 'code', label: 'VS Code', category: 'project' },
@@ -51,7 +63,7 @@ export function readConfig() {
   let value = {};
   try { value = JSON.parse(readFileSync(path, 'utf8')); } catch { value = {}; }
   return {
-    apiUrl: typeof value.apiUrl === 'string' && value.apiUrl ? value.apiUrl.replace(/\/+$/, '') : DEFAULT_API,
+    apiUrl: typeof value.apiUrl === 'string' && value.apiUrl ? migrateLegacyUrl(value.apiUrl.replace(/\/+$/, '')) : DEFAULT_API,
     token: typeof value.token === 'string' ? value.token : '',
     deviceName: typeof value.deviceName === 'string' ? value.deviceName : '',
     intervalSeconds: Number.isFinite(value.intervalSeconds) && value.intervalSeconds >= 3 ? Math.min(value.intervalSeconds, 120) : 5,
