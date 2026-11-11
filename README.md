@@ -105,7 +105,7 @@ Mensagens diretas entre amizades, bloqueio, não lidas, notificações, comparti
 
 ## Hospedagem
 
-O endereço de referência é [lume.lume-prototype.workers.dev](https://lume.lume-prototype.workers.dev), que responde com o build React/Astro e mantém o backend e os vínculos com D1. A configuração de Wrangler gera o build antes de publicar e envia `dist/`. A publicação atual inclui a base React/Astro, o sistema visual de `src/styles/`, o service worker, a API de importação, XP/ranking, mensagens e colaboração. **O R2 não está habilitado nesta conta**, então o binding `MEDIA` está comentado: avatares, capas e imagens de slides respondem 503 até o R2 ser ativado e o binding ser restaurado. Nenhum plano pago foi ativado.
+O endereço de referência é [lume.lume-prototype.workers.dev](https://lume.lume-prototype.workers.dev), que responde com o build React/Astro e mantém o backend e os vínculos com D1. A configuração de Wrangler gera o build antes de publicar e envia `dist/`. A publicação atual inclui a base React/Astro, o sistema visual de `src/styles/`, o service worker, a API de importação, XP/ranking, mensagens e colaboração. O binding R2 `MEDIA` (bucket `lume-media`) está declarado em `wrangler.jsonc` desde 08/11 para avatares, capas e imagens de slides; sem o bucket no deploy, essas rotas respondem 503, e o upload no site publicado ainda não foi verificado. A recuperação de senha por e-mail também depende do segredo `RESEND_API_KEY` no Worker. Nenhum plano pago foi ativado.
 
 O build gera hashes CSP dos scripts e estilos inline exatos do Astro e grava `dist/_headers`, utilizado também pelo servidor Node. Não libera execução genérica de scripts inline.
 
