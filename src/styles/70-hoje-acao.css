@@ -68,10 +68,6 @@
 .completed-message {
   color: var(--success);
 }
-.todo-overdue-note {
-  border-color: var(--warning);
-  background: var(--warning-soft);
-}
 /* No computador o nível fica no cartão da barra lateral; no celular, na barra superior. */
 @media (min-width: 821px) {
   .level-chip {

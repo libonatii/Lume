@@ -74,6 +74,8 @@
   align-self: center;
 }
 
+/* Cronograma e disponibilidade. As tarefas e subtarefas ficam em tasks.css. */
+
 @media (max-width: 820px) {
   .availability-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -89,5 +91,10 @@
   }
   .section-tabs {
     width: 100%;
+  }
+}
+@media (max-width: 520px) {
+  .goal-row {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

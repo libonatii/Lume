@@ -108,7 +108,7 @@ export default function Agenda({ state, actions, taskActions, confirmSave, retry
   async function move(info) {
     const item = entries.find((entry) => entry.id === info.event.id);
     if (!item) { info.revert(); return; }
-    const patch = calendarPatch(info.event, item.timeZone);
+    const patch = calendarPatch(info.event, item.timeZone, { month: info.view.type === 'dayGridMonth' });
     info.revert();
     if (blocked) return;
     const draft = { ...item, ...patch };
@@ -191,7 +191,7 @@ export default function Agenda({ state, actions, taskActions, confirmSave, retry
         <div className="agenda-calendar-frame">
         <FullCalendar ref={calendar} plugins={plugins} locale={ptBr} initialView={view} initialDate={initialDate} headerToolbar={false}
           views={{ timeGridWeek: { titleFormat: { day: 'numeric', month: 'short', year: 'numeric' } }, timeGridThreeDay: { type: 'timeGrid', duration: { days: 3 }, titleFormat: { day: 'numeric', month: 'short', year: 'numeric' } }, listWeek: { titleFormat: { day: 'numeric', month: 'short', year: 'numeric' } } }}
-          height="min(760px, 74vh)" firstDay={1} nowIndicator allDayText="Sem horário" slotDuration="00:30:00" snapDuration="00:30:00" scrollTime={scrollTime} slotMinHeight={36}
+          height={view === 'dayGridMonth' ? 'min(640px, 64vh)' : 'min(760px, 74vh)'} firstDay={1} nowIndicator allDayText="Sem horário" slotDuration="00:30:00" snapDuration="00:30:00" scrollTime={scrollTime} slotMinHeight={36}
           slotHeaderFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }} eventTimeFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }} slotLaneClass="lume-time-slot"
           eventClass={(info) => `${info.isDragging ? 'is-dragging' : ''}${info.isMirror ? ' is-mirror' : ''}`}
           noEventsContent="Nada agendado neste período."

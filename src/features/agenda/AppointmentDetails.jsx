@@ -33,7 +33,7 @@ export default function AppointmentDetails({ item, state, actions, taskActions, 
         <div className={`agenda-checklist-progress${done === tasks.length && !startedFull.current ? ' is-full' : ''}`} aria-hidden="true"><span style={{ transform: `scaleX(${done / tasks.length})` }}/></div>
         <ul className="agenda-checklist">{tasks.map((task) => <li key={task.id}><label className="agenda-checkbox"><span className="agenda-check"><input type="checkbox" checked={task.done} disabled={locked || item.cancelled} aria-label={`${task.done ? 'Reabrir' : 'Concluir'} tarefa ${task.title}`} onChange={() => run(() => task.done ? taskActions.reopenTask(task.id) : taskActions.completeTask(task.id))}/><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span><span>{task.title}{task.dueDate && <small>Prazo: {task.dueDate}</small>}</span></label></li>)}</ul>
       </section>}
-      {saveError && <div role="alert"><p>{saveError}</p><Button secondary onClick={() => run(retrySave)}>Recarregar ou tentar novamente</Button></div>}
+      {saveError && <div role="alert" className="form-error form-error-block"><p>{saveError}</p><Button secondary onClick={() => run(retrySave)}>Recarregar ou tentar novamente</Button></div>}
       {error && <p role="alert" className="form-error">{error}</p>}
       {confirmDelete
         ? <div className="agenda-confirm" role="group" aria-label="Excluir compromisso"><p>Excluir qual parte da série? As tarefas do checklist continuam em Tarefas.</p>

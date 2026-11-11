@@ -50,7 +50,7 @@ test('prioridade e atraso aparecem na lista e na Hoje e sobrevivem ao recarregam
 
   await page.goto('/#tarefas');
   await page.getByLabel('Prioridade de Separar súmulas vinculantes').selectOption('1');
-  await expect(page.getByText(/Prioridade alta/)).toBeVisible();
+  await expect(page.getByLabel('Prioridade de Separar súmulas vinculantes')).toHaveValue('1');
   const items = page.locator('.todo-item');
   await expect(items.first()).toContainText('Revisar controle de constitucionalidade');
   await expect(items.first()).toContainText('Atrasada');

@@ -65,7 +65,7 @@ export function Schedule({ state, actions, open, notify }) {
     </section>)}
 
     {!schedule.courses.length
-      ? <Empty title="Sem cursos em andamento." onAdd={() => open({ type: 'new' })}>Importe um curso por link ou crie um material; o cronograma usa as aulas e as durações encontradas.</Empty>
+      ? <Empty icon="calendar" title="Sem cursos em andamento." onAdd={() => open({ type: 'new' })}>Importe um curso por link ou crie um material; o cronograma usa as aulas e as durações encontradas.</Empty>
       : !hasAvailability
         ? <section className="card-surface plan-setup">
           <h2 className="title">Quanto tempo você tem por semana?</h2>
@@ -130,6 +130,6 @@ export function Roadmap({ state, open }) {
         <p className="muted-text">{course.title} · {course.remaining} de {course.total} restantes{course.partial ? ' · grade parcial' : ''}. {course.reason.detail}</p>
         {course.next && <div className="action-row"><Button secondary onClick={() => open({ type: 'session', id: course.id, stepId: course.next.id })}>Estudar esta aula<Icon name="arrow"/></Button></div>}
       </li>)}
-    </ol> : <Empty title="Nenhum curso em andamento." onAdd={() => open({ type: 'new' })}>{plan.note}</Empty>}
+    </ol> : <Empty icon="calendar" title="Nenhum curso em andamento." onAdd={() => open({ type: 'new' })}>{plan.note}</Empty>}
   </div>;
 }

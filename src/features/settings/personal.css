@@ -1,44 +1,9 @@
 /* Conquistas, Meu caminho e configurações. */
 
-/* Missões, Conquistas, Meu Caminho e Configurações */
-.mission-list, .history-list {
+.history-list {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
-}
-.task-card {
-  display: grid;
-  grid-template-columns: 112px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 1.15rem;
-  padding: 1rem 1.25rem;
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
-}
-.task-cover {
-  height: 76px;
-  aspect-ratio: auto;
-}
-.task-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  min-width: 0;
-}
-.task-meta {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-}
-.task-step-pill {
-  font-size: 0.74rem;
-  padding: 0.15rem 0.55rem;
-  border-radius: var(--radius-pill);
-  background: var(--surface-2);
-  color: var(--text-muted);
 }
 
 .inline-note {
@@ -277,7 +242,7 @@
 }
 .switch:checked::after {
   transform: translateX(1.22rem);
-  background: #0a1f17;
+  background: var(--lume-ink);
 }
 
 .empty-state {

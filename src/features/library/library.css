@@ -176,13 +176,13 @@
   border-radius: var(--radius-pill);
   font-size: 0.74rem;
   font-weight: 700;
-  background: rgba(14, 13, 20, 0.76);
-  color: #f5f1e8;
+  background: color-mix(in srgb, var(--media-scrim) 78%, transparent);
+  color: var(--media-ink);
   backdrop-filter: blur(8px);
 }
 .course-status.status-active {
   background: color-mix(in srgb, var(--mint) 88%, transparent);
-  color: #eafff7;
+  color: var(--lume-ink);
 }
 .course-status.status-completed {
   background: color-mix(in srgb, var(--lume) 92%, transparent);
@@ -197,7 +197,7 @@
   gap: 0.3rem;
   padding: 0.2rem 0.55rem;
   border-radius: var(--radius-pill);
-  background: rgba(14, 13, 20, 0.78);
+  background: color-mix(in srgb, var(--media-scrim) 78%, transparent);
   color: var(--lume);
   font-size: 0.74rem;
   font-weight: 600;
@@ -253,15 +253,15 @@
   position: absolute;
   inset: auto 0 0 0;
   padding: 1rem;
-  background: linear-gradient(180deg, transparent, rgba(14, 13, 20, 0.9));
-  color: #f5f1e8;
+  background: linear-gradient(180deg, transparent, var(--media-scrim));
+  color: var(--media-ink);
 }
 .green-pill {
   display: inline-block;
   padding: 0.2rem 0.6rem;
   border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--mint) 22%, transparent);
-  color: #84f5cd;
+  color: var(--mint);
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;

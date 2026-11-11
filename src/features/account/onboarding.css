@@ -188,21 +188,35 @@
   font-weight: 600;
   cursor: pointer;
 }
-.filter-btn[aria-pressed='true'], .filter-btn.selected {
-  color: var(--lume-ink);
-  border-color: var(--lume);
-  background: var(--lume);
+.filter-btn[aria-pressed='true'], .filter-btn[aria-selected='true'], .filter-btn.selected {
+  color: var(--action-ink);
+  border-color: var(--action);
+  background: var(--action);
 }
 .selection-highlight {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: var(--lume);
+  background: var(--action);
   z-index: 0;
 }
 .filter-btn > span:last-child {
   position: relative;
   z-index: 1;
+}
+@media (max-width: 640px) {
+  .filter-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 0.15rem;
+  }
+  .filter-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .filter-btn {
+    flex: 0 0 auto;
+  }
 }
 
 .plan-summary-card {

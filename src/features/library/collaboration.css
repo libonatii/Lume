@@ -1,15 +1,24 @@
 /* Sugestões do GitHub e convites de colaboração. */
 
 /* --- GitHub e sugestões de entrega --- */
-.github-form {
-  display: flex;
-  align-items: flex-end;
-  gap: 0.8rem;
-  flex-wrap: wrap;
-  margin: 1rem 0;
+/* A especificidade vence o display do .card-surface, que é definido depois. */
+.card-surface.github-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--space-3);
+  margin: 0;
 }
 .github-form .field {
-  flex: 1 1 20rem;
+  min-width: 0;
+}
+@media (max-width: 640px) {
+  .card-surface.github-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .github-form .button {
+    width: 100%;
+  }
 }
 .github-result {
   display: grid;

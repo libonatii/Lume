@@ -122,7 +122,7 @@ export default function Messages({ account, state, notify, go, contactId = '' })
 
   if (!account) return <div className="personal-root">
     <Heading eyebrow="Conversas entre amizades" title="Mensagens">Mensagens diretas exigem uma conta e uma amizade aceita. Na prévia, você pode explorar o resto do Lume.</Heading>
-    <Empty title="Entre para conversar.">O convite por link é o caminho para formar sua lista de amigos.</Empty>
+    <Empty icon="mail" title="Entre para conversar.">O convite por link é o caminho para formar sua lista de amigos.</Empty>
     <Button onClick={() => go('login')}><Icon name="lock"/>Entrar na minha conta</Button>
   </div>;
 

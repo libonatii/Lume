@@ -387,3 +387,24 @@ test('criação rápida expande, filtro por tipo, exclusão com desfazer e visõ
   await expect(page.getByLabel('Calendário: 3 dias')).toContainText('Prova de direito');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 });
+
+test('arrastar no mês move o dia e remove o horário', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'gesto de arrasto com mouse é exclusivo do computador');
+  const state = createAppointment({ ...createInitialState(), onboarded: true }, {
+    title: 'Bloco com hora', category: 'study', date: '2026-11-10', start: '14:00', end: '15:00', timeZone: 'America/Sao_Paulo', taskIds: [],
+  });
+  await seedAccount(page, state);
+  await page.goto('/#agenda');
+  await expect(page.getByRole('heading', { name: 'Agenda', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Mês', exact: true }).click();
+  const event = page.getByLabel('Abrir compromisso Bloco com hora', { exact: true }).first();
+  await expect(event).toBeVisible();
+  const source = await event.boundingBox();
+  const target = await page.locator('[data-date="2026-11-18"]').boundingBox();
+  await page.mouse.move(source.x + source.width / 2, source.y + source.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(target.x + 40, target.y + 40, { steps: 12 });
+  await page.mouse.up();
+  const saved = await readAccount(page);
+  expect(saved.agenda[0]).toEqual(expect.objectContaining({ date: '2026-11-18', endDate: '2026-11-18', start: '', end: '' }));
+});

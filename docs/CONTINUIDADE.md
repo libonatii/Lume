@@ -50,6 +50,7 @@ Telas React → ações nomeadas → useLibraryPersistence → /api/library/acti
   revalidação ao montar, intervalo compartilhado e isolamento entre contas.
 - CSS das funcionalidades fica junto delas; tokens, base, diálogos, responsividade e tema
   ficam em `src/styles/`. `lume.css` é o manifesto explícito da cascata, empacotado com hash.
+  Espaçamento, campos em linha e mensagens de erro usam `--space-*`, `.form-grid` e `.form-error`.
 
 ## 3. O que existe
 
@@ -62,7 +63,7 @@ Telas React → ações nomeadas → useLibraryPersistence → /api/library/acti
 | Próxima ação | Hoje, Biblioteca, diálogo, roteiro, perfil e Desktop usam o critério de `study-plan.js`; `nextMission` foi removido. Registrar a aula oferece "Concluir e abrir a próxima" (importada) e "Concluir e seguir para a próxima" (etapa manual); o curso importado aceita registrar em lote as aulas em aberto até uma escolhida, cada uma como registro manual |
 | Carregamento | Esqueletos com a forma da tela (`Skeleton`, `PageSkeleton`) ao recarregar a biblioteca da conta e enquanto amigos, conversas, ranking, perfis, dispositivos e XP chegam |
 | Plano | Disponibilidade, prazos, prioridades, cronograma derivado, conflitos explicados e adiamento |
-| Agenda | FullCalendar Standard: semana no computador, dia no celular e mês; criação na grade, arrasto/redimensionamento, editor contextual com checklist por item, painel Para agendar, recorrência finita e sugestões revisáveis; persistência por conta em `agenda_entries` |
+| Agenda | FullCalendar Standard: semana no computador, dia no celular e mês; criação na grade, arrasto/redimensionamento (no mês, arrastar move o dia e remove o horário), editor contextual com checklist por item, painel Para agendar, recorrência finita e sugestões revisáveis; persistência por conta em `agenda_entries` |
 | Tarefas | Prazo, prioridade, vínculo com aula e subtarefas (renomear no lugar; reordenar arrastando pela alça ou com as setas); concluir tarefa vinculada conclui a aula, sem XP próprio; sem vínculo, 0 XP. Subtarefa concluída vale 10 XP uma vez, até 50 XP por dia, validados no servidor (`library-subtasks.js`). Na Hoje, o botão à esquerda da tarefa a coloca em foco: ela ocupa o cartão principal, dá nome à sessão de estudo e fica salva na conta (`focusTaskId`) até ser concluída, removida ou tirada do foco; concluir fica no botão à direita |
 | Lembretes da Agenda | Consulta autenticada com reivindicação única por conta (`agenda_reminders`); avisos internos e canal Notification do computador; requer site/app executando e rede |
 | Sessão | Início, pausa, retomada, batimentos e encerramento; sobras de tempo, sobreposição e teto tratados no servidor |

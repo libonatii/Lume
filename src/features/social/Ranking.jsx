@@ -76,7 +76,7 @@ export default function Ranking({ account, xp, refreshXP, notify, go }) {
 
   if (!account) return <div className="personal-root">
     <Heading eyebrow="Comparação opcional entre amigos" title="Ranking">O ranking precisa de uma conta e de amizades. Na prévia, você pode explorar o resto do Lume.</Heading>
-    <Empty title="Entre para participar.">O convite por link é o caminho para formar sua lista de amigos.</Empty>
+    <Empty icon="podium" title="Entre para participar.">O convite por link é o caminho para formar sua lista de amigos.</Empty>
     <Button onClick={() => go('login')}><Icon name="lock"/>Entrar na minha conta</Button>
   </div>;
 
@@ -123,7 +123,7 @@ export default function Ranking({ account, xp, refreshXP, notify, go }) {
     {error && <p className="form-error" role="alert">{error}</p>}
 
     {loading && !data && <Skeleton label="Carregando o ranking…" rows={4}/>}
-    {!loading && data && entries.length === 0 && <Empty title="Ninguém participando ainda.">Convide amigos e combine de entrar no ranking. Quem não entrar não aparece, e isso não muda o XP de ninguém.</Empty>}
+    {!loading && data && entries.length === 0 && <Empty icon="users" title="Ninguém participando ainda.">Convide amigos e combine de entrar no ranking. Quem não entrar não aparece, e isso não muda o XP de ninguém.</Empty>}
 
     {entries.length > 0 && <ol className="ranking-list" aria-label={`Ranking por ${TABS.find((item) => item.id === tab)?.label}`}>
       {entries.map((entry, index) => <motion.li key={entry.id} className={`ranking-row ${entry.isSelf ? 'is-self' : ''}`} {...stagger(index)}>

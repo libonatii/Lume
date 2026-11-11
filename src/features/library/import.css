@@ -75,9 +75,6 @@
   border-color: color-mix(in srgb, var(--warning) 32%, transparent);
   color: var(--warning);
 }
-html[data-theme='light'] .import-badge.tone-warn {
-  color: #96660c;
-}
 .import-badge .icon {
   width: 15px;
   height: 15px;

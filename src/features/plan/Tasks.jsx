@@ -235,7 +235,7 @@ export default function Tasks({ state, actions, notify, onSchedule }) {
         <label className="field">Tarefa
           <input name="task-title" maxLength={180} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Ex.: Resolver 20 questões de constitucional" autoComplete="off"/>
         </label>
-        <div className="todo-form-row">
+        <div className="form-grid todo-form-row">
           <label className="field">Curso ou prova (opcional)
             <select name="task-course" value={courseId} onChange={(event) => { setCourseId(event.target.value); setLessonId(''); }}>
               <option value="">Sem vínculo</option>
@@ -272,7 +272,7 @@ export default function Tasks({ state, actions, notify, onSchedule }) {
       {overdue > 0 && <p className="inline-note todo-overdue-note" role="status"><Icon name="flag"/><span>{overdueMessage(overdue)}</span></p>}
       {pending.length
         ? <ul className="todo-list">{pending.map(taskRow)}</ul>
-        : <Empty title="Sem tarefas pendentes.">Defina a próxima ação concreta da sua preparação no formulário acima.</Empty>}
+        : <Empty icon="list" title="Sem tarefas pendentes.">Defina a próxima ação concreta da sua preparação no formulário acima.</Empty>}
     </section>
 
     {done.length > 0 && <section className="todo-section" aria-labelledby="todo-done-title">
