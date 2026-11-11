@@ -14,6 +14,8 @@ import { Steps } from '../library/Study.jsx';
 import ImportCourse from '../library/ImportCourse.jsx';
 import CourseEditor, { ManualCourseForm } from '../library/CourseEditor.jsx';
 import { SlidesEditor, SlidesViewer } from '../library/Slides.jsx';
+import AttachPdf from '../library/AttachPdf.jsx';
+import PdfReader, { PdfDetails } from '../library/PdfReader.jsx';
 import { CollaborationPanel } from '../library/Collaboration.jsx';
 import { isCompleted } from '../../../public/progress-domain.js';
 
@@ -47,6 +49,9 @@ export default function StudyDialog({ modal, state, libraryActions, progressActi
   if (modal.type === 'new' || modal.type === 'import') {
     return <ImportCourse state={state} actions={libraryActions} close={close} notify={notify} go={go} open={open} modal={{ courseId: modal.type === 'import' ? modal.id : null, capture: modal.capture }}/>;
   }
+  if (modal.type === 'pdf-attach') {
+    return <AttachPdf state={state} actions={libraryActions} close={close} notify={notify} open={open} go={go} account={account} subjectId={modal.subjectId || ''}/>;
+  }
   if (modal.type === 'manual') {
     return <ManualCourseForm actions={libraryActions} close={close} notify={notify} open={open}/>;
   }
@@ -69,6 +74,8 @@ export default function StudyDialog({ modal, state, libraryActions, progressActi
 
   if (modal.type === 'delete') return <DeleteCourse course={course} actions={libraryActions} close={close} notify={notify}/>;
   if (modal.type === 'edit') return <CourseEditor course={course} actions={libraryActions} close={close} notify={notify}/>;
+  if (course.pdf && ['pdf', 'session'].includes(modal.type)) return <PdfReader course={course} state={state} actions={libraryActions} progressActions={progressActions} notify={notify} open={open} account={account}/>;
+  if (course.pdf && modal.type === 'course') return <PdfDetails course={course} state={state} actions={libraryActions} open={open} close={close}/>;
   if (modal.type === 'slides') return <SlidesViewer course={course} state={state} actions={libraryActions} progressActions={progressActions} close={close} notify={notify} account={account}/>;
 
   if (isImportedCourse(course)) {
@@ -170,6 +177,16 @@ function DeleteCourse({ course, actions, close, notify }) {
     notify(`"${course.title}" foi excluído. O XP já confirmado permanece no extrato.`);
     close();
   }
+  if (course.pdf) return <div className="dialog-content">
+    <span className="dialog-emblem tone-warn"><Icon name="close"/></span>
+    <h2 id="dialog-title" className="headline">Excluir este PDF?</h2>
+    <p className="dialog-text"><strong>{course.title}</strong> · {course.pdf.name}</p>
+    <p className="muted-text">Remove o material, a página salva e o arquivo guardado na sua conta, liberando o espaço. O XP já confirmado pelo servidor permanece no extrato e nas conquistas. Para estudar de novo, anexe o arquivo outra vez.</p>
+    <div className="dialog-actions">
+      <Button className="danger-button full-width" onClick={remove}><Icon name="close"/>Sim, excluir PDF</Button>
+      <Button secondary onClick={close}>Manter PDF</Button>
+    </div>
+  </div>;
   return <div className="dialog-content">
     <span className="dialog-emblem tone-warn"><Icon name="close"/></span>
     <h2 id="dialog-title" className="headline">Excluir este curso?</h2>

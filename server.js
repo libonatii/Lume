@@ -18,7 +18,7 @@ import { BASE_HEADERS } from './api/http.js';
 const port = Number(process.env.PORT || 4173);
 
 const staticFiles = new Map();
-const mime = { html: 'text/html; charset=utf-8', css: 'text/css; charset=utf-8', js: 'text/javascript; charset=utf-8', png: 'image/png', svg: 'image/svg+xml', woff2: 'font/woff2', json: 'application/json' };
+const mime = { html: 'text/html; charset=utf-8', css: 'text/css; charset=utf-8', js: 'text/javascript; charset=utf-8', mjs: 'text/javascript; charset=utf-8', png: 'image/png', svg: 'image/svg+xml', woff2: 'font/woff2', json: 'application/json' };
 const dist = fileURLToPath(new URL('./dist/', import.meta.url));
 if (existsSync(dist)) {
   for (const file of readdirSync(dist, { recursive: true, withFileTypes: true })) {

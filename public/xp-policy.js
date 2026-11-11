@@ -79,7 +79,7 @@ export function isEligibleCourse(course) {
 export function completionKindForCourse(course) {
   if (!course) return 'lesson';
   if (isImportedCourse(course)) return 'lesson';
-  if (course.type === 'article' || course.type === 'book') return 'reading';
+  if (course.type === 'article' || course.type === 'book' || course.type === 'pdf') return 'reading';
   if (course.type === 'exercise') return 'exercise';
   if (course.type === 'project') return 'delivery';
   return 'lesson';

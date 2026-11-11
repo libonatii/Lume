@@ -15,6 +15,7 @@ import Agenda from '../features/agenda/Agenda.jsx';
 import Ranking from '../features/social/Ranking.jsx';
 import Messages from '../features/social/Messages.jsx';
 import GitHub from '../features/library/GitHub.jsx';
+import Subjects from '../features/library/Subjects.jsx';
 import Icon from '../ui/Icon.jsx';
 
 // Seis destinos do menu; as telas secundárias são abas da seção.
@@ -50,6 +51,7 @@ export const ROUTES = [
   { id: 'hoje', title: 'Hoje', loading: 'panel', section: 'hoje', render: (ctx) => <Home state={ctx.state} open={ctx.open} go={ctx.go} planActions={ctx.model.planActions} progressActions={ctx.model.progressActions} notify={ctx.notify} account={ctx.model.account} xp={ctx.model.xp}/> },
 
   { id: 'biblioteca', title: 'Biblioteca', loading: 'cards', section: 'biblioteca', tab: 'Materiais', render: (ctx) => <Library state={ctx.state} open={ctx.open} actions={ctx.model.libraryActions}/> },
+  { id: 'disciplinas', title: 'Disciplinas', loading: 'cards', section: 'biblioteca', tab: 'Disciplinas', render: (ctx) => <Subjects key={ctx.params.get('id') || 'todas'} state={ctx.state} actions={ctx.model.libraryActions} open={ctx.open} go={ctx.go} notify={ctx.notify} id={ctx.params.get('id') || ''}/> },
   { id: 'github', title: 'GitHub', section: 'biblioteca', tab: 'GitHub', render: (ctx) => <GitHub actions={ctx.model.libraryActions} account={ctx.model.account} notify={ctx.notify} go={ctx.go}/> },
 
   { id: 'plano', title: 'Plano', loading: 'panel', section: 'plano', tab: 'Cronograma', render: (ctx) => <Schedule state={ctx.state} actions={ctx.model.planActions} open={ctx.open} notify={ctx.notify}/> },

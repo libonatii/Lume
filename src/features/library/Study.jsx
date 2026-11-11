@@ -13,6 +13,8 @@ import StudySession from '../progress/StudySession.jsx';
 import Icon from '../../ui/Icon.jsx';
 import { Button, Cover, Empty, Heading, Progress, Skeleton, ease, enter } from '../../ui/ui.jsx';
 import { isCompleted } from '../../../public/progress-domain.js';
+import { materialStanding, subjectOf } from '../../../public/subject-domain.js';
+import { readingLabel } from '../../../public/pdf-domain.js';
 
 export function Home({ state, open, go, planActions, progressActions, notify, account, xp }) {
   const action = nextAction(state);
@@ -44,6 +46,8 @@ export function Home({ state, open, go, planActions, progressActions, notify, ac
       actions={<button className="chip-button" onClick={() => go('inicio')}><Icon name="settings"/>Ritmo: {plan.title}</button>}
     >{focus
       ? <>Seu foco agora é <strong>{focus.title}</strong>, escolhido por você.</>
+      : action?.pdf
+        ? <>Continue <strong>{action.courseTitle}</strong> na página {action.pdf.page}. Reserve {action.minutes} minutos para avançar.</>
       : action
         ? <>Sua próxima {unit} é <strong>{action.title}</strong>. Reserve {action.minutes} minutos para avançar.</>
         : 'Adicione um curso ou material à biblioteca para receber a próxima ação.'}</Heading>
@@ -67,6 +71,21 @@ export function Home({ state, open, go, planActions, progressActions, notify, ac
           <Button ghost onClick={() => toggleFocus(focus)}>Tirar do foco</Button>
         </div>
         <p className="quiet-note">Focar organiza a Hoje e dá nome à sessão de estudo; não conclui nada nem gera XP.{focus.lessonId ? ' Concluir a tarefa conclui a aula vinculada.' : ''}</p>
+      </> : action?.pdf ? <>
+        <span className="pill"><Icon name="focus"/>Próxima ação · PDF{subjectOf(state, course) ? ` · ${subjectOf(state, course).title}` : ''}</span>
+        <h2 id="next-title" className="headline">{action.pdf.started ? `Continuar ${action.courseTitle} na página ${action.pdf.page}` : `Começar ${action.courseTitle}`}</h2>
+        {action.pdf.section && <p className="muted-text">{action.pdf.section}</p>}
+        <dl className="next-facts">
+          <div><dt>Por que agora</dt><dd><strong>{action.reason.label}.</strong> {action.reason.detail}</dd></div>
+          <div><dt>Reserve</dt><dd><strong>{action.minutes} min</strong> <span className="fact-source">estimativa</span></dd></div>
+          <div><dt>Onde parou</dt><dd>{action.pdf.started ? readingLabel(course.reading, action.pdf.pages) : `${action.pdf.pages} páginas, ainda não aberto`}</dd></div>
+        </dl>
+        <Progress value={materialStanding(state, course).percent} max={100} tone="lume" label={`Avanço em ${action.courseTitle}`}/>
+        <div className="action-row">
+          <Button onClick={() => open({ type: 'pdf', id: action.courseId })}><Icon name="book"/>{action.pdf.started ? `Continuar na p. ${action.pdf.page}` : 'Abrir no leitor'}</Button>
+          <Button ghost onClick={() => open({ type: 'course', id: action.courseId })}>Ver o material<Icon name="arrow"/></Button>
+        </div>
+        <p className="quiet-note">A página fica salva ao virar. O XP vem ao concluir a leitura do PDF inteiro.</p>
       </> : action ? <>
         <span className="pill"><Icon name="focus"/>Próxima ação · {action.courseTitle}</span>
         <h2 id="next-title" className="headline">{action.title}</h2>
@@ -201,19 +220,24 @@ export function CourseCard({ course, state, open }) {
   const summary = imported ? courseSummary(state, course) : null;
   const scope = imported ? `${summary.done} de ${summary.total} aulas` : `${progress.done} de ${progress.total} etapas`;
   const deck = slidesSummary(course);
-  return <div className="course-card-wrap"><motion.button {...enter} whileHover={{ y: -4 }} whileTap={{ scale: .99 }} className={`course-card ${state.selectedCourseId === course.id ? 'selected-course' : ''}`} onClick={() => open({ type: 'course', id: course.id })} aria-label={`${course.title}, ${statuses[status]}, ${scope}`}>
+  const reading = course.pdf ? materialStanding(state, course) : null;
+  const subject = subjectOf(state, course);
+  const shownScope = reading ? reading.label : scope;
+  const percent = reading ? reading.percent : progress.percent;
+  return <div className="course-card-wrap"><motion.button {...enter} whileHover={{ y: -4 }} whileTap={{ scale: .99 }} className={`course-card ${state.selectedCourseId === course.id ? 'selected-course' : ''}`} onClick={() => open({ type: 'course', id: course.id })} aria-label={`${course.title}, ${statuses[status]}, ${shownScope}`}>
     <div className="course-image">
       <Cover art={art}/>
       <span className={`course-status status-${status}`}>{statuses[status]}</span>
       {imported && <span className="course-source-chip">{sourceLabel(course.source)}</span>}
+      {course.pdf && <span className="course-source-chip"><Icon name="book"/>PDF · {course.pdf.pages} p.</span>}
       {deck.total > 0 && <span className="course-slide-chip"><Icon name="book"/>{deck.total} slides</span>}
       {course.resumeAt && <span className="course-resume-chip"><Icon name="return"/>{course.resumeAt}</span>}
     </div>
     <div className="course-card-body">
       <h3 className="title">{course.title}</h3>
-      <p className="course-description">{materialType(course.type).title}{imported ? ` · ${sourceLabel(course.source)}` : ''}{course.example ? ' · Exemplo' : ''}{imported && summary.partial ? ' · grade parcial' : ''}</p>
-      <div className="course-progress-label"><span>{scope}</span><strong>{progress.percent}%</strong></div>
-      <Progress value={progress.percent} tone={status === 'completed' ? 'mint' : 'lume'} label={`Progresso de ${course.title}`}/>
+      <p className="course-description">{materialType(course.type).title}{subject ? ` · ${subject.title}` : ''}{imported ? ` · ${sourceLabel(course.source)}` : ''}{course.example ? ' · Exemplo' : ''}{imported && summary.partial ? ' · grade parcial' : ''}</p>
+      <div className="course-progress-label"><span>{shownScope}</span><strong>{percent}%</strong></div>
+      <Progress value={percent} tone={status === 'completed' ? 'mint' : 'lume'} label={`Progresso de ${course.title}`}/>
     </div>
   </motion.button><CourseMenu course={course} open={open}/></div>;
 }
@@ -221,7 +245,10 @@ export function CourseCard({ course, state, open }) {
 export function Library({ state, open, actions }) {
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
-  const courses = state.courses.filter(course => (filter === 'all' || courseStatus(state, course) === filter) && course.title.toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR')));
+  const [subjectFilter, setSubjectFilter] = useState('');
+  const courses = state.courses.filter(course => (filter === 'all' || courseStatus(state, course) === filter)
+    && (!subjectFilter || (subjectFilter === 'none' ? !course.subjectId : course.subjectId === subjectFilter))
+    && course.title.toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR')));
   const selected = state.courses.find(course => course.id === state.selectedCourseId) || state.courses[0];
   const action = selected && nextAction({ ...state, courses: [selected] });
   const next = action && { course: selected, step: materialSteps(selected).find((step) => step.id === action.lessonId) };
@@ -229,8 +256,8 @@ export function Library({ state, open, actions }) {
   const selectedDeck = selected ? slidesSummary(selected) : null;
 
   return <div className="library-root">
-    <Heading eyebrow="Estante viva & continuidade" title="Biblioteca" actions={<><Button secondary onClick={() => open({ type: 'manual' })}><Icon name="edit"/>Criar manualmente</Button><Button onClick={() => open({ type: 'new' })}><Icon name="plus"/>Adicionar curso</Button></>}>
-      Seus cursos, leituras e projetos, com o ponto onde cada um parou e o que falta para concluir.
+    <Heading eyebrow="Estante viva & continuidade" title="Biblioteca" actions={<><Button secondary onClick={() => open({ type: 'manual' })}><Icon name="edit"/>Criar manualmente</Button><Button secondary onClick={() => open({ type: 'pdf-attach' })}><Icon name="book"/>Anexar PDF</Button><Button onClick={() => open({ type: 'new' })}><Icon name="plus"/>Adicionar curso</Button></>}>
+      Seus cursos, PDFs, leituras e projetos, com o ponto onde cada um parou e o que falta para concluir.
     </Heading>
 
     {state.courses.length > 0 && <div className="library-toolbar">
@@ -245,6 +272,14 @@ export function Library({ state, open, actions }) {
           <span>{title} ({id === 'all' ? state.courses.length : state.courses.filter(course => courseStatus(state, course) === id).length})</span>
         </button>)}
       </div>
+      {(state.subjects || []).length > 0 && <label className="subject-filter">
+        <span className="sr-only">Filtrar por disciplina</span>
+        <select value={subjectFilter} onChange={(event) => setSubjectFilter(event.target.value)} aria-label="Filtrar por disciplina">
+          <option value="">Todas as disciplinas</option>
+          {state.subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.title}</option>)}
+          <option value="none">Sem disciplina</option>
+        </select>
+      </label>}
     </div>}
 
     {state.courses.length === 0
@@ -273,12 +308,16 @@ export function Library({ state, open, actions }) {
             </div>
           </div>
         </Atropos>
-        <Button className="full-width" onClick={() => open({ type: next ? 'session' : 'course', id: selected.id })}><Icon name={next ? 'play' : 'book'}/>{next ? 'Continuar meu próximo passo' : 'Ver detalhes da trilha'}</Button>
+        {selected.pdf
+          ? <Button className="full-width" onClick={() => open({ type: next ? 'pdf' : 'course', id: selected.id })}><Icon name="book"/>{next ? (selected.reading ? `Continuar na p. ${selected.reading.page}` : 'Abrir no leitor') : 'Ver detalhes do PDF'}</Button>
+          : <Button className="full-width" onClick={() => open({ type: next ? 'session' : 'course', id: selected.id })}><Icon name={next ? 'play' : 'book'}/>{next ? 'Continuar meu próximo passo' : 'Ver detalhes da trilha'}</Button>}
         {selectedDeck?.total > 0 && <Button secondary className="full-width" onClick={() => open({ type: 'slides', id: selected.id })}><Icon name="book"/>Abrir apresentação · <small>{slidePositionLabel(selectedDeck)}</small></Button>}
         {isImportedCourse(selected)
           ? <ImportedInspector course={selected} state={state}/>
-          : <Steps course={selected} state={state}/>}
-        <Progress value={courseProgress(state, selected).percent} tone="lume" label={`Progresso de ${selected.title}`}/>
+          : selected.pdf
+            ? <p className="quiet-note">{materialStanding(state, selected).label}{subjectOf(state, selected) ? ` · ${subjectOf(state, selected).title}` : ''}</p>
+            : <Steps course={selected} state={state}/>}
+        <Progress value={selected.pdf ? materialStanding(state, selected).percent : courseProgress(state, selected).percent} tone="lume" label={`Progresso de ${selected.title}`}/>
         <p className="quiet-note">Pausar um curso tira suas aulas do roteiro e preserva o progresso e o XP.</p>
       </aside>}
     </div>}
@@ -320,6 +359,7 @@ function FirstStudyArea({ actions, open }) {
       <Button type="submit"><Icon name="plus"/>Criar minha trilha</Button>
     </form>
     <p className="quiet-note">Já tem um link? <button className="text-button accent" type="button" onClick={() => open({ type: 'new' })}>Detectar o curso pelo link<Icon name="arrow"/></button></p>
+    <p className="quiet-note">Estuda por PDF? <button className="text-button accent" type="button" onClick={() => open({ type: 'pdf-attach' })}>Anexar um PDF, sem curso<Icon name="arrow"/></button></p>
   </section>;
 }
 

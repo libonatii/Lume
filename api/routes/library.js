@@ -5,11 +5,15 @@ import { ImportError, analyzeSnapshot, analyzeText, analyzeUrl } from '../domain
 import { detectProvider, normalizePayload } from '../../public/import-domain.js';
 import { parseStateBody, readState, writeState } from '../domain/state.js';
 import { LIMITS } from '../config.js';
-import { json } from '../http.js';
+import { BASE_HEADERS, json } from '../http.js';
 import { readLibrary } from '../domain/library-store.js';
 import { applyLibraryActions } from '../domain/library-actions.js';
 import { ensureXpSettings } from '../domain/xp.js';
 import { claimReminders } from '../domain/agenda.js';
+import {
+  AI_TEXT_LIMIT, FileError, aiAvailable, discardPdf, identifyWithAI, readPdf, storagePlan, storageUsage, uploadPdf, validateFileId,
+} from '../domain/library-files.js';
+import { formatBytes } from '../../public/pdf-domain.js';
 
 const IMPORT_BODY = {
   tooLarge: () => new ImportError('O conteúdo enviado é grande demais.', 'too_large', 413),
@@ -21,6 +25,12 @@ const IMPORT_ATTEMPTS = {
   message: 'Muitas análises em pouco tempo. Aguarde alguns minutos.',
   code: 'rate_limited',
 };
+const FILE_ATTEMPTS = {
+  key: (ctx) => `pdf|${ctx.user?.id || ctx.clientIp}`,
+  limit: 30,
+  message: 'Muitos envios de PDF em pouco tempo. Aguarde alguns minutos.',
+  code: 'rate_limited',
+};
 
 export function libraryRoutes(router) {
   const account = { auth: 'Entre na sua conta para acessar sua biblioteca.', origin: true };
@@ -28,7 +38,35 @@ export function libraryRoutes(router) {
     await ensureXpSettings(ctx.db, ctx.user.id);
     return json(await readLibrary(ctx.db, ctx.user.id));
   });
-  router.add('POST', '/api/library/actions', account, async (ctx) => json(await applyLibraryActions(ctx.db, ctx.user.id, await ctx.json(3 * 1024 * 1024))));
+  router.add('POST', '/api/library/actions', account, async (ctx) => json(await applyLibraryActions(ctx.db, ctx.user.id, await ctx.json(3 * 1024 * 1024), { media: ctx.media })));
+
+  // PDFs da biblioteca: privados da conta, sem cópia local nem leitura pública.
+  router.add('GET', '/api/library/files', account, async (ctx) => json({ ...await storageUsage(ctx.db, ctx.user.id), ai: aiAvailable(ctx.env), storage: Boolean(ctx.media) }));
+  router.add('PUT', '/api/library/files/:fileId', { ...account, rateLimit: FILE_ATTEMPTS }, async (ctx) => {
+    const fileId = validateFileId(ctx.params.fileId);
+    const plan = await storagePlan(ctx.db, ctx.user.id);
+    const tooLarge = () => new FileError(`O PDF ultrapassa o limite de ${formatBytes(plan.fileBytes)} por arquivo.`, 'file_too_large', 413);
+    const declared = Number(ctx.request.headers.get('content-length'));
+    if (Number.isFinite(declared) && declared > plan.fileBytes) throw tooLarge();
+    const bytes = await ctx.bytes(plan.fileBytes, tooLarge);
+    let name = '';
+    try { name = decodeURIComponent(ctx.request.headers.get('x-file-name') || ''); } catch { name = ''; }
+    const file = await uploadPdf(ctx.db, ctx.media, ctx.user.id, { fileId, name, bytes });
+    ctx.log('pdf_uploaded', { userId: ctx.user.id, bytes: file.size });
+    return json(file, 201);
+  });
+  router.add('GET', '/api/library/files/:fileId', account, async (ctx) => {
+    const object = await readPdf(ctx.db, ctx.media, ctx.user.id, ctx.params.fileId);
+    return new Response(object.body, {
+      status: 200,
+      headers: { ...BASE_HEADERS, 'Content-Type': 'application/pdf', 'Cache-Control': 'private, no-store', 'Content-Disposition': 'inline' },
+    });
+  });
+  router.add('DELETE', '/api/library/files/:fileId', account, async (ctx) => json(await discardPdf(ctx.db, ctx.media, ctx.user.id, ctx.params.fileId)));
+  router.add('POST', '/api/library/identify', { ...account, rateLimit: { ...FILE_ATTEMPTS, key: (ctx) => `identify|${ctx.user?.id || ctx.clientIp}`, message: 'Muitas identificações em pouco tempo. Aguarde alguns minutos.' } }, async (ctx) => {
+    const body = await ctx.json(AI_TEXT_LIMIT * 4 + 8 * 1024);
+    return json(await identifyWithAI({ text: body.text, subjects: body.subjects }, { env: ctx.env }));
+  });
   router.add('POST', '/api/agenda/reminders', account, async (ctx) => json({ reminders: await claimReminders(ctx.db, ctx.user.id) }));
   router.add('GET', '/api/state', { auth: 'Entre na sua conta para ver seu progresso.', origin: true }, async (ctx) =>
     json(await readState(ctx.db, ctx.user.id)));

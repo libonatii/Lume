@@ -155,6 +155,12 @@ Para cada fonte, registrar as capacidades disponíveis: ler posição, salvar po
 - Em páginas externas sem integração, permitir marcador e conclusão manuais.
 - Rolar a página inteira, abrir o PDF ou manter a aba aberta não prova leitura nem concede recompensa de conclusão.
 - Não copiar ou redistribuir materiais restritos apenas porque a pessoa adicionou um link.
+- **PDF anexado (implementado localmente em 11/11/2026):** a pessoa anexa um PDF próprio, sem curso nem link, e o
+  vincula a uma **disciplina** (matéria criada por ela, que reúne PDFs e outros materiais). O arquivo fica no
+  servidor, privado da conta; o leitor do Lume (site e aplicativo de desktop) guarda a página para retomar, e
+  Hoje sugere "continuar o PDF na página N". O leitor inteligente identifica seção, assuntos e disciplina pelo
+  texto do próprio PDF; IA é opcional, sob pedido. Concluir o PDF inteiro é leitura concluída; página aberta é
+  só marcador. Limites e decisões em [Implementação B7](IMPLEMENTACAO.md#b7--pdfs-leitor-embutido-e-disciplinas).
 
 ### GitHub
 

@@ -20,7 +20,7 @@ export const RECENT_DAYS = 7;
 export const DEFAULT_SESSION_MINUTES = 25;
 
 const REASONS = {
-  continuity: { id: 'continuity', label: 'Continuidade', detail: 'Você registrou estudo aqui nos últimos 7 dias.' },
+  continuity: { id: 'continuity', label: 'Continuidade', detail: 'Você estudou ou retomou este material nos últimos 7 dias.' },
   start: { id: 'start', label: 'Primeiro passo', detail: 'Ainda não há progresso registrado neste material.' },
   close: { id: 'close', label: 'Perto do fim', detail: 'Faltam poucas aulas para concluir as áreas escolhidas.' },
   ongoing: { id: 'ongoing', label: 'Em andamento', detail: 'Material em andamento na sua biblioteca.' },
@@ -43,6 +43,8 @@ function lastTouched(state) {
   };
   for (const entry of state.progress || []) if (!entry.revertedAt) mark(entry.materialId, entry.at);
   for (const session of state.studySessions || []) mark(session.courseId, session.startedAt);
+  // Página aberta no leitor de PDF: conta como continuidade, não como estudo concluído.
+  for (const course of state.courses || []) if (course.reading) mark(course.id, course.reading.updatedAt);
   return map;
 }
 
@@ -178,5 +180,7 @@ export function nextAction(state, { now = Date.now() } = {}) {
     total: planned?.total || materialSteps(course).length,
     remainingKnownMinutes: Math.round(durations.reduce((sum, value) => sum + value, 0) / 60),
     remainingWithoutDuration: remainingSteps.length - durations.length,
+    // PDF anexado: a próxima ação é retomar a leitura na página salva.
+    pdf: course.pdf ? { page: course.reading?.page || 1, pages: course.pdf.pages, section: course.reading?.section || '', started: Boolean(course.reading) } : null,
   };
 }

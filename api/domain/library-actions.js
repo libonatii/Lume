@@ -9,8 +9,10 @@ import { ensureXpSettings } from './xp.js';
 import { timeStatements } from './library-time.js';
 import { RULES } from './rewards.js';
 import { XP_POLICY_VERSION, localDay } from '../../public/xp-policy.js';
+import { normalizePdfMeta } from '../../public/pdf-domain.js';
+import { deleteObjects } from './library-files.js';
 
-const COLLECTIONS = { material: 'courses', task: 'tasks', session: 'studySessions', progress: 'progress', appointment: 'agenda' };
+const COLLECTIONS = { material: 'courses', task: 'tasks', session: 'studySessions', progress: 'progress', appointment: 'agenda', subject: 'subjects' };
 const fail = (message) => { throw new AppError(message, 'invalid_library_action', 400); };
 
 // Recompensas e progresso são gravados no mesmo batch. INSERT OR IGNORE guarda
@@ -55,7 +57,18 @@ function rewardStatements(userId, state, changed, settings, now) {
   ];
 }
 
-export async function applyLibraryActions(db, userId, input, { now = Date.now() } = {}) {
+// PDFs referenciados pelos materiais. Cada arquivo pertence a um material só.
+function pdfFiles(state) {
+  const ids = new Set();
+  for (const course of state.courses) {
+    if (!course.pdf) continue;
+    if (ids.has(course.pdf.fileId)) fail('Cada PDF pertence a um único material.');
+    ids.add(course.pdf.fileId);
+  }
+  return ids;
+}
+
+export async function applyLibraryActions(db, userId, input, { now = Date.now(), media = null } = {}) {
   if (typeof input?.id !== 'string' || !/^[A-Za-z0-9_-]{1,100}$/.test(input.id)) fail('Operação sem identificador válido.');
   const duplicate = await db.first('SELECT revision FROM library_operations WHERE user_id=? AND id=?', [userId, input.id]);
   if (duplicate) {
@@ -96,6 +109,12 @@ export async function applyLibraryActions(db, userId, input, { now = Date.now() 
       continue;
     }
     const value = structuredClone(action.value);
+    if (entity === 'material' && (value.type === 'pdf' || value.pdf !== undefined)) {
+      const pdf = normalizePdfMeta(value.pdf);
+      if (!pdf || value.type !== 'pdf') fail('O PDF do material é inválido.');
+      const previousFile = state[field][index]?.pdf?.fileId;
+      if (previousFile && previousFile !== pdf.fileId) fail('O arquivo de um PDF não pode ser trocado.');
+    }
     if (entity === 'material' && value.slideProgress?.completedAt !== state[field][index]?.slideProgress?.completedAt) {
       if (Number.isFinite(Date.parse(value.slideProgress?.completedAt))) value.slideProgress.completedAt = new Date(Math.min(Date.parse(value.slideProgress.completedAt), now)).toISOString();
       changed.decks.add(id);
@@ -130,6 +149,8 @@ export async function applyLibraryActions(db, userId, input, { now = Date.now() 
     state = result.state;
     if (result.added) changed.units.add(JSON.stringify([course.id, lesson.id]));
   }
+  const subjectIds = new Set((state.subjects || []).map((subject) => subject.id));
+  if (state.courses.some((course) => course.subjectId && !subjectIds.has(course.subjectId))) fail('A disciplina vinculada não existe.');
   try { validateAgenda(state); } catch (error) { fail(error.message); }
   const normalized = restoreState(state);
   // A leitura de backup tolera itens quebrados; a API não pode confirmar uma
@@ -158,10 +179,22 @@ export async function applyLibraryActions(db, userId, input, { now = Date.now() 
   for (const field of Object.values(COLLECTIONS)) {
     if (normalized[field].length !== state[field].length) fail('A operação contém registros inválidos ou referências ausentes.');
   }
+  // Um material novo só aponta para um PDF que esta conta enviou; excluir o
+  // material libera o arquivo e a cota no mesmo batch.
+  const filesBefore = pdfFiles(current.state);
+  const filesAfter = pdfFiles(normalized);
+  const added = [...filesAfter].filter((id) => !filesBefore.has(id));
+  if (added.length) {
+    const known = new Set((await db.all('SELECT id FROM library_files WHERE user_id=?', [userId])).map((row) => row.id));
+    if (added.some((id) => !known.has(id))) fail('O PDF não foi encontrado. Envie o arquivo de novo.');
+  }
+  const removed = [...filesBefore].filter((id) => !filesAfter.has(id));
+  const fileStatements = removed.length ? [['DELETE FROM library_files WHERE user_id=? AND id IN (SELECT value FROM json_each(?))', [userId, JSON.stringify(removed)]]] : [];
   const settings = await ensureXpSettings(db, userId, { now });
-  await commitLibrary(db, userId, current.state, normalized, {
+  const committed = await commitLibrary(db, userId, current.state, normalized, {
     revision: current.revision, operationId: input.id, now,
-    extra: [...rewardStatements(userId, normalized, changed, settings, now), ...await timeStatements(db, userId, normalized, settings, now)],
+    extra: [...rewardStatements(userId, normalized, changed, settings, now), ...await timeStatements(db, userId, normalized, settings, now), ...fileStatements],
   });
+  if (removed.length && !committed.duplicate) await deleteObjects(media, userId, removed);
   return readLibrary(db, userId);
 }

@@ -50,7 +50,7 @@ Esses eventos podem aparecer no histórico organizacional, mas não no livro de 
 | --- | ---: | --- |
 | 30 minutos de estudo efetivo | 25 | Bloco acumulado e ainda não recompensado; máximo de 200 XP de tempo por dia |
 | Aula concluída | 100 | Aula identificada, com conclusão observada em fonte compatível ou declarada explicitamente |
-| Artigo ou leitura delimitada concluída | 100 | Material completo identificado; marcador intermediário não é conclusão |
+| Artigo ou leitura delimitada concluída | 100 | Material completo identificado; marcador intermediário não é conclusão. PDF anexado: concluir a etapa única "Ler o PDF até o fim"; página aberta não conta |
 | Lista de exercícios concluída | 100 | Conjunto de trabalho delimitado e critérios registrados antes da conclusão |
 | Entrega substancial de projeto | 150 | Resultado definido e concluído, como implementar e validar uma funcionalidade |
 | Disciplina completa | 200 de bônus + conquista | Todas as aulas da disciplina selecionadas, grade completa e conclusões elegíveis; uma vez por identidade |
@@ -67,6 +67,15 @@ Esses eventos podem aparecer no histórico organizacional, mas não no livro de 
 - Não atribuir XP por commit, linha de código, página rolada ou quantidade de mensagens.
 - O tamanho arbitrário de uma tarefa não determina recompensa. Dividir uma aula em dez microtarefas não cria dez aulas elegíveis.
 - Os tipos e valores podem evoluir, mas nunca de forma silenciosa no histórico já concedido.
+
+### PDFs anexados e disciplinas da biblioteca — decisão de 11/11/2026
+
+- Anexar, abrir, rolar, virar página, identificar o assunto (inclusive com IA) e vincular a uma disciplina não geram XP.
+- O PDF anexado tem uma única etapa; concluí-la concede 100 XP de leitura e a conquista "Leitura delimitada concluída",
+  uma vez por material, validados no servidor. Por ter uma etapa, não recebe bônus de curso.
+- A disciplina criada pela pessoa na biblioteca é organização: não tem XP nem bônus. O bônus de 200 XP continua
+  valendo só para a disciplina da grade de um curso importado, que é fechada pela fonte.
+- O tempo estudado no PDF entra pela sessão declarada, como em qualquer material (25 XP a cada 30 minutos elegíveis).
 
 ### Tarefas de prova — regra em execução no protótipo
 
