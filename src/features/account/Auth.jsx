@@ -87,7 +87,7 @@ export function Recovery({ reset = false, notify, go }) {
     <span className={`dialog-emblem ${result ? 'tone-mint' : ''}`}><Icon name={result ? 'shield' : reset ? 'lock' : 'mail'}/></span>
     <h1 className="headline">{reset ? result ? 'Acesso validado.' : 'Uma nova senha.' : 'Vamos recuperar seu acesso.'}</h1>
     {result ? <>
-      <p className="muted-text">{reset ? 'Sua senha foi atualizada. Você já pode entrar.' : 'Se existir uma conta para esse e-mail, o pedido de recuperação foi registrado. O envio por e-mail ainda não está disponível.'}</p>
+      <p className="muted-text">{reset ? 'Sua senha foi atualizada. Você já pode entrar.' : 'Se existir uma conta para esse e-mail, enviamos um link de recuperação. Ele vale por 30 minutos; confira também a caixa de spam.'}</p>
       {!reset && result.resetUrl && <a className="text-link" href={result.resetUrl}>Link de recuperação de teste</a>}
       <Button className="full-width" onClick={() => go('login')}>Voltar à entrada<Icon name="arrow"/></Button>
     </> : <form className="form-stack" onSubmit={submit} aria-busy={busy}>

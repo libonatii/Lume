@@ -85,7 +85,7 @@ export function accountRoutes(router) {
     try {
       emailResult = await sendPasswordResetEmail({ to: row.email, link, name: row.name }, { env: ctx.env });
     } catch (error) {
-      ctx.log('password_reset_email_failed', { userId: row.id, error: error.message });
+      ctx.log('password_reset_email_failed', { userId: row.id, error: error.message, detail: error.detail });
     }
     // Sem transporte de e-mail, o link vai para o log (visível só para quem
     // opera o servidor). Com e-mail configurado, ele não é gravado em lugar algum.
