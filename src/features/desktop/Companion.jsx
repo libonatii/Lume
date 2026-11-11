@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Icon from '../../ui/Icon.jsx';
-import { Button, Heading } from '../../ui/ui.jsx';
+import { Button, Heading, Skeleton } from '../../ui/ui.jsx';
 import { api, apiError } from '../../lib/api.js';
 import { useResource } from '../../lib/resources.js';
 import { copyText, selectText } from '../../lib/clipboard.js';
@@ -117,7 +117,7 @@ export default function Companion({ account, notify, go }) {
     <InstallApp/>
     <p className="muted-text">Depois de instalar, gere um código aqui nesta tela e cole no programa. Ele informa qual aplicativo da sua lista está aberto. O Lume lê apenas nomes de processo — nunca títulos de janela, tela, teclado ou arquivos.</p>
 
-    {!data && <p className="quiet-note">Verificando dispositivos…</p>}
+    {!data && <Skeleton label="Verificando dispositivos…" rows={2}/>}
     {data && data.devices.length === 0 && <p className="inline-note"><Icon name="help"/><span>Nenhum programa conectado ainda.</span></p>}
 
     {active.length > 0 && <div className="companion-presence" role="status">

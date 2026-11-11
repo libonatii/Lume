@@ -97,6 +97,29 @@ export function Empty({ title, children, onAdd }) {
   return <motion.div {...enter} className="empty-state"><span className="empty-icon"><Icon name="book"/></span><h2 className="title">{title}</h2><p>{children}</p>{onAdd && <Button secondary onClick={onAdd}><Icon name="plus"/>Adicionar curso</Button>}</motion.div>;
 }
 
+// Carregamento com a forma da tela que vai aparecer, para o conteúdo não pular
+// de lugar quando chega. O texto para leitores de tela diz o que está carregando.
+export function Skeleton({ label, rows = 3, variant = 'list' }) {
+  return <div className={`skeleton skeleton-${variant}`} role="status" aria-busy="true" aria-live="polite">
+    <span className="sr-only">{label}</span>
+    {Array.from({ length: rows }, (_, index) => <div key={index} className="skeleton-item" aria-hidden="true">
+      {variant !== 'text' && <span className="skeleton-block skeleton-avatar"/>}
+      <span className="skeleton-lines"><span className="skeleton-block skeleton-line"/><span className="skeleton-block skeleton-line short"/></span>
+    </div>)}
+  </div>;
+}
+
+// Página inteira enquanto a biblioteca da conta carrega: título, destaque e cartões.
+export function PageSkeleton({ title, variant = 'cards' }) {
+  return <div className="page-skeleton" role="status" aria-busy="true">
+    <span className="sr-only">Carregando {title}…</span>
+    <div className="page-skeleton-heading" aria-hidden="true"><span className="skeleton-block skeleton-eyebrow"/><span className="skeleton-block skeleton-title"/><span className="skeleton-block skeleton-line"/></div>
+    {variant === 'cards'
+      ? <div className="page-skeleton-cards" aria-hidden="true">{[0, 1, 2].map((index) => <span key={index} className="skeleton-block skeleton-card"/>)}</div>
+      : <div className="page-skeleton-panel" aria-hidden="true"><span className="skeleton-block skeleton-panel"/></div>}
+  </div>;
+}
+
 export function Dialog({ children, onClose, identity }) {
   const ref = useRef(null);
   const closeRef = useRef(onClose);

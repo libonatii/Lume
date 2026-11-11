@@ -39,31 +39,33 @@ function SessionCheck() {
 }
 
 // ctx: { model, state, open, go, notify, params, hash, authMode, setAuthMode, checkingSession }
+// `loading`: forma do esqueleto ('cards' ou 'panel') enquanto a biblioteca da conta
+// carrega; sem ele, a tela se vira sozinha (ex.: Agenda, telas sociais).
 export const ROUTES = [
   { id: 'login', title: 'Bem-vindo', render: (ctx) => (ctx.checkingSession ? <SessionCheck/> : <Login model={ctx.model} mode={ctx.authMode} setMode={ctx.setAuthMode} go={ctx.go} notify={ctx.notify}/>) },
   { id: 'inicio', title: 'Seu ritmo', render: (ctx) => <Onboarding key={ctx.model.account?.id || 'local'} state={ctx.state} actions={ctx.model.accountActions} libraryActions={ctx.model.libraryActions} go={ctx.go} notify={ctx.notify} account={ctx.model.account}/> },
   { id: 'recuperar', title: 'Recuperar acesso', render: (ctx) => <Recovery key="recuperar" reset={false} notify={ctx.notify} go={ctx.go}/> },
   { id: 'redefinir', title: 'Nova senha', render: (ctx) => <Recovery key={ctx.hash} reset notify={ctx.notify} go={ctx.go}/> },
 
-  { id: 'hoje', title: 'Hoje', section: 'hoje', render: (ctx) => <Home state={ctx.state} open={ctx.open} go={ctx.go} planActions={ctx.model.planActions} progressActions={ctx.model.progressActions} notify={ctx.notify} account={ctx.model.account} xp={ctx.model.xp}/> },
+  { id: 'hoje', title: 'Hoje', loading: 'panel', section: 'hoje', render: (ctx) => <Home state={ctx.state} open={ctx.open} go={ctx.go} planActions={ctx.model.planActions} progressActions={ctx.model.progressActions} notify={ctx.notify} account={ctx.model.account} xp={ctx.model.xp}/> },
 
-  { id: 'biblioteca', title: 'Biblioteca', section: 'biblioteca', tab: 'Materiais', render: (ctx) => <Library state={ctx.state} open={ctx.open} actions={ctx.model.libraryActions}/> },
+  { id: 'biblioteca', title: 'Biblioteca', loading: 'cards', section: 'biblioteca', tab: 'Materiais', render: (ctx) => <Library state={ctx.state} open={ctx.open} actions={ctx.model.libraryActions}/> },
   { id: 'github', title: 'GitHub', section: 'biblioteca', tab: 'GitHub', render: (ctx) => <GitHub actions={ctx.model.libraryActions} account={ctx.model.account} notify={ctx.notify} go={ctx.go}/> },
 
-  { id: 'plano', title: 'Plano', section: 'plano', tab: 'Cronograma', render: (ctx) => <Schedule state={ctx.state} actions={ctx.model.planActions} open={ctx.open} notify={ctx.notify}/> },
+  { id: 'plano', title: 'Plano', loading: 'panel', section: 'plano', tab: 'Cronograma', render: (ctx) => <Schedule state={ctx.state} actions={ctx.model.planActions} open={ctx.open} notify={ctx.notify}/> },
   { id: 'agenda', title: 'Agenda', section: 'agenda', tab: 'Calendário', render: (ctx) => <Agenda key={ctx.hash} state={ctx.state} actions={ctx.model.agendaActions} taskActions={ctx.model.planActions} confirmSave={ctx.model.confirmSave} retrySave={ctx.model.retrySave} saveError={ctx.model.saveError} syncStatus={ctx.model.syncStatus} params={ctx.params} notify={ctx.notify}/> },
-  { id: 'tarefas', title: 'Tarefas', section: 'agenda', tab: 'Tarefas', render: (ctx) => <Tasks state={ctx.state} actions={ctx.model.planActions} notify={ctx.notify} onSchedule={(task) => ctx.go(`agenda?tarefa=${encodeURIComponent(task.id)}`)}/> },
-  { id: 'roteiro', title: 'Roteiro', section: 'plano', tab: 'Roteiro', render: (ctx) => <Roadmap state={ctx.state} open={ctx.open}/> },
+  { id: 'tarefas', title: 'Tarefas', loading: 'panel', section: 'agenda', tab: 'Tarefas', render: (ctx) => <Tasks state={ctx.state} actions={ctx.model.planActions} notify={ctx.notify} onSchedule={(task) => ctx.go(`agenda?tarefa=${encodeURIComponent(task.id)}`)}/> },
+  { id: 'roteiro', title: 'Roteiro', loading: 'panel', section: 'plano', tab: 'Roteiro', render: (ctx) => <Roadmap state={ctx.state} open={ctx.open}/> },
 
   { id: 'amigos', title: 'Amigos', section: 'amigos', tab: 'Contatos', render: (ctx) => <Friends account={ctx.model.account} notify={ctx.notify} go={ctx.go}/> },
   { id: 'mensagens', title: 'Mensagens', section: 'amigos', tab: 'Mensagens', render: (ctx) => <Messages account={ctx.model.account} state={ctx.state} notify={ctx.notify} go={ctx.go} contactId={ctx.params.get('com') || ''}/> },
   { id: 'ranking', title: 'Ranking', section: 'amigos', tab: 'Ranking', render: (ctx) => <Ranking account={ctx.model.account} xp={ctx.model.xp} refreshXP={ctx.model.refreshXP} notify={ctx.notify} go={ctx.go}/> },
 
   // Perfil de uma amizade (#perfil?id=) não mostra as abas da própria conta.
-  { id: 'perfil', title: 'Perfil', section: 'perfil', tab: 'Meu perfil', hideTabs: (ctx) => Boolean(ctx.params.get('id')), render: (ctx) => <Profile id={ctx.params.get('id') || ''} state={ctx.state} actions={ctx.model.settingsActions} account={ctx.model.account} notify={ctx.notify} go={ctx.go} xp={ctx.model.xp}/> },
-  { id: 'conquistas', title: 'Conquistas', section: 'perfil', tab: 'Conquistas', render: (ctx) => <Achievements state={ctx.state} account={ctx.model.account} xp={ctx.model.xp}/> },
-  { id: 'historico', title: 'Meu caminho', section: 'perfil', tab: 'Meu caminho', render: (ctx) => <History state={ctx.state} account={ctx.model.account} xp={ctx.model.xp} refreshXP={ctx.model.refreshXP} notify={ctx.notify}/> },
-  { id: 'configuracoes', title: 'Configurações', section: 'perfil', tab: 'Configurações', render: (ctx) => <Preferences state={ctx.state} actions={ctx.model.settingsActions} libraryActions={ctx.model.libraryActions} account={ctx.model.account} notify={ctx.notify} go={ctx.go} xp={ctx.model.xp} refreshXP={ctx.model.refreshXP} onPersonalize={() => ctx.go('inicio')}/> },
+  { id: 'perfil', title: 'Perfil', loading: 'panel', section: 'perfil', tab: 'Meu perfil', hideTabs: (ctx) => Boolean(ctx.params.get('id')), render: (ctx) => <Profile id={ctx.params.get('id') || ''} state={ctx.state} actions={ctx.model.settingsActions} account={ctx.model.account} notify={ctx.notify} go={ctx.go} xp={ctx.model.xp}/> },
+  { id: 'conquistas', title: 'Conquistas', loading: 'cards', section: 'perfil', tab: 'Conquistas', render: (ctx) => <Achievements state={ctx.state} account={ctx.model.account} xp={ctx.model.xp}/> },
+  { id: 'historico', title: 'Meu caminho', loading: 'panel', section: 'perfil', tab: 'Meu caminho', render: (ctx) => <History state={ctx.state} account={ctx.model.account} xp={ctx.model.xp} refreshXP={ctx.model.refreshXP} notify={ctx.notify}/> },
+  { id: 'configuracoes', title: 'Configurações', loading: 'panel', section: 'perfil', tab: 'Configurações', render: (ctx) => <Preferences state={ctx.state} actions={ctx.model.settingsActions} libraryActions={ctx.model.libraryActions} account={ctx.model.account} notify={ctx.notify} go={ctx.go} xp={ctx.model.xp} refreshXP={ctx.model.refreshXP} onPersonalize={() => ctx.go('inicio')}/> },
 
   { id: 'aplicativo', title: 'Instalar aplicativo', render: (ctx) => <Companion account={ctx.model.account} notify={ctx.notify} go={ctx.go}/> },
 ];

@@ -138,7 +138,6 @@ de material, com etapas.
 ### B4 — Plano
 **Implementado o núcleo** (disponibilidade, prazo, prioridade, conflito, adiamento, subtarefas, vínculo de
 tarefa com aula). Falta:
-- registrar a aula e abrir a próxima em um passo;
 - considerar o prazo das tarefas no cronograma (hoje só as aulas entram);
 - lembretes de sugestões ainda não agendadas; a Agenda oferece lembretes de compromissos explícitos (B6);
 
@@ -225,7 +224,7 @@ com motivo. Falta: teste de concorrência entre dispositivos no Worker publicado
 evento.
 
 ### G2 — Cargos e desbloqueios
-**Implementado localmente:** oito critérios de títulos aprovados em [Evolução §4.5](EVOLUCAO.md#45-cargos-requisitos-e-desbloqueios-proposta),
+**Implementado localmente:** oito critérios de títulos aprovados em [Evolução §4.5](EVOLUCAO.md#45-cargos-e-requisitos-títulos-implementados-desbloqueios-rejeitados),
 concessão idempotente em `user_titles`, perfil com critérios e reavaliação nas correções.
 Bloqueios funcionais foram rejeitados: todas as funcionalidades disponíveis são acessíveis a todos.
 Modelos, trilhas e desafios continuam recursos futuros independentes de cargo.
@@ -296,7 +295,10 @@ Configurações não têm tela correspondente no Stitch. As telas exportadas em 
 "Variante 2") não foram salvas em `designs/stitch/`.
 
 ### V2 — Estados de carregamento
-**Parcial.** Há estados vazios e de erro, mas o carregamento é um texto genérico; não há esqueletos por tela.
+**Implementado (10/11/2026).** `Skeleton` e `PageSkeleton` (`src/ui/ui.jsx`) mostram a forma do conteúdo:
+Hoje, Biblioteca, Plano, Tarefas, Roteiro, Perfil, Conquistas, Meu caminho e Configurações enquanto a biblioteca
+da conta recarrega (campo `loading` em `src/app/routes.jsx`); amigos, conversas, ranking, perfil de amizade,
+dispositivos do desktop e XP enquanto o recurso chega. A primeira carga continua atrás de "Verificando sua sessão".
 
 ### V3 — Contraste do *hover* dos botões
 **Decisão pendente.** As cores especificadas para o *hover* (`#3b82f6` no Azul e `#8b5cf6` no Roxo) dão 3,7:1 e

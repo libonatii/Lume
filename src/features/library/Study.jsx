@@ -11,7 +11,7 @@ import { courseSummary, isImportedCourse, sourceLabel } from '../../../public/im
 import { slidePositionLabel, slidesSummary } from '../../../public/slides-domain.js';
 import StudySession from '../progress/StudySession.jsx';
 import Icon from '../../ui/Icon.jsx';
-import { Button, Cover, Empty, Heading, Progress, ease, enter } from '../../ui/ui.jsx';
+import { Button, Cover, Empty, Heading, Progress, Skeleton, ease, enter } from '../../ui/ui.jsx';
 import { isCompleted } from '../../../public/progress-domain.js';
 
 export function Home({ state, open, go, planActions, progressActions, notify, account, xp }) {
@@ -132,7 +132,7 @@ function Evolution({ state, account, xp }) {
           ? <p className="muted-text">Última recompensa: <strong>+{last.xp} XP</strong> · {XP_KIND_LABELS[last.kind] || 'Evento'}{last.stepTitle || last.materialTitle ? ` · ${last.stepTitle || last.materialTitle}` : ''}</p>
           : <p className="muted-text">Conclua uma aula, leitura ou entrega para receber o primeiro XP validado.</p>}
         {achievement && <p className="muted-text">Conquista mais recente: <strong>{achievement.title}</strong></p>}
-      </> : <p className="muted-text">Carregando XP confirmado pelo servidor…</p>)
+      </> : <Skeleton label="Carregando XP confirmado pelo servidor…" rows={2} variant="text"/>)
       : <p className="muted-text">A prévia é temporária e não gera XP validado. Entre na conta para salvar o progresso, o nível e as conquistas.</p>}
   </section>;
 }

@@ -3,7 +3,7 @@ import { achievements, courseProgress, hasPreparation, materialType } from '../.
 import { materialSteps, materialLesson } from '../../../public/material-model.js';
 import LessonTree from '../library/LessonTree.jsx';
 import {
-  courseSummary, editalCoverage, formatDuration, isImportedCourse,
+  courseSummary, editalCoverage, formatDuration, isImportedCourse, nextLessonAfter, openLessons, pendingLessonsThrough,
   lessonOrigin, looksLikeExamCourse, sourceLabel,
 } from '../../../public/import-domain.js';
 import { slidesSummary } from '../../../public/slides-domain.js';
@@ -120,6 +120,17 @@ export default function StudyDialog({ modal, state, libraryActions, progressActi
     const award = achievements(result.state).find(item => item.unlocked && !previous.find(old => old.id === item.id)?.unlocked);
     open({ type: 'success', id: course.id, preparation: modal.preparation, xp: result.xp, award, stepTitle: mission.step.title });
   }
+  const pendingAfter = materialSteps(course).filter((step) => step.id !== mission.step.id && !isCompleted(state, step.id)).length;
+  // Um passo: registra a etapa e já mostra a seguinte do mesmo material.
+  function finishAndContinue() {
+    const now = new Date().toISOString();
+    const result = progressActions.completeMission(course.id, mission.step.id, { now });
+    if (!result) return;
+    if (!result.added) { notify('Esse passo já foi registrado.'); return; }
+    const following = nextAction({ ...result.state, courses: [result.state.courses.find((item) => item.id === course.id)] });
+    notify(`Você concluiu ${mission.step.title}.${following ? ` Agora: ${following.title}.` : ''}`);
+    open(following ? { type: 'session', id: course.id } : { type: 'course', id: course.id });
+  }
   return <div className="session-content">
     <div className={`dialog-emblem ${modal.preparation ? 'tone-mint' : ''}`}><Icon name={modal.preparation ? 'sprout' : 'focus'}/></div>
     <span className="eyebrow">{modal.preparation ? 'Preparação · sem XP' : 'Etapa · registro manual'}</span>
@@ -129,7 +140,8 @@ export default function StudyDialog({ modal, state, libraryActions, progressActi
     {course.url ? <a href={course.url} className="button secondary full-width" target="_blank" rel="noopener noreferrer">Abrir material<Icon name="external"/></a> : <p className="inline-note"><Icon name="book"/><span>{course.example ? 'Curso de exemplo, sem aula vinculada. A conclusão é uma simulação.' : 'Use o material de estudo que você escolheu. Não há link cadastrado.'}</span></p>}
     {modal.preparation && <p className="quiet-note">Isso não marcará a aula como concluída.</p>}
     <div className="session-actions">
-      <Button className="full-width" onClick={finish}><Icon name="check"/>{modal.preparation ? 'Preparei meu material' : 'Concluí esse passo'}</Button>
+      {!modal.preparation && pendingAfter > 0 && <Button className="full-width" onClick={finishAndContinue}><Icon name="arrow"/>Concluir e seguir para a próxima</Button>}
+      <Button className="full-width" secondary={!modal.preparation && pendingAfter > 0} onClick={finish}><Icon name="check"/>{modal.preparation ? 'Preparei meu material' : 'Concluí esse passo'}</Button>
       {!modal.preparation && !hasPreparation(state, mission.step.id) && <button className="text-button centered" onClick={() => open({ type: 'session', id: course.id, preparation: true })}>Dividir em um passo menor<Icon name="sprout"/></button>}
       <button className="text-button centered" onClick={close}>Fechar · o progresso continua salvo</button>
     </div>
@@ -178,14 +190,30 @@ function ImportedSession({ course, state, actions, open, close, notify, stepId, 
   const done = isCompleted(state, step.id);
   const origin = lessonOrigin(state, step.id);
   const link = lesson?.url || course.url;
+  const upcoming = done ? null : nextLessonAfter(state, course, step.id);
+  const xpNote = account ? 'O XP é confirmado pelo servidor.' : 'Na prévia, o XP não é validado.';
   function finish() {
     const now = new Date().toISOString();
     const result = actions.completeLesson(course.id, step.id, { origin: 'manual', now });
     if (!result) return;
     if (!result.added) { notify('Essa aula já estava registrada.'); return; }
     const following = nextAction(result.state);
-    notify(`Você concluiu ${step.title}.${following ? ` Próxima: ${following.title}.` : ''} ${account ? 'O XP é confirmado pelo servidor.' : 'Na prévia, o XP não é validado.'}`);
+    notify(`Você concluiu ${step.title}.${following ? ` Próxima: ${following.title}.` : ''} ${xpNote}`);
     open({ type: 'course', id: course.id });
+  }
+  // Um passo: registra a aula, abre a próxima na plataforma (no mesmo clique,
+  // para o navegador não bloquear a nova aba) e mostra o registro dela.
+  function finishAndContinue() {
+    const now = new Date().toISOString();
+    const result = actions.completeLesson(course.id, step.id, { origin: 'manual', now });
+    if (!result) return;
+    if (!result.added) { notify('Essa aula já estava registrada.'); return; }
+    const following = nextLessonAfter(result.state, course, step.id);
+    if (!following) { notify(`Você concluiu ${step.title}. Não há outra aula em aberto neste curso. ${xpNote}`); open({ type: 'course', id: course.id }); return; }
+    const target = following.url || course.url;
+    if (target) window.open(target, '_blank', 'noopener,noreferrer');
+    notify(`Você concluiu ${step.title}. ${target ? 'Abrimos' : 'Agora é'} ${following.title}. ${xpNote}`);
+    open({ type: 'session', id: course.id, stepId: following.id });
   }
   return <div className="session-content">
     <div className="dialog-emblem"><Icon name="focus"/></div>
@@ -199,11 +227,46 @@ function ImportedSession({ course, state, actions, open, close, notify, stepId, 
     <div className="session-actions">
       {done
         ? <p className="completed-message"><Icon name="check"/>Já registrada como concluída.</p>
-        : <Button className="full-width" onClick={finish}><Icon name="check"/>Concluí esta aula</Button>}
+        : upcoming
+          ? <>
+            <Button className="full-width" onClick={finishAndContinue}><Icon name="arrow"/>Concluir e abrir a próxima</Button>
+            <Button secondary className="full-width" onClick={finish}><Icon name="check"/>Concluí esta aula</Button>
+            <p className="quiet-note">Próxima: {upcoming.title}{upcoming.duration ? ` · ${formatDuration(upcoming.duration)}` : ''}</p>
+          </>
+          : <Button className="full-width" onClick={finish}><Icon name="check"/>Concluí esta aula</Button>}
       <button className="text-button centered" onClick={() => open({ type: 'course', id: course.id })}>Ver todas as aulas</button>
       <button className="text-button centered" onClick={close}>Fechar · o progresso continua salvo</button>
     </div>
   </div>;
+}
+
+// Conclusão em lote: para quem assistiu várias aulas seguidas na plataforma e
+// volta para registrar. Cada aula vira um registro manual próprio; o lote não
+// rende XP extra.
+function BatchCompletion({ course, state, actions, notify }) {
+  const open = openLessons(state, course);
+  const [through, setThrough] = useState('');
+  if (open.length < 2) return null;
+  const chosen = open.some((lesson) => lesson.id === through) ? through : open[1].id;
+  const count = pendingLessonsThrough(state, course, chosen).length;
+  function register() {
+    const now = new Date().toISOString();
+    const result = actions.completeLessonsThrough(course.id, chosen, { now });
+    if (!result) return;
+    if (!result.added) { notify('Essas aulas já estavam registradas.'); return; }
+    notify(`${result.added} ${result.added === 1 ? 'aula registrada' : 'aulas registradas'} por você, em sequência. Cada uma pode ser desfeita na lista abaixo.`);
+    setThrough('');
+  }
+  return <details className="batch-completion">
+    <summary>Já assisti várias aulas em sequência</summary>
+    <p className="quiet-note">Registra como concluídas, de uma vez, as aulas em aberto do começo da lista até a aula escolhida. Use só para o que você já estudou.</p>
+    <label className="field">Até a aula
+      <select value={chosen} onChange={(event) => setThrough(event.target.value)}>
+        {open.map((lesson, index) => <option key={lesson.id} value={lesson.id}>{index + 1}. {lesson.title}</option>)}
+      </select>
+    </label>
+    <Button secondary onClick={register}><Icon name="check"/>Registrar {count} {count === 1 ? 'aula' : 'aulas'}</Button>
+  </details>;
 }
 
 function ImportedCourse({ course, state, actions, progressActions, open, close, notify }) {
@@ -287,6 +350,8 @@ function ImportedCourse({ course, state, actions, progressActions, open, close, 
     {!nextLesson && summary.total > 0 && <p className="completed-message"><Icon name="check"/>Áreas selecionadas concluídas. O curso inteiro só é concluído com todas as unidades da fonte.</p>}
 
     {summary.resume && summary.resume.id !== nextLesson?.id && <p className="quiet-note"><Icon name="return"/>Ponto de retomada: {summary.resume.title} · {dateLabel(summary.lastStudiedAt)}</p>}
+
+    <BatchCompletion course={course} state={state} actions={progressActions} notify={notify}/>
 
     <LessonTree key={course.id} course={course} state={state} disciplines={summary.disciplines} onComplete={markLesson} onRevert={undoLesson}/>
 

@@ -227,3 +227,88 @@ html[data-theme='light'] .glow {
   object-fit: cover;
   transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
+
+/* Esqueletos de carregamento: blocos neutros no lugar do conteúdo que vai chegar. */
+.skeleton-block {
+  display: block;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface-3) 70%, var(--text-subtle) 12%);
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+.skeleton {
+  display: grid;
+  gap: 14px;
+  padding: 4px 0;
+}
+
+.skeleton-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.skeleton-avatar {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-pill);
+}
+
+.skeleton-lines {
+  display: grid;
+  flex: 1;
+  gap: 8px;
+}
+
+.skeleton-line {
+  height: 12px;
+  width: 100%;
+}
+
+.skeleton-line.short {
+  width: 55%;
+}
+
+.page-skeleton {
+  display: grid;
+  gap: 24px;
+}
+
+.page-skeleton-heading {
+  display: grid;
+  gap: 12px;
+  max-width: 560px;
+}
+
+.skeleton-eyebrow {
+  width: 140px;
+  height: 12px;
+}
+
+.skeleton-title {
+  width: 60%;
+  height: 34px;
+}
+
+.page-skeleton-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.skeleton-card {
+  height: 220px;
+  border-radius: var(--radius-xl);
+}
+
+.skeleton-panel {
+  height: 320px;
+  border-radius: var(--radius-xl);
+}
+

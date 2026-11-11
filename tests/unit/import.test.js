@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {
   allLessonIds, applyCourseImport, canonicalUrl, completeLesson, courseSummary, findLessonByUrl,
   deliveryCandidates, detectProvider, editalCoverage, lessonOrigin, normalizeImportUrl, normalizePayload,
-  providerCapabilities, revertLessonCompletion,
+  providerCapabilities, revertLessonCompletion, completeLessonsThrough, nextLessonAfter, openLessons, pendingLessonsThrough,
 } from '../../public/import-domain.js';
 import {
   ImportError, analyzeSnapshot, analyzeUrl, assertPublicHttpUrl, extractFromHtml, parseSyllabusText,
@@ -510,4 +510,48 @@ test('aula importada antes da identidade da plataforma adota o externalId sem pe
   assert.equal(lessons[0].id, oldId);
   assert.equal(lessons[0].externalId, 'd1/a1');
   assert.ok(isCompleted(state, oldId));
+});
+
+function fiveLessonCourse() {
+  const payload = normalizePayload({
+    title: 'Curso em sequência', provider: { id: 'dio' },
+    disciplines: [
+      { title: 'Área A', modules: [{ title: 'M1', lessons: [{ title: 'Aula 1' }, { title: 'Aula 2' }, { title: 'Aula 3' }] }] },
+      { title: 'Área B', modules: [{ title: 'M2', lessons: [{ title: 'Aula 4' }, { title: 'Aula 5' }] }] },
+    ],
+  });
+  const state = applyCourseImport(createInitialState(), payload);
+  const course = state.courses.at(-1);
+  return { state, course, ids: materialSteps(course).map((step) => step.id) };
+}
+
+test('conclusão em lote registra as aulas em aberto até a escolhida, uma a uma, sem duplicar', () => {
+  const { state: initial, course, ids } = fiveLessonCourse();
+  // A aula 2 já estava concluída: o lote não a registra de novo.
+  const base = completeLesson(initial, course.id, ids[1], { now: '2026-11-10T09:00:00Z' }).state;
+  assert.deepEqual(pendingLessonsThrough(base, course, ids[3]).map((lesson) => lesson.id), [ids[0], ids[2], ids[3]]);
+  const result = completeLessonsThrough(base, course.id, ids[3], { now: '2026-11-10T10:00:00Z' });
+  assert.equal(result.added, 3);
+  assert.deepEqual(result.lessonIds, [ids[0], ids[2], ids[3]]);
+  assert.ok(ids.slice(0, 4).every((id) => isCompleted(result.state, id)));
+  assert.equal(isCompleted(result.state, ids[4]), false);
+  // Cada aula é um registro manual próprio, desfazível, e o lote não concede XP local.
+  assert.equal(result.state.progress.filter((event) => event.origin === 'manual').length, 4);
+  assert.equal(totalXP(result.state), 0);
+  assert.equal(revertLessonCompletion(result.state, course.id, ids[2]).reverted, true);
+  assert.equal(completeLessonsThrough(result.state, course.id, ids[3]).added, 0, 'repetir não duplica');
+  assert.equal(completeLessonsThrough(base, course.id, 'nao-existe').added, 0);
+  assert.deepEqual(openLessons(result.state, course).map((lesson) => lesson.id), [ids[4]]);
+});
+
+test('a próxima aula segue a ordem do curso e volta às que ficaram para trás', () => {
+  const { state, course, ids } = fiveLessonCourse();
+  assert.equal(nextLessonAfter(state, course, ids[2]).id, ids[3], 'atravessa para a disciplina seguinte');
+  const done = completeLessonsThrough(state, course.id, ids[0]).state;
+  assert.equal(nextLessonAfter(done, course, ids[0]).id, ids[1]);
+  let tail = completeLesson(state, course.id, ids[4]).state;
+  tail = completeLesson(tail, course.id, ids[3]).state;
+  assert.equal(nextLessonAfter(tail, course, ids[4]).id, ids[0], 'depois da última, a primeira em aberto');
+  const all = completeLessonsThrough(state, course.id, ids[4]).state;
+  assert.equal(nextLessonAfter(all, course, ids[4]), null);
 });

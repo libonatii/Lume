@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import Icon from '../../ui/Icon.jsx';
-import { Button, Heading } from '../../ui/ui.jsx';
+import { Button, Heading, Skeleton } from '../../ui/ui.jsx';
 import { api, apiError } from '../../lib/api.js';
 import { copyText, selectText } from '../../lib/clipboard.js';
 import { CollaborationInbox } from '../library/Collaboration.jsx';
@@ -123,6 +123,7 @@ export default function Friends({ account, notify, go }) {
           <CollaborationInbox account={account} notify={notify}/>
           <section className="card-surface settings-panel">
             <div className="panel-title"><span className="pace-icon"><Icon name="heart"/></span><div><h2 className="title">Sua lista</h2><p className="muted-text">{data ? `${data.friends.length} ${data.friends.length === 1 ? 'amizade' : 'amizades'}` : 'Carregando…'}</p></div></div>
+            {!data && <Skeleton label="Carregando sua lista de amigos…" rows={3}/>}
             {data && data.friends.length === 0 && <p className="inline-note"><Icon name="help"/><span>Ninguém por aqui ainda. Um convite já começa a lista.</span></p>}
             {data && data.friends.length > 0 && <ul className="friend-list">
               {data.friends.map((friend) => <li key={friend.id}>

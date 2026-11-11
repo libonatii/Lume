@@ -56,7 +56,8 @@ Telas React → ações nomeadas → useLibraryPersistence → /api/library/acti
 | Onboarding | Três jornadas, perguntas próprias, retomada, primeira atividade e preferências sem XP |
 | Biblioteca | Busca, filtros, tipos, criação, edição, exclusão confirmada, pausa e posição manual |
 | Cursos | Importação por link/texto/arquivo/página copiada/extensão, revisão e reimportação que preserva ids e progresso |
-| Próxima ação | Hoje, Biblioteca, diálogo, roteiro, perfil e Desktop usam o critério de `study-plan.js`; `nextMission` foi removido |
+| Próxima ação | Hoje, Biblioteca, diálogo, roteiro, perfil e Desktop usam o critério de `study-plan.js`; `nextMission` foi removido. Registrar a aula oferece "Concluir e abrir a próxima" (importada) e "Concluir e seguir para a próxima" (etapa manual); o curso importado aceita registrar em lote as aulas em aberto até uma escolhida, cada uma como registro manual |
+| Carregamento | Esqueletos com a forma da tela (`Skeleton`, `PageSkeleton`) ao recarregar a biblioteca da conta e enquanto amigos, conversas, ranking, perfis, dispositivos e XP chegam |
 | Plano | Disponibilidade, prazos, prioridades, cronograma derivado, conflitos explicados e adiamento |
 | Agenda | FullCalendar Standard: semana no computador, dia no celular e mês; criação na grade, arrasto/redimensionamento, editor contextual com checklist por item, painel Para agendar, recorrência finita e sugestões revisáveis; persistência por conta em `agenda_entries` |
 | Tarefas | Prazo, prioridade, vínculo com aula e subtarefas; concluir tarefa vinculada conclui a aula, sem XP próprio; sem vínculo, 0 XP |

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { AnimatePresence, motion } from 'motion/react';
 import { useLume } from './useLume.js';
 import Shell from './Shell.jsx';
-import { Dialog, enter, ease } from '../ui/ui.jsx';
+import { Dialog, PageSkeleton, enter, ease } from '../ui/ui.jsx';
 import { ENTRY_ROUTES, ROUTE_BY_ID, parseHash } from './routes.jsx';
 import { ModalContent } from './modals.jsx';
 import Icon from '../ui/Icon.jsx';
@@ -95,7 +95,10 @@ export default function App() {
   }
   const current = ROUTE_BY_ID.get(route);
   const routeContext = { model, state, open, go, notify, params, hash, authMode, setAuthMode, checkingSession };
-  const page = <>{model.saveError && <div role="alert"><p>{model.saveError}</p><button onClick={() => model.retrySave().catch(() => notify('Não foi possível carregar a biblioteca. Tente novamente.'))}>Recarregar ou tentar novamente</button></div>}{current.render(routeContext)}</>;
+  // Com conta, a biblioteca chega do servidor: até lá, a forma da tela, não um
+  // "nenhum material" que ainda não é verdade. O perfil de uma amizade não depende dela.
+  const libraryLoading = Boolean(model.account) && model.syncStatus === 'loading' && !(route === 'perfil' && params.get('id'));
+  const page = <>{model.saveError && <div role="alert"><p>{model.saveError}</p><button onClick={() => model.retrySave().catch(() => notify('Não foi possível carregar a biblioteca. Tente novamente.'))}>Recarregar ou tentar novamente</button></div>}{libraryLoading && current.loading ? <PageSkeleton title={current.title} variant={current.loading}/> : current.render(routeContext)}</>;
   const hideTabs = Boolean(current.hideTabs?.(routeContext));
   return <><Shell route={route} model={model} hideTabs={hideTabs} onComfort={() => open({ type: 'comfort' })} onHelp={() => open({ type: 'help' })} onRegister={() => setAuthMode('register')} onExit={exit}><Reminders account={model.account} syncStatus={model.syncStatus}/><motion.div className={`page page-${route}`} key={route} {...enter}>{page}</motion.div></Shell>
     <div className={`toast-region${toast ? '' : ' is-leaving'}`} role="status" aria-live="polite" aria-atomic="true"><AnimatePresence>{toast && <motion.div key="feedback" className="toast" initial={{ opacity: 0, y: 16, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8 }} transition={{ duration: .28, ease }}><span className="toast-icon"><Icon name="check"/></span><span>{toast.message}</span>{toast.action && <button className="toast-action" onClick={() => { clearTimeout(toastTimer.current); setToast(null); toast.action.run(); }}>{toast.action.label}</button>}{toast.action && <span className="toast-timer" key={toast.id} style={{ animationDuration: `${toast.duration}ms` }}/>}<button aria-label="Fechar aviso" className="icon-button" onClick={() => setToast(null)}><Icon name="close"/></button></motion.div>}</AnimatePresence></div>
