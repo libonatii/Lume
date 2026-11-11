@@ -140,7 +140,7 @@ test('cadastro, saída, login, sincronização e recuperação na API local', as
   await page.getByRole('link', { name: 'Esqueci minha senha' }).click();
   await page.getByLabel('E-mail', { exact: true }).fill(email);
   await page.getByRole('button', { name: 'Solicitar recuperação' }).click();
-  await expect(page.getByText(/pedido de recuperação foi registrado/)).toBeVisible();
+  await expect(page.getByText(/enviamos um link de recuperação/)).toBeVisible();
   await page.getByRole('link', { name: 'Link de recuperação de teste' }).click();
   await page.getByLabel('Nova senha', { exact: true }).fill('nova-senha-local-123');
   await page.getByLabel('Repita a senha').fill('nova-senha-local-123');

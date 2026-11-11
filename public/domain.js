@@ -36,7 +36,7 @@ export const STUDY_RHYTHMS = [
 
 export const STUDY_SUPPORTS = [
   { id: 'initiation', icon: 'play', title: 'Ajuda para começar', text: 'Sugerir a preparação do material como primeiro passo.' },
-  { id: 'calm', icon: 'focus', title: 'Menos informação na tela', text: 'Ativar o modo essencial na página Hoje.' },
+  { id: 'calm', icon: 'focus', title: 'Menos informação na tela', text: 'Registrar que prefiro ver menos informação de uma vez.' },
   { id: 'return', icon: 'return', title: 'Retomar sem culpa', text: 'Destacar que posso continuar de onde parei.' },
   { id: 'chunking', icon: 'steps', title: 'Passos ainda menores', text: 'Oferecer uma preparação antes da etapa completa.' },
 ];

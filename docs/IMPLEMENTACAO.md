@@ -304,8 +304,7 @@ Configurações não têm tela correspondente no Stitch. As telas exportadas em 
 
 ### V4 — Textos desatualizados
 - `Auth.jsx`: corrigido em 10/11 (diz que o link foi enviado). Em ambiente sem provedor, promete um envio que não ocorre (ver C1).
-- `Friends.jsx`: a nota final cita compartilhamento e colaboração como pendentes; colaboração já existe.
-- `public/domain.js`: o apoio legado `calm` ainda diz "Ativar o modo essencial na página Hoje", que não existe mais.
+- `Friends.jsx`, `Companion.jsx`, `Personal.jsx` e `public/domain.js` (apoio `calm`): corrigidos em 10/11; as notas já não tratam colaboração e mensagens como pendentes nem citam o modo essencial. O cartão "Outros lembretes" remete à Agenda.
 - `Onboarding.jsx`: informa que integrações por área não existem (correto), mas sem citar a página copiada.
 
 ---

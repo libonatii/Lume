@@ -157,6 +157,6 @@ export default function Friends({ account, notify, go }) {
       </div>}
 
     {error && <p className="form-error" role="alert">{error}</p>}
-    <p className="quiet-note">Convites, amizades, mensagens e remoções não geram XP. O perfil mostra só o que cada pessoa autorizou: biblioteca, fila, progresso e XP confirmado pelo servidor. Mensagens diretas entre amizades aceitas já funcionam; compartilhamento de aprendizados e colaboração em projetos continuam pendentes. Grupos, comunidades e canais estão fora do escopo desta etapa. O ranking de amigos é opcional e fica em sua própria página.</p>
+    <p className="quiet-note">Convites, amizades, mensagens e remoções não geram XP. O perfil mostra só o que cada pessoa autorizou: biblioteca, fila, progresso e XP confirmado pelo servidor. Mensagens diretas entre amizades aceitas e convites de colaboração em entregas já funcionam; o compartilhamento de aprendizados ainda não existe. Grupos, comunidades e canais estão fora do escopo desta etapa. O ranking de amigos é opcional e fica em sua própria página.</p>
   </div>;
 }

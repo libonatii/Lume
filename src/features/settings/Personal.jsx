@@ -352,8 +352,9 @@ export function Preferences({ state, actions, libraryActions, notify, onPersonal
         </section>
 
         <section className="card-surface settings-panel" aria-labelledby="notifications-title">
-          <div className="panel-title"><span className="pace-icon"><Icon name="mail"/></span><div><h2 className="title" id="notifications-title">Outros lembretes</h2><p className="muted-text">Lembretes de pausa, e-mail e notificações nativas ainda não existem. Não há um controle que finja um envio que não acontece.</p></div></div>
+          <div className="panel-title"><span className="pace-icon"><Icon name="mail"/></span><div><h2 className="title" id="notifications-title">Outros lembretes</h2><p className="muted-text">Os lembretes de compromissos ficam na Agenda. Lembretes de pausa e por e-mail ainda não existem. Não há um controle que finja um envio que não acontece.</p></div></div>
           <p className="quiet-note">Quando existirem, os lembretes serão opcionais e não concederão XP.</p>
+          <Button secondary onClick={() => go('agenda')}>Abrir Agenda<Icon name="arrow"/></Button>
         </section>
 
         <section className="card-surface settings-panel" aria-labelledby="sharing-title">
