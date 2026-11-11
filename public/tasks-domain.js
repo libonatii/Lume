@@ -7,7 +7,8 @@ import { materialSteps } from './material-model.js';
 import { recordCompletion } from './progress-domain.js';
 
 export const MAX_TASKS = 200;
-// Subtarefas dividem uma tarefa quando ajuda; marcá-las nunca gera XP.
+// Subtarefas dividem uma tarefa quando ajuda. Marcar uma pela primeira vez rende
+// XP validado no servidor (api/domain/library-subtasks.js), com teto diário.
 export const MAX_SUBTASKS = 10;
 // Prioridade explícita: 1 alta, 2 média, 3 baixa, 0 sem prioridade (padrão).
 // Definir ou mudar a prioridade é organização e nunca altera XP.
@@ -180,6 +181,26 @@ export function addSubtask(state, id, title) {
 
 export function toggleSubtask(state, id, subtaskId) {
   return updateTask(state, id, (task) => ({ ...task, subtasks: (task.subtasks || []).map((item) => item.id === subtaskId ? { ...item, done: !item.done } : item) }));
+}
+
+// Renomear mantém o id e o estado da subtarefa: não é uma subtarefa nova.
+export function renameSubtask(state, id, subtaskId, title) {
+  const clean = String(title || '').trim().slice(0, 140);
+  if (!clean) throw new Error('Dê um nome para a subtarefa.');
+  return updateTask(state, id, (task) => ({ ...task, subtasks: (task.subtasks || []).map((item) => item.id === subtaskId ? { ...item, title: clean } : item) }));
+}
+
+// Move a subtarefa para a posição pedida, limitada ao tamanho da lista.
+export function moveSubtask(state, id, subtaskId, index) {
+  return updateTask(state, id, (task) => {
+    const items = task.subtasks || [];
+    const from = items.findIndex((item) => item.id === subtaskId);
+    const to = Math.max(0, Math.min(items.length - 1, Math.trunc(Number(index) || 0)));
+    if (from < 0 || from === to) return task;
+    const next = items.slice();
+    next.splice(to, 0, next.splice(from, 1)[0]);
+    return { ...task, subtasks: next };
+  });
 }
 
 export function removeSubtask(state, id, subtaskId) {

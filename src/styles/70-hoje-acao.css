@@ -50,25 +50,6 @@
 .evolution-level {
   margin: 0;
 }
-.todo-late {
-  font-weight: 700;
-}
-.todo-priority {
-  color: var(--text);
-  font-weight: 600;
-}
-.todo-item.priority-1:not(.is-done) .todo-check {
-  border-width: 2px;
-}
-.todo-priority-select {
-  flex: 0 0 auto;
-  max-width: 9.5rem;
-  padding: 0.45rem 0.7rem;
-  border-radius: var(--radius-md);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  color: var(--text);
-}
 @media (max-width: 820px) {
   .next-facts,
   .today-grid {
@@ -76,9 +57,6 @@
   }
   .todo-item {
     flex-wrap: wrap;
-  }
-  .todo-priority-select {
-    margin-left: 2.75rem;
   }
 }
 
@@ -93,12 +71,6 @@
 .todo-overdue-note {
   border-color: var(--warning);
   background: var(--warning-soft);
-}
-.todo-late {
-  color: var(--warning);
-}
-.todo-item.is-late {
-  border-color: color-mix(in srgb, var(--warning) 55%, transparent);
 }
 /* No computador o nível fica no cartão da barra lateral; no celular, na barra superior. */
 @media (min-width: 821px) {

@@ -44,8 +44,23 @@
   background: var(--lume-soft);
   color: var(--lume);
   cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s var(--ease-out);
 }
-.todo-item.is-done .todo-check {
+/* Na lista completa o círculo fica vazio e o visto aparece ao passar o cursor. */
+.todo-list .todo-check {
+  border-width: 1.5px;
+  background: transparent;
+  color: transparent;
+}
+.todo-list .todo-check:hover,
+.todo-list .todo-check:focus-visible {
+  border-color: var(--mint);
+  background: var(--mint-soft);
+  color: var(--mint);
+  transform: scale(1.06);
+}
+.todo-item.is-done .todo-check,
+.todo-list .todo-item.is-done .todo-check {
   border-color: var(--mint);
   background: var(--mint-soft);
   color: var(--mint);
@@ -60,6 +75,406 @@
 .todo-meta {
   color: var(--text-muted);
   font-size: 0.82rem;
+}
+
+/* Cartão da lista completa: marcação, texto, ações e subtarefas em grade. */
+.todo-list > .todo-item {
+  --todo-accent: transparent;
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 0.9rem;
+  row-gap: 0.25rem;
+  padding: 0.9rem 1rem 0.9rem 1.15rem;
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, var(--surface-2), var(--surface));
+  overflow: hidden;
+  transition: border-color 0.18s ease;
+}
+.todo-list > .todo-item::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--todo-accent);
+}
+.todo-list > .todo-item:hover {
+  border-color: var(--border-strong);
+}
+.todo-list > .todo-item.priority-1 { --todo-accent: var(--danger); }
+.todo-list > .todo-item.priority-2 { --todo-accent: var(--reward); }
+.todo-list > .todo-item.priority-3 { --todo-accent: var(--mint); }
+.todo-list > .todo-item.is-late { --todo-accent: var(--warning); }
+.todo-list > .todo-item.is-done { --todo-accent: transparent; }
+.todo-item.is-late {
+  border-color: color-mix(in srgb, var(--warning) 55%, transparent);
+}
+.todo-list .todo-copy strong {
+  font-size: 1rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.todo-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.2rem;
+}
+.todo-chips:empty {
+  display: none;
+}
+.todo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: 100%;
+  padding: 0.12rem 0.55rem;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--text-muted) 12%, transparent);
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.todo-chip .icon {
+  width: 0.85rem;
+  height: 0.85rem;
+  flex: 0 0 auto;
+}
+.todo-priority {
+  background: color-mix(in srgb, var(--todo-accent) 16%, transparent);
+  color: color-mix(in srgb, var(--todo-accent) 70%, var(--text));
+}
+.todo-late {
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-weight: 700;
+}
+.todo-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.todo-priority-select {
+  flex: 0 0 auto;
+  max-width: 9.5rem;
+  height: 2.1rem;
+  padding: 0 0.6rem;
+  border-radius: var(--radius-pill);
+  background: var(--inner);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.todo-priority-select:focus {
+  border-color: var(--border-strong);
+  box-shadow: 0 0 0 3px var(--lume-soft);
+}
+.todo-icon-button {
+  flex: 0 0 auto;
+  width: 2.1rem;
+  height: 2.1rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease, opacity 0.16s ease;
+}
+.todo-icon-button .icon {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+.todo-icon-button:hover,
+.todo-icon-button:focus-visible {
+  background: var(--lume-soft);
+  border-color: var(--border-strong);
+  color: var(--lume);
+}
+.todo-icon-button.is-danger:hover,
+.todo-icon-button.is-danger:focus-visible {
+  background: var(--danger-soft);
+  border-color: color-mix(in srgb, var(--danger) 45%, transparent);
+  color: var(--danger);
+}
+
+/* Formulário: campos alinhados pela base, sem depender da altura de cada controle. */
+.todo-form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.75rem;
+  align-items: end;
+}
+.todo-form-row .field select,
+.todo-form-row .field input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 2.9rem;
+  padding-block: 0;
+}
+
+/* Subtarefas: ocupam a coluna do texto até a borda do cartão. */
+.todo-subtasks {
+  grid-column: 2 / -1;
+  min-width: 0;
+  font-size: 0.9rem;
+}
+.todo-subtasks summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  max-width: 100%;
+  padding: 0.2rem 0.6rem 0.2rem 0.35rem;
+  margin-left: -0.35rem;
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+.todo-subtasks summary::-webkit-details-marker {
+  display: none;
+}
+.todo-subtasks summary:hover {
+  background: var(--lume-soft);
+  color: var(--lume);
+}
+.todo-subtasks summary .icon {
+  width: 0.9rem;
+  height: 0.9rem;
+  transition: transform 0.2s var(--ease-out);
+}
+.todo-subtasks[open] summary .icon {
+  transform: rotate(90deg);
+}
+.subtask-meter {
+  width: 4.5rem;
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: var(--track);
+  overflow: hidden;
+}
+.subtask-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--mint);
+  transition: width 0.36s var(--ease-out);
+}
+.subtask-meter.is-full span {
+  background: var(--success);
+}
+.subtask-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0.35rem;
+  display: grid;
+  gap: 0.15rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--inner);
+}
+.subtask-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.1rem 0.15rem 0.1rem 0.5rem;
+  border-radius: calc(var(--radius-md) - 4px);
+  transition: background 0.16s ease;
+}
+.subtask-list li {
+  position: relative;
+  background: transparent;
+}
+.subtask-list li:hover {
+  background: color-mix(in srgb, var(--text-muted) 8%, transparent);
+}
+/* Enquanto é arrastada, a linha ganha fundo e sombra próprios. */
+.subtask-list li.is-dragging {
+  z-index: 1;
+  background: var(--surface-2);
+  box-shadow: 0 10px 24px -12px color-mix(in srgb, var(--bg) 80%, transparent);
+}
+.subtask-list li.is-editing {
+  background: var(--lume-soft);
+}
+.subtask-handle {
+  flex: 0 0 auto;
+  width: 1.3rem;
+  height: 1.8rem;
+  margin-left: -0.35rem;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-subtle);
+  cursor: grab;
+  touch-action: none;
+  opacity: 0.45;
+  transition: opacity 0.16s ease, color 0.16s ease;
+}
+.subtask-handle:active {
+  cursor: grabbing;
+}
+.subtask-handle .icon {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+.subtask-list li:hover .subtask-handle,
+.subtask-handle:focus-visible {
+  opacity: 1;
+  color: var(--lume);
+}
+.subtask-rename {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--inner);
+  color: var(--text);
+  font: inherit;
+  outline: none;
+}
+.subtask-rename:focus {
+  box-shadow: 0 0 0 3px var(--lume-soft);
+}
+.subtask-list .todo-icon-button {
+  width: 1.8rem;
+  height: 1.8rem;
+  opacity: 0;
+}
+.subtask-list li:hover .todo-icon-button,
+.subtask-list li.is-editing .todo-icon-button,
+.subtask-list .todo-icon-button:focus-visible {
+  opacity: 1;
+}
+@media (hover: none) {
+  .subtask-list .todo-icon-button,
+  .subtask-handle {
+    opacity: 0.7;
+  }
+}
+.subtask {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.35rem 0;
+  cursor: pointer;
+}
+.subtask span {
+  overflow-wrap: anywhere;
+  transition: color 0.16s ease;
+}
+.subtask input {
+  appearance: none;
+  flex: 0 0 auto;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.16s ease, border-color 0.16s ease;
+}
+.subtask input::after {
+  content: '';
+  width: 0.3rem;
+  height: 0.58rem;
+  margin-top: -0.12rem;
+  border: solid var(--bg);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) scale(0);
+  transition: transform 0.18s var(--ease-out);
+}
+.subtask input:checked {
+  border-color: var(--mint);
+  background: var(--mint);
+}
+.subtask input:checked::after {
+  transform: rotate(45deg) scale(1);
+}
+.subtask input:focus-visible {
+  outline: 2px solid var(--lume);
+  outline-offset: 2px;
+}
+.subtask-list li.is-done .subtask span {
+  color: var(--text-subtle);
+  text-decoration: line-through;
+}
+.subtask-form {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding: 0 0.35rem 0 0.75rem;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  color: var(--text-subtle);
+  transition: border-color 0.16s ease, background 0.16s ease;
+}
+.subtask-form:focus-within {
+  border-style: solid;
+  background: var(--inner);
+}
+.subtask-form > .icon {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+}
+.subtask-form input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.6rem 0;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  outline: none;
+}
+.subtask-add {
+  flex: 0 0 auto;
+  padding: 0.35rem 0.85rem;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--lume-soft);
+  color: var(--lume);
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: opacity 0.16s ease;
+}
+.subtask-add:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+@media (max-width: 640px) {
+  .todo-list > .todo-item {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .todo-actions {
+    grid-column: 2;
+  }
+  .todo-subtasks {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 820px) {

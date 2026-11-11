@@ -319,9 +319,7 @@ html[data-theme='light'] .session-bar .button.primary:hover:not(:disabled) {
 .field select,
 .field textarea,
 .auth-input,
-.setting-row select,
-.todo-priority-select,
-.subtask-form input {
+.setting-row select {
   border-radius: var(--radius-md);
   background: var(--inner);
   border: 1px solid var(--border);

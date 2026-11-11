@@ -1,6 +1,6 @@
 import {
-  addSubtask, addTask, clearTaskFocus, completeTask, focusTask, removeSubtask, removeTask, reopenTask,
-  setTaskPriority, toggleSubtask,
+  addSubtask, addTask, clearTaskFocus, completeTask, focusTask, moveSubtask, removeSubtask, removeTask,
+  renameSubtask, reopenTask, setTaskPriority, toggleSubtask,
 } from '../../../public/tasks-domain.js';
 import {
   applyAvailability, increaseWeekly, nextAvailableDay, postponeLesson,
@@ -21,6 +21,8 @@ export function createPlanActions(act) {
     setTaskPriority: (id, priority) => change(setTaskPriority, id, priority),
     addSubtask: (id, title) => change(addSubtask, id, title),
     toggleSubtask: (id, subtaskId) => change(toggleSubtask, id, subtaskId),
+    renameSubtask: (id, subtaskId, title) => change(renameSubtask, id, subtaskId, title),
+    moveSubtask: (id, subtaskId, index) => change(moveSubtask, id, subtaskId, index),
     removeSubtask: (id, subtaskId) => change(removeSubtask, id, subtaskId),
     setAvailability: (day, minutes) => change(setAvailability, day, minutes),
     setGoal: (id, goal) => change(setGoal, id, goal),

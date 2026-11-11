@@ -7,6 +7,7 @@ import { AppError } from '../errors.js';
 import { readLibrary, commitLibrary } from './library-store.js';
 import { ensureXpSettings } from './xp.js';
 import { timeStatements } from './library-time.js';
+import { subtaskStatements } from './library-subtasks.js';
 import { RULES } from './rewards.js';
 import { XP_POLICY_VERSION, localDay } from '../../public/xp-policy.js';
 import { normalizePdfMeta } from '../../public/pdf-domain.js';
@@ -193,7 +194,7 @@ export async function applyLibraryActions(db, userId, input, { now = Date.now(),
   const settings = await ensureXpSettings(db, userId, { now });
   const committed = await commitLibrary(db, userId, current.state, normalized, {
     revision: current.revision, operationId: input.id, now,
-    extra: [...rewardStatements(userId, normalized, changed, settings, now), ...await timeStatements(db, userId, normalized, settings, now), ...fileStatements],
+    extra: [...rewardStatements(userId, normalized, changed, settings, now), ...await timeStatements(db, userId, normalized, settings, now), ...await subtaskStatements(db, userId, current.state, normalized, settings, now), ...fileStatements],
   });
   if (removed.length && !committed.duplicate) await deleteObjects(media, userId, removed);
   return readLibrary(db, userId);
