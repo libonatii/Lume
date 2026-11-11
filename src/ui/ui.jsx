@@ -93,8 +93,8 @@ export function Cover({ art = 'nature', className = '', children }) {
   return <div className={`cover art-${safe} ${className}`}><img src={`/assets/stitch/${safe}.png`} alt="" loading="lazy"/>{children}</div>;
 }
 
-export function Empty({ title, children, onAdd }) {
-  return <motion.div {...enter} className="empty-state"><span className="empty-icon"><Icon name="book"/></span><h2 className="title">{title}</h2><p>{children}</p>{onAdd && <Button secondary onClick={onAdd}><Icon name="plus"/>Adicionar curso</Button>}</motion.div>;
+export function Empty({ title, children, onAdd, icon = 'book' }) {
+  return <motion.div {...enter} className="empty-state"><span className="empty-icon"><Icon name={icon}/></span><h2 className="title">{title}</h2><p>{children}</p>{onAdd && <Button secondary onClick={onAdd}><Icon name="plus"/>Adicionar curso</Button>}</motion.div>;
 }
 
 export function Dialog({ children, onClose, identity }) {

@@ -318,7 +318,10 @@ A reestruturação que trata estes itens e as causas de arquitetura por trás de
 Limpeza estrutural realizada em 03/11: estilos de 22 folhas foram colocados junto das funcionalidades
 e da casca; declarações sobrescritas do mesmo seletor/contexto foram removidas. Tokens e tema continuam
 globais, com ordem explícita em `src/styles/lume.css`. Isso não implementa o redesenho V1 das demais telas.
-Ver [Refatoração F7](REFATORACAO_01112026.md#f7--css-por-componente-sobre-tokens).
+Revisão de 08/11: removidos seletores sem uso de `home.css`, `personal.css`, `shared-profile.css`,
+`shell.css` e `41-responsivo.css`; tarefas e subtarefas consolidadas em `plan/tasks.css`; cores fixas de
+overlay, medalhas e perigo substituídas por tokens. Ver
+[Refatoração F7](REFATORACAO_01112026.md#f7--css-por-componente-sobre-tokens).
 
 ### D2 — Regras antigas ainda em uso
 `nextMission` e `applyStudyRhythm` foram removidos. `HABITS` e `CHALLENGES` continuam validando campos

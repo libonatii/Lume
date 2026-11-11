@@ -51,7 +51,7 @@ export default function GitHub({ actions, account, notify, go }) {
 
   if (!account) return <div className="personal-root">
     <Heading eyebrow="Leitura pública, sem token" title="GitHub">A análise pública exige uma conta para guardar o projeto na sua biblioteca.</Heading>
-    <Empty title="Entre para usar o GitHub.">O Lume não pede seu token nem acessa repositórios privados nesta etapa.</Empty>
+    <Empty icon="external" title="Entre para usar o GitHub.">O Lume não pede seu token nem acessa repositórios privados nesta etapa.</Empty>
     <Button onClick={() => go('login')}><Icon name="lock"/>Entrar na minha conta</Button>
   </div>;
 

@@ -124,7 +124,7 @@ export default function CourseEditor({ course, actions, close, notify }) {
       {type === 'video' && <label className="field">{resumeLabel(type)}
         <input value={position.value ?? (Number.isFinite(position.seconds) ? formatVideoTime(position.seconds) : '')} onChange={(event) => setPosition({ kind: 'video', value: event.target.value })} placeholder="Ex.: 12:30" inputMode="numeric"/>
       </label>}
-      {type === 'article' && <div className="field-row">
+      {type === 'article' && <div className="form-grid">
         <label className="field">Página
           <input value={position.page || ''} onChange={(event) => setPosition((previous) => ({ ...previous, page: event.target.value }))} placeholder="Ex.: 12" maxLength={40}/>
         </label>
@@ -135,7 +135,7 @@ export default function CourseEditor({ course, actions, close, notify }) {
       {type === 'book' && <label className="field">{resumeLabel(type)}
         <input value={position.chapter || ''} onChange={(event) => setPosition({ chapter: event.target.value })} placeholder="Ex.: capítulo 4" maxLength={120}/>
       </label>}
-      {type === 'exercise' && <div className="field-row">
+      {type === 'exercise' && <div className="form-grid">
         <label className="field">Exercício atual
           <input value={position.current || ''} onChange={(event) => setPosition((previous) => ({ ...previous, current: event.target.value }))} placeholder="Ex.: questão 8" maxLength={120}/>
         </label>

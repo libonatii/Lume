@@ -305,7 +305,7 @@ function ImportedCourse({ course, state, actions, progressActions, open, close, 
     {examLike && <section className="import-edital">
       <span className="eyebrow">Cobertura do edital</span>
       <p className="quiet-note">A grade do curso e o edital da prova são referências diferentes. Preencha a edição e a fase para comparar.</p>
-      <div className="field-row">
+      <div className="form-grid">
         <label className="field">Edição<input value={edition} onChange={(event) => setEdition(event.target.value)} placeholder="Ex.: 1º Exame de 2026" maxLength={40}/></label>
         <label className="field">Fase<select value={phase} onChange={(event) => setPhase(event.target.value)}><option value="">Não sei ainda</option><option value="1ª fase">1ª fase</option><option value="2ª fase">2ª fase</option></select></label>
       </div>

@@ -620,6 +620,9 @@ folhas externas já são permitidas por `'self'`; `scripts/headers.mjs` continua
        seletor/contexto. Ordem preservada em `src/styles/lume.css`; o redesenho V1 continua separado.
 4. [x] Comparação de estilos com service worker bloqueado e fontes carregadas: 32 combinações de
        quatro rotas, dois tamanhos, duas paletas e dois temas, sem diferenças na limpeza inicial.
+5. [x] Revisão de 08/11: seletores mortos removidos de `home.css`, `personal.css`, `shared-profile.css`,
+       `shell.css` e `41-responsivo.css`; tarefas/subtarefas consolidadas em `plan/tasks.css`; cores fixas
+       de overlay e medalhas trocadas por tokens.
 
 ### Pronto quando
 

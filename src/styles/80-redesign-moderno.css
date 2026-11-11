@@ -376,7 +376,7 @@ html[data-theme='light'] .session-bar .button.primary:hover:not(:disabled) {
 .today-bento .session-bar {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  align-content: space-between;
+  align-content: center;
   align-items: center;
   margin: 0;
   gap: 1rem;

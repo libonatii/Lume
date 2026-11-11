@@ -72,7 +72,7 @@
 }
 .danger-button {
   background: var(--danger);
-  color: #1a0508;
+  color: var(--danger-ink);
 }
 .dialog-actions.inline-actions {
   justify-content: flex-start;

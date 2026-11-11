@@ -43,7 +43,7 @@ function Subtasks({ task, actions }) {
     <summary>{items.length ? `Subtarefas ${done}/${items.length}` : 'Dividir em subtarefas'}</summary>
     {items.length > 0 && <ul className="subtask-list">{items.map((item) => <li key={item.id}>
       <label className="subtask"><input type="checkbox" checked={item.done} onChange={() => actions.toggleSubtask(task.id, item.id)}/><span className={item.done ? 'is-done' : ''}>{item.title}</span></label>
-      <button type="button" className="text-button" aria-label={`Remover subtarefa ${item.title}`} onClick={() => actions.removeSubtask(task.id, item.id)}>Remover</button>
+      <button type="button" className="icon-button subtask-remove" title="Remover subtarefa" aria-label={`Remover subtarefa ${item.title}`} onClick={() => actions.removeSubtask(task.id, item.id)}><Icon name="trash"/></button>
     </li>)}</ul>}
     {!task.done && items.length < MAX_SUBTASKS && <form className="subtask-form" onSubmit={add}>
       <input aria-label={`Nova subtarefa de ${task.title}`} maxLength={140} value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Ex.: Ler os artigos 5º a 7º"/>
@@ -114,32 +114,40 @@ export default function Tasks({ state, actions, notify, onSchedule }) {
     const course = task.courseId ? courses.get(task.courseId) : '';
     const late = isOverdue(task, today);
     return <motion.li className={`todo-item ${task.done ? 'is-done' : ''} ${late ? 'is-late' : ''} priority-${task.priority || 0}`} key={task.id} {...stagger(index)}>
-      <button
-        type="button"
-        role="checkbox"
-        aria-checked={task.done ? 'true' : 'false'}
-        aria-label={task.done ? `Reabrir tarefa ${task.title}` : `Concluir tarefa ${task.title}`}
-        className="todo-check"
-        onClick={() => toggle(task)}
-      >
-        <Icon name={task.done ? 'check' : 'plus'}/>
-      </button>
-      <span className="todo-copy">
-        <strong>{task.title}</strong>
-        <small className="todo-meta">
-          {!task.done && task.priority > 0 && <span className="todo-priority">Prioridade {priorityLabel(task.priority).toLowerCase()} · </span>}
-          {late && <span className="todo-late">Atrasada · </span>}
-          {course || 'Sem curso vinculado'}
-          {task.lessonId && lessons.get(task.lessonId) ? ` · ${lessons.get(task.lessonId)}` : ''}
-          {task.dueDate ? ` · ${late ? 'venceu' : 'vence'} em ${dateLabel(task.dueDate)}` : ''}
-          {task.done && task.lessonId ? ' · Aula vinculada' : ''}
-        </small>
-      </span>
-      {!task.done && <select className="todo-priority-select" aria-label={`Prioridade de ${task.title}`} value={String(task.priority || 0)} onChange={(event) => prioritize(task, event.target.value)}>
-        {TASK_PRIORITIES.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
-      </select>}
-      {onSchedule && <button type="button" className="text-button" aria-label={`Agendar tarefa ${task.title}`} onClick={() => onSchedule(task)}>Agendar</button>}
-      <button type="button" className="text-button" aria-label={`Remover tarefa ${task.title}`} onClick={() => remove(task)}>Remover</button>
+      <div className="todo-main">
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={task.done ? 'true' : 'false'}
+          aria-label={task.done ? `Reabrir tarefa ${task.title}` : `Concluir tarefa ${task.title}`}
+          className="todo-check"
+          onClick={() => toggle(task)}
+        >
+          <Icon name={task.done ? 'check' : 'plus'}/>
+        </button>
+        <span className="todo-copy">
+          <strong>{task.title}</strong>
+          <small className="todo-meta">
+            {task.done && task.priority > 0 && <span className="todo-priority">Prioridade {priorityLabel(task.priority).toLowerCase()} · </span>}
+            {late && <span className="todo-late">Atrasada · </span>}
+            {course || 'Sem curso vinculado'}
+            {task.lessonId && lessons.get(task.lessonId) ? ` · ${lessons.get(task.lessonId)}` : ''}
+            {task.dueDate ? ` · ${late ? 'venceu' : 'vence'} em ${dateLabel(task.dueDate)}` : ''}
+            {task.done && task.lessonId ? ' · Aula vinculada' : ''}
+          </small>
+        </span>
+        {!task.done && <div className="todo-controls"><select className="todo-priority-select" aria-label={`Prioridade de ${task.title}`} value={String(task.priority || 0)} onChange={(event) => prioritize(task, event.target.value)}>
+          {TASK_PRIORITIES.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+        </select>
+        <div className="todo-actions">
+          {onSchedule && <button type="button" className="text-button" aria-label={`Agendar tarefa ${task.title}`} onClick={() => onSchedule(task)}>Agendar</button>}
+          <button type="button" className="text-button danger" aria-label={`Remover tarefa ${task.title}`} onClick={() => remove(task)}>Remover</button>
+        </div></div>}
+        {task.done && <div className="todo-controls"><div className="todo-actions">
+          {onSchedule && <button type="button" className="text-button" aria-label={`Agendar tarefa ${task.title}`} onClick={() => onSchedule(task)}>Agendar</button>}
+          <button type="button" className="text-button danger" aria-label={`Remover tarefa ${task.title}`} onClick={() => remove(task)}>Remover</button>
+        </div></div>}
+      </div>
       <Subtasks task={task} actions={actions}/>
     </motion.li>;
   }
@@ -155,7 +163,7 @@ export default function Tasks({ state, actions, notify, onSchedule }) {
         <label className="field">Tarefa
           <input name="task-title" maxLength={180} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Ex.: Resolver 20 questões de constitucional" autoComplete="off"/>
         </label>
-        <div className="field-row">
+        <div className="form-grid">
           <label className="field">Curso ou prova (opcional)
             <select name="task-course" value={courseId} onChange={(event) => { setCourseId(event.target.value); setLessonId(''); }}>
               <option value="">Sem vínculo</option>
@@ -192,7 +200,7 @@ export default function Tasks({ state, actions, notify, onSchedule }) {
       {overdue > 0 && <p className="inline-note todo-overdue-note" role="status"><Icon name="flag"/><span>{overdueMessage(overdue)}</span></p>}
       {pending.length
         ? <ul className="todo-list">{pending.map(taskRow)}</ul>
-        : <Empty title="Sem tarefas pendentes.">Defina a próxima ação concreta da sua preparação no formulário acima.</Empty>}
+        : <Empty icon="list" title="Sem tarefas pendentes.">Defina a próxima ação concreta da sua preparação no formulário acima.</Empty>}
     </section>
 
     {done.length > 0 && <section className="todo-section" aria-labelledby="todo-done-title">

@@ -1,58 +1,7 @@
 /* Seções compartilhadas do perfil entre amigos. */
 
 /* Perfil compartilhado */
-.profile-hero {
-  display: flex;
-  align-items: center;
-  gap: 1.1rem;
-  flex-wrap: wrap;
-  padding: 1.35rem;
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--border);
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
-}
-.profile-avatar {
-  width: 64px;
-  height: 64px;
-  font-size: 1.5rem;
-}
-.profile-identity {
-  flex: 1 1 260px;
-  min-width: 0;
-}
-.profile-identity h1 {
-  margin: 0.15rem 0 0.35rem;
-  overflow-wrap: anywhere;
-}
-.profile-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-.profile-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 0.9rem;
-}
-.profile-stat {
-  display: grid;
-  gap: 0.15rem;
-  padding: 1rem 1.1rem;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
-  background: var(--surface);
-}
-.profile-stat strong {
-  font-family: var(--font-serif);
-  font-size: 1.9rem;
-  line-height: 1;
-  color: var(--lume);
-}
-.profile-stat small {
-  color: var(--text-muted);
-  font-size: 0.8rem;
-}
+
 .profile-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -88,17 +37,6 @@
 }
 .profile-item-copy small {
   font-size: 0.78rem;
-  color: var(--text-muted);
-}
-.profile-progress {
-  flex: 0 1 130px;
-  min-width: 90px;
-  display: grid;
-  gap: 0.25rem;
-  justify-items: end;
-}
-.profile-progress small {
-  font-size: 0.72rem;
   color: var(--text-muted);
 }
 .profile-queue-index {

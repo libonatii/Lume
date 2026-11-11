@@ -94,7 +94,7 @@ export default function AppointmentEditor({ initial, initialExpected = null, sta
     finally { setSaving(false); }
   }
   const alerts = <>
-    {saveError && <div role="alert"><p>{saveError}</p><Button secondary type="button" disabled={saving} onClick={async () => { setSaving(true); try { await retrySave(); } catch (e) { setError(e.message); } finally { setSaving(false); } }}>Recarregar ou tentar novamente</Button></div>}
+    {saveError && <div role="alert" className="form-error form-error-block"><p>{saveError}</p><Button secondary type="button" disabled={saving} onClick={async () => { setSaving(true); try { await retrySave(); } catch (e) { setError(e.message); } finally { setSaving(false); } }}>Recarregar ou tentar novamente</Button></div>}
     {error && <p role="alert" className="form-error">{error}</p>}
     {expected && !saving && <small>A operação já foi enviada. Resolva a gravação e confirme novamente, sem duplicar o compromisso.</small>}
   </>;

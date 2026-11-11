@@ -301,3 +301,25 @@ Revisão aprovada pela responsável em 06/11/2026, sem mudar XP, privacidade, li
 Pendente: horário habitual de estudo destacado na grade (`businessHours`) depende de uma configuração de
 janelas de disponibilidade, que a decisão 5 da seção 4 deixou fora desta versão. Um compromisso sem
 horário continua contando como sobreposição com tudo do mesmo dia (regra do domínio, não alterada).
+
+## 11. Revisão de UI/UX — 08/11/2026
+
+Revisão de diagramação e consistência, sem mudar XP, privacidade, limites ou esquema.
+
+- **Arrasto no mês:** um bloco com horário pode ser arrastado entre dias do mês; como a célula mostra
+  apenas o dia, a gravação remove início e fim (`calendarPatch(..., { month: true })`). O evento passa a
+  ocupar o dia inteiro, e o Desfazer continua disponível. O mês usa altura própria, menor que a semana,
+  para não abrir células vazias muito altas.
+- **Tarefas:** a prioridade é editada no próprio seletor, sem repetir o texto no metadado; ações ficam
+  agrupadas (Agendar/Remover) e as subtarefas usam remoção por ícone com rótulo acessível, em vez de um
+  "Remover" solto no fim da linha. Em telas estreitas, seletor e ações ocupam uma linha própria.
+- **Formulários:** campos em linha usam `.form-grid`, com colunas de largura mínima igual e uma coluna no
+  celular. O formulário do GitHub deixou de herdar a coluna do `.card-surface` e ficou compacto.
+- **Mensagens e estado:** erros usam `.form-error`; falhas de gravação usam `.form-error-block` com a ação
+  de repetir. O ícone do estado vazio acompanha o contexto (podium, users, mail, trophy, history etc.).
+- **Consistência visual:** filtros ativos usam `--action` com texto `--action-ink`, inclusive no Ranking;
+  no celular os filtros da Biblioteca rolam em uma linha. Configurações foram redistribuídas em duas
+  colunas equilibradas. Espaçamento e alvos de toque usam os tokens `--space-*` e `--actions-gap`.
+- **CSS legado:** foram removidos seletores mortos de `home.css`, `personal.css`, `shared-profile.css`,
+  `shell.css` e `41-responsivo.css`, além de regras duplicadas de tarefas/subtarefas. Cores fixas de
+  overlay, medalhas e perigo passaram a tokens (`--media-ink`, `--media-scrim`, `--medal-*`, `--danger-ink`).
