@@ -62,7 +62,7 @@ No CI, `PLAYWRIGHT_CHANNEL=bundled` força o Chromium baixado; localmente o padr
 
 - As variáveis têm o mesmo nome no Node e no Worker (`api/config.js`): `SHOW_RESET_LINK` (em `wrangler.jsonc` é `"false"`), `ATTEMPT_LIMIT`, `BCRYPT_ROUNDS`, `GITHUB_TOKEN`. `LUME_SHOW_RESET_LINK` e `LUME_ATTEMPT_LIMIT` continuam aceitos como apelidos no servidor local.
 - IA de organização é opcional e só no servidor: `LUME_AI_API_KEY` (fallback `OPENAI_API_KEY`), `LUME_AI_BASE_URL`, `LUME_AI_MODEL`. Sem chave, o organizador determinístico responde. Nunca exponha a chave no frontend nem em arquivos versionados.
-- `ATTEMPT_LIMIT` vale 10 por padrão nos dois ambientes e limita cadastro, login e recuperação; importação (30), convites (20), colaboração (30) e mensagens têm limite próprio por rota. Os e2e e o teste de contrato usam 200.
+- `ATTEMPT_LIMIT` vale 10 por padrão nos dois ambientes e limita cadastro, login e recuperação; importação (30), convites (20), colaboração (30) e mensagens têm limite próprio por rota. Os e2e usam 1000 (a suíte cadastra mais de 200 contas em 10 minutos) e o teste de contrato usa 200.
 - `BCRYPT_ROUNDS=6` no Worker é um compromisso com o limite de 10 ms de CPU do Workers Free e fica abaixo do mínimo 10 da OWASP. Não aumente sem medir (`node scripts/benchmark-auth.mjs 6`); a medição em produção continua pendente.
 - Senhas novas: bcrypt até 72 bytes UTF-8, sem truncamento. Hashes PBKDF2 legados são preservados e migram só na redefinição de senha.
 - `data/` é local e ignorado no Git (`data/lume.db` guarda as contas); não apague nem versione. Os e2e usam `data/e2e-<timestamp>`.
