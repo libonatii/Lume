@@ -85,7 +85,8 @@ test('ao recarregar a biblioteca, a tela mostra a forma do conteúdo, não um es
   });
   await retry.click();
   await expect(page.getByText('Carregando Hoje…')).toBeAttached();
-  await expect(page.getByText('Nenhum material em andamento.')).toHaveCount(0);
+  // A tela continua montada (para não perder rascunhos), mas oculta até a biblioteca chegar.
+  await expect(page.getByText('Nenhum material em andamento.')).toBeHidden();
   release();
   await expect(page.getByText('Carregando Hoje…')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Hoje', exact: true })).toBeVisible();
