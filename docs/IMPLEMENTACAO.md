@@ -24,8 +24,8 @@ Em ordem de impacto para quem usa o site publicado.
 
 | # | Lacuna | Por que importa | Estado | Detalhe |
 | --- | --- | --- | --- | --- |
-| 1 | **Entrega real da recuperação de senha não verificada** | Requisito obrigatório do produto. Desde 10/11 o código envia pelo Resend (e-mail no visual do Lume) e `wrangler.jsonc` define provedor e remetente `nao-responda@lumeacademy.site`. Falta confirmar o segredo `RESEND_API_KEY` no Worker, o domínio verificado no Resend e um pedido real entregue. Sem o segredo, o link só vai para o log (`SHOW_RESET_LINK=false`) | Configurado, não verificado | [C1](#c1--recuperação-de-acesso) |
-| 2 | **Imagens em produção não verificadas** | O binding R2 `MEDIA` (bucket `lume-media`) foi habilitado em `wrangler.jsonc` em 08/11. Falta confirmar que o bucket existe, que o deploy o levou e repetir o upload de avatar, capa e slide no site publicado | Configurado, não verificado | [C6](#c6--imagens-de-perfil-e-de-slides) |
+| 1 | **Entrega real da recuperação de senha não verificada** | Requisito obrigatório do produto. Desde 10/11 o código envia pelo Resend (e-mail no visual do Lume) e `wrangler.jsonc` define provedor e remetente `nao-responda@lumeacademy.site`. O segredo `RESEND_API_KEY` existe no Worker (conferido em 10/11) e o pedido anônimo responde 200. Falta confirmar o domínio verificado no Resend e um e-mail real entregue (`SHOW_RESET_LINK=false`: sem entrega, o link só vai para o log) | Publicado, entrega não verificada | [C1](#c1--recuperação-de-acesso) |
+| 2 | **Imagens em produção não verificadas** | O binding R2 `MEDIA` (bucket `lume-media`) foi habilitado em `wrangler.jsonc` em 08/11. O deploy de 10/11 listou `env.MEDIA (lume-media)` entre os bindings. Falta repetir o upload de avatar, capa e slide no site publicado | Publicado, upload não verificado | [C6](#c6--imagens-de-perfil-e-de-slides) |
 | 3 | **Nenhum fluxo com conta foi verificado em produção** | XP, ranking, mensagens, colaboração, sincronização e Companion só foram exercitados no servidor local e nos e2e. Em produção, apenas `GET` anônimos confirmam que as rotas existem. O custo de bcrypt 6 no Worker também não foi medido | Só local | [O1](#o1--verificação-em-produção) |
 | 4 | **Acompanhamento de aulas externas ainda não foi provado** | É o problema central declarado. A extensão do navegador lê a grade e as conclusões que a plataforma mostra, mas só foi testada com páginas de exemplo e um trecho salvo do Gran; nunca rodou num Chrome real nem numa conta real. Não há observação de reprodução nem retomada automática, e um curso grande do Gran ultrapassa o limite de 600 aulas | Protótipo | [I2](#i2--progresso-e-reprodução-de-aulas-externas), [I6](#i6--limite-de-tamanho-de-cursos-grandes) |
 | 5 | **Escolha de conquistas no perfil** | Cargos já são títulos sem bloqueio; falta escolher quais conquistas exibir | Parcial | [G3](#g3--conquistas-no-perfil) |
@@ -44,7 +44,7 @@ de evidências e limitações por ambiente, não uma segunda lista de pendência
 | Área | Estado | Onde está | Verificado |
 | --- | --- | --- | --- |
 | Conta: cadastro, login, saída, sessão | Implementado | `api/domain/auth.js`, rotas `/api/register`, `/api/login`, `/api/logout`, `/api/me` | e2e local; em produção só `GET /api/me` |
-| Recuperação de senha | Configurado para Resend; entrega real não verificada | `/api/password/*`, `api/domain/email.js`, `public/assets/email-logo.png` | e2e local com link de teste; nenhum e-mail real conferido |
+| Recuperação de senha | Publicado com Resend; entrega real não verificada | `/api/password/*`, `api/domain/email.js`, `public/assets/email-logo.png` | e2e local com link de teste; nenhum e-mail real conferido |
 | Biblioteca direta com revisão e repetição idempotente | Só local (revisão de 03/11) | `api/domain/library-store.js`, `library-actions.js`, `src/features/library/useLibraryPersistence.js` | contrato Node/D1 e e2e; conflito exige recarga |
 | Onboarding (três jornadas) | Implementado | `Onboarding.jsx`, `public/domain.js` | e2e local |
 | Hoje: próxima ação, sessão, tarefas, evolução | Implementado | `Study.jsx`, `public/study-plan.js` | e2e local |
@@ -75,14 +75,14 @@ publicações, anotações nem observação de reprodução.
 ## 3. Conta, dados e privacidade
 
 ### C1 — Recuperação de acesso
-**Configurado, entrega não verificada.** O fluxo existe (`/api/password/request` e `/api/password/reset`, token
+**Publicado, entrega não verificada.** O fluxo existe (`/api/password/request` e `/api/password/reset`, token
 de 30 minutos e uso único). `api/domain/email.js` envia pelo Resend quando há `LUME_EMAIL_PROVIDER=resend`,
 `RESEND_API_KEY` e `LUME_EMAIL_FROM`; o modelo do e-mail usa as cores e o logo do Lume, e o motivo de uma recusa
 do provedor vai para o log. Em 10/11 `wrangler.jsonc` passou a declarar o provedor e o remetente
 `Lume <nao-responda@lumeacademy.site>`; a chave é segredo (`npx wrangler secret put RESEND_API_KEY`) e não está
 no repositório. O texto de `Auth.jsx` já diz que o link foi enviado e vale 30 minutos. O logo do e-mail é
 servido do próprio site (`/assets/email-logo.png`), então só aparece depois do deploy.
-- Falta: confirmar o segredo no Worker, o domínio `lumeacademy.site` verificado no Resend e a entrega real. Em
+- Falta: confirmar o domínio `lumeacademy.site` verificado no Resend e a entrega real (o segredo já existe no Worker). Em
   ambiente sem configuração, o texto de `Auth.jsx` continua prometendo um envio que não ocorre.
 - Pronto quando: um pedido feito no site publicado entrega o e-mail, o link redefine a senha e a resposta não
   revela se a conta existe.
@@ -111,10 +111,10 @@ Hashes PBKDF2 antigos só migram na redefinição. A medição de CPU em produç
 - Falta: medir cadastro, login e redefinição no Worker publicado e decidir o custo com base nisso.
 
 ### C6 — Imagens de perfil e de slides
-**Configurado, não verificado.** `api/domain/media.js` grava avatar, capa e imagens de slides em R2 (Worker) ou
+**Publicado, upload não verificado.** `api/domain/media.js` grava avatar, capa e imagens de slides em R2 (Worker) ou
 `data/media/` (Node). O binding `MEDIA` (bucket `lume-media`) foi habilitado em `wrangler.jsonc` em 08/11; sem
 ele as rotas respondem 503. O cenário de mídia do contrato continua ignorado no Worker local sem binding.
-- Falta: confirmar que o bucket existe e que o deploy o levou, e repetir o upload de avatar, capa e slide no site
+- Falta: repetir o upload de avatar, capa e slide no site
   publicado.
 
 ---
@@ -361,8 +361,8 @@ npm run test:e2e  # cenários desktop e celular; build prévio obrigatório
 
 | Decisão | Bloqueia |
 | --- | --- |
-| Confirmar o segredo `RESEND_API_KEY` e o domínio verificado (provedor e remetente já decididos) | C1 |
-| Confirmar o bucket R2 `lume-media` e publicar com o binding (habilitação já decidida) | C6 |
+| Confirmar o domínio verificado no Resend e um e-mail real (segredo, provedor e remetente já existem) | C1 |
+| Testar o upload de imagens no site publicado (bucket e binding já no ar) | C6 |
 | Textos de termos de uso e política de privacidade; regra de exclusão de conta | C3 |
 | Manter ou escurecer o *hover* dos botões | V3 |
 | Elevar o limite de 600 aulas após medir o formato por entidade | I6 |
