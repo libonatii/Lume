@@ -1,7 +1,9 @@
 # Lume — o que falta implementar
 
-> Atualizado em 03/11/2026 a partir de uma revisão do projeto inteiro: rotas da API nos dois backends, tabelas
-> das migrações, telas e textos da interface, testes, configuração publicada e documentos. Este é o registro
+> Atualizado em 10/11/2026 sobre a revisão de 03/11 (rotas da API nos dois backends, tabelas das migrações, telas
+> e textos da interface, testes, configuração publicada e documentos). Desde então: Agenda mesclada na `main`
+> (PR #3), binding R2 e Resend configurados em `wrangler.jsonc`, release 0.6.0 do aplicativo de desktop.
+> Configuração versionada não prova o ambiente publicado: segredos e bucket não foram consultados. Este é o registro
 > único de **lacunas**: o que não existe, o que está parcial e o que funciona só em parte dos ambientes.
 > O que já funciona está em [Continuidade](CONTINUIDADE.md); a direção do produto, em [Produto](PRODUTO.md);
 > as regras de pontuação, em [Gamificação](GAMIFICACAO.md); as propostas de evolução, em [Evolução](EVOLUCAO.md).
@@ -22,8 +24,8 @@ Em ordem de impacto para quem usa o site publicado.
 
 | # | Lacuna | Por que importa | Estado | Detalhe |
 | --- | --- | --- | --- | --- |
-| 1 | **Recuperação de senha não funciona em produção** | Requisito obrigatório do produto. O Worker não tem nenhum segredo configurado (`wrangler secret list` vazio em 01/11): sem provedor de e-mail, o pedido é registrado, mas o link não é enviado nem exibido (`SHOW_RESET_LINK=false`) | Só local | [C1](#c1--recuperação-de-acesso) |
-| 2 | **Imagens indisponíveis em produção** | Foto de perfil, capa e imagens de slides respondem 503: o binding R2 `MEDIA` está comentado em `wrangler.jsonc` porque o R2 não está habilitado na conta | Só local | [C6](#c6--imagens-de-perfil-e-de-slides) |
+| 1 | **Entrega real da recuperação de senha não verificada** | Requisito obrigatório do produto. Desde 10/11 o código envia pelo Resend (e-mail no visual do Lume) e `wrangler.jsonc` define provedor e remetente `nao-responda@lumeacademy.site`. Falta confirmar o segredo `RESEND_API_KEY` no Worker, o domínio verificado no Resend e um pedido real entregue. Sem o segredo, o link só vai para o log (`SHOW_RESET_LINK=false`) | Configurado, não verificado | [C1](#c1--recuperação-de-acesso) |
+| 2 | **Imagens em produção não verificadas** | O binding R2 `MEDIA` (bucket `lume-media`) foi habilitado em `wrangler.jsonc` em 08/11. Falta confirmar que o bucket existe, que o deploy o levou e repetir o upload de avatar, capa e slide no site publicado | Configurado, não verificado | [C6](#c6--imagens-de-perfil-e-de-slides) |
 | 3 | **Nenhum fluxo com conta foi verificado em produção** | XP, ranking, mensagens, colaboração, sincronização e Companion só foram exercitados no servidor local e nos e2e. Em produção, apenas `GET` anônimos confirmam que as rotas existem. O custo de bcrypt 6 no Worker também não foi medido | Só local | [O1](#o1--verificação-em-produção) |
 | 4 | **Acompanhamento de aulas externas ainda não foi provado** | É o problema central declarado. A extensão do navegador lê a grade e as conclusões que a plataforma mostra, mas só foi testada com páginas de exemplo e um trecho salvo do Gran; nunca rodou num Chrome real nem numa conta real. Não há observação de reprodução nem retomada automática, e um curso grande do Gran ultrapassa o limite de 600 aulas | Protótipo | [I2](#i2--progresso-e-reprodução-de-aulas-externas), [I6](#i6--limite-de-tamanho-de-cursos-grandes) |
 | 5 | **Escolha de conquistas no perfil** | Cargos já são títulos sem bloqueio; falta escolher quais conquistas exibir | Parcial | [G3](#g3--conquistas-no-perfil) |
@@ -42,12 +44,12 @@ de evidências e limitações por ambiente, não uma segunda lista de pendência
 | Área | Estado | Onde está | Verificado |
 | --- | --- | --- | --- |
 | Conta: cadastro, login, saída, sessão | Implementado | `api/domain/auth.js`, rotas `/api/register`, `/api/login`, `/api/logout`, `/api/me` | e2e local; em produção só `GET /api/me` |
-| Recuperação de senha | Só local | `/api/password/*`, `api/domain/email.js` | e2e local com link de teste |
+| Recuperação de senha | Configurado para Resend; entrega real não verificada | `/api/password/*`, `api/domain/email.js`, `public/assets/email-logo.png` | e2e local com link de teste; nenhum e-mail real conferido |
 | Biblioteca direta com revisão e repetição idempotente | Só local (revisão de 03/11) | `api/domain/library-store.js`, `library-actions.js`, `src/features/library/useLibraryPersistence.js` | contrato Node/D1 e e2e; conflito exige recarga |
 | Onboarding (três jornadas) | Implementado | `Onboarding.jsx`, `public/domain.js` | e2e local |
 | Hoje: próxima ação, sessão, tarefas, evolução | Implementado | `Study.jsx`, `public/study-plan.js` | e2e local |
 | Plano e Agenda: cronograma, roteiro, calendário e tarefas | Implementado localmente | `Plan.jsx`, `Tasks.jsx`, `Agenda.jsx`, `public/schedule-domain.js`, `public/tasks-domain.js`, `public/agenda-domain.js` | e2e local; detalhes em [Agenda](AGENDA.md) |
-| Biblioteca: criar, editar, excluir, tipos, slides | Implementado (imagens só local) | `Study.jsx`, `CourseEditor.jsx`, `Slides.jsx` | e2e local |
+| Biblioteca: criar, editar, excluir, tipos, slides | Implementado (imagens em produção não verificadas) | `Study.jsx`, `CourseEditor.jsx`, `Slides.jsx` | e2e local |
 | Importação por link, texto e página copiada | Parcial | `api/domain/import-server.js`, `public/import-domain.js` | unitário com HTML sintético; e2e com análise simulada; Coursera e Alura conferidos em 31/10 |
 | XP no servidor, níveis, tempo, correção | Implementado | `api/domain/xp.js`, `public/xp-policy.js` | unitário e e2e local |
 | Conquistas por material | Parcial | `user_achievements` | unitário e e2e local |
@@ -73,12 +75,15 @@ publicações, anotações nem observação de reprodução.
 ## 3. Conta, dados e privacidade
 
 ### C1 — Recuperação de acesso
-**Só local.** O fluxo existe (`/api/password/request` e `/api/password/reset`, token de 30 minutos e uso
-único), e `api/domain/email.js` envia pelo Resend quando há `LUME_EMAIL_PROVIDER=resend`, `RESEND_API_KEY` e
-`LUME_EMAIL_FROM`. Em produção não há nenhum segredo configurado, então o link não sai.
-- Falta: escolher o provedor, configurar os segredos no Worker, um remetente verificado e testar a entrega real.
-- O texto de `Auth.jsx` afirma que "o envio por e-mail ainda não está disponível" em qualquer ambiente; precisa
-  refletir a configuração real.
+**Configurado, entrega não verificada.** O fluxo existe (`/api/password/request` e `/api/password/reset`, token
+de 30 minutos e uso único). `api/domain/email.js` envia pelo Resend quando há `LUME_EMAIL_PROVIDER=resend`,
+`RESEND_API_KEY` e `LUME_EMAIL_FROM`; o modelo do e-mail usa as cores e o logo do Lume, e o motivo de uma recusa
+do provedor vai para o log. Em 10/11 `wrangler.jsonc` passou a declarar o provedor e o remetente
+`Lume <nao-responda@lumeacademy.site>`; a chave é segredo (`npx wrangler secret put RESEND_API_KEY`) e não está
+no repositório. O texto de `Auth.jsx` já diz que o link foi enviado e vale 30 minutos. O logo do e-mail é
+servido do próprio site (`/assets/email-logo.png`), então só aparece depois do deploy.
+- Falta: confirmar o segredo no Worker, o domínio `lumeacademy.site` verificado no Resend e a entrega real. Em
+  ambiente sem configuração, o texto de `Auth.jsx` continua prometendo um envio que não ocorre.
 - Pronto quando: um pedido feito no site publicado entrega o e-mail, o link redefine a senha e a resposta não
   revela se a conta existe.
 
@@ -106,10 +111,11 @@ Hashes PBKDF2 antigos só migram na redefinição. A medição de CPU em produç
 - Falta: medir cadastro, login e redefinição no Worker publicado e decidir o custo com base nisso.
 
 ### C6 — Imagens de perfil e de slides
-**Só local.** `api/domain/media.js` grava avatar, capa e imagens de slides em R2 (Worker) ou `data/media/` (Node). Em
-produção o binding `MEDIA` está comentado e as rotas respondem 503.
-- Falta: habilitar R2 na conta Cloudflare, criar o bucket `lume-media`, descomentar o binding e repetir o e2e
-  de upload.
+**Configurado, não verificado.** `api/domain/media.js` grava avatar, capa e imagens de slides em R2 (Worker) ou
+`data/media/` (Node). O binding `MEDIA` (bucket `lume-media`) foi habilitado em `wrangler.jsonc` em 08/11; sem
+ele as rotas respondem 503. O cenário de mídia do contrato continua ignorado no Worker local sem binding.
+- Falta: confirmar que o bucket existe e que o deploy o levou, e repetir o upload de avatar, capa e slide no site
+  publicado.
 
 ---
 
@@ -151,7 +157,8 @@ Cronograma e Roteiro permanecem no Plano; sugestões só viram compromissos apó
   painéis contextuais, Mais opções e checklist editável por item. Tarefas e sugestões ficam em Para agendar.
 - Verificação da revisão: 265 testes de domínio/contrato passaram (1 ignorado), 126 e2e passaram
   (2 gestos de mouse exclusivos do computador ignorados no mobile), build e Electron minimizado passaram.
-- Detalhes e evidências: [Agenda](AGENDA.md). Não publicado.
+- Detalhes e evidências: [Agenda](AGENDA.md). Mesclada na `main` pelo PR #3 (calendário interativo e refinos de
+  interface); a publicação no Worker não foi verificada, e a migração `0014_agenda.sql` precisa estar aplicada no D1.
 - Verificação da primeira implementação: 262 testes de domínio/contrato passaram (1 ignorado), 120 e2e na suíte completa e
   14 cenários da Agenda revalidados após os ajustes finais; build e notificação nativa no Electron passaram.
 - Limites: sem calendário externo, notificações no celular ou entrega garantida com o programa encerrado.
@@ -275,8 +282,8 @@ ligado por padrão). O Application ID público do Lume vai no build (`DEFAULT_DI
 `LUME_DISCORD_CLIENT_ID` e `discordClientId` o sobrepõem. Falta confirmar no Developer Portal que a arte
 `lume_logo` foi enviada.
 Falta também: instalador assinado; início com o Windows; notificações de pausa; abrir a próxima aula pelo painel;
-funcionamento sem rede; suporte a Linux e macOS; janela e bandeja testadas no CI. A versão local é 0.5.1 e a
-última release publicada é `companion-v0.5.0`.
+funcionamento sem rede; suporte a Linux e macOS; janela e bandeja testadas no CI. A última release publicada é
+`companion-v0.6.0` (01/11/2026, a mesma versão de `companion/package.json`); ela inclui o Discord.
 
 ---
 
@@ -296,7 +303,7 @@ Configurações não têm tela correspondente no Stitch. As telas exportadas em 
 4,2:1 com texto branco, abaixo do AA (4,5:1). Os demais textos passam nos quatro temas.
 
 ### V4 — Textos desatualizados
-- `Auth.jsx`: diz que o envio de e-mail não está disponível, mesmo quando o provedor está configurado (ver C1).
+- `Auth.jsx`: corrigido em 10/11 (diz que o link foi enviado). Em ambiente sem provedor, promete um envio que não ocorre (ver C1).
 - `Friends.jsx`: a nota final cita compartilhamento e colaboração como pendentes; colaboração já existe.
 - `public/domain.js`: o apoio legado `calm` ainda diz "Ativar o modo essencial na página Hoje", que não existe mais.
 - `Onboarding.jsx`: informa que integrações por área não existem (correto), mas sem citar a página copiada.
@@ -355,11 +362,10 @@ npm run test:e2e  # cenários desktop e celular; build prévio obrigatório
 
 | Decisão | Bloqueia |
 | --- | --- |
-| Provedor de e-mail e remetente da recuperação | C1 |
-| Habilitar R2 na conta Cloudflare | C6 |
+| Confirmar o segredo `RESEND_API_KEY` e o domínio verificado (provedor e remetente já decididos) | C1 |
+| Confirmar o bucket R2 `lume-media` e publicar com o binding (habilitação já decidida) | C6 |
 | Textos de termos de uso e política de privacidade; regra de exclusão de conta | C3 |
 | Manter ou escurecer o *hover* dos botões | V3 |
-| Publicar a versão 0.5.1 do aplicativo de desktop | §8 |
 | Elevar o limite de 600 aulas após medir o formato por entidade | I6 |
 | Publicar a extensão na Chrome Web Store | I2 |
 

@@ -1,6 +1,6 @@
 # Lume — estado atual e continuidade de desenvolvimento
 
-Atualizado em 05/11/2026. Este é o mapa do código existente. As lacunas ficam somente em
+Atualizado em 10/11/2026. Este é o mapa do código existente. As lacunas ficam somente em
 [Implementação](IMPLEMENTACAO.md), as propostas em [Evolução](EVOLUCAO.md), as regras em
 [Produto](PRODUTO.md) e [Gamificação](GAMIFICACAO.md), e a execução arquitetural em
 [Refatoração](REFATORACAO_01112026.md). O histórico das rodadas anteriores permanece no Git.
@@ -52,7 +52,7 @@ Telas React → ações nomeadas → useLibraryPersistence → /api/library/acti
 
 | Área | Implementado no código |
 | --- | --- |
-| Conta | Cadastro, login, saída, cookie HttpOnly, recuperação por token e Resend opcional |
+| Conta | Cadastro, login, saída, cookie HttpOnly, recuperação por token e e-mail pelo Resend (configurado em `wrangler.jsonc`; sem a chave, o link vai só para o log) |
 | Onboarding | Três jornadas, perguntas próprias, retomada, primeira atividade e preferências sem XP |
 | Biblioteca | Busca, filtros, tipos, criação, edição, exclusão confirmada, pausa e posição manual |
 | Cursos | Importação por link/texto/arquivo/página copiada/extensão, revisão e reimportação que preserva ids e progresso |
@@ -102,10 +102,13 @@ e `7236b08` (ações e hooks). Resultados finais desta rodada ficam no
 
 O contrato cobre Node e Worker local, incluindo 600 aulas e concorrência. Importação simulada não
 comprova plataformas reais; D1 local não comprova CPU do Worker publicado. O cenário de mídia no
-Worker é ignorado quando não há binding. E-mail real e R2 dependem da configuração de produção.
+Worker é ignorado quando não há binding. O binding R2 `MEDIA` e o Resend estão declarados em
+`wrangler.jsonc`, mas a entrega real de e-mail e o upload de imagens no site publicado não foram verificados
+(segredo `RESEND_API_KEY`, bucket e deploy a confirmar).
 
-Site de referência: <https://lume.lume-prototype.workers.dev>. Não houve push, deploy, migração
-remota ou release nesta revisão. Publicação exige pedido explícito; instruções em [Release](RELEASE.md).
+Site de referência: <https://lumeacademy.site>. A Agenda foi mesclada na `main` (PR #3) e o
+aplicativo de desktop tem a release `companion-v0.6.0`; o deploy do Worker, a migração remota `0014` e a
+situação em produção não foram verificados. Publicação exige pedido explícito; instruções em [Release](RELEASE.md).
 
 ## 6. Manutenção do contexto
 

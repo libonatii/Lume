@@ -228,7 +228,7 @@ As regras detalhadas estão em [Gamificação](GAMIFICACAO.md).
 
 | Tela | Papel |
 | --- | --- |
-| Entrada e conta | Cadastro, autenticação, recuperação por link e saída já disponíveis na API local; envio de e-mail ainda pendente |
+| Entrada e conta | Cadastro, autenticação, recuperação por link e saída disponíveis na API; o envio do e-mail pelo Resend está configurado, mas a entrega no site publicado ainda não foi verificada |
 | Meu ritmo e interesses | Preferências e sugestões iniciais |
 | Hoje | Próxima ação única (mesmo critério do roteiro do Companion), com motivo, tempo a reservar — duração conhecida ou estimada —, link do material e o que falta; sessão; tarefas relevantes com atraso; evolução com a última recompensa |
 | Plano | Cronograma pela disponibilidade semanal, prazos e prioridades, com duração conhecida ou estimada, conflito de prazo explicado com ajustes e adiamento; aba Roteiro (próxima aula de cada curso) |

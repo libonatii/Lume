@@ -8,8 +8,8 @@
 import { AppError } from '../errors.js';
 
 export class EmailError extends AppError {
-  constructor(message, code = 'email_error', status = 502) {
-    super(message, code, status);
+  constructor(message, code = 'email_error', status = 502, detail = '') {
+    super(message, code, status, { detail });
     this.name = 'EmailError';
   }
 }
@@ -31,19 +31,65 @@ function escapeHtml(value) {
     .replaceAll('"', '&quot;');
 }
 
+function siteOrigin(link) {
+  try { return new URL(link).origin; } catch { return ''; }
+}
+
+// Cores do tema padrão do Lume (src/styles/00-tokens.css). E-mail não aceita
+// variáveis CSS nem SVG inline, então os valores ficam escritos aqui.
+const MAIL = { bg: '#090d1f', card: '#0f172a', border: '#1e293b', text: '#f8fafc', muted: '#cbd5e1', subtle: '#94a3b8', action: '#2563eb', accent: '#60a5fa' };
+const FONT = "'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+
 export function passwordResetMessage({ link, name = '' }) {
   const greeting = name ? `Olá, ${name}.` : 'Olá.';
+  const origin = siteOrigin(link);
+  const safeLink = escapeHtml(link);
+  const logo = origin
+    ? `<img src="${escapeHtml(origin)}/assets/email-logo.png" width="48" height="48" alt="Lume" style="display:block;border:0;border-radius:14px">`
+    : '';
   return {
     subject: 'Recuperar acesso ao Lume',
-    text: `${greeting}\n\nRecebemos um pedido para redefinir a senha da sua conta no Lume.\n\nAbra este link para criar uma nova senha (vale por 30 minutos e só pode ser usado uma vez):\n${link}\n\nSe não foi você, ignore esta mensagem. Sua senha atual continua valendo.`,
-    html: `<div style="font-family:system-ui,sans-serif;line-height:1.6;color:#0d1b2e;max-width:34rem;margin:auto">
-      <h1 style="font-size:1.4rem">Recuperar acesso ao Lume</h1>
-      <p>${escapeHtml(greeting)}</p>
-      <p>Recebemos um pedido para redefinir a senha da sua conta no Lume.</p>
-      <p><a href="${escapeHtml(link)}" style="display:inline-block;padding:.7rem 1rem;border-radius:.6rem;background:#2563eb;color:#fff;text-decoration:none">Criar uma nova senha</a></p>
-      <p>O link vale por 30 minutos e só pode ser usado uma vez.</p>
-      <p>Se não foi você, ignore esta mensagem. Sua senha atual continua valendo.</p>
-    </div>`,
+    text: `${greeting}
+
+Recebemos um pedido para redefinir a senha da sua conta no Lume.
+
+Abra este link para criar uma nova senha (vale por 30 minutos e só pode ser usado uma vez):
+${link}
+
+Se não foi você, ignore esta mensagem. Sua senha atual continua valendo.`,
+    html: `<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>Recuperar acesso ao Lume</title></head>
+<body style="margin:0;padding:0;background:${MAIL.bg};font-family:${FONT}">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:${MAIL.bg}">Crie uma nova senha para entrar no Lume. O link vale por 30 minutos.</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${MAIL.bg}"><tr><td align="center" style="padding:32px 16px">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px">
+    <tr><td style="padding:0 4px 20px">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+        <td style="vertical-align:middle">${logo}</td>
+        <td style="vertical-align:middle;padding-left:12px;font-family:${FONT};font-size:22px;font-weight:700;letter-spacing:-.01em;color:${MAIL.text}">Lume</td>
+      </tr></table>
+    </td></tr>
+    <tr><td style="background:${MAIL.card};border:1px solid ${MAIL.border};border-top:3px solid ${MAIL.action};border-radius:18px;padding:36px 32px;font-family:${FONT}">
+      <p style="margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:${MAIL.accent}">Recuperação de acesso</p>
+      <h1 style="margin:0 0 16px;font-size:26px;line-height:1.25;font-weight:700;color:${MAIL.text}">Vamos criar uma nova senha</h1>
+      <p style="margin:0 0 8px;font-size:16px;line-height:1.65;color:${MAIL.text}">${escapeHtml(greeting)}</p>
+      <p style="margin:0 0 28px;font-size:16px;line-height:1.65;color:${MAIL.muted}">Recebemos um pedido para redefinir a senha da sua conta no Lume. Use o botão abaixo para escolher uma nova.</p>
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px"><tr><td align="center" bgcolor="${MAIL.action}" style="border-radius:12px;background:${MAIL.action}">
+        <a href="${safeLink}" style="display:inline-block;padding:14px 28px;font-family:${FONT};font-size:16px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:12px">Criar uma nova senha</a>
+      </td></tr></table>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px"><tr><td style="background:${MAIL.bg};border:1px solid ${MAIL.border};border-radius:12px;padding:14px 16px;font-size:14px;line-height:1.6;color:${MAIL.muted}">
+        O link vale por <strong style="color:${MAIL.text}">30 minutos</strong> e só pode ser usado uma vez.
+      </td></tr></table>
+      <p style="margin:0 0 6px;font-size:13px;line-height:1.6;color:${MAIL.subtle}">Se o botão não abrir, copie este endereço e cole no navegador:</p>
+      <p style="margin:0;font-size:13px;line-height:1.6;word-break:break-all"><a href="${safeLink}" style="color:${MAIL.accent};text-decoration:underline">${safeLink}</a></p>
+    </td></tr>
+    <tr><td style="padding:20px 8px 0;font-family:${FONT};font-size:13px;line-height:1.6;color:${MAIL.subtle};text-align:center">
+      Se não foi você, ignore esta mensagem. Sua senha atual continua valendo.<br>
+      Lume · estudos no seu ritmo
+    </td></tr>
+  </table>
+</td></tr></table>
+</body></html>`,
   };
 }
 

@@ -12,7 +12,7 @@ npm run extension:package
 Gera `dist-extension/lume-leitor-de-curso-<versão>.zip` a partir de `extension/`, com três diferenças em relação
 à pasta de desenvolvimento:
 
-- o manifesto aceita só `https://lume.lume-prototype.workers.dev/*` (os endereços localhost saem);
+- o manifesto aceita só `https://lumeacademy.site/*` (os endereços localhost saem);
 - o popup não mostra a escolha entre Lume publicado e local;
 - `LEIAME.md`, `LOJA.md` e `store/` ficam de fora.
 
@@ -21,7 +21,7 @@ Cada envio novo precisa de uma `version` maior no `manifest.json`. A loja recusa
 ## 2. Antes do primeiro envio
 
 - A política de privacidade precisa estar publicada: `public/privacidade-extensao.html` entra no site com
-  `npx wrangler deploy`. Endereço: <https://lume.lume-prototype.workers.dev/privacidade-extensao.html>.
+  `npx wrangler deploy`. Endereço: <https://lumeacademy.site/privacidade-extensao.html>.
 - Teste o `.zip` instalado: descompacte numa pasta, carregue em `chrome://extensions` (modo do desenvolvedor,
   **Carregar sem compactação**), entre no Lume publicado e leia um curso.
 
@@ -36,7 +36,7 @@ Envie o `.zip`. Depois, preencha as abas abaixo.
 - **Ícone:** `extension/icons/icon-128.png`.
 - **Captura de tela:** `extension/store/captura-1280x800.png`.
 - **Bloco promocional pequeno:** `extension/store/promo-440x280.png`.
-- **Site:** <https://lume.lume-prototype.workers.dev>.
+- **Site:** <https://lumeacademy.site>.
 
 **Resumo:** vem do `description` do manifesto, que a loja limita a 132 caracteres (o script recusa se passar):
 
@@ -80,7 +80,7 @@ Envie o `.zip`. Depois, preencha as abas abaixo.
 | `activeTab` | Ler a lista de aulas só da aba em que a pessoa clicou no ícone, só naquele momento, sem acesso permanente a nenhum site de curso. |
 | `scripting` | Injetar o leitor (`capture.js`) na aba ativa depois do clique, para ler disciplinas, aulas, durações e marcas de conclusão. |
 | `storage` | Guardar a escolha do endereço do Lume que recebe a leitura. Nenhum dado de curso é guardado na extensão. |
-| Permissão de host (`lume.lume-prototype.workers.dev`) | Encontrar ou abrir a aba do Lume e entregar a leitura a ela por um script de ponte, que só roda nesse endereço. |
+| Permissão de host (`lumeacademy.site`) | Encontrar ou abrir a aba do Lume e entregar a leitura a ela por um script de ponte, que só roda nesse endereço. |
 
 **Código remoto:** não. Todo o código está no pacote; a extensão não carrega nem executa scripts de fora.
 
@@ -94,7 +94,7 @@ Envie o `.zip`. Depois, preencha as abas abaixo.
 **Declarações:** marque as três (não vende dados a terceiros; não usa nem transfere para fins não relacionados à
 finalidade única; não usa para determinar crédito ou empréstimos).
 
-**Política de privacidade:** <https://lume.lume-prototype.workers.dev/privacidade-extensao.html>
+**Política de privacidade:** <https://lumeacademy.site/privacidade-extensao.html>
 
 ### Distribuição
 

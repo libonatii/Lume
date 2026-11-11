@@ -97,7 +97,7 @@ Fica em `%APPDATA%\Lume\companion.json` (fora do repositório):
 
 ```json
 {
-  "apiUrl": "https://lume.lume-prototype.workers.dev",
+  "apiUrl": "https://lumeacademy.site",
   "token": "…",
   "deviceName": "PC da Ana",
   "intervalSeconds": 5,
@@ -164,7 +164,7 @@ erro no log.
 
 O botão usa `discordPublicUrl` ou a variável `LUME_DISCORD_PUBLIC_URL`, desde
 que seja `https`. Sem isso, o endereço é
-`https://lume.lume-prototype.workers.dev`.
+`https://lumeacademy.site`.
 
 Se o Discord estiver fechado ou a conexão cair, o status some junto com a
 conexão e o Lume tenta de novo em silêncio, com espera crescente (5s, 10s,

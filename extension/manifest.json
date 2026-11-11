@@ -13,7 +13,7 @@
   "background": { "service_worker": "background.js" },
   "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": [
-    "https://lume.lume-prototype.workers.dev/*",
+    "https://lumeacademy.site/*",
     "http://localhost:4173/*",
     "http://127.0.0.1:4173/*",
     "http://localhost:4321/*"
@@ -21,7 +21,7 @@
   "content_scripts": [
     {
       "matches": [
-        "https://lume.lume-prototype.workers.dev/*",
+        "https://lumeacademy.site/*",
         "http://localhost:4173/*",
         "http://127.0.0.1:4173/*",
         "http://localhost:4321/*"
