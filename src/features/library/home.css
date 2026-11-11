@@ -192,3 +192,45 @@ html[data-theme='light'] .mission-spotlight {
   align-items: flex-start;
   gap: 1rem;
 }
+
+/* Tarefa em foco na Hoje: focar é o botão à esquerda; concluir fica à direita. */
+.today-task-list .todo-focus {
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+.today-task-list .todo-focus:hover,
+.today-task-list .todo-focus:focus-visible,
+.today-task-list .todo-focus[aria-pressed="true"] {
+  border-color: var(--lume);
+  background: var(--lume-soft);
+  color: var(--lume);
+}
+.today-task-list .todo-item .todo-copy {
+  flex: 1;
+  min-width: 0;
+}
+.today-task-list .todo-item.is-focus {
+  border-color: color-mix(in srgb, var(--lume) 55%, var(--border));
+}
+.today-task-list .today-task-done {
+  background: transparent;
+  color: var(--text-subtle);
+}
+.today-task-list .today-task-done:hover,
+.today-task-list .today-task-done:focus-visible {
+  background: var(--success-soft);
+  border-color: var(--success);
+  color: var(--success);
+}
+.next-action.is-focus {
+  border-color: color-mix(in srgb, var(--lume) 45%, var(--border));
+}

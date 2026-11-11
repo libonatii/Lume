@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import Atropos from 'atropos/react';
 import { studyRhythm, hasPreparation, courseProgress, courseStatus, materialType } from '../../../public/domain.js';
-import { materialSteps } from '../../../public/material-model.js';
+import { materialLesson, materialSteps } from '../../../public/material-model.js';
 import { nextAction } from '../../../public/study-plan.js';
-import { isOverdue, priorityLabel, taskAgenda } from '../../../public/tasks-domain.js';
+import { focusedTask, isOverdue, priorityLabel, taskAgenda } from '../../../public/tasks-domain.js';
 import { XP_KIND_LABELS, levelProgress } from '../../../public/xp-policy.js';
 import { overdueMessage } from '../plan/Tasks.jsx';
 import { courseSummary, isImportedCourse, sourceLabel } from '../../../public/import-domain.js';
@@ -21,18 +21,53 @@ export function Home({ state, open, go, planActions, progressActions, notify, ac
   const unit = action?.imported ? 'aula' : 'etapa';
   const prepare = action && !action.imported && plan.prepareFirst && !hasPreparation(state, action.lessonId);
   const course = action ? state.courses.find((item) => item.id === action.courseId) : null;
+  const focus = focusedTask(state);
+  const focusCourse = focus?.courseId ? state.courses.find((item) => item.id === focus.courseId) : null;
+  const focusLesson = focusCourse && focus.lessonId ? materialLesson(focusCourse, focus.lessonId) : null;
+  function completeTask(task) {
+    const now = new Date().toISOString();
+    const result = planActions.completeTask(task.id, now);
+    if (!result?.added) return;
+    notify(`Tarefa concluída: ${task.title}.${task.lessonId ? ' A conclusão da aula vinculada foi registrada.' : ''}`);
+  }
+  function toggleFocus(task) {
+    if (focus?.id === task.id) {
+      if (planActions.clearTaskFocus()) notify(`${task.title} saiu do foco. A Hoje volta a sugerir pelo roteiro.`);
+      return;
+    }
+    if (planActions.focusTask(task.id)) notify(`Foco agora: ${task.title}.`);
+  }
   return <div className="study-root today-root">
     <Heading
       eyebrow="Visão diária"
       title="Hoje"
       actions={<button className="chip-button" onClick={() => go('inicio')}><Icon name="settings"/>Ritmo: {plan.title}</button>}
-    >{action
-      ? <>Sua próxima {unit} é <strong>{action.title}</strong>. Reserve {action.minutes} minutos para avançar.</>
-      : 'Adicione um curso ou material à biblioteca para receber a próxima ação.'}</Heading>
+    >{focus
+      ? <>Seu foco agora é <strong>{focus.title}</strong>, escolhido por você.</>
+      : action
+        ? <>Sua próxima {unit} é <strong>{action.title}</strong>. Reserve {action.minutes} minutos para avançar.</>
+        : 'Adicione um curso ou material à biblioteca para receber a próxima ação.'}</Heading>
 
     <div className="today-bento">
-    <section className="card-surface next-action" aria-labelledby="next-title">
-      {action ? <>
+    <section className={`card-surface next-action ${focus ? 'is-focus' : ''}`} aria-labelledby="next-title">
+      {focus ? <>
+        <span className="pill"><Icon name="focus"/>Foco agora · escolhido por você</span>
+        <h2 id="next-title" className="headline">{focus.title}</h2>
+        <dl className="next-facts">
+          <div><dt>Prazo e prioridade</dt><dd>{taskMeta(focus)}</dd></div>
+          <div><dt>Vínculo</dt><dd>{focusCourse
+            ? <>{focusCourse.title}{focusLesson ? <span className="fact-source"> · {focusLesson.title}</span> : null}</>
+            : 'Sem curso vinculado. Estude pelo seu material e conclua a tarefa ao terminar.'}</dd></div>
+          {focus.subtasks?.length > 0 && <div><dt>Subtarefas</dt><dd>{focus.subtasks.filter((item) => item.done).length} de {focus.subtasks.length} feitas</dd></div>}
+          {action && <div><dt>Roteiro</dt><dd>Próxima {unit}: {action.title} <span className="fact-source">· {action.courseTitle}</span></dd></div>}
+        </dl>
+        <div className="action-row">
+          {focusLesson && <Button onClick={() => open({ type: 'session', id: focusCourse.id, stepId: focusLesson.id })}><Icon name="play"/>Abrir a aula</Button>}
+          <Button secondary={Boolean(focusLesson)} onClick={() => completeTask(focus)}><Icon name="check"/>Concluir tarefa</Button>
+          <Button ghost onClick={() => toggleFocus(focus)}>Tirar do foco</Button>
+        </div>
+        <p className="quiet-note">Focar organiza a Hoje e dá nome à sessão de estudo; não conclui nada nem gera XP.{focus.lessonId ? ' Concluir a tarefa conclui a aula vinculada.' : ''}</p>
+      </> : action ? <>
         <span className="pill"><Icon name="focus"/>Próxima ação · {action.courseTitle}</span>
         <h2 id="next-title" className="headline">{action.title}</h2>
         {(action.discipline || action.module) && <p className="muted-text">{[action.discipline, action.module].filter(Boolean).join(' · ')}</p>}
@@ -61,7 +96,9 @@ export function Home({ state, open, go, planActions, progressActions, notify, ac
       </>}
     </section>
 
-    <StudySession active={state.activeSession} actions={progressActions} mission={action ? { course: { id: action.courseId }, step: { id: action.lessonId, title: action.title } } : null} notify={notify} account={account}/>
+    <StudySession active={state.activeSession} actions={progressActions} mission={focus
+      ? { course: { id: focus.courseId || '' }, step: { id: focus.lessonId || '', title: focus.title } }
+      : action ? { course: { id: action.courseId }, step: { id: action.lessonId, title: action.title } } : null} notify={notify} account={account}/>
     </div>
 
     <div className="today-grid">
@@ -69,14 +106,10 @@ export function Home({ state, open, go, planActions, progressActions, notify, ac
         <div className="card-heading"><div><span className="card-icon"><Icon name="list"/></span><h2 id="today-tasks-title" className="title">Tarefas</h2></div><a className="text-link" href="#tarefas">Abrir lista<Icon name="arrow"/></a></div>
         {agenda.overdue > 0 && <p className="inline-note todo-overdue-note" role="status"><Icon name="flag"/><span>{overdueMessage(agenda.overdue)}</span></p>}
         {agenda.next.length
-          ? <ul className="today-task-list">{agenda.next.map((task) => <li key={task.id} className="todo-item">
-            <button type="button" role="checkbox" aria-checked="false" aria-label={`Concluir tarefa ${task.title}`} className="todo-check" onClick={() => {
-              const now = new Date().toISOString();
-              const result = planActions.completeTask(task.id, now);
-              if (!result?.added) return;
-              notify(`Tarefa concluída: ${task.title}.`);
-            }}><Icon name="plus"/></button>
-            <span className="todo-copy"><strong>{task.title}</strong><small className="todo-meta">{taskMeta(task)}</small></span>
+          ? <ul className="today-task-list">{agenda.next.map((task) => <li key={task.id} className={`todo-item ${focus?.id === task.id ? 'is-focus' : ''}`}>
+            <button type="button" aria-pressed={focus?.id === task.id} title={focus?.id === task.id ? 'Tirar do foco' : 'Focar na Hoje'} aria-label={focus?.id === task.id ? `Tirar ${task.title} do foco` : `Focar em ${task.title} na Hoje`} className="todo-focus" onClick={() => toggleFocus(task)}><Icon name="focus"/></button>
+            <span className="todo-copy"><strong>{task.title}</strong><small className="todo-meta">{focus?.id === task.id ? 'Em foco · ' : ''}{taskMeta(task)}</small></span>
+            <button type="button" role="checkbox" aria-checked="false" title="Concluir" aria-label={`Concluir tarefa ${task.title}`} className="todo-check today-task-done" onClick={() => completeTask(task)}><Icon name="check"/></button>
           </li>)}</ul>
           : <p className="muted-text">Sem tarefas pendentes. Defina a próxima ação concreta da sua preparação em Tarefas.</p>}
         {agenda.pending > agenda.next.length && <p className="quiet-note">Mais {agenda.pending - agenda.next.length} na lista.</p>}

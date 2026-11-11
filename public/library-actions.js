@@ -1,7 +1,7 @@
 // Traduz uma edição da tela em operações por entidade. Não há fila persistida,
 // documento remoto substituído nem reconciliação: cada edição exige resposta.
 const COLLECTIONS = { courses: 'material', tasks: 'task', studySessions: 'session', progress: 'progress', agenda: 'appointment' };
-export const ACCOUNT_FIELDS = ['onboarded', 'onboarding', 'habit', 'challenges', 'supports', 'profile', 'preferences', 'plan', 'activeSession', 'selectedCourseId', 'imports'];
+export const ACCOUNT_FIELDS = ['onboarded', 'onboarding', 'habit', 'challenges', 'supports', 'profile', 'preferences', 'plan', 'activeSession', 'selectedCourseId', 'focusTaskId', 'imports'];
 
 export function libraryActions(previous, next) {
   const actions = [];

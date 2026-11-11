@@ -91,3 +91,33 @@ test('ao recarregar a biblioteca, a tela mostra a forma do conteúdo, não um es
   await expect(page.getByRole('heading', { name: 'Hoje', exact: true })).toBeVisible();
   await expect(page.getByText('Revisar resumo')).toBeVisible();
 });
+
+test('focar uma tarefa a coloca no cartão principal da Hoje, sobrevive ao recarregar e não a conclui', async ({ page }) => {
+  await seedAccount(page, addTask({ ...createInitialState(), onboarded: true }, { title: 'A2 – Falência', dueDate: '2026-11-26', priority: 1 }, '2026-11-10T10:00:00Z'));
+  await page.goto('/#hoje');
+  await page.getByRole('button', { name: 'Focar em A2 – Falência na Hoje' }).click();
+
+  const card = page.locator('section.next-action');
+  await expect(card.getByText('Foco agora · escolhido por você')).toBeVisible();
+  await expect(card.getByRole('heading', { name: 'A2 – Falência' })).toBeVisible();
+  await expect(card.getByText('Sem curso vinculado.', { exact: false })).toBeVisible();
+  let saved = await readAccount(page);
+  expect(saved.focusTaskId).toBe(saved.tasks[0].id);
+  expect(saved.tasks[0].done).toBe(false);
+
+  await page.reload();
+  await expect(page.locator('section.next-action').getByRole('heading', { name: 'A2 – Falência' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Tirar A2 – Falência do foco' })).toHaveAttribute('aria-pressed', 'true');
+
+  // A sessão de estudo leva o nome do foco.
+  await page.getByRole('button', { name: 'Começar sessão' }).click();
+  await expect(page.locator('.session-bar').getByText('A2 – Falência')).toBeVisible();
+  await page.getByRole('button', { name: 'Encerrar sessão' }).click();
+
+  await page.locator('section.next-action').getByRole('button', { name: 'Concluir tarefa' }).click();
+  await expect(page.getByText('Tarefa concluída: A2 – Falência.')).toBeVisible();
+  await expect(page.locator('section.next-action').getByText('Foco agora · escolhido por você')).toHaveCount(0);
+  saved = await readAccount(page);
+  expect(saved.focusTaskId).toBe(null);
+  expect(saved.tasks[0].done).toBe(true);
+});

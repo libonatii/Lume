@@ -99,6 +99,33 @@ export function addTask(state, { title, courseId = '', lessonId = '', dueDate = 
   return { ...state, tasks: [...(state.tasks || []), task].slice(-MAX_TASKS) };
 }
 
+// Tarefa em foco: a matéria que a pessoa escolheu estudar agora. Ela organiza a
+// Hoje e dá nome à sessão de estudo; escolher ou trocar o foco não conclui nada
+// e não gera XP. Só uma tarefa pendente pode estar em foco.
+export function focusedTask(state) {
+  const id = state?.focusTaskId;
+  if (!id) return null;
+  return (state.tasks || []).find((task) => task.id === id && !task.done) || null;
+}
+
+export function focusTask(state, id) {
+  const task = (state.tasks || []).find((item) => item.id === id);
+  if (!task) throw new Error('Tarefa não encontrada.');
+  if (task.done) throw new Error('Reabra a tarefa antes de colocá-la em foco.');
+  return state.focusTaskId === id ? state : { ...state, focusTaskId: id };
+}
+
+export function clearTaskFocus(state) {
+  return state.focusTaskId ? { ...state, focusTaskId: null } : state;
+}
+
+// Foco que aponta para tarefa concluída, removida ou inexistente deixa de valer.
+export function normalizeFocusTaskId(value, tasks) {
+  return typeof value === 'string' && (tasks || []).some((task) => task.id === value && !task.done) ? value : null;
+}
+
+const releaseFocus = (state, id) => (state.focusTaskId === id ? { focusTaskId: null } : {});
+
 export function completeTask(state, id, now = new Date().toISOString()) {
   const task = (state.tasks || []).find((item) => item.id === id);
   if (!task || task.done) return { state, added: false, xp: 0 };
@@ -112,6 +139,7 @@ export function completeTask(state, id, now = new Date().toISOString()) {
   return {
     state: {
       ...progressState,
+      ...releaseFocus(state, id),
       tasks: state.tasks.map((item) => item.id === id
         ? { ...item, done: true, completedAt: new Date(now).toISOString() }
         : item),
@@ -159,7 +187,7 @@ export function removeSubtask(state, id, subtaskId) {
 }
 
 export function removeTask(state, id) {
-  return { ...state, tasks: (state.tasks || []).filter((task) => task.id !== id), agenda: (state.agenda || []).map((item) => ({ ...item, taskIds: item.taskIds.filter((taskId) => taskId !== id) })) };
+  return { ...state, ...releaseFocus(state, id), tasks: (state.tasks || []).filter((task) => task.id !== id), agenda: (state.agenda || []).map((item) => ({ ...item, taskIds: item.taskIds.filter((taskId) => taskId !== id) })) };
 }
 
 // Ordem de ação: pendentes antes; entre elas, atrasadas, depois prioridade

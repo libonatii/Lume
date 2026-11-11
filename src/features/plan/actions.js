@@ -1,5 +1,5 @@
 import {
-  addSubtask, addTask, completeTask, removeSubtask, removeTask, reopenTask,
+  addSubtask, addTask, clearTaskFocus, completeTask, focusTask, removeSubtask, removeTask, reopenTask,
   setTaskPriority, toggleSubtask,
 } from '../../../public/tasks-domain.js';
 import {
@@ -15,6 +15,8 @@ export function createPlanActions(act) {
     addTask: (input) => change(addTask, input),
     completeTask: (id, now) => act((state) => completeTask(state, id, now)),
     reopenTask: (id) => change(reopenTask, id),
+    focusTask: (id) => change(focusTask, id),
+    clearTaskFocus: () => change(clearTaskFocus),
     removeTask: (id) => change(removeTask, id),
     setTaskPriority: (id, priority) => change(setTaskPriority, id, priority),
     addSubtask: (id, title) => change(addSubtask, id, title),

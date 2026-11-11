@@ -1,6 +1,6 @@
 import { materialSteps, stepUnits, normalizeMaterialUnits } from './material-model.js';
 import { normalizeActiveSession, normalizeStudySessions } from './session-domain.js';
-import { normalizeTasks } from './tasks-domain.js';
+import { normalizeFocusTaskId, normalizeTasks } from './tasks-domain.js';
 import { normalizeAgenda } from './agenda-domain.js';
 import { emptyPlan, normalizePlan } from './schedule-domain.js';
 import { levelProgress } from './xp-policy.js';
@@ -322,6 +322,8 @@ export function createInitialState() {
     // adiadas. O cronograma é derivado daqui e do progresso; não gera XP.
     plan: emptyPlan(),
     selectedCourseId: null,
+    // Tarefa que a pessoa escolheu focar na Hoje (tasks-domain.js). Não gera XP.
+    focusTaskId: null,
   };
 }
 
@@ -657,6 +659,7 @@ export function restoreState(raw) {
       supports: Array.isArray(value.supports) ? [...new Set(value.supports.filter(id => STUDY_SUPPORTS.some(item => item.id === id)))] : [],
       profile: normalizeProfileCard(value.profile),
       tasks: normalizeTasks(value.tasks),
+      focusTaskId: normalizeFocusTaskId(value.focusTaskId, normalizeTasks(value.tasks)),
       agenda: normalizeAgenda(value.agenda),
       plan: normalizePlan(value.plan, keptIds),
       preferences: {

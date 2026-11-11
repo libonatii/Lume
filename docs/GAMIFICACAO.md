@@ -79,6 +79,7 @@ A regra aprovada em 03/11/2026 substitui o XP próprio de tarefas:
 - A aula concluída pela tarefa participa normalmente dos bônus de disciplina e material.
 - Prioridade (alta, média, baixa ou sem prioridade) e atraso só ordenam a lista e a página Hoje. Definir, mudar ou ordenar não gera XP.
 - Vincular a tarefa a uma aula e marcar subtarefas não geram XP e não concluem a aula.
+- Focar uma tarefa na Hoje (`focusTaskId`) só organiza a tela e dá nome à sessão de estudo: não conclui a tarefa nem a aula vinculada e não gera XP.
 
 A Agenda reaproveita essa regra. Ocorrências recorrentes recebem tarefas independentes, mas a mesma
 aula mantém sua identidade de recompensa. Encerrar uma atividade não conclui seu checklist, não registra
