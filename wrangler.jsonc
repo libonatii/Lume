@@ -14,6 +14,12 @@
 
   "build": { "command": "npm run build" },
 
+  // Domínio próprio. O DNS fica na Cloudflare; o deploy cria os registros do Worker.
+  "routes": [
+    { "pattern": "lumeacademy.site", "custom_domain": true },
+    { "pattern": "www.lumeacademy.site", "custom_domain": true }
+  ],
+
   "d1_databases": [
     {
       "binding": "DB",
