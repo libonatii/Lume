@@ -76,7 +76,7 @@ Extensão MV3 com um passo de build: o leitor de curso, que o usuário aciona na
 
 ## Publicação
 
-`npx wrangler deploy` executa `npm run build` antes e envia `dist/` (Worker + D1). Site de referência: <https://lume.lume-prototype.workers.dev>. Publicar não é conclusão de tarefa: não faça deploy, migração remota ou release sem pedido explícito.
+`npx wrangler deploy` executa `npm run build` antes e envia `dist/` (Worker + D1). Site de referência: <https://lumeacademy.site>. Publicar não é conclusão de tarefa: não faça deploy, migração remota ou release sem pedido explícito.
 
 ## Contexto obrigatório do produto
 

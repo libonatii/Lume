@@ -13,7 +13,7 @@ export const DISCORD_CLIENT_ID_PLACEHOLDER = 'COLOQUE_O_APPLICATION_ID';
 // Application ID do Lume no Discord. É público (não é segredo) e vai no build,
 // para a presença funcionar sem configuração; ambiente e companion.json o sobrepõem.
 export const DEFAULT_DISCORD_CLIENT_ID = '1566316458340909077';
-export const PUBLIC_SITE_URL = 'https://lume.lume-prototype.workers.dev';
+export const PUBLIC_SITE_URL = 'https://lumeacademy.site';
 export const PRESENCE_UPDATE_INTERVAL_MS = 15_000;
 export const PRESENCE_COALESCE_MS = 400;
 export const RETRY_BASE_MS = 5_000;

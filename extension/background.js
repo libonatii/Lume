@@ -1,7 +1,7 @@
 // Entrega a leitura ao Lume. Fica aqui, e não no popup, porque o popup fecha
 // assim que a aba do Lume ganha o foco.
 const LUME_URLS = {
-  published: 'https://lume.lume-prototype.workers.dev',
+  published: 'https://lumeacademy.site',
   local: 'http://localhost:4173',
 };
 

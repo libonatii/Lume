@@ -106,7 +106,7 @@ Worker é ignorado quando não há binding. O binding R2 `MEDIA` e o Resend est�
 `wrangler.jsonc`, mas a entrega real de e-mail e o upload de imagens no site publicado não foram verificados
 (segredo `RESEND_API_KEY`, bucket e deploy a confirmar).
 
-Site de referência: <https://lume.lume-prototype.workers.dev>. A Agenda foi mesclada na `main` (PR #3) e o
+Site de referência: <https://lumeacademy.site>. A Agenda foi mesclada na `main` (PR #3) e o
 aplicativo de desktop tem a release `companion-v0.6.0`; o deploy do Worker, a migração remota `0014` e a
 situação em produção não foram verificados. Publicação exige pedido explícito; instruções em [Release](RELEASE.md).
 

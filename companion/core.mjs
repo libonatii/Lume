@@ -16,7 +16,7 @@ import { DISCORD_CLIENT_ID_PLACEHOLDER, discordFieldsFrom } from './discord-pres
 
 const exec = promisify(execFile);
 
-export const DEFAULT_API = process.env.LUME_API_URL || 'https://lume.lume-prototype.workers.dev';
+export const DEFAULT_API = process.env.LUME_API_URL || 'https://lumeacademy.site';
 export const PLAN_REFRESH_TICKS = 12;
 
 export const DEFAULT_ALLOWLIST = [

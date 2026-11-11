@@ -31,7 +31,7 @@
   </main>
   <script>
     const params = new URLSearchParams(location.search);
-    const target = params.get('url') || 'https://lume.lume-prototype.workers.dev';
+    const target = params.get('url') || 'https://lumeacademy.site';
     const reason = params.get('reason');
     const code = params.get('code');
     if (reason || code) document.getElementById('detail').textContent = [reason, code].filter(Boolean).join(' · ');
