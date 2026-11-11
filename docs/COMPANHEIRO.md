@@ -246,8 +246,8 @@ opt-in; pausa não é punida; nada de vigilância.
 | 7 | Presença social entre amigos (opt-in) | Amigos e mensagens diretas já existem no site; presença social não |
 
 A publicação é feita por tag (`companion-v<versão>`), que precisa bater com
-`companion/package.json`; a última release publicada é a `companion-v0.6.0`
-(01/11/2026, com o Discord), a mesma versão do pacote local. O workflow gera o instalador NSIS, sem precisar de
+`companion/package.json`; a última release publicada é a `companion-v0.6.1`
+(10/11/2026, com o endereço `lumeacademy.site`), a mesma versão do pacote local. O workflow gera o instalador NSIS, sem precisar de
 máquina Windows local. Detalhes, secrets de assinatura e solução de problemas em
 [Publicação e CI](RELEASE.md).
 

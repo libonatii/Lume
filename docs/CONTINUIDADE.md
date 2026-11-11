@@ -107,7 +107,7 @@ Worker é ignorado quando não há binding. O binding R2 `MEDIA` e o Resend est�
 (segredo `RESEND_API_KEY`, bucket e deploy a confirmar).
 
 Site de referência: <https://lumeacademy.site>. A Agenda foi mesclada na `main` (PR #3) e o
-aplicativo de desktop tem a release `companion-v0.6.0`; o deploy do Worker, a migração remota `0014` e a
+aplicativo de desktop tem a release `companion-v0.6.1`; o deploy do Worker, a migração remota `0014` e a
 situação em produção não foram verificados. Publicação exige pedido explícito; instruções em [Release](RELEASE.md).
 
 ## 6. Manutenção do contexto

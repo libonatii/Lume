@@ -283,7 +283,7 @@ ligado por padrão). O Application ID público do Lume vai no build (`DEFAULT_DI
 `lume_logo` foi enviada.
 Falta também: instalador assinado; início com o Windows; notificações de pausa; abrir a próxima aula pelo painel;
 funcionamento sem rede; suporte a Linux e macOS; janela e bandeja testadas no CI. A última release publicada é
-`companion-v0.6.0` (01/11/2026, a mesma versão de `companion/package.json`); ela inclui o Discord. O endereço antigo (`lume.lume-prototype.workers.dev`) foi desligado por decisão da responsável: o site vive só em `lumeacademy.site`. A 0.6.0 ainda embute o endereço antigo e perde a conexão até sair uma release com o domínio novo (já no código, sem versão nova nem tag); a extensão carregada no Chrome também precisa ser recarregada com o manifesto novo.
+`companion-v0.6.1` (10/11/2026, a mesma versão de `companion/package.json`), com o Discord e o endereço `lumeacademy.site`. O endereço antigo (`lume.lume-prototype.workers.dev`) foi desligado por decisão da responsável: o site vive só em `lumeacademy.site`. A 0.6.0 ainda embute o endereço antigo e perde a conexão; a 0.6.1 corrige isso. A extensão 0.2.1 (manifesto com o domínio novo) precisa ser recarregada no Chrome.
 
 ---
 
@@ -362,7 +362,6 @@ npm run test:e2e  # cenários desktop e celular; build prévio obrigatório
 | Decisão | Bloqueia |
 | --- | --- |
 | Confirmar o domínio verificado no Resend e um e-mail real (segredo, provedor e remetente já existem) | C1 |
-| Publicar uma release do desktop (versão e tag novas) com `lumeacademy.site` | §8 |
 | Testar o upload de imagens no site publicado (bucket e binding já no ar) | C6 |
 | Textos de termos de uso e política de privacidade; regra de exclusão de conta | C3 |
 | Manter ou escurecer o *hover* dos botões | V3 |
