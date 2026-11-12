@@ -2,24 +2,35 @@
 // do menu (com o rótulo da aba) e como desenhar. O menu, as abas de seção e o
 // título da janela derivam desta tabela.
 
+import { lazy } from 'react';
 import { Login, Recovery } from '../features/account/Auth.jsx';
 import { Home, Library } from '../features/library/Study.jsx';
 import Onboarding from '../features/account/Onboarding.jsx';
-import { Achievements, History, Preferences } from '../features/settings/Personal.jsx';
-import { Roadmap, Schedule } from '../features/plan/Plan.jsx';
-import Friends from '../features/social/Friends.jsx';
-import Profile from '../features/social/Profile.jsx';
-import Companion from '../features/desktop/Companion.jsx';
 import Tasks from '../features/plan/Tasks.jsx';
-import Agenda from '../features/agenda/Agenda.jsx';
-import Ranking from '../features/social/Ranking.jsx';
-import Messages from '../features/social/Messages.jsx';
-import GitHub from '../features/library/GitHub.jsx';
-import Subjects from '../features/library/Subjects.jsx';
-import FocusSession from '../features/progress/FocusSession.jsx';
-import ScheduleSession from '../features/agenda/ScheduleSession.jsx';
-import Landing from '../features/account/Landing.jsx';
 import Icon from '../ui/Icon.jsx';
+
+// Telas fora do caminho inicial (entrada, Hoje e Biblioteca) carregam sob
+// demanda: cada uma vira um pacote próprio e o primeiro acesso fica menor.
+// A Agenda leva o FullCalendar consigo. O App envolve a rota em Suspense.
+const named = (load, name) => lazy(() => load().then((module) => ({ default: module[name] })));
+const personal = () => import('../features/settings/Personal.jsx');
+const plan = () => import('../features/plan/Plan.jsx');
+const Achievements = named(personal, 'Achievements');
+const History = named(personal, 'History');
+const Preferences = named(personal, 'Preferences');
+const Roadmap = named(plan, 'Roadmap');
+const Schedule = named(plan, 'Schedule');
+const Friends = lazy(() => import('../features/social/Friends.jsx'));
+const Profile = lazy(() => import('../features/social/Profile.jsx'));
+const Companion = lazy(() => import('../features/desktop/Companion.jsx'));
+const Agenda = lazy(() => import('../features/agenda/Agenda.jsx'));
+const Ranking = lazy(() => import('../features/social/Ranking.jsx'));
+const Messages = lazy(() => import('../features/social/Messages.jsx'));
+const GitHub = lazy(() => import('../features/library/GitHub.jsx'));
+const Subjects = lazy(() => import('../features/library/Subjects.jsx'));
+const FocusSession = lazy(() => import('../features/progress/FocusSession.jsx'));
+const ScheduleSession = lazy(() => import('../features/agenda/ScheduleSession.jsx'));
+const Landing = lazy(() => import('../features/account/Landing.jsx'));
 
 // Seis destinos do menu; as telas secundárias são abas da seção.
 export const SECTIONS = {
