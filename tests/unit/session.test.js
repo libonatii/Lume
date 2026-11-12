@@ -4,6 +4,7 @@ import { createInitialState, restoreState, totalXP } from '../../public/domain.j
 import {
   MAX_SESSION_MS, STALE_SESSION_MS, endSession, formatSessionDuration, pauseSession,
   reconcileSession, resumeSession, sessionElapsed, startSession, touchSession,
+  formatMinutes, localDay, minutesByDay, weeklyRhythm,
 } from '../../public/session-domain.js';
 
 const T0 = Date.parse('2026-10-31T10:00:00Z');
@@ -104,4 +105,34 @@ test('sessão e histórico de sessões sobrevivem à restauração', () => {
   const sanitized = restoreState(JSON.stringify(broken));
   assert.equal(sanitized.activeSession, null);
   assert.deepEqual(sanitized.studySessions, []);
+});
+
+test('ritmo semanal soma minutos declarados por dia local, incluindo a sessão ativa', () => {
+  const now = new Date(2026, 9, 31, 18, 0).getTime();
+  const day = (offset, hour) => new Date(2026, 9, 31 - offset, hour, 0).getTime();
+  let state = createInitialState();
+  state = endSession(startSession(state, { label: 'Ontem' }, day(1, 9)), day(1, 9) + 40 * MINUTE).state;
+  state = endSession(startSession(state, { label: 'Semana passada' }, day(9, 9)), day(9, 9) + 20 * MINUTE).state;
+  state = startSession(state, { label: 'Agora' }, now - 15 * MINUTE);
+  const days = minutesByDay(state, 7, now);
+  assert.equal(days.length, 7);
+  assert.equal(days.at(-1).date, localDay(now));
+  assert.equal(days.at(-1).minutes, 15);
+  assert.equal(days.at(-2).minutes, 40);
+  assert.equal(days.at(-2).sessions, 1);
+  const rhythm = weeklyRhythm(state, now);
+  assert.equal(rhythm.current, 55);
+  assert.equal(rhythm.previous, 20);
+  assert.equal(rhythm.change, 175);
+  assert.equal(rhythm.activeDays, 2);
+  assert.equal(totalXP(state), 0);
+});
+
+test('sem semana anterior, o ritmo não inventa porcentagem', () => {
+  const now = new Date(2026, 9, 31, 18, 0).getTime();
+  const state = endSession(startSession(createInitialState(), {}, now - 30 * MINUTE), now).state;
+  assert.equal(weeklyRhythm(state, now).change, null);
+  assert.equal(formatMinutes(30), '30 min');
+  assert.equal(formatMinutes(135), '2h 15m');
+  assert.equal(formatMinutes(180), '3h');
 });

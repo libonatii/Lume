@@ -1,0 +1,406 @@
+/* Hoje (Redesign Sereno): boas-vindas, métricas de ritmo e duas colunas. */
+
+.today-root {
+  gap: 1.5rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+.today-welcome.card-surface {
+  flex-direction: row;
+}
+.today-welcome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  padding: clamp(1.4rem, 3vw, 2rem);
+}
+.today-welcome::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: var(--crest);
+}
+.today-welcome-copy {
+  display: grid;
+  gap: 0.6rem;
+  max-width: 48rem;
+}
+.today-title {
+  margin: 0.25rem 0 0;
+  color: var(--text-subtle);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.today-greeting {
+  margin: 0;
+  color: var(--text);
+  font-size: clamp(1.4rem, 2.4vw, 1.75rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+.today-greeting span {
+  color: var(--lilac);
+  font-weight: 400;
+}
+html[data-theme='light'] .today-greeting span {
+  color: var(--lume);
+}
+.today-welcome .lead {
+  margin: 0;
+  color: var(--text-subtle);
+}
+.today-welcome-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.today-welcome-actions .button.primary {
+  background: linear-gradient(90deg, var(--action-hover), var(--action));
+  font-weight: 700;
+}
+
+.today-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+.metric-card.card-surface {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1.25rem;
+}
+.metric-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.metric-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--lume);
+}
+.metric-card.tone-mint .metric-icon,
+.metric-card.tone-mint .metric-note {
+  color: var(--mint);
+}
+.metric-card.tone-reward .metric-icon {
+  color: var(--reward);
+}
+.metric-value {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+}
+.metric-value strong {
+  color: var(--text);
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.metric-value span {
+  color: var(--text-subtle);
+  font-size: 0.82rem;
+}
+.metric-card .progress {
+  height: 0.375rem;
+  background: var(--inner);
+}
+.metric-note {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.today-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 8fr) minmax(0, 4fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+.today-main,
+.today-side {
+  display: grid;
+  gap: 1.5rem;
+}
+.today-main .card-surface,
+.today-side .card-surface {
+  display: grid;
+  gap: 1rem;
+}
+.today-columns .card-heading {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+.today-columns .card-heading > div > div {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.today-task-list .todo-item {
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--inner) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--surface-3) 30%, transparent);
+}
+.today-task-list .todo-item.is-focus {
+  background: var(--surface-elevated, var(--surface-2));
+  border-color: color-mix(in srgb, var(--action) 35%, transparent);
+}
+
+.milestone-list,
+.today-friend-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+.milestone {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--inner) 70%, transparent);
+}
+.milestone-copy,
+.milestone-when {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.milestone-copy strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+.milestone-copy small,
+.milestone-when small {
+  color: var(--text-subtle);
+  font-size: 0.75rem;
+}
+.milestone-when {
+  justify-items: end;
+  flex: none;
+}
+.milestone-exam .soft-badge {
+  color: var(--warning);
+}
+.milestone-delivery .soft-badge {
+  color: var(--mint);
+}
+
+.rhythm-bars {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  align-items: end;
+  gap: 0.5rem;
+  height: 8rem;
+  padding: 1rem 0.75rem 0.75rem;
+  border-radius: var(--radius-md);
+  background: var(--inner);
+}
+.rhythm-bar {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  justify-items: center;
+  gap: 0.35rem;
+  height: 100%;
+}
+.rhythm-bar-track {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  max-width: 1.5rem;
+  height: 100%;
+}
+.rhythm-bar-fill {
+  width: 100%;
+  border-radius: 8px 8px 2px 2px;
+  background: color-mix(in srgb, var(--mint) 75%, transparent);
+}
+.rhythm-bar.is-today .rhythm-bar-fill {
+  background: linear-gradient(0deg, var(--mint), var(--lume));
+}
+.rhythm-bar small {
+  color: var(--text-subtle);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+.rhythm-bar.is-today small {
+  color: var(--mint);
+  font-weight: 700;
+}
+.rhythm-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0;
+  color: var(--text-subtle);
+  font-size: 0.78rem;
+}
+.rhythm-foot strong {
+  color: var(--text);
+}
+
+.today-friend-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--inner) 70%, transparent);
+}
+.today-friend-list .friend-copy {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+.today-friend-list .friend-copy small {
+  color: var(--text-subtle);
+  font-size: 0.75rem;
+}
+.today-friends .button.full-width {
+  justify-content: center;
+}
+
+@media (max-width: 1080px) {
+  .today-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .today-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 560px) {
+  .today-metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .today-welcome-actions,
+  .today-welcome-actions .button {
+    width: 100%;
+  }
+}
+
+/* Stitch Hoje (Dashboard Sereno) — Próximo Bloco full-width + Material Vinculado */
+.today-hero-block.card-surface {
+  display: grid;
+  gap: 1.15rem;
+  padding: clamp(1.35rem, 3vw, 1.85rem);
+  position: relative;
+  overflow: hidden;
+}
+.today-hero-block::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: var(--crest);
+}
+.next-hero-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.next-hero-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: var(--text-subtle);
+}
+.next-hero-meta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.next-hero-meta .icon {
+  color: var(--lume);
+  width: 1rem;
+  height: 1rem;
+}
+.next-hero-body {
+  display: grid;
+  gap: 0.35rem;
+}
+.next-hero-body .headline {
+  margin: 0;
+}
+.next-hero-body .muted-text {
+  max-width: 68ch;
+}
+.next-linked-material {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-md);
+  background: var(--inner);
+  border: 1px solid var(--border);
+}
+.next-linked-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  color: var(--mint);
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+}
+.next-linked-copy {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
+  flex: 1;
+}
+.next-linked-copy strong {
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.next-linked-copy small {
+  font-size: 0.78rem;
+  color: var(--text-subtle);
+}
+.today-plan-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.today-calm-card.card-surface {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 1rem 1.2rem;
+  background: var(--surface-2);
+}
+.today-calm-card strong {
+  display: block;
+  font-size: 0.86rem;
+  margin-bottom: 0.2rem;
+}
+.today-calm-card .muted-text {
+  font-size: 0.8rem;
+}

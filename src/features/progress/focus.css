@@ -1,0 +1,477 @@
+/* Sessão de foco: ciclo em anel, material, intenção e som de fundo. */
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: fit-content;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.back-link .icon {
+  width: 1rem;
+  height: 1rem;
+  transition: transform 0.16s ease;
+}
+.back-link:hover {
+  color: var(--mint);
+}
+.back-link:hover .icon {
+  transform: translateX(-3px);
+}
+
+.focus-root {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.5rem;
+}
+.focus-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.focus-heading > div:first-child {
+  display: grid;
+  gap: 0.5rem;
+}
+.focus-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.focus-title-row .display {
+  margin: 0;
+}
+.focus-heading .lead {
+  margin: 0;
+  color: var(--text-subtle);
+  max-width: 40rem;
+}
+.focus-goal {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.focus-goal > span:first-child {
+  display: grid;
+  text-align: right;
+}
+.focus-goal strong {
+  color: var(--mint);
+  font-size: 0.9rem;
+}
+.focus-goal .metric-icon {
+  color: var(--mint);
+}
+
+.focus-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+.focus-timer.card-surface {
+  display: grid;
+  justify-items: center;
+  gap: 1.25rem;
+  padding: clamp(1.25rem, 3vw, 2rem);
+}
+.focus-timer.crest-card::before {
+  background: linear-gradient(90deg, var(--lilac), var(--lume), var(--reward-strong));
+}
+.focus-cycles {
+  display: grid;
+  gap: 0.6rem;
+  width: 100%;
+}
+.focus-cycles-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+}
+.focus-cycles-head .tone-mint-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.focus-cycles-head .icon {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+.cycle-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+.cycle-pill {
+  display: grid;
+  justify-items: center;
+  gap: 0.1rem;
+  padding: 0.65rem 0.5rem;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.cycle-pill strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--text);
+  font-size: 0.85rem;
+}
+.cycle-pill strong .icon {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+.cycle-pill small {
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+.cycle-pill:hover {
+  background: var(--surface-3);
+}
+.cycle-pill[aria-pressed="true"] {
+  background: var(--action);
+  border-color: var(--lume);
+  color: var(--action-ink);
+  box-shadow: 0 10px 22px -12px color-mix(in srgb, var(--action) 70%, transparent);
+}
+.cycle-pill[aria-pressed="true"] strong {
+  color: var(--action-ink);
+}
+.cycle-custom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  background: var(--inner);
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+.cycle-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.cycle-stepper input {
+  width: 4.5rem;
+  min-height: 2.25rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  text-align: center;
+  font-weight: 700;
+}
+.cycle-stepper .button {
+  min-height: 2.25rem;
+  padding: 0.4rem 0.9rem;
+}
+
+.focus-dial {
+  position: relative;
+  width: min(20rem, 78vw);
+  aspect-ratio: 1;
+}
+.focus-dial svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.focus-dial-track {
+  fill: none;
+  stroke: var(--surface-2);
+  stroke-width: 10;
+}
+.focus-dial-well {
+  fill: var(--inner);
+}
+.focus-dial-progress {
+  fill: none;
+  stroke-width: 10;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s linear;
+}
+.focus-dial-center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.35rem;
+  padding: 2.5rem;
+  text-align: center;
+}
+.focus-digits {
+  color: var(--text);
+  font-size: clamp(2.4rem, 6vw, 2.9rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.focus-dial-center small {
+  max-width: 12rem;
+  color: var(--text-subtle);
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+.focus-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
+}
+.focus-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 100%;
+  margin: 0;
+  padding-top: 0.9rem;
+  border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  text-align: center;
+}
+.focus-stats dt {
+  color: var(--text-subtle);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+.focus-stats dd {
+  margin: 0;
+  color: var(--text);
+  font-weight: 700;
+}
+.tone-reward-text {
+  color: var(--reward);
+  font-weight: 700;
+}
+.focus-timer .quiet-note {
+  margin: 0;
+  text-align: center;
+}
+
+.focus-side {
+  display: grid;
+  gap: 1.25rem;
+}
+.focus-panel.card-surface {
+  display: grid;
+  gap: 1rem;
+}
+.focus-panel .card-heading {
+  padding-bottom: 0.75rem;
+}
+.focus-panel .muted-text,
+.focus-panel .quiet-note {
+  margin: 0;
+}
+.focus-material {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  background: var(--inner);
+}
+.focus-material-copy {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+.focus-material-copy strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.88rem;
+}
+.focus-material-copy small {
+  color: var(--text-subtle);
+  font-size: 0.75rem;
+}
+.sound-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+.sound-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: var(--surface-2);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.sound-chip .icon {
+  color: var(--lume);
+  flex: none;
+}
+.sound-chip span {
+  display: grid;
+  min-width: 0;
+}
+.sound-chip strong {
+  font-size: 0.82rem;
+}
+.sound-chip small {
+  color: var(--text-subtle);
+  font-size: 0.7rem;
+}
+.sound-chip:hover {
+  background: var(--surface-3);
+}
+.sound-chip[aria-pressed="true"] {
+  border-color: var(--mint);
+}
+.sound-chip[aria-pressed="true"] .icon {
+  color: var(--mint);
+}
+.volume-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: var(--radius-md);
+  background: var(--inner);
+  color: var(--text-subtle);
+}
+.volume-row input {
+  flex: 1;
+  accent-color: var(--mint);
+}
+
+@media (max-width: 1080px) {
+  .focus-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 560px) {
+  .cycle-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .cycle-grid .cycle-pill:last-child {
+    grid-column: 1 / -1;
+  }
+  .focus-controls .button {
+    flex: 1 1 100%;
+  }
+}
+
+/* Stitch Foco: coluna principal + citação + notas Zen + escudo de foco */
+.focus-main-col {
+  display: grid;
+  gap: 1.15rem;
+}
+.focus-quote-card.card-surface {
+  margin: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 1.05rem 1.25rem;
+  background: var(--surface-2);
+}
+.focus-quote-card .icon {
+  color: var(--mint);
+  flex: none;
+  margin-top: 0.15rem;
+}
+.focus-quote-card p {
+  margin: 0;
+  font-size: 0.88rem;
+  font-style: italic;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.focus-quote-card small {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.74rem;
+  color: var(--text-subtle);
+}
+.focus-zen-notes textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 6.5rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--inner);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+.zen-notes-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.zen-notes-foot small {
+  font-size: 0.74rem;
+  color: var(--text-subtle);
+}
+.zen-notes-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.focus-shield-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  padding: 0.8rem 0.95rem;
+  border-radius: var(--radius-md);
+  background: var(--inner);
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+.focus-shield-row > span {
+  display: grid;
+  gap: 0.12rem;
+}
+.focus-shield-row strong {
+  font-size: 0.84rem;
+}
+.focus-shield-row small {
+  font-size: 0.74rem;
+  color: var(--text-subtle);
+}
+.focus-summary-banner.card-surface {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1rem 1.25rem;
+  border-color: color-mix(in srgb, var(--mint) 40%, transparent);
+}
+.focus-summary-copy {
+  display: grid;
+  gap: 0.25rem;
+}
+.focus-summary-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}

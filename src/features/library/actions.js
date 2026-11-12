@@ -40,6 +40,12 @@ export function createLibraryActions(act) {
     }),
     setReadingPage: (id, position) => change(setReadingPage, id, position),
     addSubject: (input) => change(addSubject, input),
+    addNotebookWithSubject: ({ title, color = 'lume', materialTitle, firstActivity }) => act((state) => {
+      const subjectId = crypto.randomUUID();
+      const withSubject = addSubject(state, { title, color }, subjectId);
+      const withMaterial = addMaterial(withSubject, { title: materialTitle, type: 'lesson', firstActivity }, 'onboarding');
+      return { state: linkMaterialSubject(withMaterial, withMaterial.selectedCourseId, subjectId) };
+    }),
     updateSubject: (id, input) => change(updateSubject, id, input),
     deleteSubject: (id) => change(deleteSubject, id),
     linkSubject: (materialId, subjectId) => change(linkMaterialSubject, materialId, subjectId),

@@ -165,8 +165,9 @@ export default function Agenda({ state, actions, taskActions, confirmSave, retry
   const short = (event) => event.end && event.end - event.start <= 45 * 60000;
   return <div className="agenda-root">
     <header className="agenda-heading">
-      <h1 className="display">Agenda</h1>
+      <div className="agenda-title"><span className="eyebrow">Plano de estudos · Calendário</span><h1 className="display">Agenda</h1></div>
       <div className="page-heading-actions">
+        <a className="button secondary" href="#agendar"><Icon name="calendar-plus"/>Agendar sessão</a>
         <Button secondary aria-expanded={planning} onClick={() => setPlanning(!planning)}>Para agendar{pending.length ? ` (${pending.length})` : ''}</Button>
         <button type="button" className="icon-button agenda-bell" aria-label="Lembretes" aria-expanded={settings} onClick={() => setSettings(!settings)}><Icon name="bell"/></button>
         <Button className="agenda-new" onClick={() => edit(emptyDraft(date))} disabled={blocked}><Icon name="plus"/><span className="agenda-new-label">Novo compromisso</span></Button>

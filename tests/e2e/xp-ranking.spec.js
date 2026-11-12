@@ -106,9 +106,8 @@ test('ranking exige opt-in, mostra o próprio XP validado e pode ser desligado',
   expect(grant.status()).toBe(200);
 
   await page.goto('/#hoje');
-  // A Hoje mostra o nível e a última recompensa validada, com o tipo de conclusão.
-  await expect(page.locator('.today-evolution').getByText(/100 \/ 500 XP/)).toBeVisible();
-  await expect(page.locator('.today-evolution').getByText(/\+100 XP · Aula concluída/)).toBeVisible();
+  await page.getByRole('button', { name: /^Menu da conta/ }).click();
+  await expect(page.locator('#account-popover').getByText(/100 \/ 500 XP/)).toBeVisible();
 
   await page.goto('/#historico');
   await expect(page.getByRole('heading', { name: 'XP confirmado pelo servidor' })).toBeVisible();

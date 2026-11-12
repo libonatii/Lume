@@ -1,0 +1,450 @@
+/* Biblioteca (Redesign Sereno): busca, filtros por tipo, retomada e seções. */
+
+.library-root {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.75rem;
+}
+.library-root > .page-heading {
+  margin-bottom: 0;
+}
+.library-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.85rem;
+}
+.library-filters .filter-tabs {
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.library-filters {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.kind-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.kind-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-subtle);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.kind-tab .icon {
+  width: 1rem;
+  height: 1rem;
+  color: var(--mint);
+}
+.kind-tab:hover {
+  color: var(--text);
+  background: var(--surface-2);
+  border-color: var(--border);
+}
+.kind-tab[aria-pressed='true'] {
+  background: var(--surface-4, var(--surface-3));
+  border-color: var(--border);
+  color: var(--text);
+}
+.kind-count {
+  padding: 0 0.4rem;
+  border-radius: var(--radius-pill);
+  background: var(--inner);
+  color: var(--mint);
+  font-size: 0.68rem;
+}
+
+.library-section-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.library-section-label > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-subtle);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.library-section-label .icon {
+  width: 1rem;
+  height: 1rem;
+  color: var(--lume);
+}
+.library-resume {
+  display: grid;
+  gap: 0.75rem;
+}
+.library-resume .library-section-label {
+  margin-bottom: 0;
+}
+.resume-card.card-surface {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  padding: 1.1rem 1.35rem;
+  background: var(--surface-2);
+}
+.resume-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: var(--crest);
+}
+.resume-copy {
+  display: grid;
+  gap: 0.35rem;
+  flex: 1 1 22rem;
+  min-width: 0;
+}
+.resume-copy .title {
+  margin: 0;
+}
+.resume-copy .muted-text {
+  margin: 0;
+  font-size: 0.85rem;
+}
+.resume-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  color: var(--text-subtle);
+  font-size: 0.78rem;
+}
+.resume-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: 22rem;
+}
+.resume-progress strong {
+  color: var(--mint);
+  font-size: 0.8rem;
+}
+.resume-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.library-section {
+  display: grid;
+  gap: 1rem;
+}
+.library-section-head {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+.library-section-head > div {
+  flex: 1;
+  min-width: 0;
+}
+.library-section-head .title {
+  margin: 0;
+}
+
+.subject-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+.subject-tile.card-surface {
+  display: grid;
+  gap: 0.55rem;
+  padding: 1.1rem 1.2rem;
+  background: var(--surface-2);
+  text-decoration: none;
+  color: inherit;
+}
+.subject-tile:hover .subject-tile-title {
+  color: var(--mint);
+}
+.subject-tile-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.subject-tile-percent {
+  margin-left: auto;
+  color: var(--mint);
+  font-size: 0.8rem;
+}
+.subject-tile-title {
+  font-size: 0.98rem;
+  transition: color 0.16s ease;
+}
+.subject-tile .muted-text {
+  margin: 0;
+  font-size: 0.8rem;
+}
+.subject-tile .progress {
+  height: 0.25rem;
+}
+.subject-tile-open {
+  display: inline-flex;
+  align-items: center;
+  justify-self: end;
+  gap: 0.15rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.subject-tile-open .icon {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.reading-list {
+  display: grid;
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.reading-list > .course-card-wrap + .course-card-wrap {
+  border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+.course-card-wrap.is-row {
+  position: relative;
+}
+.reading-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(8rem, 12rem) auto;
+  align-items: center;
+  gap: 0.9rem;
+  width: 100%;
+  padding: 0.9rem 3.25rem 0.9rem 1.2rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.reading-row:hover {
+  background: var(--surface-3);
+}
+.reading-row.selected-course {
+  box-shadow: inset 3px 0 0 var(--mint);
+}
+.reading-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-md);
+  background: var(--lume-soft);
+  color: var(--lilac);
+}
+.reading-copy {
+  display: grid;
+  min-width: 0;
+}
+.reading-copy strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+.reading-copy small {
+  color: var(--text-subtle);
+  font-size: 0.76rem;
+}
+.reading-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.reading-progress .progress {
+  height: 0.25rem;
+}
+.reading-progress strong {
+  color: var(--mint);
+  font-size: 0.75rem;
+}
+.reading-row .course-status {
+  position: static;
+  background: var(--inner);
+  color: var(--text-muted);
+  backdrop-filter: none;
+}
+.course-card-wrap.is-row .course-menu {
+  position: absolute;
+  top: 50%;
+  right: 0.75rem;
+  transform: translateY(-50%);
+}
+
+@media (max-width: 820px) {
+  .subject-card-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .reading-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .reading-progress {
+    grid-column: 2;
+  }
+  .reading-row .course-status {
+    display: none;
+  }
+}
+
+/* Stitch Biblioteca Serena — Bento compacto sem capas pesadas */
+.library-quick-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.kind-tab.is-open {
+  background: var(--surface-3);
+  border-color: var(--border);
+  color: var(--text);
+}
+.subject-tile.card-surface {
+  border-left: 3px solid var(--lume);
+}
+.subject-tile.color-mint { border-left-color: var(--mint); }
+.subject-tile.color-violet { border-left-color: var(--lilac); }
+.subject-tile.color-amber { border-left-color: var(--reward); }
+.subject-tile.color-coral { border-left-color: var(--danger); }
+
+.subject-tile-open {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  font-size: 0.78rem;
+  color: var(--text-subtle);
+}
+.subject-open-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+#library-results.course-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+.stitch-course-card.course-card {
+  display: grid;
+  gap: 0.65rem;
+  align-content: space-between;
+  padding: 1.1rem 2.75rem 1.05rem 1.2rem;
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  text-align: left;
+  width: 100%;
+  min-height: 0;
+}
+.stitch-course-card:hover {
+  background: var(--surface-3);
+  border-color: var(--border-strong);
+}
+.stitch-course-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+.stitch-course-badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.stitch-course-scope {
+  font-size: 0.74rem;
+  color: var(--text-subtle);
+}
+.stitch-course-percent {
+  font-size: 0.82rem;
+  color: var(--mint);
+}
+.stitch-course-card .title {
+  margin: 0;
+  font-size: 0.98rem;
+}
+.stitch-course-card .course-description {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-subtle);
+}
+.stitch-course-foot {
+  display: grid;
+  gap: 0.45rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
+}
+.stitch-course-foot .progress {
+  height: 0.25rem;
+}
+.stitch-course-foot-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+}
+.stitch-course-foot-row .course-status {
+  position: static;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  backdrop-filter: none;
+  color: var(--text-subtle);
+}
+.stitch-course-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.stitch-course-open .icon {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+.reading-cta {
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-md);
+  background: var(--inner);
+  border: 1px solid var(--border);
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+@media (max-width: 820px) {
+  #library-results.course-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

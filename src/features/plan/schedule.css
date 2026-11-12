@@ -98,3 +98,160 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Stitch Plano de Estudos */
+.stitch-plan-strip-card.card-surface {
+  display: grid;
+  gap: 1rem;
+}
+.stitch-plan-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+.stitch-plan-toolbar .segmented {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.stitch-plan-nav-group {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+.stitch-plan-nav-group .icon-button:first-child .icon {
+  transform: rotate(180deg);
+}
+.stitch-plan-range {
+  display: grid;
+  gap: 0.1rem;
+}
+.stitch-plan-range .title {
+  margin: 0;
+}
+.stitch-plan-range small {
+  font-size: 0.76rem;
+  color: var(--text-subtle);
+}
+.stitch-week-strip {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+.stitch-week-pill {
+  display: grid;
+  justify-items: center;
+  gap: 0.2rem;
+  padding: 0.65rem 0.35rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--inner);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.stitch-week-pill:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.stitch-week-pill.is-selected {
+  background: var(--lume-soft);
+  border-color: var(--lume);
+  color: var(--text);
+}
+.stitch-week-pill.is-today .stitch-week-wd {
+  color: var(--mint);
+}
+.stitch-week-wd {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.stitch-week-num {
+  font-size: 1rem;
+}
+.stitch-week-load {
+  font-size: 0.68rem;
+  color: var(--text-subtle);
+}
+.plan-item-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex: none;
+}
+.plan-settings-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.plan-settings.is-compact .availability-grid,
+.plan-settings.is-compact .goal-list {
+  display: none;
+}
+.plan-cadence-note.card-surface {
+  display: grid;
+  gap: 0.45rem;
+}
+@media (max-width: 720px) {
+  .stitch-week-strip {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Plano de Estudos (Redesign Sereno): dias à esquerda, ritmo e marcos ao lado. */
+.plan-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 8fr) minmax(0, 4fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+.plan-main,
+.plan-aside {
+  display: grid;
+  gap: 1.25rem;
+  min-width: 0;
+}
+.plan-aside .card-surface {
+  display: grid;
+  gap: 1rem;
+}
+.plan-aside .card-heading {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+.plan-day.card-surface {
+  padding: 1.1rem 1.25rem;
+  background: color-mix(in srgb, var(--surface-2) 70%, transparent);
+  box-shadow: none;
+}
+.plan-day.is-today {
+  background: var(--surface);
+  border-color: color-mix(in srgb, var(--lume) 30%, transparent);
+  box-shadow: var(--shadow-lg);
+}
+.plan-day.is-today::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, var(--lilac), var(--mint));
+}
+.plan-day.is-today .plan-day-head strong {
+  color: var(--lume);
+}
+.plan-item {
+  padding: 0.75rem 0.85rem;
+  border-top: 0;
+  border-radius: var(--radius-md);
+  background: var(--inner);
+}
+.plan-day-head {
+  margin-bottom: 0.4rem;
+}
+@media (max-width: 1080px) {
+  .plan-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -25,10 +25,10 @@ test('cronograma distribui aulas, explica conflito, recalcula após conclusão e
   await seedAccount(page, seeded());
 
   await page.goto('/#hoje');
-  await page.getByRole('navigation', { name: 'Navegação' }).getByRole('link', { name: 'Plano', exact: true }).click();
+  await page.getByRole('navigation', { name: 'Navegação' }).getByRole('link', { name: 'Plano de Estudos', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Plano', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Usar segunda a sexta, 30 min por dia' }).click();
-  await expect(page.getByRole('heading', { name: 'Próximos dias' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Distribuição dos blocos' })).toBeVisible();
   const items = page.locator('.plan-item');
   await expect(items.first()).toContainText('Aula 1 — Teoria geral');
   await expect(items.first()).toContainText('(duração da fonte)');

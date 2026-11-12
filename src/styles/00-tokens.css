@@ -34,36 +34,38 @@
   --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   /* O Redesign Moderno usa uma única família; o nome antigo continua apontando para ela. */
   --font-serif: var(--font-sans);
-  /* Redesign Moderno (padrão): azul-noite, azul safira e âmbar.
+  /* Redesign Sereno (padrão, telas do Lume Academy Design System):
+     azul-noite, azul safira, menta de progresso e âmbar de recompensa.
      Funções de cor:
      --action  botão principal          --lume    destaque, links e navegação ativa
      --mint    progresso                --success conclusão confirmada (sempre com ícone ou texto)
      --reward  XP, nível e sessão       --warning atraso       --danger erro */
-  --bg: #090d1f;
-  --bg-elevated: #0b112c;
+  --bg: #081328;
+  --bg-elevated: #0c1322;
   --surface: #0f172a;
-  --surface-2: #172346;
-  --surface-3: #1e295d;
+  --surface-2: #101b30;
+  --surface-3: #1f2a40;
+  --surface-4: #2a354b;
   --surface-glass: rgba(15, 23, 42, 0.9);
   --inner: rgba(9, 13, 31, 0.6);
-  --card-from: rgba(15, 23, 42, 0.92);
-  --card-to: rgba(11, 17, 44, 0.92);
+  --card-from: rgba(15, 23, 42, 0.94);
+  --card-to: rgba(15, 23, 42, 0.94);
   --border: #1e293b;
   --border-strong: rgba(59, 130, 246, 0.42);
   --border-accent: rgba(59, 130, 246, 0.28);
   --text: #f8fafc;
   --text-muted: #cbd5e1;
   --text-subtle: #94a3b8;
-  --action: #2563eb;
-  --action-hover: #3b82f6;
-  --action-ink: #ffffff;
-  --lume: #60a5fa;
-  --lume-2: #3b82f6;
-  --lume-soft: rgba(37, 99, 235, 0.18);
+  --action: #4d8eff;
+  --action-hover: #60a5fa;
+  --action-ink: #00285d;
+  --lume: #5ea8ff;
+  --lume-2: #4d8eff;
+  --lume-soft: rgba(77, 142, 255, 0.16);
   --lume-ink: #06112a;
-  --mint: #60a5fa;
-  --mint-soft: rgba(96, 165, 250, 0.14);
-  --lilac: #3b82f6;
+  --mint: #4de0b8;
+  --mint-soft: rgba(77, 224, 184, 0.12);
+  --lilac: #adc6ff;
   --success: #34d399;
   --success-soft: rgba(52, 211, 153, 0.14);
   --reward: #fbbf24;
@@ -75,12 +77,14 @@
   --warning-soft: rgba(251, 146, 60, 0.15);
   --danger: #f87171;
   --danger-soft: rgba(248, 113, 113, 0.14);
-  --xp-from: #3b82f6;
+  --xp-from: #4d8eff;
   --xp-to: #f59e0b;
   --track: #1e293b;
-  --glow-a: rgba(59, 130, 246, 0.1);
-  --glow-b: rgba(245, 158, 11, 0.08);
-  --shadow-lg: 0 8px 32px rgba(2, 6, 23, 0.8);
+  --glow-a: rgba(77, 142, 255, 0.1);
+  --glow-b: rgba(77, 224, 184, 0.06);
+  /* Filete luminoso no topo dos cartões principais. */
+  --crest: linear-gradient(90deg, var(--lume-2), var(--lume), var(--mint));
+  --shadow-lg: 0 12px 40px rgba(2, 6, 23, 0.45);
   --shadow-sm: 0 8px 24px -12px rgba(2, 6, 23, 0.7);
   /* Texto sobre imagens e medalhas do ranking não dependem do tema. */
   --media-ink: #f5f1e8;
@@ -92,7 +96,7 @@
   --medal-3: #d19a6a;
   --danger-ink: #1a0508;
   --radius-xl: 24px;
-  --radius-lg: 24px;
+  --radius-lg: 16px;
   --radius-md: 12px;
   --radius-pill: 999px;
   --logo-bg: #101b30;
@@ -106,6 +110,7 @@ html[data-palette='variante2'] {
   --surface: #13132b;
   --surface-2: #1c1c3d;
   --surface-3: #26244d;
+  --surface-4: #312e5e;
   --surface-glass: rgba(19, 19, 43, 0.9);
   --inner: rgba(11, 11, 24, 0.6);
   --card-from: rgba(22, 22, 51, 0.92);
@@ -141,6 +146,7 @@ html[data-theme='light'] {
   --surface: #ffffff;
   --surface-2: #eef2f9;
   --surface-3: #e0e7f3;
+  --surface-4: #d3dcec;
   --surface-glass: rgba(255, 255, 255, 0.92);
   --inner: #f4f6fb;
   --card-from: #ffffff;
@@ -158,8 +164,8 @@ html[data-theme='light'] {
   --lume-2: #2563eb;
   --lume-soft: rgba(37, 99, 235, 0.1);
   --lume-ink: #ffffff;
-  --mint: #1d4ed8;
-  --mint-soft: rgba(37, 99, 235, 0.1);
+  --mint: #0f7a62;
+  --mint-soft: rgba(15, 122, 98, 0.1);
   --lilac: #2563eb;
   --success: #047857;
   --success-soft: rgba(4, 120, 87, 0.1);

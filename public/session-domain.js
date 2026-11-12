@@ -170,3 +170,62 @@ function cleanId(value) {
 function cleanLabel(value) {
   return String(value ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160);
 }
+
+// Data civil local (AAAA-MM-DD) de um instante. As métricas de ritmo contam
+// pelo dia de quem estuda, não pelo UTC.
+export function localDay(value = Date.now()) {
+  const date = new Date(value);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+// Minutos declarados por dia, do mais antigo ao de hoje. Cada sessão conta no
+// dia em que começou; a sessão em andamento entra em hoje. É ritmo declarado,
+// não prova de estudo, e não altera XP.
+export function minutesByDay(state, days = 7, now = Date.now()) {
+  const keys = [];
+  for (let offset = days - 1; offset >= 0; offset -= 1) {
+    const date = new Date(now);
+    date.setHours(12, 0, 0, 0);
+    date.setDate(date.getDate() - offset);
+    keys.push(localDay(date));
+  }
+  const totals = new Map(keys.map((key) => [key, { date: key, minutes: 0, sessions: 0 }]));
+  for (const session of normalizeStudySessions(state?.studySessions)) {
+    const entry = totals.get(localDay(Date.parse(session.startedAt)));
+    if (!entry) continue;
+    entry.minutes += session.durationMs / 60000;
+    entry.sessions += 1;
+  }
+  const active = state?.activeSession ? normalizeActiveSession(state.activeSession) : null;
+  const today = totals.get(localDay(now));
+  if (active && today) today.minutes += sessionElapsed(active, now) / 60000;
+  return keys.map((key) => {
+    const entry = totals.get(key);
+    return { ...entry, minutes: Math.round(entry.minutes) };
+  });
+}
+
+// Comparação gentil entre os últimos sete dias e os sete anteriores. Sem
+// histórico anterior, não há porcentagem para não inventar crescimento.
+export function weeklyRhythm(state, now = Date.now()) {
+  const fortnight = minutesByDay(state, 14, now);
+  const previous = fortnight.slice(0, 7).reduce((sum, day) => sum + day.minutes, 0);
+  const current = fortnight.slice(7).reduce((sum, day) => sum + day.minutes, 0);
+  const activeDays = fortnight.slice(7).filter((day) => day.minutes > 0).length;
+  return {
+    days: fortnight.slice(7),
+    current,
+    previous,
+    activeDays,
+    average: Math.round(current / 7),
+    change: previous > 0 ? Math.round(((current - previous) / previous) * 100) : null,
+  };
+}
+
+export function formatMinutes(minutes) {
+  const total = Math.max(0, Math.round(Number(minutes) || 0));
+  const hours = Math.floor(total / 60);
+  const rest = total % 60;
+  if (!hours) return `${rest} min`;
+  return rest ? `${hours}h ${String(rest).padStart(2, '0')}m` : `${hours}h`;
+}

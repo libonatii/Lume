@@ -12,7 +12,9 @@ import { readingLabel, sectionsCovered } from './pdf-domain.js';
 export const MAX_SUBJECTS = 60;
 export const MAX_SUBJECT_TITLE = 80;
 export const MAX_KEYWORDS = 20;
+export const SUBJECT_COLORS = ['lume', 'mint', 'violet', 'amber', 'coral'];
 
+const cleanColor = (value) => SUBJECT_COLORS.includes(value) ? value : 'lume';
 const clean = (value, max) => String(value ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
 const fold = (value) => clean(value, 200).normalize('NFD').replace(/[̀-ͯ]/g, '').toLocaleLowerCase('pt-BR');
 
@@ -42,6 +44,7 @@ export function normalizeSubjects(value) {
     subjects.push({
       id: item.id,
       title,
+      color: cleanColor(item.color),
       keywords: parseKeywords(item.keywords),
       createdAt: Number.isFinite(Date.parse(item.createdAt)) ? item.createdAt : null,
     });
@@ -59,18 +62,19 @@ function assertTitle(state, title, ignoreId = null) {
   return value;
 }
 
-export function addSubject(state, { title, keywords = [] }, id = crypto.randomUUID(), now = new Date().toISOString()) {
+export function addSubject(state, { title, keywords = [], color = 'lume' }, id = crypto.randomUUID(), now = new Date().toISOString()) {
   if ((state.subjects || []).length >= MAX_SUBJECTS) throw new Error(`São permitidas até ${MAX_SUBJECTS} disciplinas.`);
-  const subject = { id, title: assertTitle(state, title), keywords: parseKeywords(keywords), createdAt: now };
+  const subject = { id, title: assertTitle(state, title), color: cleanColor(color), keywords: parseKeywords(keywords), createdAt: now };
   return { ...state, subjects: [...(state.subjects || []), subject] };
 }
 
-export function updateSubject(state, id, { title, keywords }) {
+export function updateSubject(state, id, { title, keywords, color }) {
   const subject = (state.subjects || []).find((item) => item.id === id);
   if (!subject) throw new Error('Disciplina não encontrada.');
   const next = {
     ...subject,
     title: title === undefined ? subject.title : assertTitle(state, title, id),
+    color: color === undefined ? cleanColor(subject.color) : cleanColor(color),
     keywords: keywords === undefined ? subject.keywords : parseKeywords(keywords),
   };
   return { ...state, subjects: state.subjects.map((item) => item.id === id ? next : item) };
