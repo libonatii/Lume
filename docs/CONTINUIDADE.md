@@ -57,8 +57,8 @@ Telas React → ações nomeadas → useLibraryPersistence → /api/library/acti
 | Área | Implementado no código |
 | --- | --- |
 | Conta | Cadastro, login, saída, cookie HttpOnly, recuperação por token e e-mail pelo Resend (configurado em `wrangler.jsonc`; sem a chave, o link vai só para o log) |
-| Onboarding | Três jornadas, perguntas próprias, retomada, primeira atividade e preferências sem XP; fases visíveis (Identidade, Ritmo, Primeira matéria, Amigos) |
-| Sessão de foco | `#foco`: ciclos sobre a sessão declarada, intenção como nome da sessão e som de fundo gerado no aparelho; ciclos não geram XP |
+| Onboarding | Três jornadas, escolha de meta diária e ambiente sonoro, primeira matéria (caderno vinculado à disciplina ou PDF) e convite de amigos sem XP; quatro passos visíveis |
+| Sessão de foco | `#foco`: ciclos sobre a sessão declarada, intenção ou tarefa em foco como nome da sessão, bloco de Anotações rápidas (modo Zen), Escudo de foco absoluto (silencia avisos não essenciais) e som de fundo gerado no aparelho; ciclos não geram XP |
 | Agendar sessão | `#agendar`: cria compromisso de Estudo na Agenda com lembrete e tarefa vinculada opcional |
 | Biblioteca | Busca, filtros por situação e tipo, "Continuar agora", seções de disciplinas, cursos e PDFs, criação, edição, exclusão confirmada, pausa e posição manual |
 | Cursos | Importação por link/texto/arquivo/página copiada/extensão, revisão e reimportação que preserva ids e progresso |
@@ -82,7 +82,7 @@ Telas React → ações nomeadas → useLibraryPersistence → /api/library/acti
 | GitHub | Leitura pública de README, issues e milestones; sugestões revisáveis de entregas |
 | Colaboração | Convite por entrega, aceite/recusa e cancelamento; sem copiar projeto ou conceder XP |
 | Backup | Exportação e restauração explícita do formato v3 com prévia; versões antigas recusadas, sem conversão |
-| Aparência | Azul/Roxo, claro/escuro, tamanho do texto e cores por função; logo preservado |
+| Aparência | Azul/Roxo, claro/escuro, tamanho do texto e menos estímulo no popover `Conforto visual` do cabeçalho e em `#configuracoes`; logo preservado |
 | Desktop | Lume completo em Electron, bandeja, pareamento, presença opcional, atualização e Discord |
 
 A presença não é atividade validada. Importação e conclusão observada pela plataforma dependem das

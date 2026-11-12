@@ -70,6 +70,13 @@ const icons = {
   quiz: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7m0 3h.01"/>',
   pen: '<path d="M4 20h4L19 9l-4-4L4 16Z"/><path d="m13 7 4 4"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 16v-4m0-4h.01"/>',
+  gavel: '<path d="m14 13-7.5 7.5a2.1 2.1 0 1 1-3-3L11 10m5-5 3 3-4.5 4.5-3-3ZM11 6l7 7m-6 8h9"/>',
+  science: '<path d="M9 3h6m-5 0v5l-5.2 8.5A2 2 0 0 0 6.5 20h11a2 2 0 0 0 1.7-3.5L14 8V3"/>',
+  replay5: '<path d="M12 5V2L7 6l5 4V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8Z"/><path d="M10.5 14.5h2.2a1.1 1.1 0 0 0 0-2.2h-2v-1.8h2.8"/>',
+  forward10: '<path d="M12 5V2l5 4-5 4V7a6 6 0 1 0 6 6h2a8 8 0 1 1-8-8Z"/>',
+  notes: '<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6M8 13h8M8 17h5"/>',
+  tune: '<path d="M4 7h4m4 0h8M4 17h8m4 0h4M10 4v6M14 14v6"/>',
+  download: '<path d="M12 3v12m-5-5 5 5 5-5M4 19h16"/>',
 };
 
 export default function Icon({name, className = ''}) { return <svg className={'icon '+className} viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.8' strokeLinecap='round' strokeLinejoin='round' aria-hidden='true' focusable='false' dangerouslySetInnerHTML={{__html: icons[name] || icons.spark}} />; }

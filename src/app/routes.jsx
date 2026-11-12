@@ -32,17 +32,16 @@ const FocusSession = lazy(() => import('../features/progress/FocusSession.jsx'))
 const ScheduleSession = lazy(() => import('../features/agenda/ScheduleSession.jsx'));
 const Landing = lazy(() => import('../features/account/Landing.jsx'));
 
-// Seis destinos do menu; as telas secundárias são abas da seção.
+// Cinco destinos principais do menu (alinhados ao Stitch); telas secundárias ficam em abas ou no menu do perfil.
 export const SECTIONS = {
   hoje: { label: 'Hoje', icon: 'home', home: 'hoje' },
   biblioteca: { label: 'Biblioteca', icon: 'book', home: 'biblioteca' },
-  plano: { label: 'Plano', icon: 'list', home: 'plano' },
-  agenda: { label: 'Agenda', icon: 'calendar', home: 'agenda' },
+  plano: { label: 'Plano de Estudos', icon: 'calendar', home: 'plano' },
   amigos: { label: 'Amigos', icon: 'users', home: 'amigos' },
-  perfil: { label: 'Perfil', icon: 'user', home: 'perfil' },
+  conquistas: { label: 'Conquistas', icon: 'trophy', home: 'conquistas' },
 };
 
-// Telas de entrada: sem menu lateral, com o cabeçalho próprio.
+// Telas de entrada: sem menu principal, com cabeçalho próprio.
 export const ENTRY_ROUTES = new Set(['login', 'inicio', 'recuperar', 'redefinir', 'conheca']);
 
 // Telas abertas sem conta nem prévia (a apresentação e a recuperação de acesso).
@@ -61,32 +60,33 @@ function SessionCheck() {
 // carrega; sem ele, a tela se vira sozinha (ex.: Agenda, telas sociais).
 export const ROUTES = [
   { id: 'login', title: 'Bem-vindo', render: (ctx) => (ctx.checkingSession ? <SessionCheck/> : <Login model={ctx.model} mode={ctx.authMode} setMode={ctx.setAuthMode} go={ctx.go} notify={ctx.notify}/>) },
-  { id: 'inicio', title: 'Seu ritmo', render: (ctx) => <Onboarding key={ctx.model.account?.id || 'local'} state={ctx.state} actions={ctx.model.accountActions} libraryActions={ctx.model.libraryActions} go={ctx.go} notify={ctx.notify} account={ctx.model.account}/> },
+  { id: 'inicio', title: 'Seu ritmo', render: (ctx) => <Onboarding key={ctx.model.account?.id || 'local'} state={ctx.state} actions={ctx.model.accountActions} libraryActions={ctx.model.libraryActions} open={ctx.open} go={ctx.go} notify={ctx.notify} account={ctx.model.account} onExit={ctx.onExit}/> },
   { id: 'recuperar', title: 'Recuperar acesso', render: (ctx) => <Recovery key="recuperar" reset={false} notify={ctx.notify} go={ctx.go}/> },
   { id: 'conheca', title: 'Conheça o Lume', render: (ctx) => <Landing go={ctx.go} setAuthMode={ctx.setAuthMode} signedIn={Boolean(ctx.model.account)}/> },
   { id: 'redefinir', title: 'Nova senha', render: (ctx) => <Recovery key={ctx.hash} reset notify={ctx.notify} go={ctx.go}/> },
 
   { id: 'hoje', title: 'Hoje', loading: 'panel', section: 'hoje', render: (ctx) => <Home state={ctx.state} open={ctx.open} go={ctx.go} planActions={ctx.model.planActions} progressActions={ctx.model.progressActions} notify={ctx.notify} account={ctx.model.account} xp={ctx.model.xp}/> },
   // Telas de ação sem aba própria: o menu continua marcando a seção de origem.
-  { id: 'foco', title: 'Sessão de foco', section: 'hoje', hideTabs: () => true, render: (ctx) => <FocusSession state={ctx.state} actions={ctx.model.progressActions} open={ctx.open} go={ctx.go} notify={ctx.notify} account={ctx.model.account}/> },
+  { id: 'foco', title: 'Sessão de foco', section: 'hoje', hideTabs: () => true, render: (ctx) => <FocusSession state={ctx.state} actions={ctx.model.progressActions} settingsActions={ctx.model.settingsActions} open={ctx.open} go={ctx.go} notify={ctx.notify} account={ctx.model.account} xp={ctx.model.xp}/> },
 
-  { id: 'biblioteca', title: 'Biblioteca', loading: 'cards', section: 'biblioteca', tab: 'Materiais', render: (ctx) => <Library state={ctx.state} open={ctx.open} actions={ctx.model.libraryActions}/> },
+  { id: 'biblioteca', title: 'Biblioteca', loading: 'cards', section: 'biblioteca', tab: 'Materiais', hideTabs: () => true, render: (ctx) => <Library state={ctx.state} open={ctx.open} go={ctx.go} actions={ctx.model.libraryActions}/> },
   { id: 'disciplinas', title: 'Disciplinas', loading: 'cards', section: 'biblioteca', tab: 'Disciplinas', render: (ctx) => <Subjects key={ctx.params.get('id') || 'todas'} state={ctx.state} actions={ctx.model.libraryActions} open={ctx.open} go={ctx.go} notify={ctx.notify} id={ctx.params.get('id') || ''}/> },
   { id: 'github', title: 'GitHub', section: 'biblioteca', tab: 'GitHub', render: (ctx) => <GitHub actions={ctx.model.libraryActions} account={ctx.model.account} notify={ctx.notify} go={ctx.go}/> },
 
-  { id: 'plano', title: 'Plano', loading: 'panel', section: 'plano', tab: 'Cronograma', render: (ctx) => <Schedule state={ctx.state} actions={ctx.model.planActions} open={ctx.open} notify={ctx.notify}/> },
-  { id: 'agenda', title: 'Agenda', section: 'agenda', tab: 'Calendário', render: (ctx) => <Agenda key={ctx.hash} state={ctx.state} actions={ctx.model.agendaActions} taskActions={ctx.model.planActions} confirmSave={ctx.model.confirmSave} retrySave={ctx.model.retrySave} saveError={ctx.model.saveError} syncStatus={ctx.model.syncStatus} params={ctx.params} notify={ctx.notify}/> },
-  { id: 'agendar', title: 'Agendar sessão', loading: 'panel', section: 'agenda', hideTabs: () => true, render: (ctx) => <ScheduleSession state={ctx.state} actions={ctx.model.agendaActions} confirmSave={ctx.model.confirmSave} notify={ctx.notify} go={ctx.go}/> },
-  { id: 'tarefas', title: 'Tarefas', loading: 'panel', section: 'agenda', tab: 'Tarefas', render: (ctx) => <Tasks state={ctx.state} actions={ctx.model.planActions} notify={ctx.notify} onSchedule={(task) => ctx.go(`agenda?tarefa=${encodeURIComponent(task.id)}`)}/> },
+  { id: 'plano', title: 'Plano de Estudos', loading: 'panel', section: 'plano', tab: 'Agenda da semana', render: (ctx) => <Schedule state={ctx.state} actions={ctx.model.planActions} agendaActions={ctx.model.agendaActions} progressActions={ctx.model.progressActions} open={ctx.open} go={ctx.go} notify={ctx.notify}/> },
+  { id: 'agenda', title: 'Calendário', section: 'plano', tab: 'Calendário completo', render: (ctx) => <Agenda key={ctx.hash} state={ctx.state} actions={ctx.model.agendaActions} taskActions={ctx.model.planActions} confirmSave={ctx.model.confirmSave} retrySave={ctx.model.retrySave} saveError={ctx.model.saveError} syncStatus={ctx.model.syncStatus} params={ctx.params} notify={ctx.notify}/> },
+  { id: 'agendar', title: 'Agendar sessão', loading: 'panel', section: 'plano', hideTabs: () => true, render: (ctx) => <ScheduleSession state={ctx.state} actions={ctx.model.agendaActions} open={ctx.open} confirmSave={ctx.model.confirmSave} notify={ctx.notify} go={ctx.go}/> },
+  { id: 'tarefas', title: 'Tarefas', loading: 'panel', section: 'plano', tab: 'Tarefas', render: (ctx) => <Tasks state={ctx.state} actions={ctx.model.planActions} notify={ctx.notify} onSchedule={(task) => ctx.go(`agenda?tarefa=${encodeURIComponent(task.id)}`)}/> },
   { id: 'roteiro', title: 'Roteiro', loading: 'panel', section: 'plano', tab: 'Roteiro', render: (ctx) => <Roadmap state={ctx.state} open={ctx.open}/> },
 
   { id: 'amigos', title: 'Amigos', section: 'amigos', tab: 'Contatos', render: (ctx) => <Friends account={ctx.model.account} notify={ctx.notify} go={ctx.go}/> },
   { id: 'mensagens', title: 'Mensagens', section: 'amigos', tab: 'Mensagens', render: (ctx) => <Messages account={ctx.model.account} state={ctx.state} notify={ctx.notify} go={ctx.go} contactId={ctx.params.get('com') || ''}/> },
   { id: 'ranking', title: 'Ranking', section: 'amigos', tab: 'Ranking', render: (ctx) => <Ranking account={ctx.model.account} xp={ctx.model.xp} refreshXP={ctx.model.refreshXP} notify={ctx.notify} go={ctx.go}/> },
 
+  { id: 'conquistas', title: 'Conquistas', loading: 'cards', section: 'conquistas', render: (ctx) => <Achievements state={ctx.state} account={ctx.model.account} xp={ctx.model.xp}/> },
+
   // Perfil de uma amizade (#perfil?id=) não mostra as abas da própria conta.
   { id: 'perfil', title: 'Perfil', loading: 'panel', section: 'perfil', tab: 'Meu perfil', hideTabs: (ctx) => Boolean(ctx.params.get('id')), render: (ctx) => <Profile id={ctx.params.get('id') || ''} state={ctx.state} actions={ctx.model.settingsActions} account={ctx.model.account} notify={ctx.notify} go={ctx.go} xp={ctx.model.xp}/> },
-  { id: 'conquistas', title: 'Conquistas', loading: 'cards', section: 'perfil', tab: 'Conquistas', render: (ctx) => <Achievements state={ctx.state} account={ctx.model.account} xp={ctx.model.xp}/> },
   { id: 'historico', title: 'Meu caminho', loading: 'panel', section: 'perfil', tab: 'Meu caminho', render: (ctx) => <History state={ctx.state} account={ctx.model.account} xp={ctx.model.xp} refreshXP={ctx.model.refreshXP} notify={ctx.notify}/> },
   { id: 'configuracoes', title: 'Configurações', loading: 'panel', section: 'perfil', tab: 'Configurações', render: (ctx) => <Preferences state={ctx.state} actions={ctx.model.settingsActions} libraryActions={ctx.model.libraryActions} account={ctx.model.account} notify={ctx.notify} go={ctx.go} xp={ctx.model.xp} refreshXP={ctx.model.refreshXP} onPersonalize={() => ctx.go('inicio')}/> },
 

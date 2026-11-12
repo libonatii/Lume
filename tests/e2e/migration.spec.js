@@ -76,7 +76,7 @@ test('prévia, dados legados, busca, filtros, teclado, curso e progresso', async
   expect(done.find((event) => event.materialTitle === 'Leitura React')?.origin).toBe('manual');
   expect(restored.preferences.essential).toBe(true); // Guardado como legado, sem efeito visual.
   await page.getByRole('button', { name: /^Menu da conta/ }).click();
-  await page.getByRole('menuitem', { name: 'Meu Perfil', exact: true }).click();
+  await page.getByRole('link', { name: 'Meu Perfil', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Colecionador de estudos', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Atividade recente', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Conquistas', exact: true })).toBeVisible();
@@ -91,7 +91,8 @@ test('prévia, dados legados, busca, filtros, teclado, curso e progresso', async
     return `${p?.avatar || ''}|${p?.header || ''}`;
   }).toMatch(/^\/api\/media\/profiles\/[^/]+\/avatar-\d+\.(webp|png|jpg)\|\/api\/media\/profiles\/[^/]+\/header-\d+\.(webp|png|jpg)$/);
   await page.screenshot({ path: `data/lume-${testInfo.project.name}-profile.png`, fullPage: true });
-  await page.getByRole('link', { name: 'Configurações' }).click();
+  await page.getByRole('button', { name: /^Menu da conta/ }).click();
+  await page.getByRole('link', { name: 'Configurações', exact: true }).click();
   await page.getByRole('combobox', { name: /^Tema/ }).selectOption('light');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await expect(page.getByText(/movimento reduzido|modo essencial/i)).toHaveCount(0);
@@ -127,7 +128,7 @@ test('cadastro, saída, login, sincronização e recuperação na API local', as
   await page.getByRole('button', { name: /Adicionar 1 aula à biblioteca/ }).click();
   await page.getByRole('button', { name: 'Voltar à biblioteca' }).click();
   await page.getByRole('button', { name: /^Menu da conta/ }).click();
-  await page.getByRole('menuitem', { name: 'Sair', exact: true }).click();
+  await page.getByRole('button', { name: 'Sair', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Bem-vindo de volta ao Lume.' })).toBeVisible();
   await page.getByLabel('E-mail', { exact: true }).fill(email);
   await page.getByLabel('Senha', { exact: true }).fill('senha-local-teste-123');
@@ -136,7 +137,7 @@ test('cadastro, saída, login, sincronização e recuperação na API local', as
   await page.getByRole('link', { name: 'Biblioteca', exact: true }).click();
   await expect(page.getByRole('button', { name: /^Curso da minha conta,/ })).toBeVisible();
   await page.getByRole('button', { name: /^Menu da conta/ }).click();
-  await page.getByRole('menuitem', { name: 'Sair', exact: true }).click();
+  await page.getByRole('button', { name: 'Sair', exact: true }).click();
   await page.getByRole('link', { name: 'Esqueci minha senha' }).click();
   await page.getByLabel('E-mail', { exact: true }).fill(email);
   await page.getByRole('button', { name: 'Solicitar recuperação' }).click();
@@ -148,58 +149,56 @@ test('cadastro, saída, login, sincronização e recuperação na API local', as
   await expect(page.getByRole('heading', { name: 'Acesso validado.' })).toBeVisible();
 });
 
-test('jornada 3 preserva a rotina e não gera XP ao configurar', async ({ page }) => {
+test('jornada 3 configura ritmo e primeira matéria sem gerar XP', async ({ page }) => {
   await seedAccount(page, createInitialState());
   await page.goto('/');
   await page.getByRole('heading', { name: 'Estudo com frequência', exact: true }).click();
 
-  // Etapa 1: áreas
-  await expect(page.getByRole('heading', { name: 'Quais áreas e trilhas você acompanha?' })).toBeVisible();
-  await page.getByLabel('Áreas e trilhas').fill('programação');
+  // Etapa 2: ritmo diário e conforto sonoro
+  await expect(page.getByRole('heading', { name: 'Defina seu ritmo sem cobranças.' })).toBeVisible();
+  await page.getByRole('radio', { name: /Chuva Serena/ }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
 
-  // Etapa 2: rotina
-  await page.getByLabel('Rotina ou meta atual').fill('3 noites por semana, 40 minutos');
+  // Etapa 3: primeira matéria (Caderno em Branco)
+  await expect(page.getByRole('heading', { name: 'Adicione sua primeira matéria.' })).toBeVisible();
+  await page.getByLabel('Nome da disciplina ou assunto').fill('Algoritmos');
   await page.getByRole('button', { name: 'Continuar' }).click();
 
-  // Etapa 3: em andamento
-  await page.getByLabel('Em andamento').fill('curso de algoritmos');
-  await page.getByRole('button', { name: 'Continuar' }).click();
-
-  // Etapa 4: acompanhamento
-  await page.getByText('Conclusões', { exact: true }).click();
-  await page.getByRole('button', { name: 'Continuar' }).click();
-
-  // Revisão e material
-  await expect(page.getByRole('heading', { name: 'Seu plano inicial' })).toBeVisible();
-  await page.getByRole('button', { name: /Criar material e continuar/ }).click();
-  await page.getByRole('button', { name: /Concluir e ir para Hoje/ }).click();
+  // Etapa 4: amigos (opcional) -> concluir
+  await expect(page.getByRole('heading', { name: 'Quer estudar com alguém?' })).toBeVisible();
+  await page.getByRole('button', { name: 'Concluir e ir para Hoje' }).click();
 
   await expect(page.getByRole('heading', { name: 'Hoje', exact: true })).toBeVisible();
-  await expect(page.getByText('Próxima ação · curso de algoritmos')).toBeVisible();
+  await expect(page.getByText(/Algoritmos · Primeiro Caderno/).first()).toBeVisible();
 
   const state = await readAccount(page);
   expect(state.onboarded).toBe(true);
   expect(state.onboarding.status).toBe('done');
   expect(state.onboarding.journey).toBe('often');
+  expect(state.preferences.soundscape).toBe('rain');
   expect(state.progress).toEqual([]);
-  expect(state.courses.some(course => course.title === 'curso de algoritmos' && course.origin === 'onboarding')).toBe(true);
+  expect(state.courses.some(course => course.title.startsWith('Algoritmos') && course.origin === 'onboarding')).toBe(true);
 
   // Navegação das telas restantes continua funcionando
   await page.getByRole('link', { name: 'Biblioteca', exact: true }).click();
-  await page.getByRole('button', { name: /^curso de algoritmos,/ }).click();
+  await page.getByRole('button', { name: /^Algoritmos · Primeiro Caderno,/ }).click();
   await page.getByRole('button', { name: 'Pausar curso' }).click();
   await expect(page.getByRole('button', { name: 'Retomar curso' })).toBeVisible();
   await page.getByRole('button', { name: 'Retomar curso' }).click();
   await page.getByRole('button', { name: 'Fechar janela' }).click();
-  // Seis destinos no menu; as telas secundárias ficam nas abas de cada seção.
+  // Cinco destinos no menu; as telas secundárias ficam nas abas de cada seção ou no menu da conta.
   const menu = page.getByRole('navigation', { name: 'Navegação' });
-  await expect(menu.getByRole('link')).toHaveCount(6);
-  for (const [section, tab, heading] of [['Plano', 'Roteiro', 'Roteiro'], ['Agenda', 'Tarefas', 'Tarefas'], ['Perfil', 'Conquistas', 'Sua vitrine de conquistas'], ['Perfil', 'Meu caminho', 'Meu caminho'], ['Amigos', 'Ranking', 'Ranking']]) {
+  await expect(menu.getByRole('link')).toHaveCount(5);
+  for (const [section, tab, heading] of [['Plano de Estudos', 'Roteiro', 'Roteiro'], ['Plano de Estudos', 'Tarefas', 'Tarefas'], ['Amigos', 'Ranking', 'Ranking']]) {
     await menu.getByRole('link', { name: section, exact: true }).click();
     await page.getByRole('navigation', { name: `Seções de ${section}` }).getByRole('link', { name: tab, exact: true }).click();
     await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible();
   }
+  await menu.getByRole('link', { name: 'Conquistas', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Sua vitrine de conquistas', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: /^Menu da conta/ }).click();
+  await page.getByRole('link', { name: 'Meu caminho', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Meu caminho', exact: true })).toBeVisible();
   // O endereço antigo de Missões continua abrindo o Roteiro.
   await page.goto('/#missoes');
   await expect(page.getByRole('heading', { name: 'Roteiro', exact: true })).toBeVisible();
@@ -211,53 +210,35 @@ test('jornada 1 leva a uma primeira atividade concreta sem XP', async ({ page })
   await page.goto('/');
   await page.getByRole('heading', { name: 'Quero começar', exact: true }).click();
 
-  await page.getByLabel('Assunto').fill('fundamentos de redes');
+  await page.getByRole('radio', { name: /Leve e Constante/ }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
-  await page.getByLabel('Resultado esperado').fill('concluir a primeira aula');
+  await page.getByRole('button', { name: 'Estrutura de Dados' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
-
-  await page.getByText('Já tenho um material', { exact: false }).click();
-  await page.getByLabel('Nome do material').fill('Curso de redes — módulo 1');
-  await page.getByLabel('Primeira atividade').fill('Assistir à aula 1 completa');
-  await page.getByRole('button', { name: 'Continuar' }).click();
-
-  await page.getByRole('button', { name: '20 minutos' }).click();
-  await page.getByRole('button', { name: 'Continuar' }).click();
-  await page.getByRole('button', { name: /Criar material e continuar/ }).click();
-  await page.getByRole('button', { name: /Concluir e ir para Hoje/ }).click();
+  await page.getByRole('button', { name: 'Concluir e ir para Hoje' }).click();
 
   const state = await readAccount(page);
   expect(state.onboarding.journey).toBe('starting');
+  expect(state.preferences.dailyMinutes).toBe(45);
   expect(state.progress).toEqual([]);
-  const material = state.courses.find(course => course.title === 'Curso de redes — módulo 1');
+  const material = state.courses.find(course => course.title === 'Estrutura de Dados · Primeiro Caderno');
   expect(material.type).toBe('lesson');
-  expect(materialSteps(material)[0].title).toBe('Assistir à aula 1 completa');
-  // A Hoje aponta a atividade criada e usa o tempo de sessão escolhido como estimativa rotulada.
-  await expect(page.getByRole('heading', { name: 'Assistir à aula 1 completa', exact: true })).toBeVisible();
-  await expect(page.getByText('Reserve 20 minutos para avançar.', { exact: false })).toBeVisible();
-  await expect(page.getByText('estimativa', { exact: true })).toBeVisible();
+  expect(materialSteps(material)[0].title).toBe('Organizar primeiro tópico de Estrutura de Dados');
+  await expect(page.getByRole('heading', { name: 'Organizar primeiro tópico de Estrutura de Dados', exact: true })).toBeVisible();
 });
 
-test('jornada 2 registra o ponto de retomada', async ({ page }) => {
+test('jornada 2 permite pular matéria inicial e preservar escolhas de ritmo', async ({ page }) => {
   await seedAccount(page, createInitialState());
   await page.goto('/');
   await page.getByRole('heading', { name: 'Estudo de vez em quando', exact: true }).click();
 
-  await page.getByLabel('Materiais em andamento').fill('Curso de estatística');
+  await page.getByRole('radio', { name: /Imersão Profunda/ }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
-  await page.getByText('Curso de estatística', { exact: true }).click();
-  await page.getByRole('button', { name: 'Continuar' }).click();
-  await page.getByLabel('Onde você parou?').fill('aula 3');
-  await page.getByRole('button', { name: 'Continuar' }).click();
-  await page.getByText('Esquecer onde parei', { exact: true }).click();
-  await page.getByRole('button', { name: 'Continuar' }).click();
-  await page.getByRole('button', { name: /Criar material e continuar/ }).click();
-  await page.getByRole('button', { name: /Concluir e ir para Hoje/ }).click();
+  await page.getByRole('button', { name: 'Pular por enquanto' }).click();
+  await page.getByRole('button', { name: 'Concluir e ir para Hoje' }).click();
 
   const state = await readAccount(page);
   expect(state.onboarding.journey).toBe('sometimes');
+  expect(state.preferences.dailyMinutes).toBe(180);
   expect(state.progress).toEqual([]);
-  const material = state.courses.find(course => course.title === 'Curso de estatística');
-  expect(material.resumeAt).toBe('aula 3');
-  expect(materialSteps(material)[0].title).toBe('Retomar em: aula 3');
+  await expect(page.getByRole('heading', { name: 'Hoje', exact: true })).toBeVisible();
 });

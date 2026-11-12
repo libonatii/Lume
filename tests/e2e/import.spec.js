@@ -143,7 +143,7 @@ test('duas contas não compartilham cursos importados', async ({ page }, testInf
   await page.getByRole('button', { name: 'Voltar à biblioteca' }).click();
   await expect(page.getByRole('button', { name: /^Curso da conta A,/ })).toBeVisible();
   await page.getByRole('button', { name: /^Menu da conta/ }).click();
-  await page.getByRole('menuitem', { name: 'Sair', exact: true }).click();
+  await page.getByRole('button', { name: 'Sair', exact: true }).click();
 
   await register(emailB);
   await page.getByRole('link', { name: 'Biblioteca', exact: true }).click();

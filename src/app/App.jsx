@@ -21,8 +21,13 @@ export default function App() {
   const [modal, setModal] = useState(null);
   const [authMode, setAuthMode] = useState('login');
   const toastTimer = useRef(null);
+  const stateRef = useRef(null);
   // `action` oferece um botão (ex.: Desfazer); a barra mostra quanto tempo ele continua disponível.
-  const notify = useCallback((message, { action = null } = {}) => {
+  // Escudo de foco silencia avisos não essenciais enquanto uma sessão ativa está em curso.
+  const notify = useCallback((message, { action = null, important = false } = {}) => {
+    const prefs = stateRef.current?.preferences;
+    const active = stateRef.current?.activeSession;
+    if (!important && !action && prefs?.focusShield && active && !active.paused) return;
     const duration = action ? 8000 : 6500;
     clearTimeout(toastTimer.current);
     setToast({ message, action, duration, id: Date.now() });
@@ -43,7 +48,6 @@ export default function App() {
   // Leitura de curso enviada pela extensão: abre a revisão da importação.
   const captureReady = useRef(false);
   captureReady.current = signedIn || Boolean(model.preview);
-  const stateRef = useRef(state);
   stateRef.current = state;
   useEffect(() => listenForExtension({
     capture: payload => {
@@ -94,14 +98,14 @@ export default function App() {
     catch { notify('Não foi possível sair da conta agora. Tente novamente.'); }
   }
   const current = ROUTE_BY_ID.get(route);
-  const routeContext = { model, state, open, go, notify, params, hash, authMode, setAuthMode, checkingSession };
+  const routeContext = { model, state, open, go, notify, params, hash, authMode, setAuthMode, checkingSession, onExit: exit };
   // Com conta, a biblioteca chega do servidor: até lá, a forma da tela, não um
   // "nenhum material" que ainda não é verdade. O perfil de uma amizade não depende dela.
   // A tela fica montada e só oculta (Activity), para a recarga depois de uma falha
   // não apagar o que a pessoa estava digitando.
   const libraryLoading = Boolean(model.account) && model.syncStatus === 'loading' && !(route === 'perfil' && params.get('id'));
   const skeleton = libraryLoading && current.loading;
-  const page = <>{model.saveError && <div role="alert" className="form-error form-error-block page-alert"><p>{model.saveError}</p><button type="button" className="text-button accent" onClick={() => model.retrySave().catch(() => notify('Não foi possível carregar a biblioteca. Tente novamente.'))}>Recarregar ou tentar novamente</button></div>}{skeleton && <PageSkeleton title={current.title} variant={current.loading}/>}<Activity mode={skeleton ? 'hidden' : 'visible'}><Suspense fallback={<PageSkeleton title={current.title} variant={current.loading || 'panel'}/>}>{current.render(routeContext)}</Suspense></Activity></>;
+  const page = <>{model.saveError && <div role="alert" className="form-error form-error-block page-alert"><p>{model.saveError}</p><button type="button" className="text-button accent" onClick={() => model.retrySave().catch(() => notify('Não foi possível carregar a biblioteca. Tente novamente.', { important: true }))}>Recarregar ou tentar novamente</button></div>}{skeleton && <PageSkeleton title={current.title} variant={current.loading}/>}<Activity mode={skeleton ? 'hidden' : 'visible'}><Suspense fallback={<PageSkeleton title={current.title} variant={current.loading || 'panel'}/>}>{current.render(routeContext)}</Suspense></Activity></>;
   const hideTabs = Boolean(current.hideTabs?.(routeContext));
   return <><Shell route={route} model={model} hideTabs={hideTabs} onComfort={() => open({ type: 'comfort' })} onHelp={() => open({ type: 'help' })} onRegister={() => setAuthMode('register')} onExit={exit}><Reminders account={model.account} syncStatus={model.syncStatus}/><motion.div className={`page page-${route}`} key={route} {...enter}>{page}</motion.div></Shell>
     <div className={`toast-region${toast ? '' : ' is-leaving'}`} role="status" aria-live="polite" aria-atomic="true"><AnimatePresence>{toast && <motion.div key="feedback" className="toast" initial={{ opacity: 0, y: 16, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8 }} transition={{ duration: .28, ease }}><span className="toast-icon"><Icon name="check"/></span><span>{toast.message}</span>{toast.action && <button className="toast-action" onClick={() => { clearTimeout(toastTimer.current); setToast(null); toast.action.run(); }}>{toast.action.label}</button>}{toast.action && <span className="toast-timer" key={toast.id} style={{ animationDuration: `${toast.duration}ms` }}/>}<button aria-label="Fechar aviso" className="icon-button" onClick={() => setToast(null)}><Icon name="close"/></button></motion.div>}</AnimatePresence></div>

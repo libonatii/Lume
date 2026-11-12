@@ -650,3 +650,442 @@
     align-items: flex-start;
   }
 }
+
+/* ============================================================================
+   Stitch Redesign Sereno: Landing, Entrar & Criar Conta (Nova Versão)
+   ============================================================================ */
+.stitch-landing {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.stitch-landing-header,
+.stitch-entry-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 45;
+  background: color-mix(in srgb, var(--bg) 86%, transparent);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+}
+.stitch-landing-header-inner,
+.stitch-entry-topbar-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  min-height: 4.5rem;
+  padding: 0.65rem clamp(1rem, 4vw, 3rem);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.brand-sub {
+  font-weight: 500;
+  color: var(--lume);
+}
+.stitch-landing-nav-actions,
+.stitch-entry-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+.stitch-mint-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.35rem;
+  border-radius: var(--radius-md);
+  border: 0;
+  background: linear-gradient(135deg, var(--mint), color-mix(in srgb, var(--lume) 75%, var(--mint)));
+  color: var(--lume-ink);
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  box-shadow: 0 0 24px color-mix(in srgb, var(--mint) 36%, transparent);
+  transition: transform 0.16s ease, filter 0.16s ease;
+}
+.stitch-mint-cta.large {
+  padding: 0.85rem 1.75rem;
+  font-size: 0.96rem;
+}
+.stitch-mint-cta:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+.stitch-landing-main {
+  padding: clamp(2.5rem, 6vw, 4.5rem) clamp(1rem, 4vw, 3rem);
+  flex: 1;
+}
+.landing-preview-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.landing-circle-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color 0.16s ease, color 0.16s ease;
+}
+.landing-circle-btn:hover {
+  color: var(--text);
+  border-color: var(--lume);
+}
+.landing-pause-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.58rem 1.15rem;
+  border-radius: var(--radius-md);
+  border: 0;
+  background: var(--lume);
+  color: var(--lume-ink);
+  font-weight: 700;
+  font-size: 0.84rem;
+  cursor: pointer;
+  box-shadow: 0 0 20px color-mix(in srgb, var(--lume) 35%, transparent);
+}
+.landing-sound-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
+}
+.landing-eq {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 1rem;
+}
+.landing-eq span {
+  width: 3px;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--mint);
+  transform-origin: bottom;
+}
+.landing-eq span:nth-child(1) { height: 45%; }
+.landing-eq span:nth-child(2) { height: 95%; }
+.landing-eq span:nth-child(3) { height: 65%; }
+.landing-eq.is-paused span {
+  opacity: 0.35;
+  height: 25%;
+}
+.stitch-landing-footer {
+  background: color-mix(in srgb, var(--bg-elevated) 92%, transparent);
+  border-top: 1px solid var(--border);
+  padding: 3rem clamp(1rem, 4vw, 3rem) 2rem;
+}
+.stitch-landing-footer-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: grid;
+  gap: 2rem;
+}
+.stitch-landing-footer-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: 2.5rem;
+}
+.stitch-landing-footer-brand p {
+  margin: 0.75rem 0 0;
+  max-width: 28rem;
+  font-size: 0.84rem;
+  color: var(--text-subtle);
+  line-height: 1.6;
+}
+.stitch-footer-logo-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+.stitch-landing-footer-cols {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+.stitch-landing-footer-cols > div {
+  display: grid;
+  align-content: start;
+  gap: 0.55rem;
+}
+.stitch-landing-footer-cols strong {
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text);
+}
+.stitch-landing-footer-cols a {
+  font-size: 0.82rem;
+  color: var(--text-subtle);
+}
+.stitch-landing-footer-cols a:hover {
+  color: var(--mint);
+}
+.stitch-landing-footer-bottom {
+  padding-top: 1.4rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.78rem;
+  color: var(--text-subtle);
+}
+.stitch-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--mint);
+  font-weight: 600;
+}
+
+/* Auth Layout (Entrar & Criar Conta Nova Versão) */
+.stitch-auth-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.stitch-auth-main {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: clamp(1.75rem, 4vw, 3.25rem) clamp(1rem, 4vw, 2rem);
+}
+.auth-stage.is-register {
+  width: min(40rem, 100%);
+}
+.stitch-auth-card {
+  gap: 1.35rem;
+}
+.stitch-auth-card.crest-card::before {
+  height: 4px;
+  background: linear-gradient(90deg, var(--lume), var(--mint), var(--reward));
+}
+.stitch-auth-emblem-head {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 0.55rem;
+}
+.stitch-auth-heading {
+  margin: 0.25rem 0 0;
+  font-size: clamp(1.5rem, 2.8vw, 1.95rem);
+}
+.stitch-auth-sub {
+  max-width: 32rem;
+  font-size: 0.9rem;
+}
+.field-hint {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-subtle);
+  margin-bottom: 0.2rem;
+}
+.field-inline-error {
+  display: none;
+  font-size: 0.76rem;
+  color: var(--danger);
+  margin-top: 0.25rem;
+}
+.input-icon {
+  flex-wrap: wrap;
+}
+.stitch-auth-form input:user-invalid {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--danger) 24%, transparent);
+}
+.stitch-auth-form input:user-invalid ~ .field-inline-error {
+  display: block;
+  flex-basis: 100%;
+}
+.stitch-auth-form input:user-valid {
+  border-color: color-mix(in srgb, var(--success) 65%, transparent);
+}
+.strength-inline-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--mint);
+}
+.auth-objectives {
+  display: grid;
+  gap: 0.55rem;
+}
+.auth-objectives-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.auth-objectives-head small {
+  font-size: 0.74rem;
+  color: var(--text-subtle);
+  font-weight: 500;
+}
+.auth-objectives-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+.objective-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--inner);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
+}
+.objective-card:hover {
+  background: var(--surface-2);
+}
+.objective-card.is-selected {
+  background: var(--surface-3);
+  border-color: color-mix(in srgb, var(--mint) 60%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--mint) 35%, transparent);
+}
+.objective-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-sm);
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  background: var(--lume-soft);
+  color: var(--lume);
+}
+.objective-card.tone-mint .objective-icon {
+  background: var(--mint-soft);
+  color: var(--mint);
+}
+.objective-card.tone-lilac .objective-icon {
+  background: color-mix(in srgb, var(--lilac) 16%, transparent);
+  color: var(--lilac);
+}
+.objective-card.tone-reward .objective-icon {
+  background: var(--reward-soft);
+  color: var(--reward);
+}
+.objective-copy {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+  flex: 1;
+}
+.objective-copy strong {
+  font-size: 0.82rem;
+  color: var(--text);
+}
+.objective-copy small {
+  font-size: 0.74rem;
+  color: var(--text-subtle);
+}
+.objective-check {
+  opacity: 0;
+  color: var(--mint);
+  flex: none;
+}
+.objective-card.is-selected .objective-check {
+  opacity: 1;
+}
+.auth-aux-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.auth-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.auth-check input {
+  margin-top: 0.18rem;
+  accent-color: var(--mint);
+}
+.inline-link {
+  padding: 0;
+  color: var(--text);
+  text-decoration: underline;
+  font-size: inherit;
+}
+.auth-terms-wrap {
+  display: grid;
+  gap: 0.5rem;
+}
+.auth-terms-note {
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius-md);
+  background: var(--inner);
+  border: 1px solid var(--border);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.auth-silent-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-subtle);
+}
+.stitch-entry-footer {
+  background: color-mix(in srgb, var(--bg-elevated) 85%, transparent);
+  border-top: 1px solid var(--border);
+}
+.stitch-entry-footer-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1rem clamp(1rem, 4vw, 3rem);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: var(--text-subtle);
+}
+.stitch-entry-footer-inner nav {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+.stitch-entry-footer-inner a:hover {
+  color: var(--text);
+}
+
+@media (max-width: 820px) {
+  .stitch-landing-footer-top {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .stitch-landing-footer-cols {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .auth-objectives-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
