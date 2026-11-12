@@ -276,10 +276,13 @@ input[type='checkbox'][switch]:focus-visible {
   outline-offset: 3px;
 }
 
-.stitch-entry-shell {
+.entry-shell.stitch-entry-shell {
   min-height: 100vh;
+  max-width: none;
+  padding: 0;
 }
-.stitch-entry-main {
+.entry-main.stitch-entry-main {
+  display: block;
   padding: 0;
   max-width: none;
 }
