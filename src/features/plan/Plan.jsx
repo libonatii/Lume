@@ -2,12 +2,14 @@ import { useMemo, useState } from 'react';
 import {
   DAY_MINUTE_OPTIONS, WEEKDAYS, buildSchedule, normalizePlan, suggestedAvailability,
 } from '../../../public/schedule-domain.js';
-import { studyPlan } from '../../../public/study-plan.js';
 import { TASK_PRIORITIES, localDate } from '../../../public/tasks-domain.js';
 import Icon from '../../ui/Icon.jsx';
-import { Button, Empty, Heading } from '../../ui/ui.jsx';
-import { Milestones, WeeklyRhythm } from '../library/Study.jsx';
-import { weeklyRhythm } from '../../../public/session-domain.js';
+import { Button, Empty, Progress } from '../../ui/ui.jsx';
+import SectionTabs from '../../app/SectionTabs.jsx';
+import { activeCompletions } from '../../../public/progress-domain.js';
+import { localDay, minutesByDay } from '../../../public/session-domain.js';
+import { CATEGORIES } from '../../../public/agenda-domain.js';
+import { minutesOf } from '../agenda/calendar-model.js';
 
 export function formatMinutes(total) {
   const value = Math.max(0, Math.round(total));
@@ -17,12 +19,6 @@ export function formatMinutes(total) {
   return minutes ? `${hours} h ${String(minutes).padStart(2, '0')} min` : `${hours} h`;
 }
 
-function dayLabel(date, today) {
-  if (date === today) return 'Hoje';
-  const label = new Date(`${date}T12:00:00`).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
-  return label.charAt(0).toUpperCase() + label.slice(1);
-}
-
 function shortDate(date) {
   return date ? new Date(`${date}T12:00:00`).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' }) : '';
 }
@@ -30,74 +26,94 @@ function shortDate(date) {
 function addDaysIso(isoDate, delta) {
   const base = new Date(`${isoDate}T12:00:00`);
   base.setDate(base.getDate() + delta);
-  return base.toISOString().slice(0, 10);
+  return localDay(base);
 }
 
-// Cronograma: o que estudar em cada dia disponível, recalculado a partir de hoje
-// sempre que o progresso, a disponibilidade, um prazo ou uma prioridade mudam.
-export function Schedule({ state, actions, open, notify }) {
+// Plano de Estudos (Stitch "Plano de Estudos (Agenda)"): faixa de datas com
+// Semana, Dia e Mês; distribuição dos blocos à esquerda; ritmo e marcos à
+// direita. Os blocos vêm do cronograma (aulas sem horário), da Agenda
+// (compromissos com horário) e das conclusões do dia. Nada aqui gera XP.
+export function Schedule({ state, actions, open, go, notify }) {
   const today = localDate();
   const plan = normalizePlan(state.plan);
   const schedule = useMemo(() => buildSchedule(state, { today }), [state, today]);
-  const [weekOffset, setWeekOffset] = useState(0);
-  const [viewMode, setViewMode] = useState('week');
-  const [selectedDay, setSelectedDay] = useState(today);
-  const [showConfig, setShowConfig] = useState(true);
+  const firstScheduled = schedule.days.find((day) => day.items.length)?.date || today;
+  const [view, setView] = useState('week');
+  const [anchor, setAnchor] = useState(today);
+  const [picked, setPicked] = useState(null);
+  const selected = picked || firstScheduled;
+  const setSelected = setPicked;
+  const [showConfig, setShowConfig] = useState(false);
 
   const hasAvailability = schedule.weeklyMinutes > 0;
   const lastFinish = schedule.courses.map((course) => course.finish).filter(Boolean).sort().at(-1);
-  const dayMap = useMemo(() => new Map(schedule.days.map((d) => [d.date, d])), [schedule.days]);
-  const weekDays = useMemo(() => {
-    const start = addDaysIso(today, weekOffset * 7);
-    return Array.from({ length: 7 }, (_, i) => {
-      const date = addDaysIso(start, i);
-      const entry = dayMap.get(date);
-      const dt = new Date(`${date}T12:00:00`);
-      const wd = dt.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '').slice(0, 3);
-      return {
-        date,
-        weekday: wd.charAt(0).toUpperCase() + wd.slice(1),
-        dayNum: String(dt.getDate()).padStart(2, '0'),
-        used: entry?.used || 0,
-        capacity: entry?.capacity ?? (plan.availability[dt.getDay()] || 0),
-        items: entry?.items || [],
-      };
-    });
-  }, [today, weekOffset, dayMap, plan.availability]);
-
-  const activeDay = weekDays.find((d) => d.date === selectedDay) || weekDays[0];
-  const visibleDays = viewMode === 'day'
-    ? (activeDay ? [activeDay] : [])
-    : viewMode === 'week'
-      ? weekDays.filter((d) => d.items.length > 0 || d.date === today)
-      : schedule.days.slice(0, 10);
+  const dayMap = useMemo(() => new Map(schedule.days.map((day) => [day.date, day])), [schedule.days]);
+  const studied = useMemo(() => new Map(minutesByDay(state, 60).map((day) => [day.date, day.minutes])), [state]);
+  const completions = useMemo(() => activeCompletions(state).filter((event) => !event.historical && event.at), [state]);
+  const weekStart = startOfWeek(anchor);
+  const week = Array.from({ length: 7 }, (_, index) => addDaysIso(weekStart, index));
   const firstItem = schedule.days[0]?.items[0];
-  const weekRangeLabel = `${shortDate(weekDays[0]?.date)} – ${shortDate(weekDays[6]?.date)}`;
 
+  function blocksOf(date) {
+    const planned = (dayMap.get(date)?.items || []).map((item) => ({ kind: 'lesson', key: item.lessonId, item }));
+    const appointments = (state.agenda || [])
+      .filter((entry) => entry.date === date && !entry.cancelled)
+      .sort((a, b) => (a.start || '99').localeCompare(b.start || '99'))
+      .map((entry) => ({ kind: 'appointment', key: entry.id, entry }));
+    const done = completions
+      .filter((event) => localDay(Date.parse(event.at)) === date)
+      .map((event) => ({ kind: 'done', key: event.id, event }));
+    return [...done, ...appointments, ...planned];
+  }
+  const summaryOf = (date) => {
+    const blocks = blocksOf(date);
+    const pending = blocks.filter((block) => block.kind === 'lesson' || (block.kind === 'appointment' && !block.entry.done));
+    const capacity = dayMap.get(date)?.capacity ?? (plan.availability[new Date(`${date}T12:00:00`).getDay()] || 0);
+    return { blocks, pending, capacity, rest: !capacity && !pending.length };
+  };
+  const weekBlocks = week.reduce((sum, date) => sum + summaryOf(date).pending.length, 0);
+
+  function move(direction) {
+    // "Hoje" volta ao automático: o primeiro dia com blocos a partir de hoje.
+    if (!direction) { setAnchor(today); setPicked(null); return; }
+    const next = view === 'day' ? addDaysIso(anchor, direction) : view === 'week' ? addDaysIso(anchor, direction * 7) : addMonthsIso(anchor, direction);
+    setAnchor(next);
+    if (view !== 'month') setSelected(view === 'day' ? next : addDaysIso(selected, direction * 7));
+  }
+  function choose(date) {
+    setSelected(date);
+    setAnchor(date);
+    if (view === 'month') setView('day');
+  }
   function postpone(item, date) {
     const result = actions.postponeLesson(item.lessonId, date);
     if (!result) return;
-    const { target } = result;
-    notify(`${item.title} foi para ${shortDate(target)}. As aulas seguintes de ${item.courseTitle} acompanham.`);
+    notify(`${item.title} foi para ${shortDate(result.target)}. As aulas seguintes de ${item.courseTitle} acompanham.`);
   }
 
+  const rangeLabel = view === 'day'
+    ? longDate(anchor)
+    : view === 'week'
+      ? weekLabel(week[0], week[6])
+      : capitalize(new Date(`${anchor}T12:00:00`).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }));
+  const nextDays = week.filter((date) => date > selected).slice(0, 3);
+
   return <div className="personal-root plan-root">
-    <Heading
-      title="Plano"
-      eyebrow="Plano de estudos · Cronograma"
-      actions={<>
-        <button type="button" className="button secondary" onClick={() => setShowConfig((v) => !v)} aria-expanded={showConfig}>
-          <Icon name="tune"/>Disponibilidade e prazos
-        </button>
-        <a className="button primary" href="#agendar"><Icon name="calendar-plus"/>Agendar sessão</a>
-      </>}
-    >
-      {!schedule.courses.length
-        ? 'Adicione um curso à biblioteca para montar o cronograma.'
-        : hasAvailability
-          ? <>Você reservou <strong>{formatMinutes(schedule.weeklyMinutes)} por semana</strong>. Faltam {formatMinutes(schedule.totalMinutes)} de estudo{lastFinish && !schedule.unscheduled ? <>, com conclusão prevista em <strong>{shortDate(lastFinish)}</strong></> : ''}.</>
-          : 'Defina quanto tempo você tem em cada dia da semana para distribuir as aulas.'}
-    </Heading>
+    <header className="plan-heading">
+      <div>
+        <h1 className="display">Plano de Estudos</h1>
+        <p className="lead">{!schedule.courses.length
+          ? 'Adicione um curso à biblioteca para montar sua rota de estudos.'
+          : hasAvailability
+            ? <>Sua rota de aprendizado com ritmo sustentável: <strong>{formatMinutes(schedule.weeklyMinutes)} por semana</strong>{lastFinish && !schedule.unscheduled ? <>, conclusão prevista em <strong>{shortDate(lastFinish)}</strong></> : ''}.</>
+            : 'Sua rota de aprendizado com ritmo sustentável e equilíbrio. Comece dizendo quanto tempo você tem.'}</p>
+      </div>
+      <div className="page-heading-actions">
+        <button type="button" className="button secondary" onClick={() => setShowConfig((value) => !value)} aria-expanded={showConfig || !hasAvailability} aria-controls="plan-settings"><Icon name="settings"/>Disponibilidade e prazos</button>
+        <a className="button primary" href="#agendar"><Icon name="calendar-plus"/>Agendar Sessão</a>
+      </div>
+    </header>
+    <SectionTabs route="plano"/>
 
     {schedule.conflicts.map((conflict) => <section key={conflict.courseId} className="card-surface plan-conflict" role="status" aria-labelledby={`conflict-${conflict.courseId}`}>
       <h2 id={`conflict-${conflict.courseId}`} className="title"><Icon name="flag"/>O prazo de {conflict.title} não cabe no plano atual</h2>
@@ -110,95 +126,71 @@ export function Schedule({ state, actions, open, notify }) {
       <p className="quiet-note">Nenhum ajuste é aplicado sem a sua escolha.</p>
     </section>)}
 
+    <section className="card-surface plan-controls" aria-label="Período">
+      <div className="plan-controls-range">
+        <div className="plan-stepper">
+          <button type="button" aria-label={view === 'day' ? 'Dia anterior' : view === 'week' ? 'Semana anterior' : 'Mês anterior'} onClick={() => move(-1)}><Icon name="chevron-left"/></button>
+          <span className="plan-range-label" aria-live="polite">{rangeLabel}</span>
+          <button type="button" aria-label={view === 'day' ? 'Próximo dia' : view === 'week' ? 'Próxima semana' : 'Próximo mês'} onClick={() => move(1)}><Icon name="chevron"/></button>
+        </div>
+        <button type="button" className="plan-today" onClick={() => move(0)}>Hoje</button>
+      </div>
+      <div className="plan-view-switch" role="group" aria-label="Visualização">
+        {[['week', 'Semana'], ['day', 'Dia'], ['month', 'Mês']].map(([id, label]) => <button key={id} type="button" aria-pressed={view === id} onClick={() => { setView(id); setAnchor(selected); }}>{label}</button>)}
+      </div>
+    </section>
+
     <div className="plan-layout">
       <div className="plan-main">
-        {!schedule.courses.length ? (
-          <Empty icon="calendar" title="Sem cursos em andamento." onAdd={() => open({ type: 'new' })}>
-            Importe um curso por link ou crie um material; o cronograma usa as aulas e as durações encontradas.
-          </Empty>
-        ) : !hasAvailability ? (
-          <section className="card-surface plan-setup">
-            <h2 className="title">Quanto tempo você tem por semana?</h2>
-            <p className="muted-text">O cronograma distribui {schedule.unscheduled} aulas na sua disponibilidade. Comece pela sugestão e ajuste os dias abaixo.</p>
-            <div className="action-row">
-              <Button onClick={() => { if (actions.useSuggestedAvailability()) notify('Disponibilidade definida. Ajuste os dias quando quiser.'); }}>
-                Usar segunda a sexta, {suggestedAvailability(state)[1]} min por dia
-              </Button>
-            </div>
-          </section>
-        ) : <>
-          <section className="card-surface stitch-plan-strip-card" aria-labelledby="plan-days-title">
-            <div className="stitch-plan-toolbar">
-              <div className="stitch-plan-nav-group">
-                <button type="button" className="icon-button" aria-label="Semana anterior" onClick={() => setWeekOffset((w) => Math.max(0, w - 1))} disabled={weekOffset === 0}>
-                  <Icon name="chevron"/>
-                </button>
-                <div className="stitch-plan-range">
-                  <h2 id="plan-days-title" className="title">Distribuição dos blocos</h2>
-                  <small>{weekRangeLabel}</small>
-                </div>
-                <button type="button" className="icon-button is-next" aria-label="Próxima semana" onClick={() => setWeekOffset((w) => Math.min(8, w + 1))}>
-                  <Icon name="chevron"/>
-                </button>
-              </div>
-              <div className="segmented" role="group" aria-label="Visualização do cronograma">
-                {[['week', 'Semana'], ['day', 'Dia'], ['list', 'Lista']].map(([id, label]) => (
-                  <button key={id} type="button" aria-pressed={viewMode === id} onClick={() => setViewMode(id)}>
-                    <span>{label}</span>
-                  </button>
-                ))}
-              </div>
+        {!schedule.courses.length && !(state.agenda || []).length
+          ? <Empty icon="calendar" title="Sem cursos em andamento." onAdd={() => open({ type: 'new' })}>Importe um curso por link ou crie um material; o cronograma usa as aulas e as durações encontradas.</Empty>
+          : <section className="card-surface plan-board" aria-labelledby="plan-days-title">
+            <div className="plan-board-head">
+              <h2 id="plan-days-title" className="title"><Icon name="layers"/>Distribuição dos blocos</h2>
+              <span className="muted-text">{view === 'month' ? 'Toque em um dia para ver os blocos' : `7 dias • ${weekBlocks} ${weekBlocks === 1 ? 'sessão estimada' : 'sessões estimadas'}`}</span>
             </div>
 
-            <div className="stitch-week-strip" role="group" aria-label="Dias da semana">
-              {weekDays.map((day) => {
-                const isSelected = activeDay?.date === day.date;
-                const isToday = day.date === today;
-                return <button
-                  key={day.date}
-                  type="button"
-                  className={`stitch-week-pill ${isSelected ? 'is-selected' : ''} ${isToday ? 'is-today' : ''}`}
-                  aria-pressed={isSelected}
-                  onClick={() => { setSelectedDay(day.date); if (viewMode === 'list') setViewMode('day'); }}
-                >
-                  <span className="stitch-week-wd">{day.weekday}</span>
-                  <strong className="stitch-week-num">{day.dayNum}</strong>
-                  <small className="stitch-week-load">{day.items.length ? `${day.items.length} · ${formatMinutes(day.used)}` : day.capacity ? 'livre' : 'pausa'}</small>
-                </button>;
-              })}
-            </div>
-          </section>
+            {!hasAvailability && schedule.courses.length > 0 && <div className="plan-setup">
+              <strong>Quanto tempo você tem por semana?</strong>
+              <p className="muted-text">O cronograma distribui {schedule.unscheduled} aulas na sua disponibilidade. Comece pela sugestão e ajuste os dias depois.</p>
+              <Button onClick={() => { if (actions.useSuggestedAvailability()) notify('Disponibilidade definida. Ajuste os dias quando quiser.'); }}>Usar segunda a sexta, {suggestedAvailability(state)[1]} min por dia</Button>
+            </div>}
 
-          <section className="plan-days">
-            {schedule.unscheduled > 0 && <p className="quiet-note">{schedule.unscheduled} aulas ficam além de seis meses</p>}
-            {visibleDays.length ? <ol className="plan-day-list">
-              {visibleDays.map((day) => <li key={day.date} className={`card-surface plan-day${day.date === today ? ' is-today' : ''}`}>
-                <div className="plan-day-head">
-                  <strong>{dayLabel(day.date, today)}</strong>
-                  <span className="soft-badge">{formatMinutes(day.used)} de {formatMinutes(day.capacity)}</span>
-                </div>
-                {day.items.length ? <ul className="plan-items">
-                  {day.items.map((item) => <li key={item.lessonId} className="plan-item">
-                    <span className="plan-item-copy">
-                      <strong>{item.title}</strong>
-                      <small className="todo-meta">{item.courseTitle} · {formatMinutes(item.minutes)} {item.durationKnown ? '(duração da fonte)' : '(estimativa)'}{item.overflow ? ' · maior que o tempo do dia' : ''}</small>
-                    </span>
-                    <div className="plan-item-actions">
-                      {item === firstItem && <Button onClick={() => open({ type: 'session', id: item.courseId, stepId: item.lessonId })}><Icon name="play"/>Estudar</Button>}
-                      <button type="button" className="text-button" aria-label={`Adiar ${item.title}`} onClick={() => postpone(item, day.date)}>Adiar</button>
-                    </div>
-                  </li>)}
-                </ul> : <p className="quiet-note">Nenhum bloco programado para este dia.</p>}
-              </li>)}
-            </ol> : <p className="muted-text">Nenhum bloco programado para os dias filtrados.</p>}
+            {view === 'month'
+              ? <MonthGrid anchor={anchor} today={today} selected={selected} summaryOf={summaryOf} onChoose={choose}/>
+              : <>
+                {view === 'week' && <div className="plan-week-strip" role="group" aria-label="Dias da semana">
+                  {week.map((date) => {
+                    const info = summaryOf(date);
+                    return <button key={date} type="button" className={`plan-week-day${date === today ? ' is-today' : ''}${date === selected ? ' is-selected' : ''}${info.rest ? ' is-rest' : ''}`} aria-pressed={date === selected} onClick={() => choose(date)} aria-label={`${longDate(date)}: ${info.pending.length} ${info.pending.length === 1 ? 'bloco' : 'blocos'}`}>
+                      <span>{weekdayShort(date)}</span>
+                      <strong>{Number(date.slice(8))}</strong>
+                      {date === today && <i aria-hidden="true"/>}
+                    </button>;
+                  })}
+                </div>}
+
+                <DayDetail date={selected} today={today} info={summaryOf(selected)} firstItem={firstItem} open={open} go={go} postpone={postpone}/>
+
+                {view === 'week' && nextDays.length > 0 && <div className="plan-next-days">
+                  {nextDays.map((date) => {
+                    const info = summaryOf(date);
+                    const subjects = [...new Set(info.pending.map((block) => block.kind === 'lesson' ? block.item.courseTitle : block.entry.title))];
+                    return <button key={date} type="button" className={`plan-mini-day${info.rest ? ' is-rest' : ''}`} onClick={() => choose(date)}>
+                      <span className="plan-mini-head"><strong>{weekdayLong(date)} • {Number(date.slice(8))}</strong><small>{info.rest ? 'Descanso' : `${info.pending.length} ${info.pending.length === 1 ? 'bloco' : 'blocos'}`}</small></span>
+                      <span className="plan-mini-copy">{info.rest ? 'Pausa sem cobrança' : subjects.length ? subjects.slice(0, 2).join(' & ') : 'Tempo livre'}</span>
+                    </button>;
+                  })}
+                </div>}
+              </>}
+            {schedule.unscheduled > 0 && hasAvailability && <p className="quiet-note">{schedule.unscheduled} aulas ficam além de seis meses.</p>}
             <p className="quiet-note">{schedule.criteria}</p>
-          </section>
-        </>}
+          </section>}
 
-        <section className={`card-surface plan-settings ${!hasAvailability || showConfig ? 'is-expanded' : 'is-compact'}`} aria-labelledby="plan-settings-title">
+        <section id="plan-settings" className={`card-surface plan-settings ${showConfig || !hasAvailability ? 'is-expanded' : 'is-compact'}`} aria-labelledby="plan-settings-title" hidden={!(showConfig || !hasAvailability)}>
           <div className="plan-settings-head">
             <h2 id="plan-settings-title" className="title">Disponibilidade e prazos</h2>
-            {hasAvailability && <button type="button" className="text-button" onClick={() => setShowConfig((v) => !v)}>{showConfig ? 'Recolher' : 'Editar horários'}</button>}
+            {hasAvailability && <button type="button" className="text-button" onClick={() => setShowConfig(false)}>Recolher</button>}
           </div>
           <div className="availability-grid" role="group" aria-label="Minutos por dia da semana">
             {WEEKDAYS.map((day) => <label key={day.id} className="field availability-day">{day.label}
@@ -225,30 +217,176 @@ export function Schedule({ state, actions, open, notify }) {
       </div>
 
       <aside className="plan-aside" aria-label="Ritmo e marcos">
-        <WeeklyRhythm rhythm={weeklyRhythm(state)}/>
-        <Milestones state={state}/>
-        <div className="card-surface plan-cadence-note">
-          <a className="text-link" href="#agenda">Ver todos os prazos no calendário completo<Icon name="arrow"/></a>
-          <p className="quiet-note">Dias sem estudo redistribuem as aulas seguintes sem penalidade.</p>
-        </div>
+        <WeekRhythm week={week} today={today} studied={studied} dayMap={dayMap} plan={plan}/>
+        <PlanMilestones state={state} schedule={schedule} today={today}/>
       </aside>
     </div>
   </div>;
 }
 
-// Roteiro: a próxima aula de cada curso ativo, com o motivo da ordem. Usa o
-// mesmo critério da página Hoje e do programa de desktop.
-export function Roadmap({ state, open }) {
-  const plan = studyPlan(state, { limit: 20 });
-  return <div className="personal-root">
-    <Heading title="Roteiro" eyebrow="Plano">{plan.criteria}</Heading>
-    {plan.courses.length ? <ol className="roadmap-list">
-      {plan.courses.map((course) => <li key={course.id} className="card-surface roadmap-item">
-        <span className="eyebrow">{course.reason.label} · {course.source}</span>
-        <h2 className="title">{course.next?.title || 'Sem aula pendente'}</h2>
-        <p className="muted-text">{course.title} · {course.remaining} de {course.total} restantes{course.partial ? ' · grade parcial' : ''}. {course.reason.detail}</p>
-        {course.next && <div className="action-row"><Button secondary onClick={() => open({ type: 'session', id: course.id, stepId: course.next.id })}>Estudar esta aula<Icon name="arrow"/></Button></div>}
-      </li>)}
-    </ol> : <Empty icon="calendar" title="Nenhum curso em andamento." onAdd={() => open({ type: 'new' })}>{plan.note}</Empty>}
+function DayDetail({ date, today, info, firstItem, open, go, postpone }) {
+  const doneCount = info.blocks.filter((block) => block.kind === 'done' || (block.kind === 'appointment' && block.entry.done)).length;
+  const current = info.blocks.find((block) => block.kind === 'lesson' || (block.kind === 'appointment' && !block.entry.done));
+  return <div className={`plan-day-detail${date === today ? ' is-today' : ''}`}>
+    <div className="plan-day-detail-head">
+      <span className="plan-day-chips"><span className="soft-badge">{date === today ? `Hoje • ${dayMonth(date)}` : `${weekdayLong(date)} • ${dayMonth(date)}`}</span><span className="muted-text">{info.pending.length} {info.pending.length === 1 ? 'sessão' : 'sessões'}</span></span>
+      {doneCount > 0 && <span className="tone-mint-text plan-done-count"><Icon name="check"/>{doneCount} {doneCount === 1 ? 'concluído' : 'concluídos'}</span>}
+    </div>
+    {info.blocks.length
+      ? <ul className="plan-items">{info.blocks.map((block) => {
+        if (block.kind === 'done') return <li key={block.key} className="plan-block is-done">
+          <span className="plan-block-icon tone-mint"><Icon name="check"/></span>
+          <span className="plan-item-copy"><strong>{block.event.title || 'Etapa concluída'}</strong><small className="todo-meta">{block.event.materialTitle || 'Conclusão registrada'}</small></span>
+          <span className="soft-badge tone-mint">Concluído</span>
+        </li>;
+        if (block.kind === 'appointment') {
+          const { entry } = block;
+          const active = block === current;
+          return <li key={block.key} className={`plan-block${entry.done ? ' is-done' : ''}${active ? ' is-current' : ''}`}>
+            <span className={`plan-block-icon ${entry.done ? 'tone-mint' : ''}`}><Icon name={entry.done ? 'check' : entry.category === 'exam' ? 'flag' : 'calendar'}/></span>
+            <span className="plan-item-copy"><strong>{entry.title}</strong><small className="todo-meta">{entry.start ? `${entry.start} – ${entry.end}` : 'Sem horário'} • {CATEGORIES[entry.category]}</small></span>
+            {entry.done ? <span className="soft-badge tone-mint">Concluído</span> : active && date === today && entry.category === 'study'
+              ? <Button onClick={() => go('foco')}><Icon name="play"/>Iniciar Foco</Button>
+              : <span className="muted-text">{entry.start && entry.end ? formatMinutes(minutesOf(entry.end) - minutesOf(entry.start)) : ''}</span>}
+          </li>;
+        }
+        const { item } = block;
+        return <li key={block.key} className={`plan-item plan-block${block === current ? ' is-current' : ''}`}>
+          <span className="plan-block-icon"><Icon name="book"/></span>
+          <span className="plan-item-copy"><strong>{item.title}</strong><small className="todo-meta">{item.courseTitle} · {formatMinutes(item.minutes)} {item.durationKnown ? '(duração da fonte)' : '(estimativa)'}{item.overflow ? ' · maior que o tempo do dia' : ''}</small></span>
+          <span className="plan-item-actions">
+            {item === firstItem && <Button onClick={() => open({ type: 'session', id: item.courseId, stepId: item.lessonId })}><Icon name="play"/>Estudar</Button>}
+            <button type="button" className="text-button" aria-label={`Adiar ${item.title}`} onClick={() => postpone(item, date)}>Adiar</button>
+          </span>
+        </li>;
+      })}</ul>
+      : <p className="quiet-note">{info.capacity ? 'Nenhum bloco neste dia. Aproveite o tempo livre ou agende uma sessão.' : 'Dia de descanso: nenhuma aula é distribuída aqui.'}</p>}
   </div>;
+}
+
+function MonthGrid({ anchor, today, selected, summaryOf, onChoose }) {
+  const first = `${anchor.slice(0, 7)}-01`;
+  const start = startOfWeek(first);
+  const days = Array.from({ length: 42 }, (_, index) => addDaysIso(start, index));
+  const month = anchor.slice(0, 7);
+  return <div className="plan-month" role="grid" aria-label="Mês">
+    {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map((label) => <span key={label} className="plan-month-label" role="columnheader">{label}</span>)}
+    {days.map((date) => {
+      const info = summaryOf(date);
+      return <button key={date} type="button" role="gridcell" className={`plan-month-day${date.slice(0, 7) !== month ? ' is-outside' : ''}${date === today ? ' is-today' : ''}${date === selected ? ' is-selected' : ''}${info.rest ? ' is-rest' : ''}`} onClick={() => onChoose(date)} aria-label={`${longDate(date)}: ${info.pending.length} ${info.pending.length === 1 ? 'bloco' : 'blocos'}`}>
+        <strong>{Number(date.slice(8))}</strong>
+        {info.pending.length > 0 && <small>{info.pending.length} {info.pending.length === 1 ? 'bloco' : 'blocos'}</small>}
+      </button>;
+    })}
+  </div>;
+}
+
+// Ritmo da semana exibida: horas declaradas até hoje e, nos dias seguintes, o
+// tempo planejado. A meta é a disponibilidade do Plano, sem cobrança.
+function WeekRhythm({ week, today, studied, dayMap, plan }) {
+  const goal = week.reduce((sum, date) => sum + (plan.availability[new Date(`${date}T12:00:00`).getDay()] || 0), 0);
+  const done = week.reduce((sum, date) => sum + (date <= today ? studied.get(date) || 0 : 0), 0);
+  const percent = goal ? Math.min(100, Math.round((done / goal) * 100)) : 0;
+  const values = week.map((date) => ({ date, minutes: date <= today ? studied.get(date) || 0 : dayMap.get(date)?.used || 0, rest: !(plan.availability[new Date(`${date}T12:00:00`).getDay()] || 0) }));
+  const max = Math.max(60, ...values.map((value) => value.minutes));
+  const activeDays = values.filter((value) => value.date <= today && value.minutes > 0).length;
+  const dailyGoal = goal ? Math.round(goal / Math.max(1, values.filter((value) => !value.rest).length)) : 0;
+  return <section className="card-surface plan-rhythm" aria-labelledby="plan-rhythm-title">
+    <div className="plan-card-head"><h2 id="plan-rhythm-title" className="title"><Icon name="heart"/>Ritmo da Semana</h2><span className="soft-badge tone-mint">Sustentável</span></div>
+    <div className="plan-meter">
+      <div className="plan-meter-head"><strong>{formatHours(done)}<span> / {goal ? `${formatHours(goal)} meta flexível` : 'sem meta definida'}</span></strong>{goal > 0 && <span className="tone-mint-text">{percent}%</span>}</div>
+      <Progress value={percent} max={100} tone="mint" label="Tempo estudado na semana"/>
+      <p className="muted-text">{activeDays ? `${activeDays} ${activeDays === 1 ? 'dia' : 'dias'} com estudo nesta semana, sem picos de sobrecarga.` : 'Nenhuma sessão registrada nesta semana ainda. Tudo bem.'}</p>
+    </div>
+    <div className="plan-load">
+      <div className="plan-load-head"><span>Carga diária (horas)</span>{dailyGoal > 0 && <span>Meta ideal: {formatHours(dailyGoal)}</span>}</div>
+      <div className="plan-load-bars" role="img" aria-label={`Carga diária: ${values.map((value) => `${weekdayShort(value.date)} ${value.minutes} minutos${value.date > today ? ' planejados' : ''}`).join(', ')}`}>
+        {values.map((value) => <span key={value.date} className={`plan-load-bar${value.date === today ? ' is-today' : value.date > today ? ' is-planned' : ''}${value.rest ? ' is-rest' : ''}`}>
+          <i style={{ height: `${Math.max(value.minutes ? 8 : 3, Math.round((value.minutes / max) * 100))}%` }}/>
+          <small>{weekdayShort(value.date).charAt(0)}</small>
+        </span>)}
+      </div>
+    </div>
+  </section>;
+}
+
+// Próximos marcos: provas e entregas da Agenda e prazos de curso do Plano.
+function PlanMilestones({ state, schedule, today }) {
+  const fromAgenda = (state.agenda || [])
+    .filter((entry) => !entry.cancelled && !entry.done && entry.date >= today && (entry.category === 'exam' || entry.category === 'delivery'))
+    .map((entry) => ({ id: entry.id, date: entry.date, title: entry.title, detail: CATEGORIES[entry.category], tone: entry.category === 'exam' ? 'warning' : 'lume', note: entry.start ? `Às ${entry.start}` : 'Dia inteiro' }));
+  const fromGoals = schedule.courses
+    .filter((course) => state.plan?.goals?.[course.courseId]?.deadline >= today)
+    .map((course) => {
+      const deadline = state.plan.goals[course.courseId].deadline;
+      const late = schedule.conflicts.some((conflict) => conflict.courseId === course.courseId);
+      return { id: `goal-${course.courseId}`, date: deadline, title: `Prazo de ${course.title}`, detail: `${course.remaining} ${course.remaining === 1 ? 'aula restante' : 'aulas restantes'}`, tone: late ? 'warning' : 'mint', note: late ? 'Não cabe no ritmo atual' : course.finish ? `Termina em ${shortDate(course.finish)}` : 'No ritmo atual' };
+    });
+  const items = [...fromAgenda, ...fromGoals].sort((a, b) => a.date.localeCompare(b.date)).slice(0, 3);
+  return <section className="card-surface plan-milestones" aria-labelledby="plan-milestones-title">
+    <div className="plan-card-head"><h2 id="plan-milestones-title" className="title"><Icon name="bell"/>Próximos Marcos</h2><span className="muted-text">{capitalize(new Date(`${today}T12:00:00`).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }))}</span></div>
+    {items.length
+      ? <ul className="plan-milestone-list">{items.map((item) => {
+        const days = Math.round((Date.parse(`${item.date}T12:00:00`) - Date.parse(`${today}T12:00:00`)) / 86400000);
+        const date = new Date(`${item.date}T12:00:00`);
+        return <li key={item.id} className={`plan-milestone tone-${item.tone}`}>
+          <span className="plan-milestone-date"><strong>{String(date.getDate()).padStart(2, '0')}</strong><small>{date.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}</small></span>
+          <span className="plan-milestone-copy">
+            <span className="plan-milestone-top"><strong>{item.title}</strong><small>{days === 0 ? 'Hoje' : days === 1 ? 'Amanhã' : `Faltam ${days} dias`}</small></span>
+            <small className="muted-text">{item.detail}</small>
+            <span className="plan-milestone-note"><i aria-hidden="true"/>{item.note}</span>
+          </span>
+        </li>;
+      })}</ul>
+      : <p className="muted-text">Nenhuma prova, entrega ou prazo pela frente. Defina prazos em Disponibilidade e prazos ou marque na Agenda.</p>}
+    <a className="text-link plan-milestones-link" href="#agenda">Ver todos os prazos no calendário completo<Icon name="arrow"/></a>
+  </section>;
+}
+
+function startOfWeek(date) {
+  const day = new Date(`${date}T12:00:00`).getDay();
+  return addDaysIso(date, day === 0 ? -6 : 1 - day);
+}
+
+function addMonthsIso(date, delta) {
+  const base = new Date(`${date.slice(0, 7)}-01T12:00:00`);
+  base.setMonth(base.getMonth() + delta);
+  return localDay(base);
+}
+
+function capitalize(text) {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function weekdayShort(date) {
+  return capitalize(new Date(`${date}T12:00:00`).toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '').slice(0, 3));
+}
+
+function weekdayLong(date) {
+  return capitalize(new Date(`${date}T12:00:00`).toLocaleDateString('pt-BR', { weekday: 'long' }).split('-')[0]);
+}
+
+function dayMonth(date) {
+  return new Date(`${date}T12:00:00`).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' });
+}
+
+function longDate(date) {
+  return capitalize(new Date(`${date}T12:00:00`).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }));
+}
+
+function weekLabel(from, to) {
+  const a = new Date(`${from}T12:00:00`);
+  const b = new Date(`${to}T12:00:00`);
+  const month = (value) => value.toLocaleDateString('pt-BR', { month: 'long' });
+  return a.getMonth() === b.getMonth()
+    ? `${a.getDate()} a ${b.getDate()} de ${capitalize(month(b))}, ${b.getFullYear()}`
+    : `${a.getDate()} de ${month(a)} a ${b.getDate()} de ${month(b)}, ${b.getFullYear()}`;
+}
+
+function formatHours(minutes) {
+  const total = Math.round(minutes);
+  const hours = Math.floor(total / 60);
+  const rest = total % 60;
+  if (!hours) return `${rest}m`;
+  return rest ? `${hours}h${String(rest).padStart(2, '0')}` : `${hours}h`;
 }

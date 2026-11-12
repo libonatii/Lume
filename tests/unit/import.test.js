@@ -3,7 +3,7 @@ import { materialSteps, materialStructure } from '../../public/material-model.js
 import assert from 'node:assert/strict';
 import {
   allLessonIds, applyCourseImport, canonicalUrl, completeLesson, courseSummary, findLessonByUrl,
-  deliveryCandidates, detectProvider, editalCoverage, lessonOrigin, normalizeImportUrl, normalizePayload,
+  detectProvider, editalCoverage, lessonOrigin, normalizeImportUrl, normalizePayload,
   providerCapabilities, revertLessonCompletion, completeLessonsThrough, nextLessonAfter, openLessons, pendingLessonsThrough,
 } from '../../public/import-domain.js';
 import {
@@ -375,13 +375,6 @@ test('cobertura de edital pede edição e fase e não inventa grade', () => {
   assert.equal(unknown.requested.exam, 'OAB');
   assert.match(unknown.message, /não há edital verificado/i);
   assert.equal(unknown.covered, undefined);
-});
-
-test('entregas do GitHub entram como sugestão que exige validação', () => {
-  const candidates = deliveryCandidates({ name: 'api', issues: [{ title: 'Implementar login', state: 'open', milestone: 'v1' }, { title: 'Fechada', state: 'closed' }] });
-  assert.equal(candidates.length, 1);
-  assert.equal(candidates[0].requiresValidation, true);
-  assert.match(candidates[0].note, /não significa projeto incompleto/i);
 });
 
 test('link colado é normalizado antes da detecção, sem inventar URL', () => {

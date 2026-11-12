@@ -28,7 +28,7 @@ test('prévia, dados legados, busca, filtros, teclado, curso e progresso', async
   oldState.supports = ['calm'];
   await seedAccount(page, oldState);
   await page.goto('/#hoje');
-  await expect(page.getByRole('heading', { name: 'Hoje', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Início', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Etapa 2', exact: true })).toBeVisible();
   await expect(page.getByText('Continuidade.', { exact: true })).toBeVisible();
   await expect(page.getByText('Modo Essencial', { exact: true })).toHaveCount(0);
@@ -92,7 +92,7 @@ test('prévia, dados legados, busca, filtros, teclado, curso e progresso', async
   }).toMatch(/^\/api\/media\/profiles\/[^/]+\/avatar-\d+\.(webp|png|jpg)\|\/api\/media\/profiles\/[^/]+\/header-\d+\.(webp|png|jpg)$/);
   await page.screenshot({ path: `data/lume-${testInfo.project.name}-profile.png`, fullPage: true });
   await page.getByRole('button', { name: /^Menu da conta/ }).click();
-  await page.getByRole('link', { name: 'Configurações', exact: true }).click();
+  await page.getByLabel('Opções do usuário').getByRole('link', { name: 'Configurações', exact: true }).click();
   await page.getByRole('combobox', { name: /^Tema/ }).selectOption('light');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await expect(page.getByText(/movimento reduzido|modo essencial/i)).toHaveCount(0);
@@ -116,7 +116,7 @@ test('cadastro, saída, login, sincronização e recuperação na API local', as
   await expect(page.getByLabel('Senha', { exact: true })).toHaveAttribute('type', 'text');
   await page.getByRole('button', { name: 'Criar minha conta' }).click();
   await page.getByRole('button', { name: 'Explorar sem personalizar agora' }).click();
-  await expect(page.getByRole('heading', { name: 'Hoje', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Início', exact: true })).toBeVisible();
   await expect(page.locator('#main > div')).toHaveCSS('opacity', '1');
   await page.screenshot({ path: `data/lume-${testInfo.project.name}-home.png`, fullPage: true });
   await page.getByRole('link', { name: 'Biblioteca', exact: true }).click();
@@ -133,7 +133,7 @@ test('cadastro, saída, login, sincronização e recuperação na API local', as
   await page.getByLabel('E-mail', { exact: true }).fill(email);
   await page.getByLabel('Senha', { exact: true }).fill('senha-local-teste-123');
   await page.getByRole('button', { name: 'Entrar e ir além' }).click();
-  await expect(page.getByRole('heading', { name: 'Hoje', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Início', exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'Biblioteca', exact: true }).click();
   await expect(page.getByRole('button', { name: /^Curso da minha conta,/ })).toBeVisible();
   await page.getByRole('button', { name: /^Menu da conta/ }).click();
@@ -166,9 +166,9 @@ test('jornada 3 configura ritmo e primeira matéria sem gerar XP', async ({ page
 
   // Etapa 4: amigos (opcional) -> concluir
   await expect(page.getByRole('heading', { name: 'Quer estudar com alguém?' })).toBeVisible();
-  await page.getByRole('button', { name: 'Concluir e ir para Hoje' }).click();
+  await page.getByRole('button', { name: 'Concluir e ir para o Início' }).click();
 
-  await expect(page.getByRole('heading', { name: 'Hoje', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Início', exact: true })).toBeVisible();
   await expect(page.getByText(/Algoritmos · Primeiro Caderno/).first()).toBeVisible();
 
   const state = await readAccount(page);
@@ -186,22 +186,24 @@ test('jornada 3 configura ritmo e primeira matéria sem gerar XP', async ({ page
   await expect(page.getByRole('button', { name: 'Retomar curso' })).toBeVisible();
   await page.getByRole('button', { name: 'Retomar curso' }).click();
   await page.getByRole('button', { name: 'Fechar janela' }).click();
-  // Cinco destinos no menu; as telas secundárias ficam nas abas de cada seção ou no menu da conta.
+  // Quatro destinos no menu; as telas secundárias ficam nas abas de cada seção ou no menu da conta.
   const menu = page.getByRole('navigation', { name: 'Navegação' });
-  await expect(menu.getByRole('link')).toHaveCount(5);
-  for (const [section, tab, heading] of [['Plano de Estudos', 'Roteiro', 'Roteiro'], ['Plano de Estudos', 'Tarefas', 'Tarefas'], ['Amigos', 'Ranking', 'Ranking']]) {
+  await expect(menu.getByRole('link')).toHaveCount(4);
+  for (const [section, tab, heading] of [['Plano de Estudos', 'Tarefas', 'Tarefas'], ['Amigos', 'Ranking', 'Ranking']]) {
     await menu.getByRole('link', { name: section, exact: true }).click();
     await page.getByRole('navigation', { name: `Seções de ${section}` }).getByRole('link', { name: tab, exact: true }).click();
     await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible();
   }
-  await menu.getByRole('link', { name: 'Conquistas', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Sua vitrine de conquistas', exact: true })).toBeVisible();
+  // Conquistas abre pelo menu da conta, na aba ao lado de Meu perfil.
   await page.getByRole('button', { name: /^Menu da conta/ }).click();
-  await page.getByRole('link', { name: 'Meu caminho', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Meu caminho', exact: true })).toBeVisible();
-  // O endereço antigo de Missões continua abrindo o Roteiro.
+  await page.getByLabel('Opções do usuário').getByRole('link', { name: 'Conquistas', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Sua vitrine de conquistas', exact: true })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Seções de Perfil' }).getByRole('link', { name: 'Meu caminho' })).toHaveCount(0);
+  // Endereços antigos: Missões e Roteiro abrem o Plano; Meu caminho abre Conquistas.
   await page.goto('/#missoes');
-  await expect(page.getByRole('heading', { name: 'Roteiro', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Plano de Estudos', exact: true })).toBeVisible();
+  await page.goto('/#historico');
+  await expect(page.getByRole('heading', { name: 'Sua vitrine de conquistas', exact: true })).toBeVisible();
 });
 
 
@@ -214,7 +216,7 @@ test('jornada 1 leva a uma primeira atividade concreta sem XP', async ({ page })
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Estrutura de Dados' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
-  await page.getByRole('button', { name: 'Concluir e ir para Hoje' }).click();
+  await page.getByRole('button', { name: 'Concluir e ir para o Início' }).click();
 
   const state = await readAccount(page);
   expect(state.onboarding.journey).toBe('starting');
@@ -234,11 +236,11 @@ test('jornada 2 permite pular matéria inicial e preservar escolhas de ritmo', a
   await page.getByRole('radio', { name: /Imersão Profunda/ }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Pular por enquanto' }).click();
-  await page.getByRole('button', { name: 'Concluir e ir para Hoje' }).click();
+  await page.getByRole('button', { name: 'Concluir e ir para o Início' }).click();
 
   const state = await readAccount(page);
   expect(state.onboarding.journey).toBe('sometimes');
   expect(state.preferences.dailyMinutes).toBe(180);
   expect(state.progress).toEqual([]);
-  await expect(page.getByRole('heading', { name: 'Hoje', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Início', exact: true })).toBeVisible();
 });

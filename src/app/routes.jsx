@@ -9,16 +9,14 @@ import Onboarding from '../features/account/Onboarding.jsx';
 import Tasks from '../features/plan/Tasks.jsx';
 import Icon from '../ui/Icon.jsx';
 
-// Telas fora do caminho inicial (entrada, Hoje e Biblioteca) carregam sob
+// Telas fora do caminho inicial (entrada, Início e Biblioteca) carregam sob
 // demanda: cada uma vira um pacote próprio e o primeiro acesso fica menor.
 // A Agenda leva o FullCalendar consigo. O App envolve a rota em Suspense.
 const named = (load, name) => lazy(() => load().then((module) => ({ default: module[name] })));
 const personal = () => import('../features/settings/Personal.jsx');
 const plan = () => import('../features/plan/Plan.jsx');
 const Achievements = named(personal, 'Achievements');
-const History = named(personal, 'History');
 const Preferences = named(personal, 'Preferences');
-const Roadmap = named(plan, 'Roadmap');
 const Schedule = named(plan, 'Schedule');
 const Friends = lazy(() => import('../features/social/Friends.jsx'));
 const Profile = lazy(() => import('../features/social/Profile.jsx'));
@@ -26,19 +24,19 @@ const Companion = lazy(() => import('../features/desktop/Companion.jsx'));
 const Agenda = lazy(() => import('../features/agenda/Agenda.jsx'));
 const Ranking = lazy(() => import('../features/social/Ranking.jsx'));
 const Messages = lazy(() => import('../features/social/Messages.jsx'));
-const GitHub = lazy(() => import('../features/library/GitHub.jsx'));
 const Subjects = lazy(() => import('../features/library/Subjects.jsx'));
 const FocusSession = lazy(() => import('../features/progress/FocusSession.jsx'));
 const ScheduleSession = lazy(() => import('../features/agenda/ScheduleSession.jsx'));
 const Landing = lazy(() => import('../features/account/Landing.jsx'));
 
-// Cinco destinos principais do menu (alinhados ao Stitch); telas secundárias ficam em abas ou no menu do perfil.
+// Quatro destinos no cabeçalho; as demais telas ficam em abas ou no menu da conta.
 export const SECTIONS = {
-  hoje: { label: 'Hoje', icon: 'home', home: 'hoje' },
+  hoje: { label: 'Início', icon: 'home', home: 'hoje' },
   biblioteca: { label: 'Biblioteca', icon: 'book', home: 'biblioteca' },
   plano: { label: 'Plano de Estudos', icon: 'calendar', home: 'plano' },
   amigos: { label: 'Amigos', icon: 'users', home: 'amigos' },
-  conquistas: { label: 'Conquistas', icon: 'trophy', home: 'conquistas' },
+  // Perfil, Conquistas e Configurações abrem pelo menu da conta, não pelo cabeçalho.
+  perfil: { label: 'Perfil', icon: 'user', home: 'perfil', nav: false },
 };
 
 // Telas de entrada: sem menu principal, com cabeçalho próprio.
@@ -48,7 +46,8 @@ export const ENTRY_ROUTES = new Set(['login', 'inicio', 'recuperar', 'redefinir'
 export const PUBLIC_ROUTES = new Set(['recuperar', 'redefinir', 'conheca']);
 
 // Endereços antigos continuam válidos: Missões virou o Roteiro dentro do Plano.
-export const ALIASES = { missoes: 'roteiro' };
+// Endereços antigos continuam válidos: Missões e Roteiro viraram o Plano; Meu caminho, Conquistas.
+export const ALIASES = { missoes: 'plano', roteiro: 'plano', historico: 'conquistas' };
 
 // Enquanto a sessão é verificada, o formulário não aparece: evita a impressão de estar deslogada.
 function SessionCheck() {
@@ -65,29 +64,26 @@ export const ROUTES = [
   { id: 'conheca', title: 'Conheça o Lume', render: (ctx) => <Landing go={ctx.go} setAuthMode={ctx.setAuthMode} signedIn={Boolean(ctx.model.account)}/> },
   { id: 'redefinir', title: 'Nova senha', render: (ctx) => <Recovery key={ctx.hash} reset notify={ctx.notify} go={ctx.go}/> },
 
-  { id: 'hoje', title: 'Hoje', loading: 'panel', section: 'hoje', render: (ctx) => <Home state={ctx.state} open={ctx.open} go={ctx.go} planActions={ctx.model.planActions} progressActions={ctx.model.progressActions} notify={ctx.notify} account={ctx.model.account} xp={ctx.model.xp}/> },
+  { id: 'hoje', title: 'Início', loading: 'panel', section: 'hoje', render: (ctx) => <Home state={ctx.state} open={ctx.open} go={ctx.go} planActions={ctx.model.planActions} progressActions={ctx.model.progressActions} notify={ctx.notify} account={ctx.model.account} xp={ctx.model.xp}/> },
   // Telas de ação sem aba própria: o menu continua marcando a seção de origem.
   { id: 'foco', title: 'Sessão de foco', section: 'hoje', hideTabs: () => true, render: (ctx) => <FocusSession state={ctx.state} actions={ctx.model.progressActions} settingsActions={ctx.model.settingsActions} open={ctx.open} go={ctx.go} notify={ctx.notify} account={ctx.model.account} xp={ctx.model.xp}/> },
 
   { id: 'biblioteca', title: 'Biblioteca', loading: 'cards', section: 'biblioteca', tab: 'Materiais', hideTabs: () => true, render: (ctx) => <Library state={ctx.state} open={ctx.open} go={ctx.go} actions={ctx.model.libraryActions}/> },
   { id: 'disciplinas', title: 'Disciplinas', loading: 'cards', section: 'biblioteca', tab: 'Disciplinas', render: (ctx) => <Subjects key={ctx.params.get('id') || 'todas'} state={ctx.state} actions={ctx.model.libraryActions} open={ctx.open} go={ctx.go} notify={ctx.notify} id={ctx.params.get('id') || ''}/> },
-  { id: 'github', title: 'GitHub', section: 'biblioteca', tab: 'GitHub', render: (ctx) => <GitHub actions={ctx.model.libraryActions} account={ctx.model.account} notify={ctx.notify} go={ctx.go}/> },
 
-  { id: 'plano', title: 'Plano de Estudos', loading: 'panel', section: 'plano', tab: 'Agenda da semana', render: (ctx) => <Schedule state={ctx.state} actions={ctx.model.planActions} agendaActions={ctx.model.agendaActions} progressActions={ctx.model.progressActions} open={ctx.open} go={ctx.go} notify={ctx.notify}/> },
-  { id: 'agenda', title: 'Calendário', section: 'plano', tab: 'Calendário completo', render: (ctx) => <Agenda key={ctx.hash} state={ctx.state} actions={ctx.model.agendaActions} taskActions={ctx.model.planActions} confirmSave={ctx.model.confirmSave} retrySave={ctx.model.retrySave} saveError={ctx.model.saveError} syncStatus={ctx.model.syncStatus} params={ctx.params} notify={ctx.notify}/> },
+  { id: 'plano', title: 'Plano de Estudos', loading: 'panel', section: 'plano', tab: 'Agenda', tabIcon: 'calendar', hideTabs: () => true, render: (ctx) => <Schedule go={ctx.go} state={ctx.state} actions={ctx.model.planActions} agendaActions={ctx.model.agendaActions} progressActions={ctx.model.progressActions} open={ctx.open} go={ctx.go} notify={ctx.notify}/> },
+  { id: 'agenda', title: 'Calendário', section: 'plano', tab: 'Calendário', tabIcon: 'layers', hideTabs: () => true, render: (ctx) => <Agenda key={ctx.hash} state={ctx.state} actions={ctx.model.agendaActions} taskActions={ctx.model.planActions} confirmSave={ctx.model.confirmSave} retrySave={ctx.model.retrySave} saveError={ctx.model.saveError} syncStatus={ctx.model.syncStatus} params={ctx.params} notify={ctx.notify}/> },
   { id: 'agendar', title: 'Agendar sessão', loading: 'panel', section: 'plano', hideTabs: () => true, render: (ctx) => <ScheduleSession state={ctx.state} actions={ctx.model.agendaActions} open={ctx.open} confirmSave={ctx.model.confirmSave} notify={ctx.notify} go={ctx.go}/> },
-  { id: 'tarefas', title: 'Tarefas', loading: 'panel', section: 'plano', tab: 'Tarefas', render: (ctx) => <Tasks state={ctx.state} actions={ctx.model.planActions} notify={ctx.notify} onSchedule={(task) => ctx.go(`agenda?tarefa=${encodeURIComponent(task.id)}`)}/> },
-  { id: 'roteiro', title: 'Roteiro', loading: 'panel', section: 'plano', tab: 'Roteiro', render: (ctx) => <Roadmap state={ctx.state} open={ctx.open}/> },
+  { id: 'tarefas', title: 'Tarefas', loading: 'panel', section: 'plano', tab: 'Tarefas', tabIcon: 'check', hideTabs: () => true, render: (ctx) => <Tasks state={ctx.state} actions={ctx.model.planActions} notify={ctx.notify} onSchedule={(task) => ctx.go(`agenda?tarefa=${encodeURIComponent(task.id)}`)}/> },
 
   { id: 'amigos', title: 'Amigos', section: 'amigos', tab: 'Contatos', render: (ctx) => <Friends account={ctx.model.account} notify={ctx.notify} go={ctx.go}/> },
   { id: 'mensagens', title: 'Mensagens', section: 'amigos', tab: 'Mensagens', render: (ctx) => <Messages account={ctx.model.account} state={ctx.state} notify={ctx.notify} go={ctx.go} contactId={ctx.params.get('com') || ''}/> },
   { id: 'ranking', title: 'Ranking', section: 'amigos', tab: 'Ranking', render: (ctx) => <Ranking account={ctx.model.account} xp={ctx.model.xp} refreshXP={ctx.model.refreshXP} notify={ctx.notify} go={ctx.go}/> },
 
-  { id: 'conquistas', title: 'Conquistas', loading: 'cards', section: 'conquistas', render: (ctx) => <Achievements state={ctx.state} account={ctx.model.account} xp={ctx.model.xp}/> },
 
   // Perfil de uma amizade (#perfil?id=) não mostra as abas da própria conta.
   { id: 'perfil', title: 'Perfil', loading: 'panel', section: 'perfil', tab: 'Meu perfil', hideTabs: (ctx) => Boolean(ctx.params.get('id')), render: (ctx) => <Profile id={ctx.params.get('id') || ''} state={ctx.state} actions={ctx.model.settingsActions} account={ctx.model.account} notify={ctx.notify} go={ctx.go} xp={ctx.model.xp}/> },
-  { id: 'historico', title: 'Meu caminho', loading: 'panel', section: 'perfil', tab: 'Meu caminho', render: (ctx) => <History state={ctx.state} account={ctx.model.account} xp={ctx.model.xp} refreshXP={ctx.model.refreshXP} notify={ctx.notify}/> },
+  { id: 'conquistas', title: 'Conquistas', loading: 'cards', section: 'perfil', tab: 'Conquistas', render: (ctx) => <Achievements state={ctx.state} account={ctx.model.account} xp={ctx.model.xp}/> },
   { id: 'configuracoes', title: 'Configurações', loading: 'panel', section: 'perfil', tab: 'Configurações', render: (ctx) => <Preferences state={ctx.state} actions={ctx.model.settingsActions} libraryActions={ctx.model.libraryActions} account={ctx.model.account} notify={ctx.notify} go={ctx.go} xp={ctx.model.xp} refreshXP={ctx.model.refreshXP} onPersonalize={() => ctx.go('inicio')}/> },
 
   { id: 'aplicativo', title: 'Instalar aplicativo', render: (ctx) => <Companion account={ctx.model.account} notify={ctx.notify} go={ctx.go}/> },
@@ -96,7 +92,7 @@ export const ROUTES = [
 export const ROUTE_BY_ID = new Map(ROUTES.map((route) => [route.id, route]));
 
 export function tabsOf(sectionKey) {
-  return ROUTES.filter((route) => route.section === sectionKey && route.tab).map((route) => [route.id, route.tab]);
+  return ROUTES.filter((route) => route.section === sectionKey && route.tab).map((route) => [route.id, route.tab, route.tabIcon]);
 }
 
 export function sectionOf(routeId) {

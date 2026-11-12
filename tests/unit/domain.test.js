@@ -3,7 +3,7 @@ import { materialSteps, stepUnits } from '../../public/material-model.js';
 import assert from 'node:assert/strict';
 import { createInitialState, restoreState, completeMission, totalXP, courseProgress, courseStatus, achievements, addCourse, safeCourseURL, weekCount } from '../../public/domain.js';
 import { nextAction } from '../../public/study-plan.js';
-import { studyRhythm, startJourney, saveOnboardingAnswer, completeJourney, normalizeOnboarding, addMaterial, journeyPlan, STATE_VERSION } from '../../public/domain.js';
+import { STUDY_GOALS, studyRhythm, startJourney, saveOnboardingAnswer, completeJourney, normalizeOnboarding, addMaterial, journeyPlan, STATE_VERSION } from '../../public/domain.js';
 import { completedUnitIds, isCompleted } from '../../public/progress-domain.js';
 
 // Estado de teste com trilhas próprias. A biblioteca real começa vazia.
@@ -249,4 +249,13 @@ test('documentos antigos são recusados sem modificar o objeto original', () => 
   const before = JSON.stringify(v1);
   assert.throws(() => restoreState(v1), /incompatível/);
   assert.equal(JSON.stringify(v1), before);
+});
+
+test('objetivo de estudo do cadastro sobrevive à restauração só com ids conhecidos', () => {
+  for (const goal of STUDY_GOALS) {
+    const state = createInitialState();
+    assert.equal(restoreState({ ...state, preferences: { ...state.preferences, studyGoal: goal } }).preferences.studyGoal, goal);
+  }
+  const state = createInitialState();
+  assert.equal(restoreState({ ...state, preferences: { ...state.preferences, studyGoal: 'grad' } }).preferences.studyGoal, '');
 });

@@ -55,7 +55,7 @@ function NoticeDialog({ icon, tone = '', title, children, close }) {
 const SIMPLE = {
   comfort: (props) => <ComfortDialog {...props}/>,
   help: ({ close }) => <NoticeDialog icon="help" title="Um começo simples" close={close}>Entre na conta ou explore a prévia. Escolha seu ritmo, adicione materiais e retome seus estudos pela biblioteca.</NoticeDialog>,
-  break: ({ close }) => <NoticeDialog icon="leaf" tone="tone-mint" title="Pausa registrada." close={close}>O progresso está salvo e nenhuma etapa foi marcada como concluída. Ao voltar, retome pela próxima ação em Hoje.</NoticeDialog>,
+  break: ({ close }) => <NoticeDialog icon="leaf" tone="tone-mint" title="Pausa registrada." close={close}>O progresso está salvo e nenhuma etapa foi marcada como concluída. Ao voltar, retome pela próxima ação no Início.</NoticeDialog>,
 };
 
 export function ModalContent({ modal, state, settingsActions, libraryActions, progressActions, open, close, notify, go, account }) {

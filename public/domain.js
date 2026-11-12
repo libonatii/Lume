@@ -221,6 +221,9 @@ export function skipJourney(state, now = new Date().toISOString()) {
   return { ...state, onboarded: true, onboarding: { ...emptyOnboarding(), status: 'done', finishedAt: now } };
 }
 
+// Objetivos de estudo escolhidos no cadastro ou no onboarding. A tela usa os mesmos ids.
+export const STUDY_GOALS = Object.freeze(['college', 'exams', 'research', 'personal']);
+
 export function completeJourney(state) {
   const current = normalizeOnboarding(state.onboarding);
   const rhythm = STUDY_RHYTHMS.find((item) => item.id === current.journey);
@@ -230,7 +233,7 @@ export function completeJourney(state) {
     ? answers.dailyMinutes : state.preferences.dailyMinutes;
   const soundscape = ['off', 'rain', 'pink', 'white'].includes(answers.soundscape)
     ? answers.soundscape : state.preferences.soundscape;
-  const studyGoal = ['college', 'exams', 'research', 'personal'].includes(answers.studyGoal)
+  const studyGoal = STUDY_GOALS.includes(answers.studyGoal)
     ? answers.studyGoal : state.preferences.studyGoal;
   return {
     ...state,
@@ -713,7 +716,7 @@ export function restoreState(raw) {
         soundscape: ['off', 'rain', 'pink', 'white'].includes(preferences.soundscape) ? preferences.soundscape : 'off',
         focusShield: preferences.focusShield === true,
         focusNotes: typeof preferences.focusNotes === 'string' ? preferences.focusNotes.slice(0, 4000) : '',
-        studyGoal: ['college', 'exams', 'research', 'personal'].includes(preferences.studyGoal) ? preferences.studyGoal : '',
+        studyGoal: STUDY_GOALS.includes(preferences.studyGoal) ? preferences.studyGoal : '',
         sharing: {
           library: preferences.sharing?.library !== false,
           queue: preferences.sharing?.queue !== false,

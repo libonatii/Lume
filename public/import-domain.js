@@ -668,24 +668,6 @@ export function revertLessonCompletion(state, courseId, lessonId, { now = new Da
   return { state: result.state, reverted: result.reverted };
 }
 
-export function deliveryCandidates(repository) {
-  // Estrutura de entrada esperada: { name, readme, issues: [{ title, state, milestone }], milestones: [...] }
-  // Sem conexão real, devolvemos apenas candidatos marcados como sugestão.
-  if (!repository || typeof repository !== 'object') return [];
-  const issues = Array.isArray(repository.issues) ? repository.issues : [];
-  return issues
-    .filter((issue) => issue && issue.state !== 'closed' && cleanTitle(issue.title))
-    .slice(0, 30)
-    .map((issue) => ({
-      id: `gh_${stableHash(`${repository.name || ''}|${issue.title}`)}`,
-      title: cleanTitle(issue.title, 180),
-      milestone: cleanTitle(issue.milestone, 120) || null,
-      kind: 'suggestion',
-      requiresValidation: true,
-      note: 'Sugestão a partir de uma issue aberta. Issue aberta não significa projeto incompleto.',
-    }));
-}
-
 // ---------------- Edital ----------------
 // Registro de editais verificados. Fica vazio de propósito: preencher com um
 // edital exige conferir a fonte oficial e a data. Enquanto não houver entrada,

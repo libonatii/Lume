@@ -62,10 +62,10 @@ export default function StudyDialog({ modal, state, libraryActions, progressActi
       <div className={`dialog-emblem ${modal.preparation ? 'tone-mint' : ''}`}><Icon name={modal.preparation ? 'sprout' : 'spark'}/></div>
       <h2 id="dialog-title" className="headline">{modal.preparation ? 'Material preparado.' : modal.stepTitle ? `Você concluiu ${modal.stepTitle}.` : 'Etapa concluída.'}</h2>
       <p className="muted-text">{modal.preparation ? 'A etapa continua pendente: o avanço é registrado quando você a conclui.' : nextLine(state)}</p>
-      <p className="quiet-note">Progresso registrado. Em uma conta, o XP elegível é confirmado pelo servidor e aparece em Meu caminho; na prévia, ele não vale para ranking. Preparação não concede XP.</p>
+      <p className="quiet-note">Progresso registrado. Em uma conta, o XP elegível é confirmado pelo servidor e aparece no seu nível e em Conquistas; na prévia, ele não vale para ranking. Preparação não concede XP.</p>
       {state.preferences.gamification && modal.xp > 0 && <span className="success-xp"><Icon name="spark"/>+{modal.xp} XP de legado</span>}
       {modal.award && state.preferences.gamification && <div className="new-achievement"><Icon name={modal.award.icon}/><strong>{modal.award.title}</strong></div>}
-      <Button className="full-width" onClick={() => { close(); go('hoje'); }}>Voltar para Hoje<Icon name="arrow"/></Button>
+      <Button className="full-width" onClick={() => { close(); go('hoje'); }}>Voltar ao Início<Icon name="arrow"/></Button>
       {modal.preparation && <button className="text-button centered" onClick={() => open({ type: 'session', id: modal.id })}>Quero continuar a etapa</button>}
     </div>
   </div>;

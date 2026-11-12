@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import Icon from '../../ui/Icon.jsx';
-import { AnimatedNumber, Button, Cover, Glow, Heading, Progress, Skeleton, stagger } from '../../ui/ui.jsx';
+import { AnimatedNumber, Button, Cover, Heading, Progress, Skeleton, stagger } from '../../ui/ui.jsx';
 import { api, apiError } from '../../lib/api.js';
 import { buildProfile } from '../../../public/profile-domain.js';
 import { MAX_PROFILE_BIO_LENGTH, studyRhythm } from '../../../public/domain.js';
@@ -134,11 +134,10 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
   return <div className="personal-root steam-profile-root">
     {/* Cabeçalho / vitrine superior estilo Steam */}
     <section
-      className={`steam-hero ${customization.header ? 'has-custom-header' : ''}`}
+      className={`steam-hero crest-card ${customization.header ? 'has-custom-header' : ''}`}
       style={customization.header ? { '--profile-header-image': `url(${customization.header})` } : undefined}
       aria-labelledby="profile-user-title"
     >
-      {!customization.header && <Glow palette="lume"/>}
       <div className="steam-hero-backdrop" aria-hidden="true"/>
 
       <div className="steam-hero-inner">
@@ -162,12 +161,12 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
 
         {/* Identidade + Bio em tópicos estilo Steam */}
         <div className="steam-identity">
-          <span className="eyebrow on-glow">{isSelf ? 'Seu perfil como os amigos veem' : 'Perfil de amigo'}</span>
+          <span className="soft-badge tone-mint"><span className="soft-dot" aria-hidden="true"/>{isSelf ? 'Seu perfil como os amigos veem' : 'Perfil de amigo'}</span>
           <h1 id="profile-user-title" className="display steam-persona-name">{user.name}</h1>
-          {view.titles?.length > 0 && <section aria-label="Cargos de estudo">
-            <h2>Cargos de estudo</h2>
-            <p className="muted-text">Títulos por avanço real. Todas as funcionalidades estão disponíveis para todos os cargos.</p>
-            <ul>{view.titles.map((item) => <li key={item.id}><strong>{item.title}</strong> — {item.criterion}</li>)}</ul>
+          {view.titles?.length > 0 && <section className="profile-titles" aria-label="Cargos de estudo">
+            <h2 className="metric-label">Cargos de estudo</h2>
+            <ul className="soft-badges">{view.titles.map((item) => <li key={item.id} className="soft-badge tone-reward" title={item.criterion}><Icon name="trophy"/><strong>{item.title}</strong><span className="profile-title-criterion">· {item.criterion}</span></li>)}</ul>
+            <p className="quiet-note">Títulos por avanço real. Todas as funcionalidades estão disponíveis para todos os cargos.</p>
           </section>}
           <p className="steam-subname">
             {isSelf
@@ -376,7 +375,7 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
         {/* Vitrine 3: Na fila e Concluídos (mantém compatibilidade com os recortes do perfil) */}
         <div className="profile-grid">
           <section className="card-surface profile-section">
-            <div className="panel-title"><span className="pace-icon"><Icon name="flag"/></span><div><h2 className="title">Na fila</h2><p className="muted-text">O roteiro que a pessoa vê em Hoje.</p></div></div>
+            <div className="panel-title"><span className="pace-icon"><Icon name="flag"/></span><div><h2 className="title">Na fila</h2><p className="muted-text">O roteiro que a pessoa vê no Início.</p></div></div>
             {queue.length > 0 ? <ol className="profile-queue">
               {queue.map((step, index) => <li key={`${step.course}-${step.lesson}-${index}`}>
                 <span className="profile-queue-index">{index + 1}</span>
@@ -476,8 +475,8 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
             <button type="button" className="steam-side-nav-btn" onClick={() => go('biblioteca')}>
               <span>Abrir biblioteca</span><Icon name="arrow"/>
             </button>
-            <button type="button" className="steam-side-nav-btn" onClick={() => go('historico')}>
-              <span>Meu caminho completo</span><Icon name="arrow"/>
+            <button type="button" className="steam-side-nav-btn" onClick={() => go('conquistas')}>
+              <span>Ver minhas conquistas</span><Icon name="arrow"/>
             </button>
           </>}
         </nav>

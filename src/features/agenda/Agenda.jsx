@@ -11,6 +11,7 @@ import { CATEGORIES, agendaSuggestions, validDate, shiftDate } from '../../../pu
 import { localDate } from '../../../public/tasks-domain.js';
 import { Button } from '../../ui/ui.jsx';
 import Icon from '../../ui/Icon.jsx';
+import SectionTabs from '../../app/SectionTabs.jsx';
 import { requestNotifications } from './Reminders.jsx';
 import { calendarEvent, calendarPatch, emptyDraft } from './calendar-model.js';
 import AppointmentEditor from './AppointmentEditor.jsx';
@@ -174,6 +175,7 @@ export default function Agenda({ state, actions, taskActions, confirmSave, retry
       </div>
       {settings && <section className="card-surface agenda-notification-settings"><h2 className="title">Lembretes</h2><p>Avisos no Lume e no computador enquanto o site ou aplicativo estiver executando, com rede. Avisos vencidos há até 15 minutos são recuperados uma vez por conta. Na prévia, os lembretes não são enviados.</p><Button secondary onClick={async () => { try { setPermission(await requestNotifications()); } catch { setPermission('denied'); } }}>Ativar notificações no computador</Button><p role="status">{permission === 'granted' ? 'Notificações autorizadas neste dispositivo.' : permission === 'denied' ? 'Notificações bloqueadas. Altere a permissão do site; os avisos internos continuam disponíveis.' : permission === 'unsupported' ? 'Este ambiente não oferece notificações do sistema.' : 'Notificações do computador ainda não autorizadas.'}</p></section>}
     </header>
+    <SectionTabs route="agenda"/>
     <div className="agenda-toolbar">
       <div className="agenda-period">
         <div className="agenda-nav-group"><button type="button" aria-label="Período anterior" onClick={() => navigate(-1)}><Icon name="chevron-left"/></button><button type="button" onClick={() => navigate(0)}>Hoje</button><button type="button" aria-label="Próximo período" onClick={() => navigate(1)}><Icon name="chevron"/></button></div>

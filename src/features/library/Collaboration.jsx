@@ -70,7 +70,7 @@ export function CollaborationPanel({ course, account, notify }) {
   if (!account) return <section className="collab-panel"><p className="inline-note"><Icon name="lock"/><span>Convites de colaboração exigem conta e amizade aceita.</span></p></section>;
 
   return <section className="collab-panel" aria-labelledby="collab-title">
-    <div className="panel-title"><span className="pace-icon"><Icon name="users"/></span><div><h3 id="collab-title" className="title">Colaborar nesta entrega</h3><p className="muted-text">Convide uma amizade para ajudar em uma entrega específica. Aceitar não copia o projeto, não concede acesso ao GitHub e não gera XP.</p></div></div>
+    <div className="panel-title"><span className="pace-icon"><Icon name="users"/></span><div><h3 id="collab-title" className="title">Colaborar nesta entrega</h3><p className="muted-text">Convide uma amizade para ajudar em uma entrega específica. Aceitar não copia o projeto, não concede acesso a repositórios e não gera XP.</p></div></div>
     {friends.length === 0
       ? <p className="inline-note"><Icon name="users"/><span>Convide alguém na página Amigos para poder colaborar.</span></p>
       : <form className="form-stack" onSubmit={send}>

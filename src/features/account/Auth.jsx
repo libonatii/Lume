@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import Icon from '../../ui/Icon.jsx';
 import { Button, Logo, enter } from '../../ui/ui.jsx';
 import { api, apiError } from '../../lib/api.js';
+import { STUDY_GOALS } from '../../../public/domain.js';
 
 // Força da senha só como orientação visual; a regra de verdade é a do servidor
 // (8 a 72 bytes). Não bloqueia o envio.
@@ -13,12 +14,14 @@ function passwordStrength(value) {
   return { score, label: ['Digite uma senha', 'Fraca', 'Razoável', 'Boa', 'Forte e protegida'][score] };
 }
 
-const OBJECTIVES = [
-  ['grad', 'book', 'Faculdade & Graduação', 'Aulas, provas e TCC', 'mint'],
-  ['concursos', 'gavel', 'Concursos Públicos', 'Editais e rendimento', 'lume'],
-  ['pos', 'science', 'Pós & Pesquisa', 'Mestrado e artigos', 'lilac'],
-  ['autonomia', 'leaf', 'Desenvolvimento Pessoal', 'Leituras e idiomas', 'reward'],
-];
+// Um objetivo por id de STUDY_GOALS (public/domain.js): outro id some ao recarregar.
+const OBJECTIVE_COPY = {
+  college: ['book', 'Faculdade & Graduação', 'Aulas, provas e TCC', 'mint'],
+  exams: ['gavel', 'Concursos Públicos', 'Editais e rendimento', 'lume'],
+  research: ['science', 'Pós & Pesquisa', 'Mestrado e artigos', 'lilac'],
+  personal: ['leaf', 'Desenvolvimento Pessoal', 'Leituras e idiomas', 'reward'],
+};
+const OBJECTIVES = STUDY_GOALS.map((id) => [id, ...OBJECTIVE_COPY[id]]);
 
 const TRUST_LOGIN = [
   ['leaf', 'Espaço sem distrações'],
@@ -37,9 +40,8 @@ export function Login({ model, mode, setMode, go, notify }) {
   const [busy, setBusy] = useState(false);
   const [visible, setVisible] = useState(false);
   const [password, setPassword] = useState('');
-  const [studyGoal, setStudyGoal] = useState('grad');
+  const [studyGoal, setStudyGoal] = useState('college');
   const [acceptedTerms, setAcceptedTerms] = useState(true);
-  const [rememberDevice, setRememberDevice] = useState(true);
   const [termsOpen, setTermsOpen] = useState(false);
 
   const registering = mode === 'register';
@@ -100,7 +102,7 @@ export function Login({ model, mode, setMode, go, notify }) {
 
     <div className="stitch-auth-main">
       <div className={`auth-stage ${registering ? 'is-register' : ''}`}>
-        <section className="auth-card crest-card stitch-auth-card" aria-labelledby="login-title">
+        <section className="auth-card crest-card stitch-auth-card" aria-labelledby="welcome-title">
           <div className="stitch-auth-emblem-head">
             <span className="auth-emblem"><Logo size={48}/></span>
             <span className="soft-badge tone-mint">
@@ -138,10 +140,11 @@ export function Login({ model, mode, setMode, go, notify }) {
           </div>
 
           <motion.div key={mode} {...enter}>
-            <div className="auth-title">
-              <h2 id="login-title" className="title">{registering ? 'Vamos criar seu espaço.' : 'Bem-vindo de volta ao Lume.'}</h2>
-              <p>{registering ? 'Seu nome, um e-mail e uma senha.' : 'Seu próximo aprendizado está esperando por você.'}</p>
-            </div>
+            {/* No cadastro o título do cartão já apresenta a tela, como na versão nova do Stitch. */}
+            {!registering && <div className="auth-title">
+              <h2 id="login-title" className="title">Bem-vindo de volta ao Lume.</h2>
+              <p>Seu próximo aprendizado está esperando por você.</p>
+            </div>}
 
             <form id="auth-form" className="form-stack stitch-auth-form" onSubmit={submit} aria-busy={busy}>
               {registering && <div className="field">
@@ -249,16 +252,7 @@ export function Login({ model, mode, setMode, go, notify }) {
                 </div>
               </div>}
 
-              {!registering ? <div className="auth-aux-row">
-                <label className="auth-check">
-                  <input type="checkbox" checked={rememberDevice} onChange={e => setRememberDevice(e.target.checked)}/>
-                  <span>Manter conectado neste dispositivo</span>
-                </label>
-                <span className="auth-silent-badge">
-                  <span className="soft-dot tone-mint-text" aria-hidden="true"/>
-                  Modo Silencioso
-                </span>
-              </div> : <div className="auth-terms-wrap">
+              {registering && <div className="auth-terms-wrap">
                 <label className="auth-check">
                   <input type="checkbox" checked={acceptedTerms} onChange={e => setAcceptedTerms(e.target.checked)}/>
                   <span>
@@ -282,6 +276,7 @@ export function Login({ model, mode, setMode, go, notify }) {
             </form>
           </motion.div>
 
+          {registering && <p className="auth-switch">Já faz parte do Lume? <button type="button" className="text-button accent" onClick={() => { setMode('login'); setError(''); }}>Entrar na sua conta</button></p>}
           <div className="auth-preview">
             <span className="divider-label">ou</span>
             <p>

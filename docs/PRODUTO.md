@@ -91,7 +91,7 @@ A pessoa cadastra o artigo **Introdução a Processo Penal**, registra que parou
 
 ### Exemplo: Programação
 
-A pessoa informa que estuda programação e pode conectar o GitHub. Escolhe quais repositórios ou entregas deseja acompanhar e define o que significa terminar cada projeto. O Lume mostra entregas pendentes e facilita colaboração. Conectar o GitHub, criar um repositório vazio ou fazer qualquer commit isolado não gera XP automaticamente.
+A pessoa que estuda programação cadastra o projeto como material e define o que significa terminar cada entrega. O Lume mostra entregas pendentes e facilita colaboração entre amigos. Criar um repositório ou fazer qualquer commit isolado não gera XP.
 
 Uma entrega como **“Implementar e validar a autenticação do projeto”** pode ser um marco elegível. O simples número de commits ou linhas de código não representa aprendizado.
 
@@ -112,7 +112,7 @@ A pessoa cola o link do curso, o Lume identifica a plataforma e apresenta as ár
 **Agenda (implementada localmente em 05/11/2026):** as tarefas agora ficam na área Agenda, ao lado
 do calendário diário, semanal e mensal. Atividades podem reunir tarefas existentes ou novas, incluindo
 estudos livres e compromissos pessoais. Há horários opcionais, recorrência com checklist independente,
-avisos de sobreposição, reagendamento manual e lembretes. Cronograma e Roteiro permanecem no Plano.
+avisos de sobreposição, reagendamento manual e lembretes. O cronograma fica no Plano de Estudos, ao lado do Calendário e das Tarefas.
 Escolhas operacionais, limites e verificação em [Agenda](AGENDA.md).
 
 A revisão de experiência usa um calendário interativo: selecionar um horário preenche data e duração,
@@ -162,16 +162,10 @@ Para cada fonte, registrar as capacidades disponíveis: ler posição, salvar po
   texto do próprio PDF; IA é opcional, sob pedido. Concluir o PDF inteiro é leitura concluída; página aberta é
   só marcador. Limites e decisões em [Implementação B7](IMPLEMENTACAO.md#b7--pdfs-leitor-embutido-e-disciplinas).
 
-### GitHub
+### Projetos de programação
 
-- Conexão opcional, com escopo mínimo e seleção explícita do que acompanhar.
-- Na primeira versão, priorizar leitura de README, issues e milestones e a coordenação da colaboração. Abrir issues, comentar, enviar código ou conceder permissões exige ação explícita e integração própria.
-- Definir entregas e critérios de conclusão; não inferir que todo repositório foi abandonado ou que precisa ser terminado. Inatividade, issues abertas ou ausência de documentação não bastam para afirmar que o projeto está incompleto.
-- Diferencie o que foi encontrado no repositório do que é sugestão da IA; toda sugestão de entrega mostra a origem e pode ser revisada.
-- Vincular tarefas e evidências quando a integração permitir; revisão e conclusão precisam de critérios visíveis.
-- Convidar um amigo para uma entrega não concede acesso ao repositório no GitHub; esse acesso, quando necessário, é providenciado pelo proprietário.
-- Repositórios privados, descrições de issues e código não devem aparecer em perfis, mensagens ou convites sem escolha explícita de compartilhamento e autorização adequada.
-- Integração não é autorização para comentar, abrir issues, alterar código ou enviar mensagens em nome da pessoa. Credenciais ficam no servidor e as permissões são mínimas.
+- Decisão da responsável (12/11/2026): a integração com o GitHub saiu do produto por fugir da proposta. Projetos entram como material do tipo projeto, com entregas definidas pela pessoa.
+- Convidar um amigo para uma entrega não concede acesso a repositórios; esse acesso, quando necessário, é providenciado pelo proprietário.
 
 ## 7. Amigos, mensagens diretas e colaboração
 
@@ -248,8 +242,7 @@ As regras detalhadas estão em [Gamificação](GAMIFICACAO.md).
 | Instalar aplicativo | Página do aplicativo de desktop: baixa o instalador da última release e gera o código de conexão |
 | Placares | Comparação opcional dentro de períodos e regras definidos |
 | Minhas conquistas | Vitrine personalizada de conclusões |
-| Meu caminho | Histórico de estudo e explicação do XP |
-| Integrações | GitHub e fontes compatíveis; permissões e estado de conexão |
+| Integrações | Fontes de cursos compatíveis (extensão e leitura de página); capacidades declaradas |
 | Aplicativo de desktop (Companion) | O Lume completo numa janela própria, com bandeja e painel de presença: presença local opcional, aulas restantes e roteiro por prioridade, sem XP |
 | Extensão do navegador | Protótipo: lê, na página aberta pela pessoa com a conta dela, as aulas e o que aparece concluído, e envia ao Lume para revisão. Não gera XP por si; detalhes em [Importação](IMPORTACAO.md) |
 | Configurações e conforto | Acessibilidade, ritmo, privacidade e notificações |

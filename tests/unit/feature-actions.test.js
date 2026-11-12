@@ -76,11 +76,11 @@ test('restaurar cópia e criar projeto preservam privacidade, perfil e materiais
   app.settings.setSharingPreference('library', false);
   app.settings.updateProfile({ bio: 'Minha descrição' });
   app.library.addMaterial({ title: 'Material recente', steps: ['Estudar'] });
-  app.library.createGitHubProject({ repository: { name: 'Projeto', owner: 'pessoa', fullName: 'pessoa/projeto', url: 'https://github.com/pessoa/projeto' }, analyzedAt: '2026-11-03T12:00:00Z' }, [{ id: 'delivery', title: 'Validar a API', source: 'issue' }]);
+  app.library.addMaterial({ title: 'Projeto', type: 'project', steps: ['Validar a API'] });
   app.settings.restoreBackup(backup.read());
   assert.deepEqual(app.read().courses.map((course) => course.title), ['Material recente', 'Projeto', 'Livro da cópia']);
   assert.equal(app.read().preferences.sharing.library, false);
   assert.equal(app.read().profile.bio, 'Minha descrição');
-  assert.equal(app.read().courses[1].github.fullName, 'pessoa/projeto');
+  assert.equal(app.read().courses[1].type, 'project');
   assert.deepEqual(app.read().progress, []);
 });

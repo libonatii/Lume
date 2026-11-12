@@ -31,6 +31,5 @@ export function readConfig(env = {}) {
     // Sem e-mail configurado, o link de redefinição volta na resposta, salvo
     // quando SHOW_RESET_LINK=false (produção).
     showResetLink: pick(env, 'SHOW_RESET_LINK', 'LUME_SHOW_RESET_LINK') !== 'false',
-    githubToken: pick(env, 'GITHUB_TOKEN') || '',
   };
 }

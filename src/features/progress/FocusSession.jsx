@@ -160,7 +160,7 @@ export default function FocusSession({ state, actions, settingsActions, open, no
   return <div className="focus-root">
     <header className="focus-heading">
       <div>
-        <a className="back-link" href="#hoje"><Icon name="back"/>Voltar para Hoje</a>
+        <a className="back-link" href="#hoje"><Icon name="back"/>Voltar ao Início</a>
         <div className="focus-title-row">
           <h1 className="display">Sessão de foco</h1>
           <span className="soft-badge tone-mint">

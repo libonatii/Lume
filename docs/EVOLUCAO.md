@@ -63,7 +63,7 @@ As consultas ao site publicado foram feitas em 31/10/2026 apenas com `GET` anôn
 | GAMIFICACAO §6 | Aula importada concluída "não concede XP" | `completionKindForCourse` trata aula importada como `lesson` elegível: 100 XP pelo servidor |
 | GAMIFICACAO §9 | Perfil exibe XP declarado da cópia | Perfil usa XP do livro do servidor |
 | CONTINUIDADE §3, §5 | Mensagens, bloqueio, colaboração e reconciliação pendentes | Implementados |
-| IMPORTACAO §10 | Leitura de repositórios GitHub não existe | `api/domain/github.js` lê repositórios públicos |
+| IMPORTACAO §10 | Leitura de repositórios GitHub não existe | Removida em 12/11/2026 por decisão da responsável |
 | COMPANHEIRO §2, §8 | Roteiro igual no site; mensagens diretas pendentes | Ver primeira linha da tabela 1.2; mensagens existem |
 
 ---
@@ -89,13 +89,15 @@ Exemplo real de uso: Ana estuda para a OAB com um curso da Gran e quer concluir 
 
 ### 3.1 Navegação proposta: cinco destinos
 
+> Situação em 12/11/2026: o menu tem quatro destinos (Hoje, Biblioteca, Plano de Estudos, Amigos); Perfil, Conquistas e Configurações abrem pelo menu da conta. Meu caminho e Roteiro foram retirados.
+
 **Atualização de 05/11/2026:** a decisão da [Agenda](AGENDA.md) acrescenta um sexto destino próprio,
 com Calendário e Tarefas. Plano mantém Cronograma e Roteiro. A tabela abaixo preserva a proposta original.
 
 | Destino | Reúne | Pergunta que responde |
 | --- | --- | --- |
 | **Hoje** | Próxima ação, sessão, tarefas relevantes, evolução recente | O que faço agora? |
-| **Biblioteca** | Cursos, leituras, projetos (inclui GitHub), importação | O que estou estudando e onde parei? |
+| **Biblioteca** | Cursos, leituras, projetos, importação | O que estou estudando e onde parei? |
 | **Plano** | Cronograma, tarefas e roteiro completo (substitui Missões e Tarefas) | O que vem nesta semana e o que está atrasado? |
 | **Amigos** | Amigos, mensagens (com contador), ranking como aba | Com quem estudo e como estamos? |
 | **Perfil** | Nível, cargo, conquistas, desbloqueios, extrato (Meu caminho); Configurações no menu da conta | O que conquistei e o que posso usar? |

@@ -13,8 +13,8 @@ import { ENTRY_ROUTES } from './routes.jsx';
 const desktop = isDesktopApp();
 const STITCH_ENTRY_ROUTES = new Set(['conheca', 'login', 'inicio']);
 
-// Cinco destinos no cabeçalho (Hoje, Biblioteca, Plano de Estudos, Amigos, Conquistas).
-const links = Object.entries(SECTIONS).map(([key, section]) => [key, section.home, section.icon, section.label]);
+// Quatro destinos no cabeçalho (Início, Biblioteca, Plano de Estudos, Amigos); o Perfil abre pelo menu da conta.
+const links = Object.entries(SECTIONS).filter(([, section]) => section.nav !== false).map(([key, section]) => [key, section.home, section.icon, section.label]);
 const syncLabels = { loading: 'Carregando biblioteca…', saving: 'Salvando na conta…', saved: 'Progresso salvo na conta', error: 'Gravação não confirmada' };
 
 function positionPopoverFallback(panel, trigger) {
@@ -93,7 +93,7 @@ export default function Shell({ route, model, children, hideTabs = false, onComf
     <header className="topbar app-header">
       <div className="app-header-inner">
         <a href="#hoje" className="brand" aria-label="Lume — página inicial"><Logo size={34}/><span className="brand-name">Lume</span></a>
-        <nav className="nav" aria-label="Navegação">{links.map(([key, path, icon, label]) => <a key={key} href={`#${path}`} className={`nav-link ${section === key ? 'active' : ''}`} aria-current={section === key ? 'page' : undefined} aria-label={key === 'amigos' && unread > 0 ? `${label} (${unread} mensagens não lidas)` : label}>{section === key && <motion.span className="nav-highlight" layoutId="active-navigation" transition={{ duration: .3, ease: [.22, 1, .36, 1] }}/>}<Icon name={icon}/><span className="nav-label">{label}</span>{key === 'amigos' && unread > 0 && <span className="nav-badge" aria-hidden="true">{unread > 99 ? '99+' : unread}</span>}</a>)}</nav>
+        <nav className="nav" aria-label="Navegação">{links.map(([key, path, icon, label]) => <a key={key} href={`#${path}`} className={`nav-link ${section === key ? 'active' : ''}`} aria-current={section === key ? 'page' : undefined} aria-label={key === 'amigos' && unread > 0 ? `${label} (${unread} mensagens não lidas)` : undefined}>{section === key && <motion.span className="nav-highlight" layoutId="active-navigation" transition={{ duration: .3, ease: [.22, 1, .36, 1] }}/>}<Icon name={icon}/><span className="nav-label">{label}</span>{key === 'amigos' && unread > 0 && <span className="nav-badge" aria-hidden="true">{unread > 99 ? '99+' : unread}</span>}</a>)}</nav>
         <div className="topbar-right">
           {model.account && (model.syncStatus === 'saving' || model.syncStatus === 'loading') && <span className={`sr-only sync-${model.syncStatus}`} role="status">{syncLabels[model.syncStatus]}</span>}
           {(!model.account || model.syncStatus === 'error') && <span className={`sync-chip sync-${model.account ? model.syncStatus : 'local'}`} role="status"><Icon name="cloud"/>{model.account ? syncLabels[model.syncStatus] : 'Prévia temporária'}</span>}
@@ -193,9 +193,9 @@ export default function Shell({ route, model, children, hideTabs = false, onComf
                 <Icon name="user"/>
                 <span>Meu Perfil</span>
               </a>
-              <a className={`user-dropdown-item ${route === 'historico' ? 'active' : ''}`} href="#historico" onClick={() => hidePopover(accountPopoverRef)}>
-                <Icon name="spark"/>
-                <span>Meu caminho</span>
+              <a className={`user-dropdown-item ${route === 'conquistas' ? 'active' : ''}`} href="#conquistas" onClick={() => hidePopover(accountPopoverRef)}>
+                <Icon name="trophy"/>
+                <span>Conquistas</span>
               </a>
               <a className={`user-dropdown-item ${route === 'configuracoes' ? 'active' : ''}`} href="#configuracoes" onClick={() => hidePopover(accountPopoverRef)}>
                 <Icon name="settings"/>

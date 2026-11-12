@@ -353,7 +353,7 @@ export async function runContract(target, t) {
     assert.equal(revoked.status, 200);
   });
 
-  await t.test('importação e GitHub', async () => {
+  await t.test('importação', async () => {
     const anonymous = client(origin);
     const missing = await anonymous.request('POST', '/api/import/analyze', { body: {} });
     assert.equal(missing.status, 400);
@@ -370,12 +370,6 @@ export async function runContract(target, t) {
     const emptyText = await anonymous.request('POST', '/api/import/organize', { body: { text: '  ' } });
     assert.equal(emptyText.status, 400);
     assert.equal(emptyText.data.code, 'empty_text');
-
-    assert.equal((await anonymous.request('POST', '/api/github/analyze', { body: { url: 'x' } })).status, 401);
-    const { browser } = await register(origin, 'Hugo');
-    const noUrl = await browser.request('POST', '/api/github/analyze', { body: {} });
-    assert.equal(noUrl.status, 400);
-    assert.equal(noUrl.data.code, 'missing_url');
   });
 
   await t.test('imagens de perfil e slides', async (sub) => {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { subjectOverview, subjectsOverview } from '../../../public/subject-domain.js';
+import { SUBJECT_COLORS, SUBJECT_COLOR_LABELS, subjectOverview, subjectsOverview } from '../../../public/subject-domain.js';
 import { materialType } from '../../../public/domain.js';
 import Icon from '../../ui/Icon.jsx';
 import { Button, Heading, Progress } from '../../ui/ui.jsx';
@@ -16,14 +16,15 @@ function resumeText(item) {
 function SubjectForm({ actions, notify, initial = null, onDone }) {
   const [title, setTitle] = useState(initial?.title || '');
   const [keywords, setKeywords] = useState((initial?.keywords || []).join(', '));
+  const [color, setColor] = useState(initial?.color || 'lume');
   const [error, setError] = useState('');
   function submit(event) {
     event.preventDefault();
     try {
-      const result = initial ? actions.updateSubject(initial.id, { title, keywords }) : actions.addSubject({ title, keywords });
+      const result = initial ? actions.updateSubject(initial.id, { title, keywords, color }) : actions.addSubject({ title, keywords, color });
       if (!result) return;
       setError('');
-      if (!initial) { setTitle(''); setKeywords(''); }
+      if (!initial) { setTitle(''); setKeywords(''); setColor('lume'); }
       notify(initial ? 'Disciplina atualizada.' : 'Disciplina criada. Vincule PDFs e outros materiais a ela.');
       onDone?.();
     } catch (exception) {
@@ -37,6 +38,12 @@ function SubjectForm({ actions, notify, initial = null, onDone }) {
     <label className="field">Palavras-chave (opcional)
       <input value={keywords} maxLength={600} onChange={(event) => setKeywords(event.target.value)} placeholder="Ex.: inquérito, ação penal, prisão preventiva"/>
     </label>
+    <div className="stitch-color-row">
+      <span>Cor de identificação</span>
+      <div className="stitch-color-pills" role="radiogroup" aria-label="Cor da disciplina">
+        {SUBJECT_COLORS.map((item) => <button key={item} type="button" role="radio" aria-checked={color === item} aria-label={SUBJECT_COLOR_LABELS[item]} title={SUBJECT_COLOR_LABELS[item]} className={`stitch-color-dot color-${item} ${color === item ? 'is-selected' : ''}`} onClick={() => setColor(item)}>{color === item && <Icon name="check"/>}</button>)}
+      </div>
+    </div>
     <p className="quiet-note">As palavras-chave ajudam o leitor inteligente a reconhecer páginas desta disciplina. Separe com vírgulas.</p>
     {error && <p className="form-error" role="alert">{error}</p>}
     <div className="action-row">
@@ -126,7 +133,7 @@ export default function Subjects({ state, actions, open, go, notify, id = '' }) 
       Agrupe PDFs e outros materiais por matéria, veja o que já percorreu e continue de onde parou.
     </Heading>
     <div className="subjects-grid">
-      {overviews.map((overview) => <article key={overview.subject.id} className="card-surface subject-card">
+      {overviews.map((overview) => <article key={overview.subject.id} className={`card-surface subject-card color-${overview.subject.color || 'lume'}`}>
         <h2 className="title"><a className="text-link" href={`#disciplinas?id=${encodeURIComponent(overview.subject.id)}`}>{overview.subject.title}</a></h2>
         <p className="muted-text">{overview.total} {overview.total === 1 ? 'material' : 'materiais'} · {overview.done} {overview.done === 1 ? 'concluído' : 'concluídos'}{overview.pagesTotal ? ` · até p. ${overview.pagesReached} de ${overview.pagesTotal}` : ''}</p>
         <Progress value={overview.percent} tone="lume" label={`Avanço em ${overview.subject.title}`}/>

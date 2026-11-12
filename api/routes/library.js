@@ -1,6 +1,5 @@
-// Documento de estado, importação de cursos e leitura de repositórios do GitHub.
+// Documento de estado e importação de cursos.
 
-import { analyzeRepository } from '../domain/github.js';
 import { ImportError, analyzeSnapshot, analyzeText, analyzeUrl } from '../domain/import-server.js';
 import { detectProvider, normalizePayload } from '../../public/import-domain.js';
 import { parseStateBody, readState, writeState } from '../domain/state.js';
@@ -111,17 +110,6 @@ export function libraryRoutes(router) {
     );
     ctx.log('course_organized', { provider: payload.provider.id, lessons: payload.lessonCount, ai: ai.used });
     return json({ status: 'ok', payload, ai: { used: ai.used, reason: ai.reason || null } });
-  });
-
-  router.add('POST', '/api/github/analyze', {
-    auth: 'Entre na sua conta para analisar um repositório.', origin: true, rateLimit: IMPORT_ATTEMPTS,
-  }, async (ctx) => {
-    const body = await ctx.json(LIMITS.small, IMPORT_BODY);
-    const url = typeof body.url === 'string' ? body.url.trim() : '';
-    if (!url) return json({ error: 'Cole o link de um repositório público do GitHub.', code: 'missing_url' }, 400);
-    const analysis = await analyzeRepository(url, { token: ctx.config.githubToken });
-    ctx.log('github_analyzed', { userId: ctx.user.id, repository: analysis.repository?.fullName });
-    return json(analysis);
   });
 }
 

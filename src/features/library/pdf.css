@@ -320,3 +320,22 @@ dialog#dialog:has(.pdf-reader) > div {
     border-block: 1px solid var(--border);
   }
 }
+
+/* Disciplinas no Redesign Sereno: filete na cor escolhida e campos na largura do cartão. */
+.subject-card.card-surface {
+  border-left: 3px solid var(--lume);
+}
+.subject-card.color-mint { border-left-color: var(--mint); }
+.subject-card.color-violet { border-left-color: var(--lilac); }
+.subject-card.color-amber { border-left-color: var(--reward); }
+.subject-card.color-coral { border-left-color: var(--danger); }
+.subject-card.subject-new {
+  border-left-color: color-mix(in srgb, var(--surface-3) 55%, transparent);
+}
+.subject-form .field input {
+  width: 100%;
+}/* Sem disciplinas, o formulário ocupa uma coluna confortável em vez do cartão mínimo. */
+.subject-card.subject-new:only-child {
+  grid-column: 1 / -1;
+  max-width: 40rem;
+}
