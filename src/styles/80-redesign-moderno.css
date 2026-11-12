@@ -2,8 +2,9 @@
    As folhas de estrutura não repetem estas declarações. */
 
 /* ==========================================================================
-   Redesign Moderno (Stitch · Projeto Lume): Bento com linhas de destaque,
-   sidebar com item ativo luminoso, tipografia única em Plus Jakarta Sans.
+   Redesign Sereno (Stitch · Lume Academy Design System): cartões com filete
+   luminoso, cabeçalho em vidro com navegação em pílula e tipografia única em
+   Plus Jakarta Sans. A casca fica em src/app/shell.css.
    As cores vêm dos tokens; a paleta muda por html[data-palette].
    ========================================================================== */
 
@@ -57,82 +58,6 @@ body {
   color: var(--text-muted);
 }
 
-/* Estrutura: sidebar e barra superior (no celular a grade original de uma coluna continua valendo) */
-@media (min-width: 821px) {
-  .app-shell {
-    grid-template-columns: 288px minmax(0, 1fr);
-  }
-}
-.sidebar {
-  background: var(--surface-glass);
-  backdrop-filter: blur(20px);
-  border-right: 1px solid color-mix(in srgb, var(--lume-2) 15%, transparent);
-  padding: 1.5rem;
-}
-.nav {
-  gap: 0.4rem;
-}
-.nav-link {
-  padding: 0.75rem 1rem;
-  border-radius: 14px;
-  font-weight: 500;
-  font-size: 0.97rem;
-  color: var(--text-subtle);
-}
-.nav-link:hover {
-  color: var(--text);
-  background: color-mix(in srgb, var(--surface-2) 60%, transparent);
-}
-.nav-link.active {
-  color: var(--text);
-  font-weight: 600;
-}
-.nav-link.active .icon {
-  color: var(--lume);
-}
-.nav-highlight {
-  border-radius: 14px;
-  background: var(--lume-soft);
-  border: 1px solid color-mix(in srgb, var(--lume-2) 40%, transparent);
-  box-shadow: 0 0 15px color-mix(in srgb, var(--lume-2) 15%, transparent);
-}
-.nav-link.active::after {
-  content: '';
-  position: relative;
-  z-index: 1;
-  width: 6px;
-  height: 6px;
-  margin-left: auto;
-  border-radius: 50%;
-  background: var(--lume);
-  box-shadow: 0 0 8px var(--lume-2);
-}
-.nav-link.active:has(.nav-badge)::after {
-  display: none;
-}
-.install-app {
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--surface-2) 60%, transparent);
-  border: 1px solid var(--border);
-}
-.install-app svg {
-  color: var(--lume);
-}
-.player-card {
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--bg-elevated) 80%, transparent);
-  border: 1px solid var(--border);
-}
-.player-copy span {
-  color: var(--reward);
-  font-weight: 500;
-}
-.topbar {
-  min-height: 4rem;
-  background: color-mix(in srgb, var(--bg) 80%, transparent);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid color-mix(in srgb, var(--lume-2) 10%, transparent);
-}
 .today {
   color: var(--text-muted);
   font-weight: 500;
@@ -174,23 +99,23 @@ body {
 .card-surface {
   position: relative;
   overflow: hidden;
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-lg);
   background: linear-gradient(135deg, var(--card-from), var(--card-to));
-  border: 1px solid var(--border-accent);
+  border: 1px solid color-mix(in srgb, var(--surface-3) 55%, transparent);
   box-shadow: var(--shadow-lg);
-  padding: 1.6rem;
+  padding: 1.5rem;
   transition: border-color 0.2s ease;
 }
 .card-surface:hover {
-  border-color: var(--border-strong);
+  border-color: var(--border-accent);
 }
 .next-action::before,
 .session-bar::before {
   content: '';
   position: absolute;
   inset: 0 0 auto;
-  height: 4px;
-  background: linear-gradient(90deg, var(--lume-2), var(--lume), color-mix(in srgb, var(--reward-strong) 60%, transparent));
+  height: 2px;
+  background: var(--crest);
 }
 .session-bar,
 .today-evolution {
@@ -350,18 +275,50 @@ html[data-theme='light'] .session-bar .button.primary:hover:not(:disabled) {
   color: var(--reward);
 }
 
-/* Abas de seção */
+/* Cabeçalho de página: sobrancelha com ponto, título forte e filete inferior. */
+.page-heading {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+}
+.page-heading .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--mint);
+  text-transform: uppercase;
+}
+.page-heading .eyebrow::before {
+  content: '';
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+.page-heading .display {
+  margin: 0.35rem 0 0.25rem;
+}
+.page-heading .lead {
+  margin: 0;
+  max-width: 44rem;
+  color: var(--text-subtle);
+}
+
+/* Abas de seção: botões arredondados, a ativa com brilho suave. */
 .section-tabs {
-  border-radius: 14px;
-  background: var(--surface-glass);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  padding: 0;
 }
 .section-tab {
-  border-radius: 10px;
+  border-radius: var(--radius-md);
+  color: var(--text-subtle);
+  font-size: 0.85rem;
 }
 .section-tab.active {
-  background: var(--action);
-  color: var(--action-ink);
-  box-shadow: 0 8px 18px -10px color-mix(in srgb, var(--action) 70%, transparent);
+  background: var(--surface-3);
+  color: var(--text);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--lume) 15%, transparent);
 }
 
 /* Hoje em Bento: 7/5 na primeira linha, 6/6 na segunda */
@@ -522,23 +479,105 @@ html[data-theme='light'] .session-bar .button.primary:hover:not(:disabled) {
   .card-surface {
     padding: 1.25rem;
   }
-  .nav-link.active::after {
-    display: none;
-  }
-  /* Barra inferior do celular: seis destinos com rótulos inteiros. */
-  .sidebar {
-    padding: 0.45rem 0.5rem;
-  }
-  .nav-link {
-    flex: 1 0 auto;
-    padding: 0.4rem 0.15rem;
-    border-radius: 12px;
-    font-size: 0.72rem;
-  }
-  .nav-short {
-    white-space: nowrap;
-  }
-  .nav-highlight {
-    border-radius: 12px;
-  }
+}
+
+/* Peças do Redesign Sereno usadas em várias telas. */
+.soft-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+.soft-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: fit-content;
+  padding: 0.25rem 0.75rem;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--inner);
+  color: var(--lume);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+}
+button.soft-badge {
+  cursor: pointer;
+}
+button.soft-badge:hover {
+  background: var(--surface-3);
+}
+.soft-badge .icon {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+.soft-badge.tone-mint {
+  color: var(--mint);
+}
+.soft-badge.tone-reward {
+  color: var(--reward-strong);
+}
+html[data-theme='light'] .soft-badge {
+  background: var(--surface-2);
+}
+html[data-theme='light'] .soft-badge.tone-reward {
+  color: var(--reward);
+}
+.soft-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+}
+.card-subtitle {
+  margin: 0;
+  color: var(--text-subtle);
+  font-size: 0.82rem;
+}
+.card-icon.tone-mint {
+  background: var(--mint-soft);
+  border-color: color-mix(in srgb, var(--mint) 20%, transparent);
+  color: var(--mint);
+}
+.tone-mint-text {
+  color: var(--mint);
+  font-weight: 600;
+}
+.metric-label {
+  color: var(--text-subtle);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.today-quote {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0;
+  color: var(--text-subtle);
+  font-size: 0.82rem;
+  text-align: center;
+}
+.today-quote .icon {
+  color: var(--mint);
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+}
+.progress.tone-mint > span {
+  background: linear-gradient(90deg, var(--mint), var(--lume));
+}
+/* Filete luminoso no topo dos cartões de destaque. */
+.crest-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: var(--crest);
 }

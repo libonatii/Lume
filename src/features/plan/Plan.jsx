@@ -6,6 +6,8 @@ import { studyPlan } from '../../../public/study-plan.js';
 import { TASK_PRIORITIES, localDate } from '../../../public/tasks-domain.js';
 import Icon from '../../ui/Icon.jsx';
 import { Button, Empty, Heading } from '../../ui/ui.jsx';
+import { Milestones, WeeklyRhythm } from '../library/Study.jsx';
+import { weeklyRhythm } from '../../../public/session-domain.js';
 
 export function formatMinutes(total) {
   const value = Math.max(0, Math.round(total));
@@ -45,7 +47,7 @@ export function Schedule({ state, actions, open, notify }) {
   }
 
   return <div className="personal-root plan-root">
-    <Heading title="Plano" eyebrow="Cronograma">
+    <Heading title="Plano" eyebrow="Plano de estudos · Cronograma" actions={<a className="button primary" href="#agendar"><Icon name="calendar-plus"/>Agendar sessão</a>}>
       {!schedule.courses.length
         ? 'Adicione um curso à biblioteca para montar o cronograma.'
         : hasAvailability
@@ -64,6 +66,8 @@ export function Schedule({ state, actions, open, notify }) {
       <p className="quiet-note">Nenhum ajuste é aplicado sem a sua escolha.</p>
     </section>)}
 
+    <div className="plan-layout">
+      <div className="plan-main">
     {!schedule.courses.length
       ? <Empty icon="calendar" title="Sem cursos em andamento." onAdd={() => open({ type: 'new' })}>Importe um curso por link ou crie um material; o cronograma usa as aulas e as durações encontradas.</Empty>
       : !hasAvailability
@@ -75,7 +79,7 @@ export function Schedule({ state, actions, open, notify }) {
         : <section className="plan-days" aria-labelledby="plan-days-title">
           <div className="shelf-header"><h2 id="plan-days-title" className="headline">Próximos dias</h2>{schedule.unscheduled > 0 && <span className="quiet-note">{schedule.unscheduled} aulas ficam além de seis meses</span>}</div>
           <ol className="plan-day-list">
-            {visibleDays.map((day) => <li key={day.date} className="card-surface plan-day">
+            {visibleDays.map((day) => <li key={day.date} className={`card-surface plan-day${day.date === today ? ' is-today' : ''}`}>
               <div className="plan-day-head"><strong>{dayLabel(day.date, today)}</strong><span className="muted-text">{formatMinutes(day.used)} de {formatMinutes(day.capacity)}</span></div>
               <ul className="plan-items">
                 {day.items.map((item) => <li key={item.lessonId} className="plan-item">
@@ -89,6 +93,12 @@ export function Schedule({ state, actions, open, notify }) {
           {schedule.days.length > visibleDays.length && <p className="quiet-note">Mais {schedule.days.length - visibleDays.length} dias planejados depois destes.</p>}
           <p className="quiet-note">{schedule.criteria}</p>
         </section>}
+      </div>
+      <aside className="plan-aside" aria-label="Ritmo e marcos">
+        <WeeklyRhythm rhythm={weeklyRhythm(state)}/>
+        <Milestones state={state}/>
+      </aside>
+    </div>
 
     <section className="card-surface plan-settings" aria-labelledby="plan-settings-title">
       <h2 id="plan-settings-title" className="title">Disponibilidade e prazos</h2>

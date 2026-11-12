@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useLume } from './useLume.js';
 import Shell from './Shell.jsx';
 import { Dialog, PageSkeleton, enter, ease } from '../ui/ui.jsx';
-import { ENTRY_ROUTES, ROUTE_BY_ID, parseHash } from './routes.jsx';
+import { ENTRY_ROUTES, PUBLIC_ROUTES, ROUTE_BY_ID, parseHash } from './routes.jsx';
 import { ModalContent } from './modals.jsx';
 import Icon from '../ui/Icon.jsx';
 import { markDesktop, syncTitleBar } from '../lib/desktop.js';
@@ -33,7 +33,7 @@ export default function App() {
   const { requested, params } = parseHash(hash);
   const signedIn = Boolean(model.account);
   // A sessão verificada vale mais que o hash: #login não pode derrubar quem já entrou.
-  const route = ['recuperar', 'redefinir'].includes(requested) ? requested
+  const route = PUBLIC_ROUTES.has(requested) ? requested
     : (!signedIn && !model.preview) || (requested === 'login' && !signedIn) ? 'login'
     : !state.onboarded ? 'inicio'
     : requested && requested !== 'login' && ROUTE_BY_ID.has(requested) ? requested : 'hoje';

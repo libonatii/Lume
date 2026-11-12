@@ -32,11 +32,23 @@ const STEPS = {
   ],
 };
 
-function Stepper({ step, total }) {
-  return <div className="onboarding-progress" role="group" aria-label={`Etapa ${step} de ${total}`}>
-    <div className="onboarding-segments" aria-hidden="true">{Array.from({ length: total }, (_, index) => <span key={index} className={`segment ${index < step ? 'active' : ''}`}>{index === step - 1 && <motion.span layoutId="onboarding-segment" className="segment-fill" transition={{ duration: .3, ease }}/>}</span>)}</div>
-    <span className="eyebrow">Etapa {step} de {total}</span>
-  </div>;
+// Fases mostradas no topo: a escolha da jornada, as perguntas, o primeiro
+// material e o convite opcional. As perguntas de cada jornada ficam em "Ritmo".
+const PHASES = [
+  ['user', 'Identidade'],
+  ['settings', 'Ritmo de estudo'],
+  ['book', 'Primeira matéria'],
+  ['users', 'Amigos · opcional'],
+];
+
+function Stepper({ phase, step = 0, total = 0 }) {
+  return <nav className="onboarding-phases" aria-label="Progresso da personalização">
+    <ol>{PHASES.map(([icon, label], index) => <li key={label} className={index < phase ? 'is-done' : index === phase ? 'is-current' : ''} aria-current={index === phase ? 'step' : undefined}>
+      <span className="phase-mark" aria-hidden="true"><Icon name={index < phase ? 'check' : icon}/></span>
+      <span className="phase-copy"><small>Passo {index + 1}</small><strong>{label}</strong></span>
+    </li>)}</ol>
+    <div className="phase-track" role="progressbar" aria-label={total ? `Etapa ${step} de ${total}` : 'Escolha da jornada'} aria-valuemin={0} aria-valuemax={PHASES.length} aria-valuenow={phase + 1}><motion.span animate={{ scaleX: (phase + 1) / PHASES.length }} initial={false} transition={{ duration: .3, ease }}/></div>
+  </nav>;
 }
 
 export default function Onboarding({ state, actions, libraryActions, go, notify, account }) {
@@ -151,6 +163,7 @@ export default function Onboarding({ state, actions, libraryActions, go, notify,
 
   if (!journey || step === 0) {
     return <div className="onboarding-root">
+      <Stepper phase={0}/>
       <header className="onboarding-header">
         <span className="eyebrow">Sua jornada de descoberta</span>
         <h1 className="display">Como os estudos fazem parte da sua vida <em>hoje?</em></h1>
@@ -172,10 +185,11 @@ export default function Onboarding({ state, actions, libraryActions, go, notify,
 
   const current = steps[step - 1];
 
+  const phase = step === socialStep ? 3 : step === reviewStep ? 2 : 1;
   return <div className="onboarding-step-shell">
-    <Stepper step={step} total={total}/>
+    <Stepper phase={phase} step={step} total={total}/>
     {/* Sem AnimatePresence em modo wait: a espera pela saída travava a troca de etapa. */}
-    <motion.section key={`${journey}-${step}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .28, ease }} className="onboarding-card">
+    <motion.section key={`${journey}-${step}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .28, ease }} className="onboarding-card crest-card">
       {current ? <>
         <header className="step-header">
           <span className="eyebrow">{STUDY_RHYTHMS.find(item => item.id === journey).title} · etapa {step}</span>

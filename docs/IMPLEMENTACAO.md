@@ -32,7 +32,7 @@ Em ordem de impacto para quem usa o site publicado.
 | 7 | **Social sem segurança nem reconhecimento** | Não há denúncia de abuso (exigida em Produto §7), compartilhamento de aprendizados nem reconhecimento a conquistas de amigos. Colaboração não registra contribuição. Mensagens chegam por consulta periódica, sem notificação | Parcial | [S2](#s2--segurança-social-e-moderação)–[S5](#s5--colaboração-com-contribuição-identificável) |
 | 8 | **Conta e dados pessoais incompletos** | Não é possível trocar senha ou e-mail estando logada, excluir a conta nem ver sessões ativas. Não há termos de uso nem política de privacidade, embora o site guarde e-mail e progresso | Parcial | [C2](#c2--gestão-da-conta), [C3](#c3--termos-privacidade-e-exclusão-de-dados) |
 | 9 | **Organização ao estilo Notion** | Sem anotações ligadas ao material, quadro de projeto, trilhas como sequência de materiais ou modelos | Não implementado | [B3](#b3--anotações-trilhas-e-modelos) |
-| 10 | **Visual novo só na Hoje** | O Redesign Moderno (Stitch) tem layout próprio apenas na Hoje; as demais telas herdaram cores e cartões, mas não foram desenhadas. Há CSS legado sobreposto | Parcial | [V1](#v1--redesign-nas-demais-telas), [D1](#d1--css-legado) |
+| 10 | **Redesign Sereno parcial** | As telas do projeto Stitch "Lume Academy Design System" foram implementadas (casca, Hoje, Biblioteca, Plano, Agenda, Agendar sessão, Sessão de foco, entrada, onboarding e apresentação). Amigos, Mensagens, Perfil e Configurações só herdam tokens e cartões. Há CSS legado sobreposto | Parcial | [V1](#v1--redesign-nas-demais-telas), [D1](#d1--css-legado) |
 
 ---
 
@@ -324,10 +324,32 @@ funcionamento sem rede; suporte a Linux e macOS; janela e bandeja testadas no CI
 ## 9. Interface
 
 ### V1 — Redesign nas demais telas
-**Parcial.** As cores, os cartões e a navegação do Redesign Moderno valem em todas as telas, mas só a Hoje foi
-reorganizada a partir do Stitch. Entrada, onboarding, Biblioteca, Plano, Amigos, Mensagens, Perfil e
-Configurações não têm tela correspondente no Stitch. As telas exportadas em 01/11 ("Redesign Moderno" e
-"Variante 2") não foram salvas em `designs/stitch/`.
+**Parcial (11/11/2026, Redesign Sereno).** As dez telas do projeto Stitch "Lume Academy Design System" foram
+implementadas sobre os tokens de `00-tokens.css` (paleta Azul: fundo `#081328`, menta `#4de0b8` para progresso,
+azul `#4d8eff`/`#5ea8ff` para ação e destaque):
+- **Casca** (`src/app/Shell.jsx`, `shell.css`): cabeçalho em vidro com os seis destinos em pílula, atalhos
+  "Conforto visual" (diálogo de tema), "Aparência", conversas e menu da conta; no celular a navegação desce para
+  uma barra fixa. O menu continua com seis destinos; "Conquistas" segue como aba de Perfil.
+- **Hoje** (`Study.jsx`, `today.css`): boas-vindas com "Iniciar sessão de foco" e "Agendar sessão", quatro
+  métricas reais (tempo declarado hoje × tempo disponível do Plano, sessões, conclusões em 7 dias, ritmo semanal),
+  próxima ação, sessão, Plano do dia, Próximos marcos (Agenda), barras de 7 dias, Evolução e Amigos.
+- **Biblioteca** (`shelf.css`): busca, filtros por tipo e situação, "Continuar agora", Disciplinas, Cursos e
+  trilhas, e PDFs em lista. O painel lateral com capa ilustrativa saiu.
+- **Plano** e **Agenda**: cabeçalhos com sobrancelha, botão "Agendar sessão", dias em cartões e coluna com ritmo
+  e marcos no Plano.
+- **Agendar sessão** (`#agendar`, `src/features/agenda/ScheduleSession.jsx`): cria um compromisso de Estudo
+  pela regra de `agenda-domain.js`, com lembrete e tarefa vinculada opcional. O estilo só compõe o título.
+- **Sessão de foco** (`#foco`, `src/features/progress/FocusSession.jsx`): ciclos de 10 min a 1 h ou manual sobre
+  a sessão declarada existente; sons de fundo gerados com Web Audio no aparelho (`soundscape.js`). Concluir um
+  ciclo não encerra a sessão nem gera XP.
+- **Entrar/Criar conta**, **onboarding** (fases Identidade, Ritmo, Primeira matéria e Amigos sobre as jornadas
+  existentes) e **apresentação pública** (`#conheca`, `Landing.jsx`).
+
+Adaptações deliberadas em relação ao Stitch, por regra do produto: sem login Google/Apple (o Lume usa e-mail e
+senha), sem "guilda" ou comunidade, sem depoimentos inventados nem números de usuários, sem promessas de efeito
+clínico dos sons ("binaural", "neuroprotetor"), sem sequência de dias e sem XP exibido como ganho durante o foco.
+O objetivo de estudo do cadastro, a cor do caderno e o "escudo de foco" não foram implementados porque não têm
+regra nem armazenamento. Amigos, Mensagens, Perfil e Configurações não têm tela no Stitch.
 
 ### V2 — Estados de carregamento
 **Implementado (10/11/2026).** `Skeleton` e `PageSkeleton` (`src/ui/ui.jsx`) mostram a forma do conteúdo:

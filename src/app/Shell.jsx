@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import Icon from '../ui/Icon.jsx';
-import { AnimatedNumber, Logo, Progress, Ring } from '../ui/ui.jsx';
+import { Logo, Progress } from '../ui/ui.jsx';
 import { levelInfo } from '../../public/domain.js';
 import { levelProgress } from '../../public/xp-policy.js';
 import { useResource } from '../lib/resources.js';
@@ -12,7 +12,7 @@ import { ENTRY_ROUTES } from './routes.jsx';
 
 const desktop = isDesktopApp();
 
-// Seis destinos; as telas secundárias ficam nas abas de cada seção.
+// Seis destinos no cabeçalho; as telas secundárias ficam nas abas de cada seção.
 const links = Object.entries(SECTIONS).map(([key, section]) => [key, section.home, section.icon, section.label]);
 const syncLabels = { loading: 'Carregando biblioteca…', saving: 'Salvando na conta…', saved: 'Progresso salvo na conta', error: 'Gravação não confirmada' };
 
@@ -59,30 +59,22 @@ export default function Shell({ route, model, children, hideTabs = false, onComf
   }, [menuOpen]);
 
   if (entry) return <div className="entry-shell">
-    <header className="entry-header"><a className="brand" href="#login" aria-label="Lume — início"><Logo size={34}/><span className="brand-name">Lume</span></a><nav aria-label="Entrada no Lume"><button className="chip-button" onClick={onComfort}><Icon name="sun"/>Conforto visual</button>{route === 'login' ? <button className="text-button" onClick={onRegister}>Criar conta</button> : route === 'inicio' ? <button className="text-button" onClick={onExit}>Sair</button> : <a className="text-button" href="#login">Voltar à entrada</a>}<button className="text-button" onClick={onHelp}>Ajuda</button></nav></header>
+    <header className="entry-header"><a className="brand" href={route === 'conheca' ? '#conheca' : '#login'} aria-label="Lume — início"><Logo size={34}/><span className="brand-name">Lume</span></a><nav aria-label="Entrada no Lume">{route !== 'conheca' && <a className="text-button" href="#conheca">Conheça o Lume</a>}<button className="chip-button" onClick={onComfort}><Icon name="leaf"/>Conforto visual</button>{route === 'login' ? <button className="text-button" onClick={onRegister}>Criar conta</button> : route === 'inicio' ? <button className="text-button" onClick={onExit}>Sair</button> : <a className="text-button" href={route === 'conheca' && model.account ? '#hoje' : '#login'}>{route !== 'conheca' ? 'Voltar à entrada' : model.account ? 'Voltar ao Lume' : 'Entrar'}</a>}<button className="text-button" onClick={onHelp}>Ajuda</button></nav></header>
     <main id="main" tabIndex={-1} className="entry-main">{children}</main>
-    <footer className="entry-footer"><span>Organize o estudo, conclua o que começou e acompanhe o progresso com amigos.</span><span>Cadastro e acesso com e-mail e senha</span></footer>
+    <footer className="entry-footer"><span>Seu espaço de estudos: ritmo próprio, progresso real e amigos por perto.</span><span>Cadastro e acesso com e-mail e senha</span></footer>
   </div>;
   return <div className="app-shell">
-    <aside className="sidebar" aria-label="Menu principal">
-      <a href="#hoje" className="brand" aria-label="Lume — página inicial"><Logo size={38}/><span className="brand-copy"><span className="brand-name">Lume</span><small>Seu ritmo, seu caminho</small></span></a>
-      <nav className="nav" aria-label="Navegação">{links.map(([key, path, icon, label]) => <a key={key} href={`#${path}`} className={`nav-link ${section === key ? 'active' : ''}`} aria-current={section === key ? 'page' : undefined} aria-label={key === 'amigos' && unread > 0 ? `${label} (${unread} mensagens não lidas)` : label}>{section === key && <motion.span className="nav-highlight" layoutId="active-navigation" transition={{ duration: .3, ease: [.22, 1, .36, 1] }}/>}<Icon name={icon}/><span className="nav-label">{label}</span><span className="nav-short" aria-hidden="true">{label}</span>{key === 'amigos' && unread > 0 && <span className="nav-badge" aria-hidden="true">{unread > 99 ? '99+' : unread}</span>}</a>)}</nav>
-      {!desktop && <a className="install-app" href="#aplicativo"><Icon name="cloud"/><span>Instalar aplicativo</span></a>}
-      <a className="player-card" href="#perfil" aria-label="Abrir meu perfil">
-        {model.state.profile?.avatar
-          ? <img className="avatar player-avatar-img" src={model.state.profile.avatar} alt=""/>
-          : gamified ? <Ring value={level.current} max={level.next} size={52} stroke={5} label={`Nível ${level.level}`}><strong>{level.level}</strong></Ring> : <span className="avatar">{name.slice(0, 1).toUpperCase()}</span>}
-        <div className="player-copy"><strong title={model.account?.email}>{name}</strong>{gamified ? (model.account && !summary ? <span>Sincronizando XP…</span> : <span>Nível {level.level} · <AnimatedNumber value={level.current}/> / {level.next} XP {xpLabel}</span>) : <span>Indicadores ocultos</span>}</div>
-      </a>
-    </aside>
-    <div className="workspace">
-      <header className="topbar">
-        <div className="topbar-left"><span className="today">{today}</span></div>
+    <header className="topbar app-header">
+      <div className="app-header-inner">
+        <a href="#hoje" className="brand" aria-label="Lume — página inicial"><Logo size={34}/><span className="brand-name">Lume</span></a>
+        <nav className="nav" aria-label="Navegação">{links.map(([key, path, icon, label]) => <a key={key} href={`#${path}`} className={`nav-link ${section === key ? 'active' : ''}`} aria-current={section === key ? 'page' : undefined} aria-label={key === 'amigos' && unread > 0 ? `${label} (${unread} mensagens não lidas)` : label}>{section === key && <motion.span className="nav-highlight" layoutId="active-navigation" transition={{ duration: .3, ease: [.22, 1, .36, 1] }}/>}<Icon name={icon}/><span className="nav-label">{label}</span>{key === 'amigos' && unread > 0 && <span className="nav-badge" aria-hidden="true">{unread > 99 ? '99+' : unread}</span>}</a>)}</nav>
         <div className="topbar-right">
-          {gamified && <div className="level-chip" title={model.account ? 'XP confirmado pelo servidor; o saldo legado fica fora do nível.' : 'Prévia local: este XP não vale para ranking.'}><Icon name="spark"/><span>Nível {level.level} · <strong>{level.current} / {level.next} XP</strong> {model.account ? 'elegível' : 'na prévia'}</span><Progress value={level.current} max={level.next} tone="reward" label="Experiência até o próximo nível"/></div>}
+          {gamified && <div className="level-chip" title={model.account ? 'XP confirmado pelo servidor; o saldo legado fica fora do nível.' : 'Prévia local: este XP não vale para ranking.'}><Icon name="spark"/><span>Nível {level.level} · <strong>{level.current} / {level.next} XP</strong> <span className="level-chip-note">{model.account ? 'elegível' : 'na prévia'}</span></span><Progress value={level.current} max={level.next} tone="reward" label="Experiência até o próximo nível"/></div>}
           {(!model.account || model.syncStatus !== 'saved') && <span className={`sync-chip sync-${model.account ? model.syncStatus : 'local'}`} role="status"><Icon name="cloud"/>{model.account ? syncLabels[model.syncStatus] || 'Conta conectada' : 'Prévia temporária · não salva'}</span>}
           {desktop && <DesktopUpdate/>}
-          <a className="appearance-chip" href="#configuracoes" title="Paleta de cores, tema e tamanho do texto"><Icon name="sun"/><span>Aparência</span></a>
+          <button type="button" className="comfort-chip" onClick={onComfort} aria-label="Conforto visual" title="Tema, paleta e tamanho do texto"><Icon name="leaf"/><span>Conforto visual</span></button>
+          <a className="appearance-chip" href="#configuracoes" aria-label="Aparência" title="Paleta de cores, tema e tamanho do texto"><Icon name="sun"/><span>Aparência</span></a>
+          <a className="header-icon" href="#mensagens" aria-label={unread > 0 ? `Mensagens (${unread} não lidas)` : 'Mensagens'} title="Mensagens"><Icon name="bell"/>{unread > 0 && <span className="header-dot" aria-hidden="true"/>}</a>
           <div className="user-menu-wrap" ref={menuRef}>
             <button
               type="button"
@@ -103,6 +95,7 @@ export default function Shell({ route, model, children, hideTabs = false, onComf
               <div className="user-dropdown-header">
                 <strong>{name}</strong>
                 <small>{model.account?.email || 'Modo prévia local'}</small>
+                {gamified && <small className="user-dropdown-level">{model.account && !summary ? 'Sincronizando XP…' : `Nível ${level.level} · ${level.current} / ${level.next} XP ${xpLabel}`}</small>}
               </div>
               <a
                 role="menuitem"
@@ -122,6 +115,7 @@ export default function Shell({ route, model, children, hideTabs = false, onComf
                 <Icon name="settings"/>
                 <span>Configurações</span>
               </a>
+              {!desktop && <a role="menuitem" className="user-dropdown-item" href="#aplicativo" onClick={() => setMenuOpen(false)}><Icon name="cloud"/><span>Instalar aplicativo</span></a>}
               <div className="user-dropdown-divider" role="separator"/>
               <button
                 type="button"
@@ -135,9 +129,9 @@ export default function Shell({ route, model, children, hideTabs = false, onComf
             </div>}
           </div>
         </div>
-      </header>
-      <main id="main" tabIndex={-1}>{!hideTabs && <SectionTabs route={route} unread={unread}/>}{children}</main>
-      
-    </div>
+      </div>
+    </header>
+    <main id="main" tabIndex={-1}>{!hideTabs && <SectionTabs route={route} unread={unread}/>}{children}</main>
+    <footer className="app-footer"><div className="app-footer-inner"><span className="app-footer-brand"><strong>Lume</strong><small>Seu espaço de estudos: ritmo próprio, pausas sem punição e progresso real.</small></span><span className="app-footer-meta"><span>{today}</span>{!desktop && <a className="text-link" href="#aplicativo"><Icon name="cloud"/>Instalar aplicativo</a>}</span></div></footer>
   </div>;
 }

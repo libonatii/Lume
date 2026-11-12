@@ -100,35 +100,9 @@
   font-size: 0.9rem;
 }
 
-.onboarding-progress {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
-.onboarding-segments {
-  flex: 1;
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 0.4rem;
-}
-.segment {
-  height: 0.38rem;
-  border-radius: var(--radius-pill);
-  background: var(--surface-3);
-  overflow: hidden;
-  position: relative;
-}
-.segment.active {
-  background: var(--lume);
-}
-.segment-fill {
-  position: absolute;
-  inset: 0;
-  background: var(--lume-2);
-}
-
 .onboarding-card {
+  position: relative;
+  overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);

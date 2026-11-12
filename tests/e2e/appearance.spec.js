@@ -26,5 +26,5 @@ test('Aparência troca a paleta, aplica no documento e preserva a escolha ao rec
   await page.getByRole('group', { name: 'Paleta de cores' }).getByRole('radio', { name: /^Azul/ }).check();
   await expect(page.locator('html')).toHaveAttribute('data-palette', 'moderno');
   const moderno = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--action').trim());
-  expect(moderno).toBe('#2563eb');
+  expect(moderno).toBe('#4d8eff');
 });

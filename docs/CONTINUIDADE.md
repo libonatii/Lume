@@ -57,8 +57,10 @@ Telas React → ações nomeadas → useLibraryPersistence → /api/library/acti
 | Área | Implementado no código |
 | --- | --- |
 | Conta | Cadastro, login, saída, cookie HttpOnly, recuperação por token e e-mail pelo Resend (configurado em `wrangler.jsonc`; sem a chave, o link vai só para o log) |
-| Onboarding | Três jornadas, perguntas próprias, retomada, primeira atividade e preferências sem XP |
-| Biblioteca | Busca, filtros, tipos, criação, edição, exclusão confirmada, pausa e posição manual |
+| Onboarding | Três jornadas, perguntas próprias, retomada, primeira atividade e preferências sem XP; fases visíveis (Identidade, Ritmo, Primeira matéria, Amigos) |
+| Sessão de foco | `#foco`: ciclos sobre a sessão declarada, intenção como nome da sessão e som de fundo gerado no aparelho; ciclos não geram XP |
+| Agendar sessão | `#agendar`: cria compromisso de Estudo na Agenda com lembrete e tarefa vinculada opcional |
+| Biblioteca | Busca, filtros por situação e tipo, "Continuar agora", seções de disciplinas, cursos e PDFs, criação, edição, exclusão confirmada, pausa e posição manual |
 | Cursos | Importação por link/texto/arquivo/página copiada/extensão, revisão e reimportação que preserva ids e progresso |
 | Próxima ação | Hoje, Biblioteca, diálogo, roteiro, perfil e Desktop usam o critério de `study-plan.js`; `nextMission` foi removido. Registrar a aula oferece "Concluir e abrir a próxima" (importada) e "Concluir e seguir para a próxima" (etapa manual); o curso importado aceita registrar em lote as aulas em aberto até uma escolhida, cada uma como registro manual |
 | Carregamento | Esqueletos com a forma da tela (`Skeleton`, `PageSkeleton`) ao recarregar a biblioteca da conta e enquanto amigos, conversas, ranking, perfis, dispositivos e XP chegam |
@@ -87,7 +89,7 @@ A presença não é atividade validada. Importação e conclusão observada pela
 capacidades declaradas por provedor; não há rastreamento universal. O Gran tem leitor próprio;
 os testes das demais fontes usam exemplos. Consulte [Importação](IMPORTACAO.md).
 
-A navegação tem seis destinos: Hoje, Biblioteca, Plano, Agenda, Amigos e Perfil. `#tarefas` pertence
+A navegação tem seis destinos, no cabeçalho (barra inferior no celular): Hoje, Biblioteca, Plano, Agenda, Amigos e Perfil. `#tarefas` pertence
 à Agenda e preserva os registros; Plano mantém Cronograma e Roteiro. A Agenda é privada e não altera
 as projeções de perfil. Escopo, decisões operacionais e evidências da rodada em [Agenda](AGENDA.md).
 

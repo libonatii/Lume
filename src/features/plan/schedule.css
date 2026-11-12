@@ -98,3 +98,59 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Plano de Estudos (Redesign Sereno): dias à esquerda, ritmo e marcos ao lado. */
+.plan-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 8fr) minmax(0, 4fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+.plan-main,
+.plan-aside {
+  display: grid;
+  gap: 1.25rem;
+  min-width: 0;
+}
+.plan-aside .card-surface {
+  display: grid;
+  gap: 1rem;
+}
+.plan-aside .card-heading {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+.plan-day.card-surface {
+  padding: 1.1rem 1.25rem;
+  background: color-mix(in srgb, var(--surface-2) 70%, transparent);
+  box-shadow: none;
+}
+.plan-day.is-today {
+  background: var(--surface);
+  border-color: color-mix(in srgb, var(--lume) 30%, transparent);
+  box-shadow: var(--shadow-lg);
+}
+.plan-day.is-today::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, var(--lilac), var(--mint));
+}
+.plan-day.is-today .plan-day-head strong {
+  color: var(--lume);
+}
+.plan-item {
+  padding: 0.75rem 0.85rem;
+  border-top: 0;
+  border-radius: var(--radius-md);
+  background: var(--inner);
+}
+.plan-day-head {
+  margin-bottom: 0.4rem;
+}
+@media (max-width: 1080px) {
+  .plan-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

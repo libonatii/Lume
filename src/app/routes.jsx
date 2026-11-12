@@ -16,6 +16,9 @@ import Ranking from '../features/social/Ranking.jsx';
 import Messages from '../features/social/Messages.jsx';
 import GitHub from '../features/library/GitHub.jsx';
 import Subjects from '../features/library/Subjects.jsx';
+import FocusSession from '../features/progress/FocusSession.jsx';
+import ScheduleSession from '../features/agenda/ScheduleSession.jsx';
+import Landing from '../features/account/Landing.jsx';
 import Icon from '../ui/Icon.jsx';
 
 // Seis destinos do menu; as telas secundárias são abas da seção.
@@ -29,7 +32,10 @@ export const SECTIONS = {
 };
 
 // Telas de entrada: sem menu lateral, com o cabeçalho próprio.
-export const ENTRY_ROUTES = new Set(['login', 'inicio', 'recuperar', 'redefinir']);
+export const ENTRY_ROUTES = new Set(['login', 'inicio', 'recuperar', 'redefinir', 'conheca']);
+
+// Telas abertas sem conta nem prévia (a apresentação e a recuperação de acesso).
+export const PUBLIC_ROUTES = new Set(['recuperar', 'redefinir', 'conheca']);
 
 // Endereços antigos continuam válidos: Missões virou o Roteiro dentro do Plano.
 export const ALIASES = { missoes: 'roteiro' };
@@ -46,9 +52,12 @@ export const ROUTES = [
   { id: 'login', title: 'Bem-vindo', render: (ctx) => (ctx.checkingSession ? <SessionCheck/> : <Login model={ctx.model} mode={ctx.authMode} setMode={ctx.setAuthMode} go={ctx.go} notify={ctx.notify}/>) },
   { id: 'inicio', title: 'Seu ritmo', render: (ctx) => <Onboarding key={ctx.model.account?.id || 'local'} state={ctx.state} actions={ctx.model.accountActions} libraryActions={ctx.model.libraryActions} go={ctx.go} notify={ctx.notify} account={ctx.model.account}/> },
   { id: 'recuperar', title: 'Recuperar acesso', render: (ctx) => <Recovery key="recuperar" reset={false} notify={ctx.notify} go={ctx.go}/> },
+  { id: 'conheca', title: 'Conheça o Lume', render: (ctx) => <Landing go={ctx.go} setAuthMode={ctx.setAuthMode} signedIn={Boolean(ctx.model.account)}/> },
   { id: 'redefinir', title: 'Nova senha', render: (ctx) => <Recovery key={ctx.hash} reset notify={ctx.notify} go={ctx.go}/> },
 
   { id: 'hoje', title: 'Hoje', loading: 'panel', section: 'hoje', render: (ctx) => <Home state={ctx.state} open={ctx.open} go={ctx.go} planActions={ctx.model.planActions} progressActions={ctx.model.progressActions} notify={ctx.notify} account={ctx.model.account} xp={ctx.model.xp}/> },
+  // Telas de ação sem aba própria: o menu continua marcando a seção de origem.
+  { id: 'foco', title: 'Sessão de foco', section: 'hoje', hideTabs: () => true, render: (ctx) => <FocusSession state={ctx.state} actions={ctx.model.progressActions} open={ctx.open} go={ctx.go} notify={ctx.notify} account={ctx.model.account}/> },
 
   { id: 'biblioteca', title: 'Biblioteca', loading: 'cards', section: 'biblioteca', tab: 'Materiais', render: (ctx) => <Library state={ctx.state} open={ctx.open} actions={ctx.model.libraryActions}/> },
   { id: 'disciplinas', title: 'Disciplinas', loading: 'cards', section: 'biblioteca', tab: 'Disciplinas', render: (ctx) => <Subjects key={ctx.params.get('id') || 'todas'} state={ctx.state} actions={ctx.model.libraryActions} open={ctx.open} go={ctx.go} notify={ctx.notify} id={ctx.params.get('id') || ''}/> },
@@ -56,6 +65,7 @@ export const ROUTES = [
 
   { id: 'plano', title: 'Plano', loading: 'panel', section: 'plano', tab: 'Cronograma', render: (ctx) => <Schedule state={ctx.state} actions={ctx.model.planActions} open={ctx.open} notify={ctx.notify}/> },
   { id: 'agenda', title: 'Agenda', section: 'agenda', tab: 'Calendário', render: (ctx) => <Agenda key={ctx.hash} state={ctx.state} actions={ctx.model.agendaActions} taskActions={ctx.model.planActions} confirmSave={ctx.model.confirmSave} retrySave={ctx.model.retrySave} saveError={ctx.model.saveError} syncStatus={ctx.model.syncStatus} params={ctx.params} notify={ctx.notify}/> },
+  { id: 'agendar', title: 'Agendar sessão', loading: 'panel', section: 'agenda', hideTabs: () => true, render: (ctx) => <ScheduleSession state={ctx.state} actions={ctx.model.agendaActions} confirmSave={ctx.model.confirmSave} notify={ctx.notify} go={ctx.go}/> },
   { id: 'tarefas', title: 'Tarefas', loading: 'panel', section: 'agenda', tab: 'Tarefas', render: (ctx) => <Tasks state={ctx.state} actions={ctx.model.planActions} notify={ctx.notify} onSchedule={(task) => ctx.go(`agenda?tarefa=${encodeURIComponent(task.id)}`)}/> },
   { id: 'roteiro', title: 'Roteiro', loading: 'panel', section: 'plano', tab: 'Roteiro', render: (ctx) => <Roadmap state={ctx.state} open={ctx.open}/> },
 

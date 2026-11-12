@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import Atropos from 'atropos/react';
 import { studyRhythm, hasPreparation, courseProgress, courseStatus, materialType } from '../../../public/domain.js';
 import { materialLesson, materialSteps } from '../../../public/material-model.js';
 import { nextAction } from '../../../public/study-plan.js';
@@ -12,8 +11,11 @@ import { slidePositionLabel, slidesSummary } from '../../../public/slides-domain
 import StudySession from '../progress/StudySession.jsx';
 import Icon from '../../ui/Icon.jsx';
 import { Button, Cover, Empty, Heading, Progress, Skeleton, ease, enter } from '../../ui/ui.jsx';
-import { isCompleted } from '../../../public/progress-domain.js';
-import { materialStanding, subjectOf } from '../../../public/subject-domain.js';
+import { activeCompletions, isCompleted } from '../../../public/progress-domain.js';
+import { formatMinutes, localDay, weeklyRhythm } from '../../../public/session-domain.js';
+import { CATEGORIES } from '../../../public/agenda-domain.js';
+import { useResource } from '../../lib/resources.js';
+import { materialStanding, subjectOf, subjectsOverview } from '../../../public/subject-domain.js';
 import { readingLabel } from '../../../public/pdf-domain.js';
 
 export function Home({ state, open, go, planActions, progressActions, notify, account, xp }) {
@@ -39,18 +41,49 @@ export function Home({ state, open, go, planActions, progressActions, notify, ac
     }
     if (planActions.focusTask(task.id)) notify(`Foco agora: ${task.title}.`);
   }
+  const rhythm = weeklyRhythm(state);
+  const today = rhythm.days.at(-1);
+  const goal = state.plan?.availability?.[new Date().getDay()] || 0;
+  const goalPercent = goal ? Math.min(100, Math.round((today.minutes / goal) * 100)) : null;
+  const sessionsToday = today.sessions + (state.activeSession ? 1 : 0);
+  const weekStart = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const weekCompletions = activeCompletions(state).filter((event) => !event.historical && event.at && Date.parse(event.at) >= weekStart).length;
+  const firstName = (account?.name || '').split(' ')[0];
+  const hour = new Date().getHours();
+  const greeting = hour < 5 ? 'Boa noite' : hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
   return <div className="study-root today-root">
-    <Heading
-      eyebrow="Visão diária"
-      title="Hoje"
-      actions={<button className="chip-button" onClick={() => go('inicio')}><Icon name="settings"/>Ritmo: {plan.title}</button>}
-    >{focus
-      ? <>Seu foco agora é <strong>{focus.title}</strong>, escolhido por você.</>
-      : action?.pdf
-        ? <>Continue <strong>{action.courseTitle}</strong> na página {action.pdf.page}. Reserve {action.minutes} minutos para avançar.</>
-      : action
-        ? <>Sua próxima {unit} é <strong>{action.title}</strong>. Reserve {action.minutes} minutos para avançar.</>
-        : 'Adicione um curso ou material à biblioteca para receber a próxima ação.'}</Heading>
+    <section className="card-surface today-welcome" aria-labelledby="today-title">
+      <div className="today-welcome-copy">
+        <div className="soft-badges">
+          <button type="button" className="soft-badge tone-mint" onClick={() => go('inicio')} title="Ajustar seu ritmo"><span className="soft-dot" aria-hidden="true"/>Ritmo: {plan.title}</button>
+          {rhythm.activeDays > 0 && <span className="soft-badge tone-reward"><Icon name="timer"/>{rhythm.activeDays} de 7 dias com estudo</span>}
+        </div>
+        <h1 id="today-title" className="today-title">Hoje</h1>
+        <p className="today-greeting">{greeting}{firstName ? `, ${firstName}` : ''}. <span>Um passo de cada vez, no seu ritmo.</span></p>
+        <p className="lead">{focus
+          ? <>Seu foco agora é <strong>{focus.title}</strong>, escolhido por você.</>
+          : action?.pdf
+            ? <>Continue <strong>{action.courseTitle}</strong> na página {action.pdf.page}. Reserve {action.minutes} minutos para avançar.</>
+          : action
+            ? <>Sua próxima {unit} é <strong>{action.title}</strong>. Reserve {action.minutes} minutos para avançar.</>
+            : 'Adicione um curso ou material à biblioteca para receber a próxima ação.'}</p>
+      </div>
+      <div className="today-welcome-actions">
+        <Button onClick={() => go('foco')}><Icon name="leaf"/>Iniciar sessão de foco</Button>
+        <Button secondary onClick={() => go('agendar')}><Icon name="calendar-plus"/>Agendar sessão</Button>
+      </div>
+    </section>
+
+    <section className="today-metrics" aria-label="Seu ritmo hoje">
+      <Metric label="Tempo de foco hoje" icon="timer" tone="mint" value={formatMinutes(today.minutes)} unit={goal ? `/ ${formatMinutes(goal)}` : ''} percent={goalPercent}
+        note={goal ? (goalPercent >= 100 ? 'Meta do dia alcançada, sem pressa para mais' : `${goalPercent}% da meta flexível de hoje`) : <a className="text-link" href="#plano">Definir tempo disponível no Plano</a>}/>
+      <Metric label="Sessões hoje" icon="check" tone="lume" value={String(sessionsToday)} unit={sessionsToday === 1 ? 'sessão registrada' : 'sessões registradas'}
+        note={state.activeSession ? (state.activeSession.status === 'active' ? 'Uma sessão está em andamento' : 'Uma sessão está pausada') : sessionsToday ? 'Encerradas e salvas no seu histórico' : 'Comece quando estiver pronta'}/>
+      <Metric label="Conclusões na semana" icon="book" tone="reward" value={String(weekCompletions)} unit={weekCompletions === 1 ? 'aula ou leitura' : 'aulas e leituras'}
+        note="Contam só conclusões registradas nos últimos 7 dias"/>
+      <Metric label="Ritmo semanal" icon="trend" tone="mint" value={rhythm.change === null ? formatMinutes(rhythm.current) : `${rhythm.change > 0 ? '+' : ''}${rhythm.change}%`} unit={rhythm.change === null ? 'nos últimos 7 dias' : 'vs. semana anterior'}
+        note={`Média de ${formatMinutes(rhythm.average)} por dia, sem cobrança`}/>
+    </section>
 
     <div className="today-bento">
     <section className={`card-surface next-action ${focus ? 'is-focus' : ''}`} aria-labelledby="next-title">
@@ -120,23 +153,102 @@ export function Home({ state, open, go, planActions, progressActions, notify, ac
       : action ? { course: { id: action.courseId }, step: { id: action.lessonId, title: action.title } } : null} notify={notify} account={account}/>
     </div>
 
-    <div className="today-grid">
-      <section className="card-surface today-tasks" aria-labelledby="today-tasks-title">
-        <div className="card-heading"><div><span className="card-icon"><Icon name="list"/></span><h2 id="today-tasks-title" className="title">Tarefas</h2></div><a className="text-link" href="#tarefas">Abrir lista<Icon name="arrow"/></a></div>
-        {agenda.overdue > 0 && <p className="inline-note todo-overdue-note" role="status"><Icon name="flag"/><span>{overdueMessage(agenda.overdue)}</span></p>}
-        {agenda.next.length
-          ? <ul className="today-task-list">{agenda.next.map((task) => <li key={task.id} className={`todo-item ${focus?.id === task.id ? 'is-focus' : ''}`}>
-            <button type="button" aria-pressed={focus?.id === task.id} title={focus?.id === task.id ? 'Tirar do foco' : 'Focar na Hoje'} aria-label={focus?.id === task.id ? `Tirar ${task.title} do foco` : `Focar em ${task.title} na Hoje`} className="todo-focus" onClick={() => toggleFocus(task)}><Icon name="focus"/></button>
-            <span className="todo-copy"><strong>{task.title}</strong><small className="todo-meta">{focus?.id === task.id ? 'Em foco · ' : ''}{taskMeta(task)}</small></span>
-            <button type="button" role="checkbox" aria-checked="false" title="Concluir" aria-label={`Concluir tarefa ${task.title}`} className="todo-check today-task-done" onClick={() => completeTask(task)}><Icon name="check"/></button>
-          </li>)}</ul>
-          : <p className="muted-text">Sem tarefas pendentes. Defina a próxima ação concreta da sua preparação em Tarefas.</p>}
-        {agenda.pending > agenda.next.length && <p className="quiet-note">Mais {agenda.pending - agenda.next.length} na lista.</p>}
-      </section>
-
-      <Evolution state={state} account={account} xp={xp}/>
+    <div className="today-columns">
+      <div className="today-main">
+        <section className="card-surface today-tasks" aria-labelledby="today-tasks-title">
+          <div className="card-heading"><div><span className="card-icon tone-mint"><Icon name="list"/></span><div><h2 id="today-tasks-title" className="title">Plano do dia</h2><p className="card-subtitle">Suas tarefas de estudo organizadas para hoje</p></div></div><a className="text-link" href="#tarefas">Abrir lista<Icon name="arrow"/></a></div>
+          {agenda.overdue > 0 && <p className="inline-note todo-overdue-note" role="status"><Icon name="flag"/><span>{overdueMessage(agenda.overdue)}</span></p>}
+          {agenda.next.length
+            ? <ul className="today-task-list">{agenda.next.map((task) => <li key={task.id} className={`todo-item ${focus?.id === task.id ? 'is-focus' : ''}`}>
+              <button type="button" aria-pressed={focus?.id === task.id} title={focus?.id === task.id ? 'Tirar do foco' : 'Focar na Hoje'} aria-label={focus?.id === task.id ? `Tirar ${task.title} do foco` : `Focar em ${task.title} na Hoje`} className="todo-focus" onClick={() => toggleFocus(task)}><Icon name="focus"/></button>
+              <span className="todo-copy"><strong>{task.title}</strong><small className="todo-meta">{focus?.id === task.id ? 'Em foco · ' : ''}{taskMeta(task)}</small></span>
+              <button type="button" role="checkbox" aria-checked="false" title="Concluir" aria-label={`Concluir tarefa ${task.title}`} className="todo-check today-task-done" onClick={() => completeTask(task)}><Icon name="check"/></button>
+            </li>)}</ul>
+            : <p className="muted-text">Sem tarefas pendentes. Defina a próxima ação concreta da sua preparação em Tarefas.</p>}
+          {agenda.pending > agenda.next.length && <p className="quiet-note">Mais {agenda.pending - agenda.next.length} na lista.</p>}
+        </section>
+        <Milestones state={state}/>
+      </div>
+      <div className="today-side">
+        <WeeklyRhythm rhythm={rhythm}/>
+        <Evolution state={state} account={account} xp={xp}/>
+        <FriendsCard account={account}/>
+      </div>
     </div>
+    <p className="today-quote"><Icon name="leaf"/><span>Pausar faz parte do caminho: o Lume não pune dias sem estudo.</span></p>
   </div>;
+}
+
+function Metric({ label, icon, tone, value, unit, percent = null, note }) {
+  return <div className={`card-surface metric-card tone-${tone}`}>
+    <div className="metric-head"><span className="metric-label">{label}</span><span className="metric-icon"><Icon name={icon}/></span></div>
+    <p className="metric-value"><strong>{value}</strong>{unit && <span>{unit}</span>}</p>
+    {percent !== null && <Progress value={percent} max={100} tone={tone === 'reward' ? 'reward' : 'mint'} label={label}/>}
+    <span className="metric-note">{note}</span>
+  </div>;
+}
+
+// Barras dos últimos sete dias: ritmo declarado, sem meta punitiva.
+export function WeeklyRhythm({ rhythm }) {
+  const max = Math.max(60, ...rhythm.days.map((day) => day.minutes));
+  const last = rhythm.days.length - 1;
+  return <section className="card-surface weekly-rhythm" aria-labelledby="weekly-rhythm-title">
+    <div className="card-heading"><div><span className="card-icon tone-mint"><Icon name="chart"/></span><div><span className="metric-label">Ritmo semanal</span><h2 id="weekly-rhythm-title" className="title">Constância confortável</h2></div></div></div>
+    <div className="rhythm-bars" role="img" aria-label={`Minutos de estudo nos últimos 7 dias: ${rhythm.days.map((day) => `${weekdayShort(day.date)} ${day.minutes}`).join(', ')}`}>
+      {rhythm.days.map((day, index) => <div key={day.date} className={`rhythm-bar ${index === last ? 'is-today' : ''}`}>
+        <span className="rhythm-bar-track"><span className="rhythm-bar-fill" style={{ height: `${Math.max(day.minutes ? 6 : 2, Math.round((day.minutes / max) * 100))}%` }}/></span>
+        <small>{index === last ? 'Hoje' : weekdayShort(day.date)}</small>
+      </div>)}
+    </div>
+    <p className="rhythm-foot"><span>Média: <strong>{formatMinutes(rhythm.average)}/dia</strong></span><span className="tone-mint-text">Sem sobrecarga</span></p>
+  </section>;
+}
+
+function weekdayShort(date) {
+  const label = new Date(`${date}T12:00:00`).toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '');
+  return label.charAt(0).toUpperCase() + label.slice(1, 3);
+}
+
+// Próximas provas, entregas e compromissos da Agenda.
+export function Milestones({ state }) {
+  const today = localDay();
+  const upcoming = (state.agenda || [])
+    .filter((item) => !item.cancelled && !item.done && item.date >= today)
+    .sort((a, b) => `${a.date}${a.start}`.localeCompare(`${b.date}${b.start}`))
+    .slice(0, 3);
+  return <section className="card-surface today-milestones" aria-labelledby="milestones-title">
+    <div className="card-heading"><div><span className="card-icon tone-reward"><Icon name="calendar"/></span><h2 id="milestones-title" className="title">Próximos marcos</h2></div><a className="text-link" href="#agenda">Calendário<Icon name="arrow"/></a></div>
+    {upcoming.length
+      ? <ul className="milestone-list">{upcoming.map((item) => {
+        const days = Math.round((Date.parse(`${item.date}T12:00:00`) - Date.parse(`${today}T12:00:00`)) / 86400000);
+        return <li key={item.id} className={`milestone milestone-${item.category}`}>
+          <span className="milestone-copy"><strong>{item.title}</strong><small>{CATEGORIES[item.category]}{item.start ? ` · ${item.start}` : ''}</small></span>
+          <span className="milestone-when"><span className="soft-badge">{days === 0 ? 'Hoje' : days === 1 ? 'Amanhã' : `Em ${days} dias`}</span><small>{new Date(`${item.date}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</small></span>
+        </li>;
+      })}</ul>
+      : <p className="muted-text">Nenhum compromisso pela frente. <a className="text-link" href="#agendar">Agendar uma sessão</a></p>}
+  </section>;
+}
+
+// Amizades aceitas. Não há presença em tempo real aqui: só a lista e o atalho.
+function FriendsCard({ account }) {
+  const resource = useResource('/api/friends', { enabled: Boolean(account) });
+  const friends = resource.data?.friends || [];
+  return <section className="card-surface today-friends" aria-labelledby="today-friends-title">
+    <div className="card-heading"><div><span className="card-icon"><Icon name="users"/></span><h2 id="today-friends-title" className="title">Amigos</h2></div>{account && friends.length > 0 && <span className="metric-label">{friends.length} {friends.length === 1 ? 'amizade' : 'amizades'}</span>}</div>
+    {!account
+      ? <p className="muted-text">Amigos, mensagens e ranking ficam disponíveis com uma conta.</p>
+      : !resource.data
+        ? <Skeleton label="Carregando amigos…" rows={2}/>
+        : friends.length
+          ? <ul className="today-friend-list">{friends.slice(0, 3).map((friend) => <li key={friend.id}>
+            <span className="avatar small" aria-hidden="true">{String(friend.name || '?').slice(0, 1).toUpperCase()}</span>
+            <span className="friend-copy"><strong>{friend.name}</strong><small>Amigos desde {new Date(friend.since).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</small></span>
+            <a className="text-link" href={`#mensagens?com=${encodeURIComponent(friend.id)}`} aria-label={`Mensagem para ${friend.name}`}>Mensagem</a>
+          </li>)}</ul>
+          : <p className="muted-text">Estudar junto é opcional. Um convite começa a lista.</p>}
+    <a className="button secondary full-width" href="#amigos"><Icon name="users"/>{friends.length ? 'Ver todos os amigos' : 'Convidar amigos'}</a>
+  </section>;
 }
 
 function remainingText(action, unit) {
@@ -212,7 +324,7 @@ function CourseMenu({ course, open }) {
   </div>;
 }
 
-export function CourseCard({ course, state, open }) {
+export function CourseCard({ course, state, open, compact = false }) {
   const progress = courseProgress(state, course);
   const status = courseStatus(state, course);
   const art = ['design', 'code', 'language', 'nature'].includes(course.art) ? course.art : 'nature';
@@ -224,7 +336,14 @@ export function CourseCard({ course, state, open }) {
   const subject = subjectOf(state, course);
   const shownScope = reading ? reading.label : scope;
   const percent = reading ? reading.percent : progress.percent;
-  return <div className="course-card-wrap"><motion.button {...enter} whileHover={{ y: -4 }} whileTap={{ scale: .99 }} className={`course-card ${state.selectedCourseId === course.id ? 'selected-course' : ''}`} onClick={() => open({ type: 'course', id: course.id })} aria-label={`${course.title}, ${statuses[status]}, ${shownScope}`}>
+  const label = `${course.title}, ${statuses[status]}, ${shownScope}`;
+  if (compact) return <div className="course-card-wrap is-row"><button type="button" className={`reading-row ${state.selectedCourseId === course.id ? 'selected-course' : ''}`} onClick={() => open({ type: 'course', id: course.id })} aria-label={label}>
+    <span className="reading-icon"><Icon name="file"/></span>
+    <span className="reading-copy"><strong>{course.title}</strong><small>{shownScope}{subject ? ` · ${subject.title}` : ''}{course.pdf ? ` · ${course.pdf.pages} p.` : ''}</small></span>
+    <span className="reading-progress"><Progress value={percent} tone="mint" label={`Progresso de ${course.title}`}/><strong>{percent}%</strong></span>
+    <span className={`course-status status-${status}`}>{statuses[status]}</span>
+  </button><CourseMenu course={course} open={open}/></div>;
+  return <div className="course-card-wrap"><motion.button {...enter} whileHover={{ y: -4 }} whileTap={{ scale: .99 }} className={`course-card ${state.selectedCourseId === course.id ? 'selected-course' : ''}`} onClick={() => open({ type: 'course', id: course.id })} aria-label={label}>
     <div className="course-image">
       <Cover art={art}/>
       <span className={`course-status status-${status}`}>{statuses[status]}</span>
@@ -242,18 +361,28 @@ export function CourseCard({ course, state, open }) {
   </motion.button><CourseMenu course={course} open={open}/></div>;
 }
 
+const kinds = { all: 'Todas as frentes', courses: 'Cursos e trilhas', pdfs: 'PDFs e leituras' };
+
 export function Library({ state, open, actions }) {
   const [filter, setFilter] = useState('all');
+  const [kind, setKind] = useState('all');
   const [search, setSearch] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('');
+  const query = search.toLocaleLowerCase('pt-BR');
   const courses = state.courses.filter(course => (filter === 'all' || courseStatus(state, course) === filter)
+    && (kind === 'all' || (kind === 'pdfs') === Boolean(course.pdf))
     && (!subjectFilter || (subjectFilter === 'none' ? !course.subjectId : course.subjectId === subjectFilter))
-    && course.title.toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR')));
+    && course.title.toLocaleLowerCase('pt-BR').includes(query));
+  const trails = courses.filter((course) => !course.pdf);
+  const readings = courses.filter((course) => course.pdf);
+  const subjects = subjectsOverview(state).filter((item) => item.subject && (!query || item.subject.title.toLocaleLowerCase('pt-BR').includes(query)));
   const selected = state.courses.find(course => course.id === state.selectedCourseId) || state.courses[0];
   const action = selected && nextAction({ ...state, courses: [selected] });
   const next = action && { course: selected, step: materialSteps(selected).find((step) => step.id === action.lessonId) };
-  const selectedArt = selected && (['design', 'code', 'language', 'nature'].includes(selected.art) ? selected.art : 'nature');
   const selectedDeck = selected ? slidesSummary(selected) : null;
+  const selectedStanding = selected ? (selected.pdf ? materialStanding(state, selected) : null) : null;
+  const selectedPercent = selected ? (selected.pdf ? selectedStanding.percent : courseProgress(state, selected).percent) : 0;
+  const selectedSubject = selected ? subjectOf(state, selected) : null;
 
   return <div className="library-root">
     <Heading eyebrow="Estante viva & continuidade" title="Biblioteca" actions={<><Button secondary onClick={() => open({ type: 'manual' })}><Icon name="edit"/>Criar manualmente</Button><Button secondary onClick={() => open({ type: 'pdf-attach' })}><Icon name="book"/>Anexar PDF</Button><Button onClick={() => open({ type: 'new' })}><Icon name="plus"/>Adicionar curso</Button></>}>
@@ -263,64 +392,98 @@ export function Library({ state, open, actions }) {
     {state.courses.length > 0 && <div className="library-toolbar">
       <label className="search-field">
         <Icon name="search"/>
-        <input type="search" id="course-search" placeholder="Buscar nas minhas trilhas…" aria-label="Buscar um curso pelo nome" value={search} onChange={event => setSearch(event.target.value)}/>
+        <input type="search" id="course-search" placeholder="Buscar na biblioteca por título ou disciplina…" aria-label="Buscar um curso pelo nome" value={search} onChange={event => setSearch(event.target.value)}/>
         {search && <button className="icon-button" onClick={() => { setSearch(''); document.getElementById('course-search').focus(); }} aria-label="Limpar busca"><Icon name="close"/></button>}
       </label>
-      <div className="filter-tabs" role="group" aria-label="Filtrar cursos por situação">
-        {Object.entries(statuses).map(([id, title]) => <button className="filter-btn" key={id} aria-pressed={filter === id} onClick={() => setFilter(id)}>
-          {filter === id && <motion.span className="selection-highlight" layoutId="library-filter" transition={{ duration: .26, ease }}/>}
-          <span>{title} ({id === 'all' ? state.courses.length : state.courses.filter(course => courseStatus(state, course) === id).length})</span>
-        </button>)}
+      <div className="library-filters">
+        <div className="kind-tabs" role="group" aria-label="Mostrar cursos ou PDFs">
+          {Object.entries(kinds).map(([id, title]) => <button key={id} type="button" className="kind-tab" aria-pressed={kind === id} onClick={() => setKind(id)}>
+            <Icon name={id === 'pdfs' ? 'file' : id === 'courses' ? 'layers' : 'book'}/><span>{title}</span>
+            <span className="kind-count">{id === 'all' ? state.courses.length : state.courses.filter((course) => (id === 'pdfs') === Boolean(course.pdf)).length}</span>
+          </button>)}
+        </div>
+        <div className="filter-tabs" role="group" aria-label="Filtrar cursos por situação">
+          {Object.entries(statuses).map(([id, title]) => <button className="filter-btn" key={id} aria-pressed={filter === id} onClick={() => setFilter(id)}>
+            {filter === id && <motion.span className="selection-highlight" layoutId="library-filter" transition={{ duration: .26, ease }}/>}
+            <span>{title} ({id === 'all' ? state.courses.length : state.courses.filter(course => courseStatus(state, course) === id).length})</span>
+          </button>)}
+        </div>
+        {(state.subjects || []).length > 0 && <label className="subject-filter">
+          <span className="sr-only">Filtrar por disciplina</span>
+          <select value={subjectFilter} onChange={(event) => setSubjectFilter(event.target.value)} aria-label="Filtrar por disciplina">
+            <option value="">Todas as disciplinas</option>
+            {state.subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.title}</option>)}
+            <option value="none">Sem disciplina</option>
+          </select>
+        </label>}
       </div>
-      {(state.subjects || []).length > 0 && <label className="subject-filter">
-        <span className="sr-only">Filtrar por disciplina</span>
-        <select value={subjectFilter} onChange={(event) => setSubjectFilter(event.target.value)} aria-label="Filtrar por disciplina">
-          <option value="">Todas as disciplinas</option>
-          {state.subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.title}</option>)}
-          <option value="none">Sem disciplina</option>
-        </select>
-      </label>}
     </div>}
 
     {state.courses.length === 0
       ? <FirstStudyArea actions={actions} open={open}/>
-      : <div className="library-grid">
-      <section className="library-shelf">
-        <div className="shelf-header">
-          <h2 className="headline">Minha estante <span className="shelf-count">{state.courses.length} trilhas</span></h2>
-          <div role="status" className="search-result-count">{courses.length} {courses.length === 1 ? 'trilha encontrada' : 'trilhas encontradas'}</div>
-        </div>
-        <div className="course-grid" id="library-results">
-          {courses.map(course => <CourseCard key={course.id} course={course} state={state} open={open}/>)}
-          {!courses.length && <Empty title="Nenhum material neste filtro." onAdd={() => open({ type: 'new' })}>Troque o filtro ou importe um curso por link.</Empty>}
-        </div>
-        <p className="quiet-note">Capas ilustrativas. Cada trilha reúne os passos que você registrou.</p>
-      </section>
-
-      {selected && <aside className="library-inspector">
-        {/* Profundidade tátil suave com Atropos (FGLibs) na capa da trilha em foco */}
-        <Atropos className="inspector-atropos" activeOffset={18} shadow={false} highlight={true} rotateXMax={6} rotateYMax={6}>
-          <div className="detail-image" data-atropos-offset="0">
-            <img src={`/assets/stitch/${selectedArt === 'design' ? 'detail' : selectedArt}.png`} alt="" data-atropos-offset="-2"/>
-            <div className="detail-image-caption" data-atropos-offset="3">
-              <span className="green-pill">Sua trilha atual</span>
-              <h2 className="title">{selected.title}</h2>
+      : <>
+      {selected && <section className="library-resume" aria-labelledby="library-resume-title">
+        <div className="library-section-label"><span><Icon name="play"/>Continuar agora</span>{next && <span className="soft-badge tone-mint"><span className="soft-dot" aria-hidden="true"/>{selected.reading || state.activeSession?.courseId === selected.id ? 'Em andamento' : 'Próximo passo'}</span>}</div>
+        <div className="card-surface resume-card">
+          <div className="resume-copy">
+            <div className="resume-meta">
+              {selectedSubject && <span className="soft-badge tone-mint">{selectedSubject.title}</span>}
+              <span>{materialType(selected.type).title}{isImportedCourse(selected) ? ` · ${sourceLabel(selected.source)}` : ''}</span>
             </div>
+            <h2 id="library-resume-title" className="title">{selected.title}</h2>
+            {next?.step && !selected.pdf && <p className="muted-text">Próximo passo: {next.step.title}</p>}
+            {selected.pdf && <p className="muted-text">{selectedStanding.label}</p>}
+            <div className="resume-progress"><Progress value={selectedPercent} tone="mint" label={`Progresso de ${selected.title}`}/><strong>{selectedPercent}%</strong></div>
           </div>
-        </Atropos>
-        {selected.pdf
-          ? <Button className="full-width" onClick={() => open({ type: next ? 'pdf' : 'course', id: selected.id })}><Icon name="book"/>{next ? (selected.reading ? `Continuar na p. ${selected.reading.page}` : 'Abrir no leitor') : 'Ver detalhes do PDF'}</Button>
-          : <Button className="full-width" onClick={() => open({ type: next ? 'session' : 'course', id: selected.id })}><Icon name={next ? 'play' : 'book'}/>{next ? 'Continuar meu próximo passo' : 'Ver detalhes da trilha'}</Button>}
-        {selectedDeck?.total > 0 && <Button secondary className="full-width" onClick={() => open({ type: 'slides', id: selected.id })}><Icon name="book"/>Abrir apresentação · <small>{slidePositionLabel(selectedDeck)}</small></Button>}
-        {isImportedCourse(selected)
-          ? <ImportedInspector course={selected} state={state}/>
-          : selected.pdf
-            ? <p className="quiet-note">{materialStanding(state, selected).label}{subjectOf(state, selected) ? ` · ${subjectOf(state, selected).title}` : ''}</p>
-            : <Steps course={selected} state={state}/>}
-        <Progress value={selected.pdf ? materialStanding(state, selected).percent : courseProgress(state, selected).percent} tone="lume" label={`Progresso de ${selected.title}`}/>
-        <p className="quiet-note">Pausar um curso tira suas aulas do roteiro e preserva o progresso e o XP.</p>
-      </aside>}
-    </div>}
+          <div className="resume-actions">
+            <Button ghost onClick={() => open({ type: 'course', id: selected.id })}>Detalhes</Button>
+            {selectedDeck?.total > 0 && <Button secondary onClick={() => open({ type: 'slides', id: selected.id })}><Icon name="book"/>Abrir apresentação · <small>{slidePositionLabel(selectedDeck)}</small></Button>}
+            {selected.pdf
+              ? <Button onClick={() => open({ type: next ? 'pdf' : 'course', id: selected.id })}><Icon name="book"/>{next ? (selected.reading ? `Continuar na p. ${selected.reading.page}` : 'Abrir no leitor') : 'Ver detalhes do PDF'}</Button>
+              : <Button onClick={() => open({ type: next ? 'session' : 'course', id: selected.id })}><Icon name={next ? 'play' : 'book'}/>{next ? 'Continuar meu próximo passo' : 'Ver detalhes da trilha'}</Button>}
+          </div>
+        </div>
+        {isImportedCourse(selected) && <ImportedInspector course={selected} state={state}/>}
+      </section>}
+
+      <div role="status" className="search-result-count">{courses.length} {courses.length === 1 ? 'trilha encontrada' : 'trilhas encontradas'}</div>
+
+      {subjects.length > 0 && kind === 'all' && <section className="library-section" aria-labelledby="library-subjects-title">
+        <div className="library-section-head">
+          <span className="card-icon tone-mint"><Icon name="school"/></span>
+          <div><h2 id="library-subjects-title" className="title">Disciplinas</h2><p className="card-subtitle">Materiais agrupados e por onde retomar.</p></div>
+          <a className="text-link" href="#disciplinas">Organizar<Icon name="arrow"/></a>
+        </div>
+        <div className="subject-card-grid">{subjects.map((item) => <a key={item.subject.id} className="card-surface subject-tile" href={`#disciplinas?id=${encodeURIComponent(item.subject.id)}`}>
+          <span className="subject-tile-meta"><span className="soft-badge tone-mint">{item.total} {item.total === 1 ? 'material' : 'materiais'}</span>{item.materials.some((material) => material.course.pdf) && <span className="soft-badge"><Icon name="file"/>{item.materials.filter((material) => material.course.pdf).length} PDFs</span>}<strong className="subject-tile-percent">{item.percent}%</strong></span>
+          <strong className="subject-tile-title">{item.subject.title}</strong>
+          <small className="muted-text">{item.resume ? `Retomar: ${item.resume.course.title}` : item.total ? 'Tudo concluído por aqui' : 'Nenhum material ainda'}</small>
+          <Progress value={item.percent} tone="mint" label={`Progresso em ${item.subject.title}`}/>
+          <span className="subject-tile-open">Abrir<Icon name="chevron"/></span>
+        </a>)}</div>
+      </section>}
+
+      {trails.length > 0 && <section className="library-section" aria-labelledby="library-courses-title">
+        <div className="library-section-head">
+          <span className="card-icon tone-reward"><Icon name="layers"/></span>
+          <div><h2 id="library-courses-title" className="title">Cursos e trilhas</h2><p className="card-subtitle">Aulas, etapas e projetos com o ponto de retomada.</p></div>
+          <span className="metric-label">{trails.length} {trails.length === 1 ? 'item' : 'itens'}</span>
+        </div>
+        <div className="course-grid" id="library-results">{trails.map(course => <CourseCard key={course.id} course={course} state={state} open={open}/>)}</div>
+      </section>}
+
+      {readings.length > 0 && <section className="library-section" aria-labelledby="library-readings-title">
+        <div className="library-section-head">
+          <span className="card-icon"><Icon name="file"/></span>
+          <div><h2 id="library-readings-title" className="title">Materiais e leituras</h2><p className="card-subtitle">PDFs anexados, com a página onde você parou.</p></div>
+          <span className="metric-label">{readings.length} {readings.length === 1 ? 'leitura' : 'leituras'}</span>
+        </div>
+        <div className="reading-list">{readings.map(course => <CourseCard key={course.id} course={course} state={state} open={open} compact/>)}</div>
+      </section>}
+
+      {!courses.length && <Empty title="Nenhum material neste filtro." onAdd={() => open({ type: 'new' })}>Troque o filtro ou importe um curso por link.</Empty>}
+      <p className="today-quote"><Icon name="leaf"/><span>Feito com cuidado para quem aprende no próprio compasso.</span></p>
+    </>}
   </div>;
 }
 
