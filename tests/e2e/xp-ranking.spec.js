@@ -109,9 +109,8 @@ test('ranking exige opt-in, mostra o próprio XP validado e pode ser desligado',
   await page.getByRole('button', { name: /^Menu da conta/ }).click();
   await expect(page.locator('#account-popover').getByText(/100 \/ 500 XP/)).toBeVisible();
 
-  await page.goto('/#historico');
-  await expect(page.getByRole('heading', { name: 'XP confirmado pelo servidor' })).toBeVisible();
-  await expect(page.getByText('Curso de teste').first()).toBeVisible();
+  await page.goto('/#conquistas');
+  await expect(page.locator('.achievement-summary')).toContainText('100 XP elegível');
 
   await page.goto('/#ranking');
   await expect(page.getByRole('heading', { name: 'Ranking', exact: true })).toBeVisible();

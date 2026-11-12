@@ -36,7 +36,7 @@ export function Home({ state, open, go, planActions, notify, account }) {
 
   function toggleFocus(task) {
     if (focus?.id === task.id) {
-      if (planActions.clearTaskFocus()) notify(`${task.title} saiu do foco. A Hoje volta a sugerir pelo roteiro.`);
+      if (planActions.clearTaskFocus()) notify(`${task.title} saiu do foco. O Início volta a sugerir pelo roteiro.`);
       return;
     }
     if (planActions.focusTask(task.id)) notify(`Foco agora: ${task.title}.`);
@@ -63,7 +63,7 @@ export function Home({ state, open, go, planActions, notify, account }) {
   return <div className="study-root today-root">
     <section className="card-surface today-welcome" aria-labelledby="today-title">
       <div className="today-welcome-copy">
-        <h1 id="today-title" className="sr-only">Hoje</h1>
+        <h1 id="today-title" className="sr-only">Início</h1>
         <div className="soft-badges">
           <button type="button" className="soft-badge tone-mint" onClick={() => go('inicio')} title="Ajustar seu ritmo">
             <span className="soft-dot" aria-hidden="true"/>
@@ -253,7 +253,7 @@ export function Home({ state, open, go, planActions, notify, account }) {
           {agenda.overdue > 0 && <p className="inline-note todo-overdue-note" role="status"><Icon name="flag"/><span>{overdueMessage(agenda.overdue)}</span></p>}
           {agenda.next.length
             ? <ul className="today-task-list">{agenda.next.map((task) => <li key={task.id} className={`todo-item ${focus?.id === task.id ? 'is-focus' : ''}`}>
-              <button type="button" aria-pressed={focus?.id === task.id} title={focus?.id === task.id ? 'Tirar do foco' : 'Focar na Hoje'} aria-label={focus?.id === task.id ? `Tirar ${task.title} do foco` : `Focar em ${task.title} na Hoje`} className="todo-focus" onClick={() => toggleFocus(task)}><Icon name="focus"/></button>
+              <button type="button" aria-pressed={focus?.id === task.id} title={focus?.id === task.id ? 'Tirar do foco' : 'Focar no Início'} aria-label={focus?.id === task.id ? `Tirar ${task.title} do foco` : `Focar em ${task.title} no Início`} className="todo-focus" onClick={() => toggleFocus(task)}><Icon name="focus"/></button>
               <span className="todo-copy"><strong>{task.title}</strong><small className="todo-meta">{focus?.id === task.id ? 'Em foco · ' : ''}{taskMeta(task)}</small></span>
               <button type="button" role="checkbox" aria-checked="false" title="Concluir" aria-label={`Concluir tarefa ${task.title}`} className="todo-check today-task-done" onClick={() => completeTask(task)}><Icon name="check"/></button>
             </li>)}</ul>

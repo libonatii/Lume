@@ -615,7 +615,7 @@ export default function Onboarding({ state, actions, libraryActions, go, notify,
           </div>
           <div className="step-actions">
             <Button secondary onClick={() => setPhase(2)}>Voltar</Button>
-            <Button onClick={finish}>Concluir e ir para Hoje<Icon name="arrow"/></Button>
+            <Button onClick={finish}>Concluir e ir para o Início<Icon name="arrow"/></Button>
           </div>
         </>}
       </motion.section>

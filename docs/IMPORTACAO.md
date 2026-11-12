@@ -233,14 +233,9 @@ Reimportação:
   e a data da conferência. O texto deixa claro que isso não mede domínio nem garante aprovação.
 - O caso Gran/OAB só será validado de ponta a ponta quando a URL real do curso for fornecida.
 
-## 10. GitHub (preparação)
+## 10. GitHub
 
-- `deliveryCandidates(repository)` transforma issues abertas em **sugestões** que exigem validação, com a nota de
-  que issue aberta não significa projeto incompleto.
-- A leitura pública de repositórios existe em `api/domain/github.js` (README, issues e milestones, sem token e sem
-  repositórios privados). Conexão por OAuth, validação automática de entregas e escrita no GitHub não existem.
-- Quando a integração for implementada, ela deve ser opcional, com escopo mínimo, escolha explícita de
-  repositórios e nada de repositórios privados expostos por padrão.
+Decisão da responsável (12/11/2026): a integração com o GitHub saiu do produto por fugir da proposta. Não há leitura de repositórios nem sugestões de entrega.
 
 ## 11. Como verificar
 

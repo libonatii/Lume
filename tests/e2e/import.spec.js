@@ -128,7 +128,7 @@ test('duas contas não compartilham cursos importados', async ({ page }, testInf
     await page.getByLabel('Senha', { exact: true }).fill('senha-local-teste-123');
     await page.getByRole('button', { name: 'Criar minha conta' }).click();
     await page.getByRole('button', { name: 'Explorar sem personalizar agora' }).click();
-    await expect(page.getByRole('heading', { name: 'Hoje', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Início', exact: true })).toBeVisible();
   }
 
   await page.goto('/');

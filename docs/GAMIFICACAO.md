@@ -149,7 +149,7 @@ Posição salva e tempo elegível são campos diferentes. A posição deve poder
 
 Oferecer sessões de estudo com início e pausa e registros manuais para atividades externas ou offline. Marcar a origem desses registros. Um cronômetro sozinho não demonstra estudo: o produto precisa explicar seu uso e distinguir declaração de atividade observada.
 
-A sessão declarada existe como marcador de continuidade: ela conta o tempo que a pessoa escolheu, sobrevive ao recarregamento e aparece em Meu caminho. Ao encerrar, ela é enviada ao servidor como **registro manual identificado**: o servidor desconta sobreposição com outras sessões, acumula sobras, fecha blocos de 30 minutos e aplica o teto diário. O tempo não é observação de atividade e não vira XP sem esse evento validado. A presença do Lume Companion continua fora: ela informa um aplicativo aberto, não estudo observado.
+A sessão declarada existe como marcador de continuidade: ela conta o tempo que a pessoa escolheu, sobrevive ao recarregamento e entra no ritmo semanal da Hoje e do Plano. Ao encerrar, ela é enviada ao servidor como **registro manual identificado**: o servidor desconta sobreposição com outras sessões, acumula sobras, fecha blocos de 30 minutos e aplica o teto diário. O tempo não é observação de atividade e não vira XP sem esse evento validado. A presença do Lume Companion continua fora: ela informa um aplicativo aberto, não estudo observado.
 
 Não exigir movimento de mouse contínuo para reconhecer leitura e não usar vigilância por câmera ou captura de tela como requisito. Pessoas usando leitor de tela ou estudando fora da aba também precisam de um caminho de registro adequado.
 

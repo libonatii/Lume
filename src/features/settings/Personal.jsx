@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import Atropos from 'atropos/react';
-import { PALETTES, STUDY_TYPES, achievements, courseStatus, levelInfo, studyRhythm, totalXP } from '../../../public/domain.js';
+import { PALETTES, STUDY_TYPES, achievements, levelInfo, studyRhythm, totalXP } from '../../../public/domain.js';
 import { materialSteps } from '../../../public/material-model.js';
-import { formatSessionDuration } from '../../../public/session-domain.js';
-import { XP_KIND_LABELS, completionKindForCourse, levelProgress, stepEventKey } from '../../../public/xp-policy.js';
+import { completionKindForCourse, levelProgress, stepEventKey } from '../../../public/xp-policy.js';
 import BackupPanel from './BackupPanel.jsx';
 import { api, apiError } from '../../lib/api.js';
 import Icon from '../../ui/Icon.jsx';
-import { AnimatedNumber, Button, Cover, Empty, Heading, Progress, Ring, stagger } from '../../ui/ui.jsx';
+import { AnimatedNumber, Button, Empty, Heading, Progress, Ring, stagger } from '../../ui/ui.jsx';
 import { isCompleted } from '../../../public/progress-domain.js';
 
 export function Achievements({ state, account, xp }) {
@@ -76,120 +75,6 @@ export function Achievements({ state, account, xp }) {
         <ul className="legacy-seal-list">{legacy.map((item) => <li key={item.id} className={item.unlocked ? 'is-unlocked' : ''}><Icon name={item.icon}/><span>{item.title}</span><strong>{item.current}/{item.target}</strong></li>)}</ul>
       </details>}
     </> : <Empty icon="history" title="Um caminho sem pontuação.">Você ocultou os indicadores. Seu histórico continua guardado.</Empty>}
-  </div>;
-}
-
-export function History({ state, account, xp, refreshXP, notify }) {
-  const [adjusting, setAdjusting] = useState('');
-  const [adjustReason, setAdjustReason] = useState('');
-  const [adjustError, setAdjustError] = useState('');
-  const completedCourses = state.courses.filter(course => courseStatus(state, course) === 'completed').length;
-  // Passos com data, desfeitos fora; conclusões lidas como histórico da fonte não entram.
-  const steps = (state.progress || []).filter((entry) => entry.at && !entry.revertedAt && !entry.historical);
-  const summary = account ? xp?.summary : null;
-  const events = account ? (xp?.events || []) : [];
-  const legacy = totalXP(state);
-  const level = summary ? levelProgress(summary.totalXP) : levelInfo(state);
-  const originLabel = { manual: 'registro manual', integration: 'integração', import: 'progresso importado' };
-  async function submitAdjustment(event) {
-    event.preventDefault();
-    if (!adjusting) return;
-    setAdjustError('');
-    try {
-      const result = await api('/api/xp/adjust', { method: 'POST', body: { eventId: adjusting, reason: adjustReason } });
-      if (!result.ok) throw new Error(apiError(result));
-      notify(result.data.duplicate ? 'Esta correção já tinha sido registrada.' : 'Correção registrada no extrato e conquista vinculada revista.');
-      setAdjusting('');
-      setAdjustReason('');
-      await refreshXP?.();
-    } catch (error) {
-      setAdjustError(error.message);
-    }
-  }
-  return <div className="personal-root">
-    <Heading eyebrow="Memória de estudo" title="Meu caminho">
-      Seu histórico é uma memória de progresso, não uma lista de cobranças.
-    </Heading>
-    <div className="history-stats">
-      <div className="card-surface stat-card"><span className="eyebrow">{account ? 'XP elegível' : 'XP de prévia'}</span><strong className="stat-value"><AnimatedNumber value={level.total}/></strong><small className="muted-text">Nível {level.level} · {level.current}/{level.next} para o próximo</small></div>
-      <div className="card-surface stat-card"><span className="eyebrow">Passos registrados</span><strong className="stat-value"><AnimatedNumber value={steps.length}/></strong><small className="muted-text">Avanços anotados no seu tempo</small></div>
-      <div className="card-surface stat-card"><span className="eyebrow">Cursos concluídos</span><strong className="stat-value"><AnimatedNumber value={completedCourses}/></strong><small className="muted-text">Trilhas percorridas até o fim</small></div>
-    </div>
-
-    {account && <section className="xp-ledger" aria-labelledby="xp-ledger-title">
-      <div className="xp-ledger-head">
-        <div>
-          <span className="eyebrow">Livro de eventos</span>
-          <h2 id="xp-ledger-title" className="title">XP confirmado pelo servidor</h2>
-          <p className="muted-text">Cada linha é um evento único. Repetir uma requisição, recarregar ou sincronizar de outro dispositivo não concede de novo.</p>
-        </div>
-        {summary && <div className="xp-time-cap">
-          <span className="eyebrow">Tempo hoje</span>
-          <strong>{summary.dailyTimeXP} / {summary.dailyTimeCap} XP</strong>
-          <Progress value={summary.dailyTimeXP} max={summary.dailyTimeCap} tone="mint" label="XP de tempo usado hoje"/>
-          <small className="muted-text">{Math.floor(summary.carrySeconds / 60)} min no acumulador · blocos de 30 min</small>
-        </div>}
-      </div>
-      {events.length
-        ? <ul className="xp-event-list">{[...events].reverse().map((event) => <li key={event.id} className={`xp-event ${event.kind === 'adjustment' ? 'is-adjustment' : ''}`}>
-          <div className="xp-event-main">
-            <span className={`xp-event-icon kind-${event.kind}`}><Icon name={event.kind === 'adjustment' ? 'return' : event.kind === 'time_block' ? 'clock' : event.kind === 'course_bonus' ? 'trophy' : event.kind === 'project_bonus' || event.kind === 'delivery' ? 'flag' : event.kind === 'slide' ? 'book' : event.kind === 'exercise' ? 'steps' : 'check'}/></span>
-            <span className="xp-event-copy">
-              <strong>{event.kind === 'adjustment' ? `Correção de ${event.materialTitle || 'evento'}` : event.materialTitle || XP_KIND_LABELS[event.kind] || 'Evento de XP'}</strong>
-              <small>{event.kind === 'adjustment' ? `Motivo: ${event.reason}` : `${XP_KIND_LABELS[event.kind] || event.kind}${event.stepTitle ? ` · ${event.stepTitle}` : ''} · ${originLabel[event.origin] || event.origin}`}</small>
-            </span>
-            <span className="xp-event-value"><strong>{event.xp > 0 ? '+' : ''}{event.xp} XP</strong><small>{new Date(event.at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</small></span>
-            {event.xp > 0 && event.kind !== 'adjustment' && <button className="text-button" onClick={() => { setAdjusting(event.id); setAdjustReason(''); setAdjustError(''); }}>Corrigir</button>}
-          </div>
-          {adjusting === event.id && <form className="xp-adjust-form" onSubmit={submitAdjustment}>
-            <label className="field">Motivo da correção
-              <textarea value={adjustReason} rows={2} maxLength={240} onChange={(event) => setAdjustReason(event.target.value)} placeholder="Ex.: evento registrado em duplicidade por engano" required/>
-            </label>
-            {adjustError && <p className="form-error" role="alert">{adjustError}</p>}
-            <div className="dialog-actions inline-actions">
-              <Button type="submit" disabled={adjustReason.trim().length < 3}><Icon name="check"/>Registrar correção</Button>
-              <Button secondary type="button" onClick={() => setAdjusting('')}>Cancelar</Button>
-            </div>
-            <p className="quiet-note">A correção não apaga o evento original: cria um ajuste negativo com motivo no extrato e revoga a conquista vinculada. O bônus de um curso não é revogado automaticamente ao corrigir uma aula.</p>
-          </form>}
-        </li>)}</ul>
-        : <Empty icon="spark" title={xp ? 'Nenhum evento elegível ainda.' : 'Sincronizando seu XP…'}>Concluir uma aula, uma leitura, uma lista de exercícios, uma apresentação ou uma entrega cria o primeiro evento. Abrir ou preparar o material não concede XP.</Empty>}
-    </section>}
-
-    {(state.studySessions || []).length > 0 && <section className="session-history" aria-labelledby="session-history-title">
-      <h2 id="session-history-title" className="title">Sessões declaradas</h2>
-      <p className="quiet-note">Tempo que você iniciou e encerrou. O servidor confirma os blocos de 30 minutos; pausas não contam e a sessão não comprova estudo.</p>
-      <ul>
-        {[...state.studySessions].reverse().slice(0, 8).map(session => <li key={session.id}>
-          <span className="session-history-dot"><Icon name="clock"/></span>
-          <span className="session-history-copy">
-            <strong>{session.label}</strong>
-            <small>{new Date(session.startedAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })} · tempo declarado</small>
-          </span>
-          <span className="session-history-time">{formatSessionDuration(session.durationMs)}</span>
-        </li>)}
-      </ul>
-    </section>}
-
-    {steps.length > 0 && <section className="history-list" aria-label="Histórico de passos">
-      {[...steps].reverse().map((entry, index) => <motion.article className="history-entry" key={entry.id} {...stagger(index)}>
-        <span className={`history-dot ${entry.type === 'preparation' ? 'prep' : 'done'}`}><Icon name={entry.type === 'preparation' ? 'sprout' : 'check'}/></span>
-        <div className="history-copy">
-          <h2 className="title">{entry.title}</h2>
-          <p className="muted-text">{entry.materialTitle}{entry.type === 'preparation' && ' · Preparação; a etapa original não foi concluída'}{entry.origin === 'integration' && ' · Observada na plataforma'}</p>
-        </div>
-        <div className="history-date">
-          <time dateTime={entry.at}>{new Date(entry.at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</time>
-          {state.preferences.gamification && entry.legacyXp > 0 && <span className="xp-pill">+{entry.legacyXp} XP de legado</span>}
-          {state.preferences.gamification && account && entry.type === 'completion' && entry.origin !== 'legacy' && <span className="xp-pill tone-muted">XP elegível no extrato</span>}
-        </div>
-      </motion.article>)}
-    </section>}
-
-    {legacy > 0 && <details className="legacy-details">
-      <summary>Saldo legado: {legacy} XP (fora do nível e do ranking)</summary>
-      <p className="quiet-note">Registros legados deste documento somam {legacy} XP histórico. Esse saldo não é convertido, não entra no nível novo e não aparece em placares.</p>
-    </details>}
   </div>;
 }
 
@@ -360,7 +245,7 @@ export function Preferences({ state, actions, libraryActions, notify, onPersonal
 
         <section className="card-surface settings-panel" aria-labelledby="sharing-title">
           <div className="panel-title"><span className="pace-icon"><Icon name="users"/></span><div><h2 className="title" id="sharing-title">O que amigos veem</h2><p className="muted-text">O perfil abre só para quem está na sua lista de amigos.</p></div></div>
-          {[['library', 'Biblioteca', 'Materiais em estudo e concluídos.'], ['queue', 'Fila de estudo', 'O roteiro que aparece em Hoje.'], ['progress', 'Progresso', 'Aulas concluídas e percentuais.'], ['xp', 'XP e nível', 'Confirmados pelo servidor; o saldo legado fica fora.']].map(([key, label, hint]) => <label className="setting-row" key={key}>
+          {[['library', 'Biblioteca', 'Materiais em estudo e concluídos.'], ['queue', 'Fila de estudo', 'O roteiro que aparece no Início.'], ['progress', 'Progresso', 'Aulas concluídas e percentuais.'], ['xp', 'XP e nível', 'Confirmados pelo servidor; o saldo legado fica fora.']].map(([key, label, hint]) => <label className="setting-row" key={key}>
             <span><strong>{label}</strong><span>{hint}</span></span>
             <input className="switch" type="checkbox" checked={sharing[key] !== false} onChange={event => sharingPreference(key, event.target.checked)}/>
           </label>)}

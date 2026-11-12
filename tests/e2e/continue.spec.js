@@ -69,7 +69,7 @@ test('conclusão em lote registra as aulas em aberto até a escolhida, cada uma 
 test('ao recarregar a biblioteca, a tela mostra a forma do conteúdo, não um estado vazio', async ({ page }) => {
   await seedAccount(page, addTask({ ...createInitialState(), onboarded: true }, { title: 'Revisar resumo' }, '2026-11-10T10:00:00Z'));
   await page.goto('/#hoje');
-  await expect(page.getByRole('heading', { name: 'Hoje', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Início', exact: true })).toBeVisible();
 
   // Uma gravação recusada pede recarga; a recarga fica presa até liberarmos.
   await page.route('**/api/library/actions', (route) => route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ error: 'A biblioteca mudou.', code: 'revision_conflict' }) }), { times: 1 });
@@ -84,19 +84,19 @@ test('ao recarregar a biblioteca, a tela mostra a forma do conteúdo, não um es
     await route.continue();
   });
   await retry.click();
-  await expect(page.getByText('Carregando Hoje…')).toBeAttached();
+  await expect(page.getByText('Carregando Início…')).toBeAttached();
   // A tela continua montada (para não perder rascunhos), mas oculta até a biblioteca chegar.
   await expect(page.getByText('Nenhum material em andamento.')).toBeHidden();
   release();
-  await expect(page.getByText('Carregando Hoje…')).toHaveCount(0);
-  await expect(page.getByRole('heading', { name: 'Hoje', exact: true })).toBeVisible();
+  await expect(page.getByText('Carregando Início…')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Início', exact: true })).toBeVisible();
   await expect(page.getByText('Revisar resumo')).toBeVisible();
 });
 
 test('focar uma tarefa a coloca no cartão principal da Hoje, sobrevive ao recarregar e não a conclui', async ({ page }) => {
   await seedAccount(page, addTask({ ...createInitialState(), onboarded: true }, { title: 'A2 – Falência', dueDate: '2026-11-26', priority: 1 }, '2026-11-10T10:00:00Z'));
   await page.goto('/#hoje');
-  await page.getByRole('button', { name: 'Focar em A2 – Falência na Hoje' }).click();
+  await page.getByRole('button', { name: 'Focar em A2 – Falência no Início' }).click();
 
   const card = page.locator('section.next-action');
   await expect(card.getByText('Foco agora · escolhido por você')).toBeVisible();
@@ -116,7 +116,7 @@ test('focar uma tarefa a coloca no cartão principal da Hoje, sobrevive ao recar
   await page.getByRole('button', { name: 'Iniciar foco' }).click();
   await expect(page.getByText('Sessão em andamento: A2 – Falência')).toBeVisible();
   await page.getByRole('button', { name: 'Finalizar com resumo' }).click();
-  await page.getByRole('link', { name: 'Voltar para Hoje' }).click();
+  await page.getByRole('link', { name: 'Voltar ao Início' }).click();
 
   await page.locator('section.next-action').getByRole('button', { name: 'Concluir tarefa' }).click();
   await expect(page.getByText('Tarefa concluída: A2 – Falência.')).toBeVisible();

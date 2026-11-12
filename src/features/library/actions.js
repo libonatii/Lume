@@ -1,6 +1,5 @@
 import { addMaterial, deleteCourse, replaceCourseSteps, selectCourse, setCourseEdital, toggleCoursePause, updateCourse } from '../../../public/domain.js';
 import { applyCourseImport, isImportedCourse } from '../../../public/import-domain.js';
-import { createGitHubProject } from '../../../public/github-domain.js';
 import { addPdfMaterial, setReadingPage } from '../../../public/pdf-domain.js';
 import { addSubject, deleteSubject, linkMaterialSubject, updateSubject } from '../../../public/subject-domain.js';
 import { addSlide, markSlideSeen, moveSlide, removeSlide, setSlideImage, updateSlide } from '../../../public/slides-domain.js';
@@ -10,7 +9,6 @@ export function createLibraryActions(act) {
   return {
     addMaterial: (input, origin = 'manual') => change(addMaterial, input, origin),
     importCourse: (payload, options) => change(applyCourseImport, payload, options),
-    createGitHubProject: (analysis, chosen) => change(createGitHubProject, analysis, chosen),
     deleteMaterial: (id) => change(deleteCourse, id),
     togglePause: (id) => change(toggleCoursePause, id),
     selectMaterial: (id) => change(selectCourse, id),

@@ -375,7 +375,7 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
         {/* Vitrine 3: Na fila e Concluídos (mantém compatibilidade com os recortes do perfil) */}
         <div className="profile-grid">
           <section className="card-surface profile-section">
-            <div className="panel-title"><span className="pace-icon"><Icon name="flag"/></span><div><h2 className="title">Na fila</h2><p className="muted-text">O roteiro que a pessoa vê em Hoje.</p></div></div>
+            <div className="panel-title"><span className="pace-icon"><Icon name="flag"/></span><div><h2 className="title">Na fila</h2><p className="muted-text">O roteiro que a pessoa vê no Início.</p></div></div>
             {queue.length > 0 ? <ol className="profile-queue">
               {queue.map((step, index) => <li key={`${step.course}-${step.lesson}-${index}`}>
                 <span className="profile-queue-index">{index + 1}</span>
@@ -475,8 +475,8 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
             <button type="button" className="steam-side-nav-btn" onClick={() => go('biblioteca')}>
               <span>Abrir biblioteca</span><Icon name="arrow"/>
             </button>
-            <button type="button" className="steam-side-nav-btn" onClick={() => go('historico')}>
-              <span>Meu caminho completo</span><Icon name="arrow"/>
+            <button type="button" className="steam-side-nav-btn" onClick={() => go('conquistas')}>
+              <span>Ver minhas conquistas</span><Icon name="arrow"/>
             </button>
           </>}
         </nav>

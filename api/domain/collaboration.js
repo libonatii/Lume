@@ -3,8 +3,8 @@
 // Regras:
 // - só entre amizades aceitas;
 // - apenas uma etapa de um material do tipo projeto;
-// - aceitar é um acordo de ajuda: não copia o curso, não concede acesso ao
-//   GitHub e não gera XP para nenhum dos lados;
+// - aceitar é um acordo de ajuda: não copia o curso, não concede acesso a
+//   repositórios e não gera XP para nenhum dos lados;
 // - o histórico do convite permanece após recusa ou cancelamento.
 
 import { restoreState } from '../../public/domain.js';

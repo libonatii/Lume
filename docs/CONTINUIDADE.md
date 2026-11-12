@@ -79,7 +79,7 @@ Telas React → ações nomeadas → useLibraryPersistence → /api/library/acti
 | Amigos | Convites de sete dias, aceite, lista, remoção e perfil com escolhas de compartilhamento |
 | Mensagens | Conversas entre amizades, referências, histórico, não lidas, bloqueio e preferência de notificação |
 | Ranking | Nível, cursos e empenho semanal/mensal; opt-in, empates, período/fuso e legado fora |
-| GitHub | Leitura pública de README, issues e milestones; sugestões revisáveis de entregas |
+| GitHub | Removido em 12/11/2026 por decisão da responsável; projetos são materiais do tipo projeto |
 | Colaboração | Convite por entrega, aceite/recusa e cancelamento; sem copiar projeto ou conceder XP |
 | Backup | Exportação e restauração explícita do formato v3 com prévia; versões antigas recusadas, sem conversão |
 | Aparência | Azul/Roxo, claro/escuro, tamanho do texto e menos estímulo no popover `Conforto visual` do cabeçalho e em `#configuracoes`; logo preservado |
@@ -89,9 +89,10 @@ A presença não é atividade validada. Importação e conclusão observada pela
 capacidades declaradas por provedor; não há rastreamento universal. O Gran tem leitor próprio;
 os testes das demais fontes usam exemplos. Consulte [Importação](IMPORTACAO.md).
 
-A navegação tem cinco destinos, no cabeçalho (barra inferior no celular): Hoje, Biblioteca, Plano de Estudos,
-Amigos e Conquistas. Perfil, Meu caminho e Configurações ficam no menu da conta. Plano de Estudos reúne Agenda da
-semana, Calendário completo, Tarefas e Roteiro, e preserva os registros. A Agenda é privada e não altera
+A navegação tem quatro destinos, no cabeçalho (barra inferior no celular): Início (antiga Hoje, em `#hoje`),
+Biblioteca, Plano de Estudos e Amigos. O menu da conta abre o Perfil, com as abas Meu perfil, Conquistas e Configurações. Plano de Estudos reúne
+Agenda, Calendário e Tarefas e preserva os registros. Meu caminho e Roteiro saíram em 12/11/2026 (os endereços antigos
+abrem Conquistas e o Plano). A Agenda é privada e não altera
 as projeções de perfil. Escopo, decisões operacionais e evidências da rodada em [Agenda](AGENDA.md).
 
 ## 4. Execução local

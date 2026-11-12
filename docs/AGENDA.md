@@ -59,11 +59,11 @@ como prazo, separadamente do dia escolhido para executar a atividade.
 
 ### Plano, Hoje e navegação
 
-Plano mantém Cronograma e Roteiro. Agenda reúne Calendário e Tarefas. O cronograma distribui aulas por
+Desde 12/11/2026, Plano de Estudos reúne Agenda (cronograma da semana), Calendário e Tarefas; o Roteiro saiu. O cronograma distribui aulas por
 minutos disponíveis em cada dia; essas sugestões são revisadas antes de virarem compromissos.
 
 - `#tarefas` continua válido e agora pertence à Agenda; tarefas podem ser agendadas pelo botão Agendar.
-- Cronograma e Roteiro permanecem no Plano. Hoje conserva seu resumo de tarefas; não ganhou outro calendário.
+- O cronograma permanece no Plano; o Roteiro saiu em 12/11/2026. Hoje conserva seu resumo de tarefas; não ganhou outro calendário.
 - A navegação tem seis destinos com rótulos inteiros no computador e no celular.
 - Recalcular o Plano não modifica compromissos. Uma sugestão só vira compromisso ao salvar a revisão.
 

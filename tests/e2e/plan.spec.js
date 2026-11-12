@@ -26,19 +26,30 @@ test('cronograma distribui aulas, explica conflito, recalcula após conclusão e
 
   await page.goto('/#hoje');
   await page.getByRole('navigation', { name: 'Navegação' }).getByRole('link', { name: 'Plano de Estudos', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Plano', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Plano de Estudos', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Usar segunda a sexta, 30 min por dia' }).click();
   await expect(page.getByRole('heading', { name: 'Distribuição dos blocos' })).toBeVisible();
   const items = page.locator('.plan-item');
   await expect(items.first()).toContainText('Aula 1 — Teoria geral');
   await expect(items.first()).toContainText('(duração da fonte)');
-  await expect(page.locator('.plan-item', { hasText: 'Aula 4' })).toContainText('(estimativa)');
+  // O dia em detalhe mostra os blocos daquele dia; a Aula 4 cai num dia seguinte da faixa.
+  const aula4 = page.locator('.plan-item', { hasText: 'Aula 4' });
+  for (let week = 0; week < 3 && !(await aula4.count()); week += 1) {
+    for (const day of await page.locator('.plan-week-day').all()) {
+      if (await aula4.count()) break;
+      await day.click();
+    }
+    if (!(await aula4.count())) await page.getByRole('button', { name: 'Próxima semana' }).click();
+  }
+  await expect(aula4).toContainText('(estimativa)');
+  await page.locator('.plan-controls').getByRole('button', { name: 'Hoje', exact: true }).click();
 
   // Prazo para hoje não cabe: o conflito mostra números e opções, sem aplicar nada sozinho.
   const today = await page.evaluate(() => {
     const date = new Date();
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   });
+  await page.getByRole('button', { name: 'Disponibilidade e prazos' }).click();
   await page.getByLabel('Prazo', { exact: true }).fill(today);
   await expect(page.getByRole('heading', { name: /não cabe no plano atual/ })).toBeVisible();
   await expect(page.locator('.plan-conflict').getByText(/Faltam 2 h de estudo/)).toBeVisible();
@@ -59,7 +70,8 @@ test('cronograma distribui aulas, explica conflito, recalcula após conclusão e
   expect(Object.keys(beforeReload.plan.postponed)).toEqual([materialSteps(beforeReload.courses[0])[1].id]);
 
   await page.reload();
-  await expect(page.getByLabel('Segunda')).toHaveValue('30');
+  await page.getByRole('button', { name: 'Disponibilidade e prazos' }).click();
+  await expect(page.getByRole('combobox', { name: 'Segunda', exact: true })).toHaveValue('30');
   const saved = await readAccount(page);
   const course = saved.courses[0];
   expect(saved.plan.availability).toEqual({ 1: 30, 2: 30, 3: 30, 4: 30, 5: 30 });

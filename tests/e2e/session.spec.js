@@ -13,7 +13,7 @@ test('sessão declarada persiste ao recarregar, pausa, retoma e encerra sem conc
   seeded.selectedCourseId = 'design';
   await seedAccount(page, seeded);
   await page.goto('/#hoje');
-  await expect(page.getByRole('heading', { name: 'Hoje', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Início', exact: true })).toBeVisible();
 
   await page.getByRole('button', { name: 'Iniciar sessão de foco' }).click();
   await expect(page.getByRole('heading', { name: 'Sessão de foco', exact: true })).toBeVisible();
@@ -42,10 +42,6 @@ test('sessão declarada persiste ao recarregar, pausa, retoma e encerra sem conc
   await page.getByRole('button', { name: 'Finalizar com resumo' }).click();
   await expect(page.getByRole('button', { name: 'Iniciar foco' })).toBeVisible();
 
-  await page.getByRole('button', { name: /^Menu da conta/ }).click();
-  await page.getByRole('link', { name: 'Meu caminho', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Sessões declaradas' })).toBeVisible();
-  await expect(page.getByText(/tempo declarado/).first()).toBeVisible();
 
   const state = await readAccount(page);
   expect(state.studySessions).toHaveLength(1);

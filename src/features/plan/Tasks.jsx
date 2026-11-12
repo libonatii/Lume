@@ -7,7 +7,9 @@ import {
 import Icon from '../../ui/Icon.jsx';
 import { materialSteps } from '../../../public/material-model.js';
 import { DAILY_SUBTASK_XP_CAP, XP_VALUES } from '../../../public/xp-policy.js';
-import { Button, Empty, Heading, stagger } from '../../ui/ui.jsx';
+import { Button, Empty, stagger } from '../../ui/ui.jsx';
+import SectionTabs from '../../app/SectionTabs.jsx';
+import { localDay } from '../../../public/session-domain.js';
 
 // Lista de tarefas de estudo para uma prova. Criar e organizar não gera XP;
 // concluir uma tarefa vinculada registra a aula, sem recompensa própria.
@@ -224,62 +226,104 @@ export default function Tasks({ state, actions, notify, onSchedule }) {
     </motion.li>;
   }
 
-  return <div className="personal-root">
-    <Heading eyebrow="Agenda" title="Tarefas">
-      Liste as ações concretas da sua preparação e defina o que vem primeiro. Concluir uma tarefa vinculada registra a conclusão da aula. Tarefas sem aula vinculada não geram XP; cada subtarefa concluída rende um pouco de XP.
-    </Heading>
+  const [filter, setFilter] = useState('all');
+  const dueToday = pending.filter((task) => task.dueDate === today).length;
+  const doneToday = done.filter((task) => task.completedAt && localDay(Date.parse(task.completedAt)) === today).length;
+  const linked = pending.filter((task) => task.lessonId).length;
+  const filters = {
+    all: ['Todas', pending.length],
+    late: ['Atrasadas', overdue],
+    today: ['Para hoje', dueToday],
+    linked: ['Com aula vinculada', linked],
+  };
+  const shown = pending.filter((task) => filter === 'all'
+    || (filter === 'late' && isOverdue(task, today))
+    || (filter === 'today' && task.dueDate === today)
+    || (filter === 'linked' && task.lessonId));
 
-    <section className="card-surface settings-panel">
-      <div className="panel-title"><span className="pace-icon"><Icon name="list"/></span><div><h2 className="title">Nova tarefa</h2><p className="muted-text">Escreva uma ação concreta, não um tema vago.</p></div></div>
-      <form className="form-stack" onSubmit={submit}>
-        <label className="field">Tarefa
-          <input name="task-title" maxLength={180} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Ex.: Resolver 20 questões de constitucional" autoComplete="off"/>
-        </label>
-        <div className="form-grid todo-form-row">
-          <label className="field">Curso ou prova (opcional)
-            <select name="task-course" value={courseId} onChange={(event) => { setCourseId(event.target.value); setLessonId(''); }}>
-              <option value="">Sem vínculo</option>
-              {state.courses.map((course) => <option key={course.id} value={course.id}>{course.title}</option>)}
-            </select>
-          </label>
-          {chosenCourse && <label className="field">Aula ou etapa (opcional)
-            <select name="task-lesson" value={lessonId} onChange={(event) => setLessonId(event.target.value)}>
-              <option value="">Curso inteiro</option>
-              {materialSteps(chosenCourse).map((step) => <option key={step.id} value={step.id}>{step.title}</option>)}
-            </select>
-          </label>}
-          <label className="field">Prazo (opcional)
-            <input name="task-due" type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)}/>
-          </label>
-          <label className="field">Prioridade
-            <select name="task-priority" value={priority} onChange={(event) => setPriority(event.target.value)}>
-              {TASK_PRIORITIES.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
-            </select>
-          </label>
-        </div>
-        {error && <p className="form-error" role="alert">{error}</p>}
-        <Button type="submit" disabled={(state.tasks || []).length >= MAX_TASKS}><Icon name="plus"/>Adicionar tarefa</Button>
-      </form>
-      {gamified
-        ? <p className="quiet-note">O servidor concede o XP da aula vinculada uma única vez, mesmo com várias tarefas. Reabrir a tarefa não desfaz a aula nem repete a recompensa. Cada subtarefa concluída vale {XP_VALUES.subtask} XP uma única vez, até {DAILY_SUBTASK_XP_CAP} XP por dia.</p>
-        : <p className="quiet-note">Os indicadores de XP estão ocultos nas preferências. As tarefas continuam funcionando.</p>}
-    </section>
-
-    <section className="todo-section" aria-labelledby="todo-pending-title">
-      <div className="shelf-header">
-        <h2 id="todo-pending-title" className="headline">Para fazer <span className="shelf-count">{pending.length}</span></h2>
+  return <div className="personal-root plan-root tasks-root">
+    <header className="plan-heading">
+      <div>
+        <h1 className="display">Tarefas</h1>
+        <p className="lead">As ações concretas da sua preparação, na ordem que você escolheu. Concluir uma tarefa vinculada registra a aula; sem vínculo, não gera XP.</p>
       </div>
-      {overdue > 0 && <p className="inline-note todo-overdue-note" role="status"><Icon name="flag"/><span>{overdueMessage(overdue)}</span></p>}
-      {pending.length
-        ? <ul className="todo-list">{pending.map(taskRow)}</ul>
-        : <Empty icon="list" title="Sem tarefas pendentes.">Defina a próxima ação concreta da sua preparação no formulário acima.</Empty>}
-    </section>
-
-    {done.length > 0 && <section className="todo-section" aria-labelledby="todo-done-title">
-      <div className="shelf-header">
-        <h2 id="todo-done-title" className="headline">Concluídas <span className="shelf-count">{done.length}</span></h2>
+      <div className="page-heading-actions">
+        <a className="button secondary" href="#plano"><Icon name="calendar"/>Ver o Plano</a>
       </div>
-      <ul className="todo-list">{done.map(taskRow)}</ul>
-    </section>}
+    </header>
+    <SectionTabs route="tarefas"/>
+
+    <div className="plan-layout">
+      <div className="plan-main">
+        <section className="card-surface crest-card tasks-board" aria-labelledby="todo-pending-title">
+          <div className="plan-board-head">
+            <h2 id="todo-pending-title" className="title"><Icon name="list"/>Para fazer <span className="shelf-count">{pending.length}</span></h2>
+            <span className="muted-text">{overdue ? `${overdue} ${overdue === 1 ? 'atrasada' : 'atrasadas'}` : 'Nada atrasado'}</span>
+          </div>
+          {pending.length > 0 && <div className="tasks-filters" role="group" aria-label="Filtrar tarefas">
+            {Object.entries(filters).map(([id, [label, count]]) => <button key={id} type="button" className="kind-tab" aria-pressed={filter === id} onClick={() => setFilter(id)}>{label}<span className="kind-count">{count}</span></button>)}
+          </div>}
+          {overdue > 0 && <p className="inline-note todo-overdue-note" role="status"><Icon name="flag"/><span>{overdueMessage(overdue)}</span></p>}
+          {pending.length
+            ? shown.length
+              ? <ul className="todo-list">{shown.map(taskRow)}</ul>
+              : <p className="muted-text">Nenhuma tarefa neste filtro.</p>
+            : <Empty icon="list" title="Sem tarefas pendentes.">Defina a próxima ação concreta da sua preparação em Nova tarefa.</Empty>}
+        </section>
+
+        {done.length > 0 && <details className="card-surface tasks-done" aria-labelledby="todo-done-title" open>
+          <summary><h2 id="todo-done-title" className="title"><Icon name="check"/>Concluídas <span className="shelf-count">{done.length}</span></h2><Icon name="chevron-down"/></summary>
+          <ul className="todo-list">{done.map(taskRow)}</ul>
+        </details>}
+      </div>
+
+      <aside className="plan-aside" aria-label="Nova tarefa e resumo">
+        <section className="card-surface tasks-new" aria-labelledby="task-new-title">
+          <div className="plan-card-head"><h2 id="task-new-title" className="title"><Icon name="plus"/>Nova tarefa</h2></div>
+          <p className="muted-text">Escreva uma ação concreta, não um tema vago.</p>
+          <form className="form-stack" onSubmit={submit}>
+            <label className="field">Tarefa
+              <input name="task-title" maxLength={180} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Ex.: Resolver 20 questões de constitucional" autoComplete="off"/>
+            </label>
+            <label className="field">Curso ou prova (opcional)
+              <select name="task-course" value={courseId} onChange={(event) => { setCourseId(event.target.value); setLessonId(''); }}>
+                <option value="">Sem vínculo</option>
+                {state.courses.map((course) => <option key={course.id} value={course.id}>{course.title}</option>)}
+              </select>
+            </label>
+            {chosenCourse && <label className="field">Aula ou etapa (opcional)
+              <select name="task-lesson" value={lessonId} onChange={(event) => setLessonId(event.target.value)}>
+                <option value="">Curso inteiro</option>
+                {materialSteps(chosenCourse).map((step) => <option key={step.id} value={step.id}>{step.title}</option>)}
+              </select>
+            </label>}
+            <div className="form-grid todo-form-row">
+              <label className="field">Prazo (opcional)
+                <input name="task-due" type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)}/>
+              </label>
+              <label className="field">Prioridade
+                <select name="task-priority" value={priority} onChange={(event) => setPriority(event.target.value)}>
+                  {TASK_PRIORITIES.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+                </select>
+              </label>
+            </div>
+            {error && <p className="form-error" role="alert">{error}</p>}
+            <Button type="submit" className="full-width" disabled={(state.tasks || []).length >= MAX_TASKS}><Icon name="plus"/>Adicionar tarefa</Button>
+          </form>
+        </section>
+
+        <section className="card-surface tasks-summary" aria-labelledby="task-summary-title">
+          <div className="plan-card-head"><h2 id="task-summary-title" className="title"><Icon name="chart"/>Resumo</h2><span className="soft-badge tone-mint">Sem cobrança</span></div>
+          <dl className="tasks-stats">
+            <div><dt>Pendentes</dt><dd>{pending.length}</dd></div>
+            <div><dt>Para hoje</dt><dd>{dueToday}</dd></div>
+            <div><dt>Concluídas hoje</dt><dd className="tone-mint-text">{doneToday}</dd></div>
+          </dl>
+          {gamified
+            ? <p className="quiet-note">O servidor concede o XP da aula vinculada uma única vez, mesmo com várias tarefas. Reabrir a tarefa não desfaz a aula nem repete a recompensa. Cada subtarefa concluída vale {XP_VALUES.subtask} XP uma única vez, até {DAILY_SUBTASK_XP_CAP} XP por dia.</p>
+            : <p className="quiet-note">Os indicadores de XP estão ocultos nas preferências. As tarefas continuam funcionando.</p>}
+        </section>
+      </aside>
+    </div>
   </div>;
 }

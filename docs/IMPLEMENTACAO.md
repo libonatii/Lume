@@ -58,7 +58,7 @@ de evidências e limitações por ambiente, não uma segunda lista de pendência
 | Amigos por convite e perfil entre amigos | Implementado | `api/domain/friends.js`, `public/profile-domain.js` | e2e local |
 | Mensagens diretas e bloqueio | Implementado | `api/domain/messages.js`, `Messages.jsx` | e2e local |
 | Colaboração em entregas | Parcial (sem contribuição individual) | `api/domain/collaboration.js` | unitário e e2e local de envio, aceite e cancelamento |
-| GitHub (leitura pública) | Parcial | `api/domain/github.js`, `GitHub.jsx` | unitário com resposta simulada |
+| GitHub | Removido (12/11/2026) | — | — |
 | Aplicativo de desktop | Parcial | `companion/` | CI (sintaxe e contrato); janela e bandeja só manualmente |
 | Extensão do navegador | Protótipo | `extension/`, `src/lib/extension.js`, `ImportCourse.jsx` | e2e com páginas de exemplo e trecho salvo do Gran; nunca carregada no Chrome |
 | Aparência (Azul e Roxo, escuro e claro) | Implementado | `src/styles/` (tokens/tema), `src/features/*/*.css`, `Personal.jsx` | e2e local; comparação de estilos em 32 combinações |
@@ -152,7 +152,7 @@ Não é observação de atividade, e isso está dito na interface.
 ### B6 — Agenda com calendário e tarefas
 **Implementado e verificado localmente.** Agenda centraliza as tarefas e oferece
 dia, semana e mês, atividades com checklist, recorrência finita, avisos de conflito e reagendamento manual.
-Cronograma e Roteiro permanecem no Plano; sugestões só viram compromissos após revisão e gravação.
+O cronograma fica no Plano de Estudos (o Roteiro saiu em 12/11/2026); sugestões só viram compromissos após revisão e gravação.
 - Revisão visual de 05/11: FullCalendar Standard, criação diretamente na grade, arrasto/redimensionamento,
   painéis contextuais, Mais opções e checklist editável por item. Tarefas e sugestões ficam em Para agendar.
 - Verificação da revisão: 265 testes de domínio/contrato passaram (1 ignorado), 126 e2e passaram
@@ -246,8 +246,10 @@ cobertura nunca é calculada.
 determinístico responde no lugar.
 
 ### I5 — GitHub
-**Parcial.** Leitura pública de README, issues e milestones, sugestões de entrega e criação de projeto. Sem
-OAuth, repositórios privados, escrita ou validação de entrega.
+**Removido (12/11/2026).** Decisão da responsável (12/11/2026): a integração com o GitHub saiu do produto por fugir da proposta. Saíram a aba GitHub da Biblioteca,
+`POST /api/github/analyze`, `api/domain/github.js`, `public/github-domain.js`, `deliveryCandidates` e a variável
+`GITHUB_TOKEN`. Projetos criados antes continuam como materiais do tipo projeto; nenhum dado foi apagado. O
+aplicativo de desktop continua sendo distribuído pelas Releases do repositório, o que não é integração de produto.
 
 ---
 
@@ -327,16 +329,23 @@ funcionamento sem rede; suporte a Linux e macOS; janela e bandeja testadas no CI
 **Parcial (11/11/2026, Redesign Sereno).** As dez telas do projeto Stitch "Lume Academy Design System" foram
 implementadas sobre os tokens de `00-tokens.css` (paleta Azul: fundo `#081328`, menta `#4de0b8` para progresso,
 azul `#4d8eff`/`#5ea8ff` para ação e destaque):
-- **Casca** (`src/app/Shell.jsx`, `shell.css`): cabeçalho em vidro com cinco destinos em pílula (Hoje,
-  Biblioteca, Plano de Estudos, Amigos, Conquistas), atalhos "Conforto visual", conversas e menu da conta (Perfil,
-  Meu caminho, Configurações); no celular a navegação desce para uma barra fixa.
+- **Casca** (`src/app/Shell.jsx`, `shell.css`): cabeçalho em vidro com quatro destinos em pílula (Início,
+  Biblioteca, Plano de Estudos, Amigos; Início é a antiga Hoje, ainda em `#hoje`), atalhos "Conforto visual", conversas e menu da conta (Meu perfil,
+  Conquistas, Configurações); no celular a navegação desce para uma barra fixa.
 - **Hoje** (`Study.jsx`, `today.css`): boas-vindas com "Iniciar sessão de foco" e "Agendar sessão", quatro
   métricas reais (tempo declarado hoje × tempo disponível do Plano, sessões, conclusões em 7 dias, ritmo semanal),
   próxima ação, sessão, Plano do dia, Próximos marcos (Agenda), barras de 7 dias, Evolução e Amigos.
 - **Biblioteca** (`shelf.css`): busca, filtros por tipo e situação, "Continuar agora", Disciplinas, Cursos e
   trilhas, e PDFs em lista. O painel lateral com capa ilustrativa saiu.
-- **Plano** e **Agenda**: cabeçalhos com sobrancelha, botão "Agendar sessão", dias em cartões e coluna com ritmo
-  e marcos no Plano.
+- **Plano de Estudos** (12/11/2026, `Plan.jsx`, `schedule.css`), no desenho do Stitch: título, "Agendar Sessão",
+  abas Agenda · Calendário · Tarefas, faixa de datas com Semana/Dia/Mês, "Distribuição dos blocos" (faixa de sete
+  dias, dia em detalhe com o bloco atual destacado e os três dias seguintes), "Ritmo da Semana" (horas declaradas ×
+  disponibilidade do Plano e carga diária) e "Próximos Marcos" (provas e entregas da Agenda e prazos de curso). Os
+  blocos vêm do cronograma, da Agenda e das conclusões do dia; nada é inventado. Disponibilidade e prazos ficam num
+  painel aberto pelo botão do cabeçalho. Diferença deliberada: as abas Trilhas, Revisões e Prazos do Stitch não
+  existem no produto e deram lugar a Calendário e Tarefas.
+- **Tarefas** (12/11/2026): mesma composição do Plano — lista "Para fazer" com filtros (todas, atrasadas, para
+  hoje, com aula vinculada), concluídas recolhíveis, e ao lado "Nova tarefa" e um resumo.
 - **Agendar sessão** (`#agendar`, `src/features/agenda/ScheduleSession.jsx`): cria um compromisso de Estudo
   pela regra de `agenda-domain.js`, com lembrete e tarefa vinculada opcional. O estilo só compõe o título.
 - **Sessão de foco** (`#foco`, `src/features/progress/FocusSession.jsx`): ciclos de 10 min a 1 h ou manual sobre
@@ -353,15 +362,18 @@ da disciplina (`subject.color`, também escolhida na tela de Disciplinas) e o es
 silencia avisos não importantes durante a sessão) foram implementados em 12/11. O login não oferece "manter
 conectado" nem "modo silencioso": não há regra por trás deles.
 
-Telas sem desenho no Stitch (Amigos, Mensagens, Ranking, Perfil, Conquistas, Meu caminho, Configurações,
-Tarefas, Roteiro, Disciplinas) usam os mesmos tokens, cartões com filete e selos. Perfil e Conquistas perderam o
+**Retirados em 12/11/2026, por decisão da responsável:** a aba Meu caminho (extrato de XP, sessões declaradas e
+histórico de passos) e o Roteiro do Plano. O extrato era a única tela com "Corrigir" um evento de XP; a rota
+`POST /api/xp/adjust` continua no servidor, sem tela. Conquistas passou a ser aba do Perfil.
+
+Telas sem desenho no Stitch (Amigos, Mensagens, Ranking, Perfil, Conquistas, Configurações, Disciplinas) usam os mesmos tokens, cartões com filete e selos. Perfil e Conquistas perderam o
 brilho em shader do Redesign Moderno (12/11). Ainda restam do visual antigo as capas ilustradas
 (`Cover`) na vitrine do Perfil e no diálogo de estudo, o brilho do diálogo de estudo (`Glow`) e a inclinação 3D
 das conquistas desbloqueadas (Atropos).
 
 ### V2 — Estados de carregamento
 **Implementado (10/11/2026).** `Skeleton` e `PageSkeleton` (`src/ui/ui.jsx`) mostram a forma do conteúdo:
-Hoje, Biblioteca, Plano, Tarefas, Roteiro, Perfil, Conquistas, Meu caminho e Configurações enquanto a biblioteca
+Hoje, Biblioteca, Plano, Tarefas, Perfil, Conquistas e Configurações enquanto a biblioteca
 da conta recarrega (campo `loading` em `src/app/routes.jsx`); amigos, conversas, ranking, perfil de amizade,
 dispositivos do desktop e XP enquanto o recurso chega. A primeira carga continua atrás de "Verificando sua sessão".
 
@@ -509,7 +521,7 @@ Quero ferramentas úteis sem exigir configuração extensa.
 
 As visualizações devem reutilizar os mesmos dados. Evite criar um editor genérico complexo ou uma estrutura de páginas que obrigue a pessoa a organizar tudo antes de estudar.
 
-**4. Colaboração pelo GitHub**
+**4. Colaboração pelo GitHub** (substituído: Decisão da responsável (12/11/2026): a integração com o GitHub saiu do produto por fugir da proposta.)
 
 A conexão com GitHub deve ser opcional e permitir selecionar explicitamente os repositórios acompanhados.
 

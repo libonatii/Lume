@@ -20,7 +20,7 @@ const CONTRAST = {
   lume: [
     ['leaf', 'Pausas sem punição', 'Ficar sem estudar não tira nível, XP nem conquistas. A próxima ação continua esperando.'],
     ['clock', 'Lembretes que você marca', 'Só existem os lembretes dos compromissos que você criou, na antecedência que escolheu.'],
-    ['steps', 'Um próximo passo claro', 'A tela Hoje mostra a próxima aula ou página, com o tempo a reservar e o motivo da sugestão.'],
+    ['steps', 'Um próximo passo claro', 'A tela Início mostra a próxima aula ou página, com o tempo a reservar e o motivo da sugestão.'],
   ],
 };
 
@@ -60,7 +60,7 @@ export default function Landing({ go, setAuthMode, signedIn }) {
             {signedIn ? 'Voltar ao Lume' : 'Entrar'}
           </button>
           <button type="button" className="stitch-mint-cta" onClick={register}>
-            <span>{signedIn ? 'Ir para Hoje' : 'Começar Gratuitamente'}</span>
+            <span>{signedIn ? 'Ir para o Início' : 'Começar Gratuitamente'}</span>
           </button>
         </div>
       </div>
@@ -73,7 +73,7 @@ export default function Landing({ go, setAuthMode, signedIn }) {
         <p className="lead">O Lume é o espaço sereno onde você cultiva o hábito de aprender no próprio ritmo — com cronômetro flexível, biblioteca com PDFs e respeito ao seu descanso.</p>
         <div className="landing-actions">
           <button type="button" className="stitch-mint-cta large" onClick={register}>
-            <span>{signedIn ? 'Ir para Hoje' : 'Começar Gratuitamente'}</span>
+            <span>{signedIn ? 'Ir para o Início' : 'Começar Gratuitamente'}</span>
             <Icon name="arrow"/>
           </button>
           <Button className="large" secondary onClick={() => preview.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
@@ -201,7 +201,7 @@ export default function Landing({ go, setAuthMode, signedIn }) {
         <p className="muted-text">Crie a conta com e-mail e senha, ou explore a prévia antes. Sem cobranças punitivas: seu lugar fica guardado.</p>
         <div className="landing-actions">
           <button type="button" className="stitch-mint-cta large" onClick={register}>
-            <span>{signedIn ? 'Ir para Hoje' : 'Criar minha conta gratuita'}</span>
+            <span>{signedIn ? 'Ir para o Início' : 'Criar minha conta gratuita'}</span>
             <Icon name="arrow"/>
           </button>
           {!signedIn && <Button className="large" ghost onClick={login}>Já tenho conta</Button>}

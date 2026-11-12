@@ -43,7 +43,7 @@ test('prioridade e atraso aparecem na lista e na Hoje e sobrevivem ao recarregam
   await seedAccount(page, state);
 
   await page.goto('/#hoje');
-  await expect(page.getByRole('heading', { name: 'Hoje', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Início', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Direitos fundamentais', exact: true })).toBeVisible();
   await expect(page.getByText('Uma tarefa passou do prazo. Reorganize a semana para manter seu objetivo.')).toBeVisible();
   await expect(page.getByText(/estimativa/).first()).toBeVisible();
