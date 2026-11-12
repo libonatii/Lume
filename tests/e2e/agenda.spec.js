@@ -97,9 +97,10 @@ test('tarefas existentes são agendadas sem cópia e menu continua legível', as
   expect(saved.tasks).toEqual(state.tasks);
   expect(saved.agenda[0].taskIds).toEqual([state.tasks[0].id]);
   await page.goto('/#plano');
-  await expect(page.getByRole('link', { name: 'Cronograma', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Agenda da semana', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Calendário completo', exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Roteiro', exact: true })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Tarefas', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Tarefas', exact: true })).toBeVisible();
   await page.goto('/#agenda');
   await expect(page.getByRole('link', { name: 'Tarefas', exact: true })).toBeVisible();
   if (isMobile) {

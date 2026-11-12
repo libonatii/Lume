@@ -225,6 +225,13 @@ export function completeJourney(state) {
   const current = normalizeOnboarding(state.onboarding);
   const rhythm = STUDY_RHYTHMS.find((item) => item.id === current.journey);
   const manualGoal = state.preferences.weeklyGoalSource === 'manual';
+  const answers = current.answers || {};
+  const dailyMinutes = Number.isInteger(answers.dailyMinutes) && answers.dailyMinutes >= 15 && answers.dailyMinutes <= 720
+    ? answers.dailyMinutes : state.preferences.dailyMinutes;
+  const soundscape = ['off', 'rain', 'pink', 'white'].includes(answers.soundscape)
+    ? answers.soundscape : state.preferences.soundscape;
+  const studyGoal = ['college', 'exams', 'research', 'personal'].includes(answers.studyGoal)
+    ? answers.studyGoal : state.preferences.studyGoal;
   return {
     ...state,
     onboarded: true,
@@ -232,6 +239,9 @@ export function completeJourney(state) {
     onboarding: { ...current, status: 'done', finishedAt: new Date().toISOString() },
     preferences: {
       ...state.preferences,
+      dailyMinutes,
+      soundscape,
+      studyGoal,
       // Só sugere a meta quando ela nunca foi ajustada à mão.
       weeklyGoal: manualGoal ? state.preferences.weeklyGoal : rhythm?.weeklyGoal ?? state.preferences.weeklyGoal,
       weeklyGoalSource: manualGoal ? 'manual' : 'suggested',
@@ -311,7 +321,21 @@ export function createInitialState() {
     challenges: [],
     supports: [],
     profile: emptyProfileCard(),
-    preferences: { essential: false, gamification: true, theme: 'dark', palette: 'moderno', textSize: 'normal', weeklyGoal: 3, weeklyGoalSource: 'suggested', sharing: { library: true, queue: true, progress: true, xp: true } },
+    preferences: {
+      essential: false,
+      gamification: true,
+      theme: 'dark',
+      palette: 'moderno',
+      textSize: 'normal',
+      weeklyGoal: 3,
+      weeklyGoalSource: 'suggested',
+      dailyMinutes: 90,
+      soundscape: 'off',
+      focusShield: false,
+      focusNotes: '',
+      studyGoal: '',
+      sharing: { library: true, queue: true, progress: true, xp: true },
+    },
     onboarding: emptyOnboarding(),
     courses: [],
     // Registro único de conclusões e preparações. O XP elegível é concedido pelo
@@ -685,6 +709,11 @@ export function restoreState(raw) {
         textSize: preferences.textSize === 'large' ? 'large' : 'normal',
         weeklyGoal: Number.isInteger(preferences.weeklyGoal) && preferences.weeklyGoal >= 1 && preferences.weeklyGoal <= 7 ? preferences.weeklyGoal : 3,
         weeklyGoalSource: preferences.weeklyGoalSource === 'manual' ? 'manual' : 'suggested',
+        dailyMinutes: Number.isInteger(preferences.dailyMinutes) && preferences.dailyMinutes >= 15 && preferences.dailyMinutes <= 720 ? preferences.dailyMinutes : 90,
+        soundscape: ['off', 'rain', 'pink', 'white'].includes(preferences.soundscape) ? preferences.soundscape : 'off',
+        focusShield: preferences.focusShield === true,
+        focusNotes: typeof preferences.focusNotes === 'string' ? preferences.focusNotes.slice(0, 4000) : '',
+        studyGoal: ['college', 'exams', 'research', 'personal'].includes(preferences.studyGoal) ? preferences.studyGoal : '',
         sharing: {
           library: preferences.sharing?.library !== false,
           queue: preferences.sharing?.queue !== false,

@@ -296,3 +296,111 @@ html[data-theme='light'] .today-greeting span {
     width: 100%;
   }
 }
+
+/* Stitch Hoje (Dashboard Sereno) — Próximo Bloco full-width + Material Vinculado */
+.today-hero-block.card-surface {
+  display: grid;
+  gap: 1.15rem;
+  padding: clamp(1.35rem, 3vw, 1.85rem);
+  position: relative;
+  overflow: hidden;
+}
+.today-hero-block::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: var(--crest);
+}
+.next-hero-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.next-hero-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: var(--text-subtle);
+}
+.next-hero-meta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.next-hero-meta .icon {
+  color: var(--lume);
+  width: 1rem;
+  height: 1rem;
+}
+.next-hero-body {
+  display: grid;
+  gap: 0.35rem;
+}
+.next-hero-body .headline {
+  margin: 0;
+}
+.next-hero-body .muted-text {
+  max-width: 68ch;
+}
+.next-linked-material {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-md);
+  background: var(--inner);
+  border: 1px solid var(--border);
+}
+.next-linked-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  color: var(--mint);
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+}
+.next-linked-copy {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
+  flex: 1;
+}
+.next-linked-copy strong {
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.next-linked-copy small {
+  font-size: 0.78rem;
+  color: var(--text-subtle);
+}
+.today-plan-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.today-calm-card.card-surface {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 1rem 1.2rem;
+  background: var(--surface-2);
+}
+.today-calm-card strong {
+  display: block;
+  font-size: 0.86rem;
+  margin-bottom: 0.2rem;
+}
+.today-calm-card .muted-text {
+  font-size: 0.8rem;
+}

@@ -110,10 +110,13 @@ test('focar uma tarefa a coloca no cartão principal da Hoje, sobrevive ao recar
   await expect(page.locator('section.next-action').getByRole('heading', { name: 'A2 – Falência' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Tirar A2 – Falência do foco' })).toHaveAttribute('aria-pressed', 'true');
 
-  // A sessão de estudo leva o nome do foco.
-  await page.getByRole('button', { name: 'Começar sessão' }).click();
-  await expect(page.locator('.session-bar').getByText('A2 – Falência')).toBeVisible();
-  await page.getByRole('button', { name: 'Encerrar sessão' }).click();
+  // A sessão de foco leva o nome do foco.
+  await page.locator('section.next-action').getByRole('button', { name: 'Iniciar Estudo' }).click();
+  await expect(page.getByRole('heading', { name: 'Sessão de foco', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Iniciar foco' }).click();
+  await expect(page.getByText('Sessão em andamento: A2 – Falência')).toBeVisible();
+  await page.getByRole('button', { name: 'Finalizar com resumo' }).click();
+  await page.getByRole('link', { name: 'Voltar para Hoje' }).click();
 
   await page.locator('section.next-action').getByRole('button', { name: 'Concluir tarefa' }).click();
   await expect(page.getByText('Tarefa concluída: A2 – Falência.')).toBeVisible();

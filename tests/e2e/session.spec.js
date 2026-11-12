@@ -15,10 +15,12 @@ test('sessão declarada persiste ao recarregar, pausa, retoma e encerra sem conc
   await page.goto('/#hoje');
   await expect(page.getByRole('heading', { name: 'Hoje', exact: true })).toBeVisible();
 
-  await expect(page.getByText(/servidor confirma blocos de 30 minutos/i)).toBeVisible();
-  await page.getByRole('button', { name: 'Começar sessão' }).click();
-  await expect(page.getByRole('heading', { name: 'Sessão em andamento' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Abrir o material e conhecer o curso' })).toBeVisible();
+  await page.getByRole('button', { name: 'Iniciar sessão de foco' }).click();
+  await expect(page.getByRole('heading', { name: 'Sessão de foco', exact: true })).toBeVisible();
+  await expect(page.getByText(/confirma os blocos completos de 30 minutos/i)).toBeVisible();
+  await page.getByRole('button', { name: 'Iniciar foco' }).click();
+  await expect(page.getByText('Em foco', { exact: true })).toBeVisible();
+  await expect(page.getByText('Abrir o material e conhecer o curso').first()).toBeVisible();
   await expect(page.getByRole('timer')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Pausar' })).toBeVisible();
 
@@ -32,11 +34,16 @@ test('sessão declarada persiste ao recarregar, pausa, retoma e encerra sem conc
   await page.getByRole('button', { name: 'Retomar' }).click();
   await expect(page.getByRole('button', { name: 'Pausar' })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Encerrar sessão' }).click();
-  await expect(page.getByRole('button', { name: 'Começar sessão' })).toBeVisible();
+  // Anotações rápidas no modo Zen e Escudo de foco absoluto persistem nas preferências.
+  await page.getByLabel('Anotações rápidas da sessão').fill('Revisar heurísticas de usabilidade');
+  await page.getByRole('button', { name: 'Salvar nota' }).click();
+  await page.getByRole('switch', { name: /Escudo de foco absoluto/ }).click();
 
-  await page.getByRole('link', { name: 'Perfil', exact: true }).click();
-  await page.getByRole('link', { name: 'Meu caminho' }).click();
+  await page.getByRole('button', { name: 'Finalizar com resumo' }).click();
+  await expect(page.getByRole('button', { name: 'Iniciar foco' })).toBeVisible();
+
+  await page.getByRole('button', { name: /^Menu da conta/ }).click();
+  await page.getByRole('link', { name: 'Meu caminho', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Sessões declaradas' })).toBeVisible();
   await expect(page.getByText(/tempo declarado/).first()).toBeVisible();
 
@@ -45,4 +52,6 @@ test('sessão declarada persiste ao recarregar, pausa, retoma e encerra sem conc
   expect(state.studySessions[0].origin).toBe('declared');
   expect(state.activeSession).toBeNull();
   expect(state.progress).toHaveLength(0);
+  expect(state.preferences.focusNotes).toBe('Revisar heurísticas de usabilidade');
+  expect(state.preferences.focusShield).toBe(true);
 });
