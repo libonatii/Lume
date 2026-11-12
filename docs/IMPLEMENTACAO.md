@@ -327,9 +327,9 @@ funcionamento sem rede; suporte a Linux e macOS; janela e bandeja testadas no CI
 **Parcial (11/11/2026, Redesign Sereno).** As dez telas do projeto Stitch "Lume Academy Design System" foram
 implementadas sobre os tokens de `00-tokens.css` (paleta Azul: fundo `#081328`, menta `#4de0b8` para progresso,
 azul `#4d8eff`/`#5ea8ff` para ação e destaque):
-- **Casca** (`src/app/Shell.jsx`, `shell.css`): cabeçalho em vidro com os seis destinos em pílula, atalhos
-  "Conforto visual" (diálogo de tema), "Aparência", conversas e menu da conta; no celular a navegação desce para
-  uma barra fixa. O menu continua com seis destinos; "Conquistas" segue como aba de Perfil.
+- **Casca** (`src/app/Shell.jsx`, `shell.css`): cabeçalho em vidro com cinco destinos em pílula (Hoje,
+  Biblioteca, Plano de Estudos, Amigos, Conquistas), atalhos "Conforto visual", conversas e menu da conta (Perfil,
+  Meu caminho, Configurações); no celular a navegação desce para uma barra fixa.
 - **Hoje** (`Study.jsx`, `today.css`): boas-vindas com "Iniciar sessão de foco" e "Agendar sessão", quatro
   métricas reais (tempo declarado hoje × tempo disponível do Plano, sessões, conclusões em 7 dias, ritmo semanal),
   próxima ação, sessão, Plano do dia, Próximos marcos (Agenda), barras de 7 dias, Evolução e Amigos.
@@ -348,8 +348,16 @@ azul `#4d8eff`/`#5ea8ff` para ação e destaque):
 Adaptações deliberadas em relação ao Stitch, por regra do produto: sem login Google/Apple (o Lume usa e-mail e
 senha), sem "guilda" ou comunidade, sem depoimentos inventados nem números de usuários, sem promessas de efeito
 clínico dos sons ("binaural", "neuroprotetor"), sem sequência de dias e sem XP exibido como ganho durante o foco.
-O objetivo de estudo do cadastro, a cor do caderno e o "escudo de foco" não foram implementados porque não têm
-regra nem armazenamento. Amigos, Mensagens, Perfil e Configurações não têm tela no Stitch.
+O objetivo de estudo do cadastro (`preferences.studyGoal`, ids em `STUDY_GOALS` de `public/domain.js`), a cor
+da disciplina (`subject.color`, também escolhida na tela de Disciplinas) e o escudo de foco (`focusShield`, que
+silencia avisos não importantes durante a sessão) foram implementados em 12/11. O login não oferece "manter
+conectado" nem "modo silencioso": não há regra por trás deles.
+
+Telas sem desenho no Stitch (Amigos, Mensagens, Ranking, Perfil, Conquistas, Meu caminho, Configurações,
+Tarefas, Roteiro, Disciplinas) usam os mesmos tokens, cartões com filete e selos. Perfil e Conquistas perderam o
+brilho em shader do Redesign Moderno (12/11). Ainda restam do visual antigo as capas ilustradas
+(`Cover`) na vitrine do Perfil e no diálogo de estudo, o brilho do diálogo de estudo (`Glow`) e a inclinação 3D
+das conquistas desbloqueadas (Atropos).
 
 ### V2 — Estados de carregamento
 **Implementado (10/11/2026).** `Skeleton` e `PageSkeleton` (`src/ui/ui.jsx`) mostram a forma do conteúdo:

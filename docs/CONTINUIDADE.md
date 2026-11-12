@@ -89,8 +89,9 @@ A presença não é atividade validada. Importação e conclusão observada pela
 capacidades declaradas por provedor; não há rastreamento universal. O Gran tem leitor próprio;
 os testes das demais fontes usam exemplos. Consulte [Importação](IMPORTACAO.md).
 
-A navegação tem seis destinos, no cabeçalho (barra inferior no celular): Hoje, Biblioteca, Plano, Agenda, Amigos e Perfil. `#tarefas` pertence
-à Agenda e preserva os registros; Plano mantém Cronograma e Roteiro. A Agenda é privada e não altera
+A navegação tem cinco destinos, no cabeçalho (barra inferior no celular): Hoje, Biblioteca, Plano de Estudos,
+Amigos e Conquistas. Perfil, Meu caminho e Configurações ficam no menu da conta. Plano de Estudos reúne Agenda da
+semana, Calendário completo, Tarefas e Roteiro, e preserva os registros. A Agenda é privada e não altera
 as projeções de perfil. Escopo, decisões operacionais e evidências da rodada em [Agenda](AGENDA.md).
 
 ## 4. Execução local

@@ -27,9 +27,15 @@
   overflow: hidden;
   border-radius: var(--radius-xl);
   background: var(--surface);
-  border: 1px solid var(--border-strong);
+  border: 1px solid color-mix(in srgb, var(--surface-3) 55%, transparent);
   padding: 1.6rem;
   box-shadow: var(--shadow-lg);
+}
+.achievement-summary.crest-card::before {
+  background: linear-gradient(90deg, var(--lume-2), var(--lume), var(--reward-strong));
+}
+.achievement-summary-copy .headline {
+  margin: 0.25rem 0;
 }
 .achievement-summary-body {
   position: relative;
@@ -45,8 +51,8 @@
   border-radius: 16px;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, var(--lume), var(--lume-2));
-  color: var(--lume-ink);
+  background: var(--reward-soft);
+  color: var(--reward);
 }
 .trophy-emblem .icon {
   width: 1.6rem;

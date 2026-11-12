@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { STUDY_RHYTHMS, emptyOnboarding } from '../../../public/domain.js';
 import { PDF_PLANS, formatBytes } from '../../../public/pdf-domain.js';
-import { SUBJECT_COLORS } from '../../../public/subject-domain.js';
+import { SUBJECT_COLORS, SUBJECT_COLOR_LABELS as COLOR_LABELS } from '../../../public/subject-domain.js';
 import { discardPdf, inspectPdf, uploadPdf } from '../library/pdf-client.js';
 import Icon from '../../ui/Icon.jsx';
 import { Button, Logo, ease, stagger } from '../../ui/ui.jsx';
@@ -37,14 +37,6 @@ const QUICK_SUBJECTS = [
   'Anatomia',
   'Redação',
 ];
-
-const COLOR_LABELS = {
-  lume: 'Azul Safira',
-  mint: 'Menta Serena',
-  violet: 'Lavanda Suave',
-  amber: 'Âmbar Quente',
-  coral: 'Rosa Ardósia',
-};
 
 function formatDailyDuration(minutes) {
   const m = Math.max(15, Number(minutes) || 90);

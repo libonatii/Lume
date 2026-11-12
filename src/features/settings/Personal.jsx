@@ -8,7 +8,7 @@ import { XP_KIND_LABELS, completionKindForCourse, levelProgress, stepEventKey } 
 import BackupPanel from './BackupPanel.jsx';
 import { api, apiError } from '../../lib/api.js';
 import Icon from '../../ui/Icon.jsx';
-import { AnimatedNumber, Button, Cover, Empty, Glow, Heading, Progress, Ring, stagger } from '../../ui/ui.jsx';
+import { AnimatedNumber, Button, Cover, Empty, Heading, Progress, Ring, stagger } from '../../ui/ui.jsx';
 import { isCompleted } from '../../../public/progress-domain.js';
 
 export function Achievements({ state, account, xp }) {
@@ -36,12 +36,11 @@ export function Achievements({ state, account, xp }) {
       Memórias do caminho que você percorreu.
     </Heading>
     {state.preferences.gamification ? <>
-      <section className="achievement-summary">
-        <Glow palette="lume"/>
+      <section className="achievement-summary crest-card">
         <div className="achievement-summary-body">
           <div className="trophy-emblem"><Icon name="trophy"/></div>
           <div className="achievement-summary-copy">
-            <span className="eyebrow on-glow">{account ? 'XP confirmado pelo servidor' : 'Prévia local'}</span>
+            <span className="metric-label">{account ? 'XP confirmado pelo servidor' : 'Prévia local'}</span>
             <h2 className="headline">{unlockedCount} de {all.length} conquistas</h2>
             <p className="muted-text">Nível {level.level} · <AnimatedNumber value={level.total}/> XP {account ? 'elegível' : 'de prévia'}{account && !xp ? ' · sincronizando…' : ''}</p>
           </div>
