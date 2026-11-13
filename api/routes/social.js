@@ -8,14 +8,19 @@ import { acceptInvite, createInvite, listFriends, readFriendProfile, removeFrien
 import {
   cancelCollaborationInvite, createCollaborationInvite, listCollaborationInvites, respondCollaborationInvite,
 } from '../domain/collaboration.js';
+import { listNotifications, markNotificationsSeen } from '../domain/notifications.js';
 import { LIMITS } from '../config.js';
 import { json } from '../http.js';
 
 const FRIENDS = { auth: 'Entre na sua conta para convidar amigos.', origin: true };
 const MESSAGES = { auth: 'Entre na sua conta para conversar com amigos.', origin: true };
+const NOTIFICATIONS = { auth: 'Entre na sua conta para ver suas notificações.', origin: true };
 const COLLABORATION = { auth: 'Entre na sua conta para convidar alguém para colaborar.', origin: true };
 
 export function socialRoutes(router) {
+  router
+    .add('GET', '/api/notifications', NOTIFICATIONS, async ({ db, user }) => json(await listNotifications(db, user.id)))
+    .add('POST', '/api/notifications/seen', NOTIFICATIONS, async ({ db, user }) => json(await markNotificationsSeen(db, user.id)));
   router
     .add('GET', '/api/friends', FRIENDS, async ({ db, user }) => {
       await touchUserPresence(db, user.id);

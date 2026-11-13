@@ -7,6 +7,7 @@ import { levelProgress } from '../../public/xp-policy.js';
 import { useResource } from '../lib/resources.js';
 import { isDesktopApp } from '../lib/desktop.js';
 import DesktopUpdate from '../features/desktop/DesktopUpdate.jsx';
+import NotificationBell from '../features/social/NotificationBell.jsx';
 import SectionTabs, { SECTIONS, sectionOf } from './SectionTabs.jsx';
 import { ENTRY_ROUTES } from './routes.jsx';
 
@@ -158,7 +159,7 @@ export default function Shell({ route, model, children, hideTabs = false, onComf
             </div>
           </div>
 
-          <a className="header-icon" href="#mensagens" aria-label={unread > 0 ? `Mensagens (${unread} não lidas)` : 'Mensagens'} title="Mensagens"><Icon name="bell"/>{unread > 0 && <span className="header-dot" aria-hidden="true"/>}</a>
+          <NotificationBell account={model.account} positionFallback={positionPopoverFallback}/>
 
           <div className="user-menu-wrap">
             <button

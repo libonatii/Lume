@@ -202,6 +202,11 @@ Consulte também:
      2. **Cursos concluídos (`courses`):** quantidade de cursos distintos elegíveis concluídos;
      3. **Empenho no período (`period`):** XP conquistado nos últimos 7 ou 30 dias.
    - Respeita empates compartilhados (mesma posição para valores iguais) e a preferência `showRanking` (quem desativa não aparece no placar compartilhado).
+6. **Sino de notificações (13/11/2026, `api/domain/notifications.js`, `public/notifications-domain.js`):**
+   - O sino do cabeçalho abre um painel (não navega mais para Mensagens) com: amizade nova, convite de colaboração pendente, comentário e curtida de outra pessoa nas suas publicações e novidades do Lume (`LUME_NEWS`, editadas no código). Mensagens diretas continuam no contador do menu Social e no aviso flutuante.
+   - Janela de 30 dias, até 30 itens, mais recentes primeiro. Contatos bloqueados não notificam. Não há tabela de eventos: os avisos são lidos das tabelas existentes, e só o marco `notification_reads.seen_at` é gravado (`GET /api/notifications`, `POST /api/notifications/seen`).
+   - Abrir o painel marca tudo como visto; o marco só avança. Sem marco, conta como novo apenas o que chegou depois da criação da conta. Notificação não gera XP.
+
 ---
 
 ## 11. Importação de Cursos, Extensão MV3 e Aplicativo de Desktop
