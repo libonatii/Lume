@@ -46,7 +46,9 @@
     // Recuperação de senha por e-mail (Resend). A chave RESEND_API_KEY é segredo:
     // `npx wrangler secret put RESEND_API_KEY`.
     "LUME_EMAIL_PROVIDER": "resend",
-    "LUME_EMAIL_FROM": "Lume <nao-responda@lumeacademy.site>"
+    "LUME_EMAIL_FROM": "Lume <nao-responda@lumeacademy.site>",
+    "LUME_AI_BASE_URL": "https://generativelanguage.googleapis.com/v1beta/openai",
+    "LUME_AI_MODEL": "gemini-3.5-flash-lite"
   },
 
   // bcrypt com custo 6 para o orçamento do Free (10 ms de CPU por requisição).
