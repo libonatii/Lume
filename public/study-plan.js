@@ -184,3 +184,29 @@ export function nextAction(state, { now = Date.now() } = {}) {
     pdf: course.pdf ? { page: course.reading?.page || 1, pages: course.pdf.pages, section: course.reading?.section || '', started: Boolean(course.reading) } : null,
   };
 }
+
+// "Continuar agora" da Biblioteca. Fica na disciplina que a pessoa escolheu:
+// o material selecionado enquanto tiver passo pendente; concluído, o próximo
+// pendente da mesma disciplina na ordem da biblioteca (depois dele, e então os
+// anteriores). Só troca de disciplina quando a pessoa escolhe outro material.
+// Disciplina toda concluída devolve `subjectDone`, sem pular para outra.
+// Material sem disciplina segue o roteiro geral.
+export function resumeMaterial(state, { now = Date.now() } = {}) {
+  const pendingAction = (course) => nextAction({ ...state, courses: [course] }, { now });
+  const found = (course, action) => ({ course, action, subjectDone: null });
+  const chosen = (state.courses || []).find((course) => course.id === state.selectedCourseId);
+  const own = chosen && pendingAction(chosen);
+  if (own) return found(chosen, own);
+  const subject = chosen?.subjectId ? (state.subjects || []).find((item) => item.id === chosen.subjectId) : null;
+  if (subject) {
+    const index = state.courses.indexOf(chosen);
+    const peers = [...state.courses.slice(index + 1), ...state.courses.slice(0, index)].filter((course) => course.subjectId === subject.id);
+    for (const course of peers) {
+      const action = pendingAction(course);
+      if (action) return found(course, action);
+    }
+    return { course: null, action: null, subjectDone: subject };
+  }
+  const general = nextAction(state, { now });
+  return general ? found(state.courses.find((course) => course.id === general.courseId), general) : null;
+}

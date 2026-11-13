@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { studyRhythm, hasPreparation, courseProgress, courseStatus, materialType } from '../../../public/domain.js';
 import { materialLesson, materialSteps } from '../../../public/material-model.js';
-import { nextAction } from '../../../public/study-plan.js';
+import { nextAction, resumeMaterial } from '../../../public/study-plan.js';
 import { focusedTask, isOverdue, priorityLabel, taskAgenda } from '../../../public/tasks-domain.js';
 import { overdueMessage } from '../plan/Tasks.jsx';
 import { courseSummary, isImportedCourse, sourceLabel } from '../../../public/import-domain.js';
@@ -411,7 +411,7 @@ function CourseCard({ course, state, open, compact = false }) {
 
   if (compact) return <div className="course-card-wrap is-row"><button type="button" className={`reading-row ${state.selectedCourseId === course.id ? 'selected-course' : ''}`} onClick={() => open({ type: 'course', id: course.id })} aria-label={label}>
     <span className="reading-icon"><Icon name="file"/></span>
-    <span className="reading-copy"><strong>{course.title}</strong><small>{shownScope}{subject ? ` · ${subject.title}` : ''}{course.pdf ? ` · ${course.pdf.pages} p.` : ''}</small></span>
+    <span className="reading-copy"><strong>{course.title}</strong><small>{shownScope}{subject ? ` · ${subject.title}` : ''}{reading?.done ? ` · ${course.pdf.pages} p.` : ''}</small></span>
     <span className="reading-progress"><Progress value={percent} tone="mint" label={`Progresso de ${course.title}`}/><strong>{percent}%</strong></span>
     <span className="reading-cta">{status === 'completed' ? 'Revisar' : 'Ler'}</span>
   </button><CourseMenu course={course} open={open}/></div>;
@@ -469,8 +469,10 @@ export function Library({ state, open, actions }) {
   const trails = courses.filter((course) => !course.pdf);
   const readings = courses.filter((course) => course.pdf);
   const subjects = subjectsOverview(state).filter((item) => item.subject && (!query || item.subject.title.toLocaleLowerCase('pt-BR').includes(query)));
-  const selected = state.courses.find(course => course.id === state.selectedCourseId) || state.courses[0];
-  const action = selected && nextAction({ ...state, courses: [selected] });
+  // "Continuar agora" segue a disciplina escolhida (regra em study-plan.js).
+  const resume = resumeMaterial(state);
+  const action = resume?.action || null;
+  const selected = resume?.course || null;
   const next = action && { course: selected, step: materialSteps(selected).find((step) => step.id === action.lessonId) };
   const selectedDeck = selected ? slidesSummary(selected) : null;
   const selectedStanding = selected ? (selected.pdf ? materialStanding(state, selected) : null) : null;
@@ -543,6 +545,19 @@ export function Library({ state, open, actions }) {
     {state.courses.length === 0
       ? <FirstStudyArea actions={actions} open={open}/>
       : <>
+      {resume?.subjectDone && <section className="library-resume" aria-labelledby="library-resume-title">
+        <div className="library-section-label"><span><Icon name="play"/>Continuar agora</span></div>
+        <div className="card-surface resume-card">
+          <div className="resume-copy">
+            <div className="resume-meta"><span className="soft-badge tone-mint">{resume.subjectDone.title}</span></div>
+            <h2 id="library-resume-title" className="title">Disciplina concluída</h2>
+            <p className="muted-text">Todos os materiais de {resume.subjectDone.title} estão concluídos. Escolha um material de outra disciplina para continuar por ela.</p>
+          </div>
+          <div className="resume-actions">
+            <a className="button secondary" href={`#disciplinas?id=${encodeURIComponent(resume.subjectDone.id)}`}><Icon name="school"/>Abrir disciplina</a>
+          </div>
+        </div>
+      </section>}
       {selected && <section className="library-resume" aria-labelledby="library-resume-title">
         <div className="library-section-label">
           <span><Icon name="play"/>Continuar agora</span>
@@ -563,8 +578,8 @@ export function Library({ state, open, actions }) {
             <Button ghost onClick={() => open({ type: 'course', id: selected.id })}>Detalhes</Button>
             {selectedDeck?.total > 0 && <Button secondary onClick={() => open({ type: 'slides', id: selected.id })}><Icon name="book"/>Abrir apresentação · <small>{slidePositionLabel(selectedDeck)}</small></Button>}
             {selected.pdf
-              ? <Button onClick={() => open({ type: next ? 'pdf' : 'course', id: selected.id })}><Icon name="book"/>{next ? (selected.reading ? `Continuar na p. ${selected.reading.page}` : 'Abrir no leitor') : 'Ver detalhes do PDF'}</Button>
-              : <Button onClick={() => open({ type: next ? 'session' : 'course', id: selected.id })}><Icon name={next ? 'play' : 'book'}/>{next ? 'Continuar meu próximo passo' : 'Ver detalhes da trilha'}</Button>}
+              ? <Button onClick={() => open({ type: 'pdf', id: selected.id })}><Icon name="book"/>{selected.reading ? `Continuar na p. ${selected.reading.page}` : 'Abrir no leitor'}</Button>
+              : <Button onClick={() => open({ type: 'session', id: selected.id })}><Icon name="play"/>Continuar meu próximo passo</Button>}
           </div>
         </div>
         {isImportedCourse(selected) && <ImportedInspector course={selected} state={state}/>}

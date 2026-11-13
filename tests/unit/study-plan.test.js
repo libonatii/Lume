@@ -3,7 +3,9 @@ import { materialSteps } from '../../public/material-model.js';
 import assert from 'node:assert/strict';
 import { addCourse, completeMission, createInitialState } from '../../public/domain.js';
 import { applyCourseImport, completeLesson, normalizePayload } from '../../public/import-domain.js';
-import { DEFAULT_SESSION_MINUTES, nextAction, studyPlan } from '../../public/study-plan.js';
+import { DEFAULT_SESSION_MINUTES, nextAction, resumeMaterial, studyPlan } from '../../public/study-plan.js';
+import { addSubject, linkMaterialSubject } from '../../public/subject-domain.js';
+import { selectCourse } from '../../public/domain.js';
 
 const NOW = Date.parse('2026-10-31T12:00:00Z');
 
@@ -138,4 +140,27 @@ test('estimativa usa o tempo de sessão escolhido e exemplos não viram próxima
   assert.equal(action.minutes, 45);
   assert.equal(action.durationKnown, false);
   assert.equal(action.imported, false);
+});
+
+test('Continuar agora segue a disciplina escolhida e só troca quando a pessoa escolhe outro material', () => {
+  let state = addSubject(createInitialState(), { title: 'Falência' }, 'falencia');
+  state = addSubject(state, { title: 'Penal' }, 'penal');
+  state = addCourse(state, { title: 'Penal 1', steps: ['P1'] }, 'penal1');
+  for (const id of ['aula7', 'aula8', 'aula9']) state = addCourse(state, { title: id, steps: [`${id} etapa`] }, id);
+  state = linkMaterialSubject(state, 'penal1', 'penal');
+  for (const id of ['aula7', 'aula8', 'aula9']) state = linkMaterialSubject(state, id, 'falencia');
+
+  state = completeMission(state, 'aula7', 'aula7-0', { now: '2026-11-12T10:00:00.000Z' }).state;
+  assert.equal(state.selectedCourseId, 'aula7');
+  assert.equal(resumeMaterial(state).course.id, 'aula8', 'concluída a aula 7, segue a aula 8 da mesma disciplina');
+
+  state = completeMission(state, 'aula9', 'aula9-0', { now: '2026-11-12T10:10:00.000Z' }).state;
+  assert.equal(resumeMaterial(state).course.id, 'aula8', 'volta às pendentes anteriores da disciplina');
+
+  state = completeMission(state, 'aula8', 'aula8-0', { now: '2026-11-12T10:20:00.000Z' }).state;
+  const done = resumeMaterial(state);
+  assert.equal(done.course, null, 'não pula sozinho para Penal');
+  assert.equal(done.subjectDone.id, 'falencia');
+
+  assert.equal(resumeMaterial(selectCourse(state, 'penal1')).course.id, 'penal1', 'escolher outro material troca a disciplina');
 });
