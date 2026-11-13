@@ -396,7 +396,7 @@ function CourseMenu({ course, open }) {
   </div>;
 }
 
-function CourseCard({ course, state, open, compact = false }) {
+function CourseCard({ course, state, open, compact = false, icon = 'file' }) {
   const progress = courseProgress(state, course);
   const status = courseStatus(state, course);
   const imported = isImportedCourse(course);
@@ -410,7 +410,7 @@ function CourseCard({ course, state, open, compact = false }) {
   const label = `${course.title}, ${statuses[status]}, ${shownScope}`;
 
   if (compact) return <div className="course-card-wrap is-row"><button type="button" className={`reading-row ${state.selectedCourseId === course.id ? 'selected-course' : ''}`} onClick={() => open({ type: 'course', id: course.id })} aria-label={label}>
-    <span className="reading-icon"><Icon name="file"/></span>
+    <span className="reading-icon"><Icon name={icon}/></span>
     <span className="reading-copy"><strong>{course.title}</strong><small>{shownScope}{subject ? ` · ${subject.title}` : ''}{reading?.done ? ` · ${course.pdf.pages} p.` : ''}</small></span>
     <span className="reading-progress"><Progress value={percent} tone="mint" label={`Progresso de ${course.title}`}/><strong>{percent}%</strong></span>
     <span className="reading-cta">{status === 'completed' ? 'Revisar' : 'Ler'}</span>
@@ -466,8 +466,11 @@ export function Library({ state, open, actions }) {
     && (kind === 'all' || (kind === 'pdfs') === Boolean(course.pdf))
     && (!subjectFilter || (subjectFilter === 'none' ? !course.subjectId : course.subjectId === subjectFilter))
     && course.title.toLocaleLowerCase('pt-BR').includes(query));
-  const trails = courses.filter((course) => !course.pdf);
-  const readings = courses.filter((course) => course.pdf);
+  // Concluídos saem de Cursos e Leituras e ficam só em "Trilhas concluídas".
+  const done = (course) => courseStatus(state, course) === 'completed';
+  const trails = courses.filter((course) => !course.pdf && !done(course));
+  const readings = courses.filter((course) => course.pdf && !done(course));
+  const finished = courses.filter(done);
   const subjects = subjectsOverview(state).filter((item) => item.subject && (!query || item.subject.title.toLocaleLowerCase('pt-BR').includes(query)));
   // "Continuar agora" segue a disciplina escolhida (regra em study-plan.js).
   const resume = resumeMaterial(state);
@@ -529,7 +532,7 @@ export function Library({ state, open, actions }) {
             aria-expanded={showStatusFilters}
             onClick={() => setShowStatusFilters(v => !v)}
           >
-            <Icon name="tune"/><span>Situação{filter !== 'all' ? `: ${statuses[filter]}` : ''}</span>
+            <Icon name="tune"/><span>Filtro{filter !== 'all' ? `: ${statuses[filter]}` : ''}</span>
           </button>
         </div>
       </div>
@@ -618,6 +621,15 @@ export function Library({ state, open, actions }) {
           <span className="metric-label">{readings.length} {readings.length === 1 ? 'leitura' : 'leituras'}</span>
         </div>
         <div className="reading-list">{readings.map(course => <CourseCard key={course.id} course={course} state={state} open={open} compact/>)}</div>
+      </section>}
+
+      {finished.length > 0 && <section className="library-section" aria-labelledby="library-finished-title">
+        <div className="library-section-head">
+          <span className="card-icon tone-mint"><Icon name="trophy"/></span>
+          <div><h2 id="library-finished-title" className="title">Trilhas concluídas</h2><p className="card-subtitle">Cursos e leituras que você levou até o fim.</p></div>
+          <span className="metric-label">{finished.length} {finished.length === 1 ? 'concluída' : 'concluídas'}</span>
+        </div>
+        <div className="reading-list">{finished.map(course => <CourseCard key={course.id} course={course} state={state} open={open} compact icon="check"/>)}</div>
       </section>}
 
       {!courses.length && <Empty title="Nenhum material neste filtro." onAdd={() => open({ type: 'new' })}>Troque o filtro ou importe um curso por link.</Empty>}

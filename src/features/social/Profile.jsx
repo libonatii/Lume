@@ -13,7 +13,7 @@ import { prepareProfileImageBlob, uploadProfileBlob } from './profile-media.js';
 // - Nível + insígnia em destaque + botão Editar perfil;
 // - Colecionador de Estudos (estatísticas + trilhas em destaque);
 // - Atividade recente (últimas 2 semanas + barra de progresso de cada trilha);
-// - Barra lateral com Conquistas/Insígnias, Na fila, Projetos públicos e atalhos.
+// - Barra lateral com Conquistas/Insígnias e atalhos.
 
 const STATUS_LABEL = { active: 'Em andamento', new: 'Começando', paused: 'Pausado', completed: 'Concluído' };
 
@@ -119,15 +119,13 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
     studying = [],
     completed = [],
     queue = [],
-    projects = [],
     achievements: badges = [],
     featuredBadge = null,
     recentActivity = [],
   } = view;
 
-  const nothingShared = !studying.length && !queue.length && !projects.length && !completed.length;
+  const nothingShared = !studying.length && !queue.length && !completed.length;
   const showcaseCourses = [...studying, ...completed].slice(0, 6);
-  const unlockedBadges = badges.filter((item) => item.unlocked);
   const rhythmLabel = studyRhythm(state).title;
   const bioLines = formatBioLines(customization.bio, rhythmLabel);
 
@@ -161,18 +159,12 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
 
         {/* Identidade + Bio em tópicos estilo Steam */}
         <div className="steam-identity">
-          <span className="soft-badge tone-mint"><span className="soft-dot" aria-hidden="true"/>{isSelf ? 'Seu perfil como os amigos veem' : 'Perfil de amigo'}</span>
+          {!isSelf && <span className="soft-badge tone-mint"><span className="soft-dot" aria-hidden="true"/>Perfil de amigo</span>}
           <h1 id="profile-user-title" className="display steam-persona-name">{user.name}</h1>
           {view.titles?.length > 0 && <section className="profile-titles" aria-label="Cargos de estudo">
-            <h2 className="metric-label">Cargos de estudo</h2>
             <ul className="soft-badges">{view.titles.map((item) => <li key={item.id} className="soft-badge tone-reward" title={item.criterion}><Icon name="trophy"/><strong>{item.title}</strong><span className="profile-title-criterion">· {item.criterion}</span></li>)}</ul>
-            <p className="quiet-note">Títulos por avanço real. Todas as funcionalidades estão disponíveis para todos os cargos.</p>
           </section>}
-          <p className="steam-subname">
-            {isSelf
-              ? 'Este é o recorte que outras pessoas da sua lista enxergam. Ajuste em Configurações › O que amigos veem.'
-              : 'O que esta pessoa escolheu compartilhar com amigos.'}
-          </p>
+          {!isSelf && <p className="steam-subname">O que esta pessoa escolheu compartilhar com amigos.</p>}
           <ul className="steam-bio-list" aria-label="Destaques do estudante">
             {bioLines.map((line, index) => <li key={`${index}-${line}`}>
               <span className="steam-diamond" aria-hidden="true">♦</span>
@@ -204,9 +196,9 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
             {isSelf && <Button secondary onClick={() => setEditing((prev) => !prev)} aria-expanded={editing}>
               <Icon name="edit"/>{editing ? 'Fechar edição' : 'Editar perfil'}
             </Button>}
-            <Button secondary onClick={() => go('amigos')}>
+            {!isSelf && <Button secondary onClick={() => go('amigos')}>
               <Icon name="users"/>Amigos
-            </Button>
+            </Button>}
             {isSelf && <Button ghost onClick={() => go('configuracoes')}>
               <Icon name="settings"/>Privacidade
             </Button>}
@@ -306,10 +298,6 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
                 <strong><AnimatedNumber value={stats.completedCourses}/></strong>
                 <span>Materiais completos</span>
               </div>}
-              <div className="steam-stat-cell">
-                <strong><AnimatedNumber value={projects.length}/></strong>
-                <span>Projetos públicos</span>
-              </div>
             </div>
 
             <div className="steam-featured-shelf">
@@ -371,29 +359,6 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
             </div> : <p className="inline-note"><Icon name="clock"/><span>Nenhuma atividade recente compartilhada nas últimas semanas.</span></p>}
           </div>
         </section>
-
-        {/* Vitrine 3: Na fila e Concluídos (mantém compatibilidade com os recortes do perfil) */}
-        <div className="profile-grid">
-          <section className="card-surface profile-section">
-            <div className="panel-title"><span className="pace-icon"><Icon name="flag"/></span><div><h2 className="title">Na fila</h2><p className="muted-text">O roteiro que a pessoa vê no Início.</p></div></div>
-            {queue.length > 0 ? <ol className="profile-queue">
-              {queue.map((step, index) => <li key={`${step.course}-${step.lesson}-${index}`}>
-                <span className="profile-queue-index">{index + 1}</span>
-                <span className="profile-item-copy"><strong>{step.lesson}</strong><small>{step.course} · {step.reason}</small></span>
-              </li>)}
-            </ol> : <p className="inline-note"><Icon name="info"/><span>Sem próximos passos compartilhados.</span></p>}
-          </section>
-
-          <section className="card-surface profile-section">
-            <div className="panel-title"><span className="pace-icon"><Icon name="check"/></span><div><h2 className="title">Concluídos</h2><p className="muted-text">Materiais que chegaram ao fim.</p></div></div>
-            {completed.length > 0 ? <ul className="profile-list">
-              {completed.map((item) => <li key={item.id}>
-                <span className="profile-item-copy"><strong>{item.title}</strong><small>{item.type} · concluído</small></span>
-                <span className="profile-check"><Icon name="check"/></span>
-              </li>)}
-            </ul> : <p className="inline-note"><Icon name="info"/><span>Nada concluído por enquanto.</span></p>}
-          </section>
-        </div>
       </div>
 
       {/* Coluna lateral direita estilo Steam */}
@@ -405,9 +370,7 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
               ? `Estudando agora · ${state.activeSession.label}`
               : studying.length > 0 ? 'Em jornada de estudos' : 'Disponível no Lume'}
           </span>
-          <small className="muted-text">
-            {isSelf ? `Ritmo: ${rhythmLabel}` : 'Presença respeitosa · sem cobrança de tempo'}
-          </small>
+          {!isSelf && <small className="muted-text">Presença respeitosa · sem cobrança de tempo</small>}
         </div>
 
         {/* Conquistas / Insígnias */}
@@ -426,31 +389,10 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
                 <Icon name={badge.icon}/>
               </div>)}
             </div>
-            <p className="quiet-note">
-              {unlockedBadges.length > 0
-                ? `Última desbloqueada: ${unlockedBadges[unlockedBadges.length - 1].title}`
-                : 'Complete passos de estudo para desbloquear insígnias.'}
-            </p>
             {isSelf && <button type="button" className="text-button accent" onClick={() => go('conquistas')}>
               Ver vitrine de conquistas<Icon name="arrow"/>
             </button>}
           </> : <p className="quiet-note">Conquistas e XP ocultos neste perfil.</p>}
-        </section>
-
-        {/* Projetos públicos */}
-        <section className="steam-side-section" aria-labelledby="sidebar-projects-title">
-          <div className="steam-side-head">
-            <h2 id="sidebar-projects-title" className="steam-side-title">Projetos públicos</h2>
-            <span className="steam-side-count">{projects.length}</span>
-          </div>
-          {projects.length > 0 ? <ul className="profile-list">
-            {projects.map((project) => <li key={project.id}>
-              <span className="profile-item-copy">
-                <strong>{project.title}</strong>
-                <small>{STATUS_LABEL[project.status] || project.status}{project.progress ? ` · ${project.progress.percent}%` : ''}</small>
-              </span>
-            </li>)}
-          </ul> : <p className="quiet-note">Nenhum projeto marcado como público.</p>}
         </section>
 
         {/* Contadores e links estilo menu lateral da Steam */}
@@ -471,18 +413,8 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
             <span>Passos na fila</span>
             <strong>{queue.length}</strong>
           </div>
-          {isSelf && <>
-            <button type="button" className="steam-side-nav-btn" onClick={() => go('biblioteca')}>
-              <span>Abrir biblioteca</span><Icon name="arrow"/>
-            </button>
-            <button type="button" className="steam-side-nav-btn" onClick={() => go('conquistas')}>
-              <span>Ver minhas conquistas</span><Icon name="arrow"/>
-            </button>
-          </>}
         </nav>
       </aside>
     </div>
-
-    <p className="quiet-note">XP, níveis e conquistas de contas são confirmados pelo servidor e refletem apenas eventos elegíveis; o saldo legado do protótipo fica fora do ranking. Perfis de amigos mostram somente o que cada pessoa escolheu compartilhar.</p>
   </div>;
 }

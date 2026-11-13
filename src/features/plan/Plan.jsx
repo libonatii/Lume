@@ -281,11 +281,12 @@ function WeekRhythm({ week, today, studied, dayMap, plan }) {
   </section>;
 }
 
-// Próximos marcos: provas e entregas da Agenda e prazos de curso do Plano.
+// Próximos marcos: compromissos da Agenda de qualquer tipo e prazos de curso do Plano.
+const MILESTONE_TONES = { exam: 'warning', delivery: 'lume', study: 'mint', personal: 'lume' };
 function PlanMilestones({ state, schedule, today }) {
   const fromAgenda = (state.agenda || [])
-    .filter((entry) => !entry.cancelled && !entry.done && entry.date >= today && (entry.category === 'exam' || entry.category === 'delivery'))
-    .map((entry) => ({ id: entry.id, date: entry.date, title: entry.title, detail: CATEGORIES[entry.category], tone: entry.category === 'exam' ? 'warning' : 'lume', note: entry.start ? `Às ${entry.start}` : 'Dia inteiro' }));
+    .filter((entry) => !entry.cancelled && !entry.done && entry.date >= today)
+    .map((entry) => ({ id: entry.id, date: entry.date, title: entry.title, detail: CATEGORIES[entry.category], tone: MILESTONE_TONES[entry.category] || 'lume', note: entry.start ? `Às ${entry.start}` : 'Dia inteiro' }));
   const fromGoals = schedule.courses
     .filter((course) => state.plan?.goals?.[course.courseId]?.deadline >= today)
     .map((course) => {
@@ -309,7 +310,7 @@ function PlanMilestones({ state, schedule, today }) {
           </span>
         </li>;
       })}</ul>
-      : <p className="muted-text">Nenhuma prova, entrega ou prazo pela frente. Marque provas e entregas na Agenda.</p>}
+      : <p className="muted-text">Nenhum compromisso ou prazo pela frente. Marque seus compromissos na Agenda.</p>}
     <a className="text-link plan-milestones-link" href="#agenda">Ver todos os prazos no calendário completo<Icon name="arrow"/></a>
   </section>;
 }

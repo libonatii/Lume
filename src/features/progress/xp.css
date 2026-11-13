@@ -1,38 +1,7 @@
-/* XP validado, selos legados e ranking de amigos. */
+/* XP validado e ranking de amigos. */
 /* --- XP validado e ranking --- */
 .ranking-rules {
   margin-top: 1.2rem;
-}
-.legacy-details {
-  margin-top: 1rem;
-  padding: 0.8rem 1rem;
-  border: 1px dashed var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface-2);
-}
-.legacy-details > summary {
-  cursor: pointer;
-  color: var(--text-muted);
-  font-weight: 650;
-}
-.legacy-seal-list {
-  list-style: none;
-  padding: 0;
-  margin: 0.7rem 0 0;
-  display: grid;
-  gap: 0.4rem;
-}
-.legacy-seal-list li {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--text-subtle);
-}
-.legacy-seal-list li.is-unlocked {
-  color: var(--text);
-}
-.legacy-seal-list strong {
-  margin-left: auto;
 }
 .ranking-optin {
   display: flex;

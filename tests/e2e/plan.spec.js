@@ -3,6 +3,8 @@ import { materialSteps } from '../../public/material-model.js';
 import { seedAccount, readAccount } from './library-helpers.js';
 import { createInitialState } from '../../public/domain.js';
 import { applyCourseImport, normalizePayload } from '../../public/import-domain.js';
+import { createAppointment, shiftDate } from '../../public/agenda-domain.js';
+import { localDate } from '../../public/tasks-domain.js';
 
 function seeded() {
   const payload = normalizePayload({
@@ -106,5 +108,17 @@ test('tarefa vinculada conclui a aula uma vez; subtarefa vale 10 XP uma vez e re
   expect(await xp()).toBe(110);
   await page.goto('/#perfil');
   await expect(page.getByRole('region', { name: 'Cargos de estudo' })).toContainText('Iniciante');
-  await expect(page.getByRole('region', { name: 'Cargos de estudo' })).toContainText('Todas as funcionalidades');
+});
+
+test('próximos marcos mostram compromissos da Agenda de qualquer tipo', async ({ page }) => {
+  const date = shiftDate(localDate(), 3);
+  const base = { date, endDate: date, start: '', end: '', timeZone: 'America/Sao_Paulo', taskIds: [] };
+  let state = createAppointment({ ...createInitialState(), onboarded: true }, { ...base, title: 'Simulado de Falência', category: 'study' });
+  state = createAppointment(state, { ...base, title: 'Consulta médica', category: 'personal' });
+  await seedAccount(page, state);
+  await page.goto('/#plano');
+  const milestones = page.getByRole('region', { name: 'Próximos Marcos' });
+  await expect(milestones).toContainText('Simulado de Falência');
+  await expect(milestones).toContainText('Consulta médica');
+  await expect(milestones).toContainText('Faltam 3 dias');
 });

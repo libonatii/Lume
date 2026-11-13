@@ -1,10 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { motion } from 'motion/react';
 import FullCalendar from '@fullcalendar/react';
 import themePlugin from '@fullcalendar/react/themes/classic';
-import timeGridPlugin from '@fullcalendar/react/timegrid';
 import dayGridPlugin from '@fullcalendar/react/daygrid';
-import listPlugin from '@fullcalendar/react/list';
 import interactionPlugin, { Draggable } from '@fullcalendar/react/interaction';
 import ptBr from '@fullcalendar/react/locales/pt-br';
 import { CATEGORIES, agendaSuggestions, validDate, shiftDate } from '../../../public/agenda-domain.js';
@@ -17,25 +14,10 @@ import { calendarEvent, calendarPatch, emptyDraft } from './calendar-model.js';
 import AppointmentEditor from './AppointmentEditor.jsx';
 import AppointmentDetails from './AppointmentDetails.jsx';
 
-const plugins = [themePlugin, timeGridPlugin, dayGridPlugin, listPlugin, interactionPlugin];
-const VIEWS = {
-  timeGridDay: { label: 'Dia', name: 'dia' },
-  timeGridThreeDay: { label: '3 dias', name: '3 dias' },
-  timeGridWeek: { label: 'Semana', name: 'semana' },
-  dayGridMonth: { label: 'Mês', name: 'mês' },
-  listWeek: { label: 'Lista', name: 'lista' },
-};
+// O calendário mostra só o mês; horários são definidos no editor do compromisso.
+const plugins = [themePlugin, dayGridPlugin, interactionPlugin];
 const CATEGORY_ICONS = { study: 'book', exam: 'edit', delivery: 'flag', personal: 'user' };
-const ease = [.22, 1, .36, 1];
 const narrow = () => window.matchMedia('(max-width: 820px)').matches;
-// Rola até perto da hora atual (fora do horário comercial, 8h), sem esconder
-// o início de um compromisso de hoje que começou antes.
-function initialScroll(entries, today) {
-  const hour = new Date().getHours();
-  let target = hour >= 8 && hour <= 20 ? hour - 1 : 8;
-  for (const item of entries) if (item.date === today && item.start && !item.cancelled) target = Math.min(target, Number(item.start.slice(0, 2)));
-  return `${String(target).padStart(2, '0')}:00:00`;
-}
 
 export default function Agenda({ state, actions, taskActions, confirmSave, retrySave, saveError, syncStatus, params, notify }) {
   const today = localDate();
@@ -46,7 +28,6 @@ export default function Agenda({ state, actions, taskActions, confirmSave, retry
   const tray = useRef(null);
   // null na primeira montagem: o calendário aparece sem deslizar.
   const direction = useRef(null);
-  const [view, setView] = useState(() => window.matchMedia('(max-width: 700px)').matches ? 'timeGridDay' : 'timeGridWeek');
   const [date, setDate] = useState(initialDate);
   const [period, setPeriod] = useState('');
   const [panel, setPanel] = useState(task ? { draft: emptyDraft(initialDate, { title: task.title, taskIds: [task.id] }) } : null);
@@ -54,7 +35,6 @@ export default function Agenda({ state, actions, taskActions, confirmSave, retry
   const [settings, setSettings] = useState(false);
   const [hidden, setHidden] = useState(() => new Set(['cancelled']));
   const [permission, setPermission] = useState('Notification' in window ? Notification.permission : 'unsupported');
-  const [scrollTime] = useState(() => initialScroll(state.agenda || [], today));
   const entries = state.agenda || [];
   const visible = useMemo(() => entries.filter((item) => !hidden.has(item.category) && !(item.cancelled && hidden.has('cancelled'))), [entries, hidden]);
   const events = useMemo(() => visible.map((item) => calendarEvent(item, state.tasks)), [visible, state.tasks]);
@@ -98,7 +78,6 @@ export default function Agenda({ state, actions, taskActions, confirmSave, retry
     direction.current = step;
     if (step < 0) api()?.prev(); else if (step > 0) api()?.next(); else api()?.today();
   }
-  function switchView(next) { direction.current = 0; api()?.changeView(next); }
   function goDate(value) { if (validDate(value)) api()?.gotoDate(value); }
   function toggleFilter(key) { setHidden((old) => { const next = new Set(old); if (next.has(key)) next.delete(key); else next.add(key); return next; }); }
   function select(info) {
@@ -109,7 +88,7 @@ export default function Agenda({ state, actions, taskActions, confirmSave, retry
   async function move(info) {
     const item = entries.find((entry) => entry.id === info.event.id);
     if (!item) { info.revert(); return; }
-    const patch = calendarPatch(info.event, item.timeZone, { month: info.view.type === 'dayGridMonth' });
+    const patch = calendarPatch(info.event, item.timeZone, { month: true });
     info.revert();
     if (blocked) return;
     const draft = { ...item, ...patch };
@@ -141,7 +120,6 @@ export default function Agenda({ state, actions, taskActions, confirmSave, retry
   }
   // Troca de período: o conteúdo novo entra deslizando alguns pixels na direção da navegação.
   function datesSet(info) {
-    setView(info.view.type);
     setPeriod(info.view.title);
     setDate(localDate(api()?.getDate() || new Date(`${initialDate}T12:00:00`)));
     const target = section.current?.querySelector('.agenda-calendar-frame');
@@ -154,7 +132,7 @@ export default function Agenda({ state, actions, taskActions, confirmSave, retry
   useEffect(() => {
     if (!planning || !tray.current) return;
     const node = tray.current;
-    const draggable = new Draggable(node, { itemSelector: '[data-task-id]', eventData: (el) => ({ title: el.dataset.title, duration: '00:30', create: false }) });
+    const draggable = new Draggable(node, { itemSelector: '[data-task-id]', eventData: (el) => ({ title: el.dataset.title, create: false }) });
     // O cartão "levanta" enquanto é carregado para a grade.
     const lift = (event) => event.target.closest('[data-task-id]')?.classList.add('is-lifting');
     const drop = () => node.querySelectorAll('.is-lifting').forEach((el) => el.classList.remove('is-lifting'));
@@ -163,7 +141,6 @@ export default function Agenda({ state, actions, taskActions, confirmSave, retry
     document.addEventListener('pointercancel', drop);
     return () => { draggable.destroy(); node.removeEventListener('pointerdown', lift); document.removeEventListener('pointerup', drop); document.removeEventListener('pointercancel', drop); };
   }, [planning]);
-  const short = (event) => event.end && event.end - event.start <= 45 * 60000;
   return <div className="agenda-root">
     <header className="agenda-heading">
       <div className="agenda-title"><span className="eyebrow">Plano de estudos · Calendário</span><h1 className="display">Agenda</h1></div>
@@ -181,27 +158,24 @@ export default function Agenda({ state, actions, taskActions, confirmSave, retry
         <div className="agenda-nav-group"><button type="button" aria-label="Período anterior" onClick={() => navigate(-1)}><Icon name="chevron-left"/></button><button type="button" onClick={() => navigate(0)}>Hoje</button><button type="button" aria-label="Próximo período" onClick={() => navigate(1)}><Icon name="chevron"/></button></div>
         <h2>{period}</h2>{syncStatus === 'loading' && <span className="muted-text" role="status">Carregando…</span>}
       </div>
-      <div className="agenda-view-switch" role="group" aria-label="Visualização">{Object.entries(VIEWS).map(([key, { label }]) => <button key={key} type="button" aria-pressed={view === key} onClick={() => switchView(key)}>{view === key && <motion.span layoutId="agenda-view-pill" className="agenda-view-pill" transition={{ duration: .22, ease }}/>}<span>{label}</span></button>)}</div>
     </div>
     <div className="agenda-filters" role="group" aria-label="Mostrar no calendário">
       {Object.entries(CATEGORIES).map(([key, label]) => <button key={key} type="button" className={`agenda-chip cat-${key}`} aria-pressed={!hidden.has(key)} onClick={() => toggleFilter(key)}><span className={`agenda-category-dot cat-${key}`} aria-hidden="true"/>{label}</button>)}
       <button type="button" className="agenda-chip cat-cancelled" aria-pressed={!hidden.has('cancelled')} onClick={() => toggleFilter('cancelled')}><span className="agenda-category-dot cat-cancelled" aria-hidden="true"/>Canceladas</button>
     </div>
     <div className={`agenda-workspace${planning ? ' with-planner' : ''}`}>
-      <section ref={section} className="agenda-calendar" aria-label={`Calendário: ${VIEWS[view]?.name || 'semana'}`}>
+      <section ref={section} className="agenda-calendar" aria-label="Calendário: mês">
         {/* Flutua sobre a grade: não desloca o calendário e deixa os cliques passarem. */}
-        {empty && syncStatus !== 'loading' && <section className="agenda-empty"><span className="empty-icon"><Icon name="calendar"/></span><div><h2 className="title">Sua agenda está livre</h2><p>Clique ou arraste num horário para reservar tempo; depois, arraste o bloco para mover ou puxe a borda para mudar a duração.</p></div>{(pending.length > 0 || suggestions.length > 0) && !planning && <Button secondary onClick={() => setPlanning(true)}>Ver o que agendar</Button>}</section>}
+        {empty && syncStatus !== 'loading' && <section className="agenda-empty"><span className="empty-icon"><Icon name="calendar"/></span><div><h2 className="title">Sua agenda está livre</h2><p>Clique num dia para reservar tempo; depois, arraste o bloco para outro dia ou abra-o para ajustar o horário.</p></div>{(pending.length > 0 || suggestions.length > 0) && !planning && <Button secondary onClick={() => setPlanning(true)}>Ver o que agendar</Button>}</section>}
         <div className="agenda-calendar-frame">
-        <FullCalendar ref={calendar} plugins={plugins} locale={ptBr} initialView={view} initialDate={initialDate} headerToolbar={false}
-          views={{ timeGridWeek: { titleFormat: { day: 'numeric', month: 'short', year: 'numeric' } }, timeGridThreeDay: { type: 'timeGrid', duration: { days: 3 }, titleFormat: { day: 'numeric', month: 'short', year: 'numeric' } }, listWeek: { titleFormat: { day: 'numeric', month: 'short', year: 'numeric' } } }}
-          height={view === 'dayGridMonth' ? 'min(640px, 64vh)' : 'min(760px, 74vh)'} firstDay={1} nowIndicator allDayText="Sem horário" slotDuration="00:30:00" snapDuration="00:30:00" scrollTime={scrollTime} slotMinHeight={36}
-          slotHeaderFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }} eventTimeFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }} slotLaneClass="lume-time-slot"
+        <FullCalendar ref={calendar} plugins={plugins} locale={ptBr} initialView="dayGridMonth" initialDate={initialDate} headerToolbar={false}
+          height="min(640px, 64vh)" firstDay={1} eventTimeFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }}
           eventClass={(info) => `${info.isDragging ? 'is-dragging' : ''}${info.isMirror ? ' is-mirror' : ''}`}
           noEventsContent="Nada agendado neste período."
           events={events} editable={!blocked} selectable={!blocked} selectMirror select={select} eventDrop={move} eventResize={move}
           eventLongPressDelay={400} selectLongPressDelay={400}
           dateClick={(info) => { if (!blocked && window.matchMedia('(max-width: 700px)').matches) edit(emptyDraft(info.dateStr.slice(0, 10), calendarPatch({ start: info.date, startStr: info.dateStr, allDay: info.allDay }))); }}
-          eventClick={(info) => setPanel({ id: info.event.id })} dayMaxEvents={3} slotEventOverlap={false}
+          eventClick={(info) => setPanel({ id: info.event.id })} dayMaxEvents={3}
           selectAllow={(info) => !info.allDay || info.endStr.slice(0, 10) === shiftDate(info.startStr.slice(0, 10), 1)}
           datesSet={datesSet}
           droppable={!blocked} drop={(info) => {
@@ -211,9 +185,8 @@ export default function Agenda({ state, actions, taskActions, confirmSave, retry
           }}
           eventContent={(info) => {
             const item = info.event.extendedProps.item;
-            const compact = info.view.type.startsWith('timeGrid') && short(info.event);
             const detail = [info.timeText, info.event.extendedProps.progress && `${info.event.extendedProps.progress} tarefas`, item?.done && 'encerrada', item?.cancelled && 'cancelada'].filter(Boolean).join(' · ');
-            return <span className={`agenda-event-content${compact ? ' is-compact' : ''}${info.view.type === 'dayGridMonth' ? ' in-month' : ''}`}><strong>{item && <Icon name={CATEGORY_ICONS[item.category]}/>}{info.event.title}</strong>{!compact && detail && <span>{detail}</span>}</span>;
+            return <span className="agenda-event-content in-month"><strong>{item && <Icon name={CATEGORY_ICONS[item.category]}/>}{info.event.title}</strong>{detail && <span>{detail}</span>}</span>;
           }}
           eventDidMount={(info) => {
             const item = info.event.extendedProps.item;
@@ -230,7 +203,7 @@ export default function Agenda({ state, actions, taskActions, confirmSave, retry
         {!!late.length && <details><summary>Pendências anteriores ({late.length})</summary>{late.map((item) => <button key={item.id} className="agenda-planner-item" onClick={() => setPanel({ id: item.id })}>{item.title} · {item.date}</button>)}</details>}
       </aside>}
     </div>
-    {panel?.draft && <AppointmentEditor key={panel.key || 'initial'} initial={panel.draft} initialExpected={panel.expected} anchor={panel.anchor} state={state} actions={actions} confirmSave={confirmSave} retrySave={retrySave} saveError={saveError} onSaved={saved} onExpand={(draft) => setPanel({ draft: { ...draft, expanded: true }, key: crypto.randomUUID() })} onClose={() => setPanel(null)}/>}
+    {panel?.draft && <AppointmentEditor key={panel.key || 'initial'} initial={panel.draft} initialExpected={panel.expected} anchor={panel.anchor} state={state} actions={actions} confirmSave={confirmSave} retrySave={retrySave} saveError={saveError} onSaved={saved} onExpand={(draft) => setPanel({ draft, key: crypto.randomUUID() })} onClose={() => setPanel(null)}/>}
     {selected && <AppointmentDetails key={selected.id} item={selected} state={state} actions={actions} taskActions={taskActions} confirmSave={confirmSave} retrySave={retrySave} saveError={saveError} edit={edit} onRemove={remove} onClose={() => setPanel(null)}/>}
   </div>;
 }

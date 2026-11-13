@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { createInitialState, addCourse } from '../../public/domain.js';
-import { createAppointment } from '../../public/agenda-domain.js';
+import { createAppointment, shiftDate } from '../../public/agenda-domain.js';
 import { addTask, localDate } from '../../public/tasks-domain.js';
 import { seedAccount, readAccount } from './library-helpers.js';
 
@@ -22,18 +22,23 @@ async function openEvent(page, title) {
   await expect(dialog(page)).toBeVisible();
 }
 
-test('calendário proporcional, criação rápida, checklist editável e sobreposição', async ({ page, isMobile }, testInfo) => {
+test('calendário mensal, criação, checklist editável e sobreposição', async ({ page }, testInfo) => {
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
   page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
   await seedAccount(page, initial());
   await page.goto('/#agenda');
   await expect(page.getByRole('heading', { name: 'Agenda', exact: true })).toBeVisible();
-  await expect(page.getByLabel(`Calendário: ${isMobile ? 'dia' : 'semana'}`, { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Calendário: mês', { exact: true })).toBeVisible();
+  // Só a visão mensal: não há seletor de Dia, 3 dias, Semana ou Lista.
+  await expect(page.getByRole('group', { name: 'Visualização' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Novo compromisso', exact: true }).click();
   await expect(page.getByLabel('Título do compromisso')).toBeFocused();
   await expect(page.getByLabel('Fuso do compromisso')).not.toBeVisible();
-  await expect(page.getByLabel('Repetição', { exact: true })).not.toBeVisible();
+  // Tipo, lembrete e repetição ficam à vista; só o fuso fica recolhido.
+  await expect(page.getByRole('radio', { name: 'Estudo', exact: true })).toBeChecked();
+  await expect(page.getByRole('combobox', { name: 'Lembrete', exact: true })).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Repetição', exact: true })).toBeVisible();
   await page.getByLabel('Título do compromisso').fill('Revisão constitucional');
   await hours(page, '09:00', '10:00');
   await page.getByRole('button', { name: '+ Adicionar checklist', exact: true }).click();
@@ -61,18 +66,10 @@ test('calendário proporcional, criação rápida, checklist editável e sobrepo
   await page.getByLabel('Título do compromisso').fill('Consulta');
   await hours(page, '09:30', '10:00');
   await expect(dialog(page)).toContainText('Sobreposição');
-  await page.getByText('Mais opções', { exact: true }).click();
-  await page.getByRole('combobox', { name: 'Tipo', exact: true }).selectOption('personal');
+  await page.getByRole('radio', { name: 'Pessoal', exact: true }).check();
   await saveForm(page);
-  const long = await page.getByLabel('Abrir compromisso Revisão constitucional', { exact: true }).first().boundingBox();
-  const short = await page.getByLabel('Abrir compromisso Consulta', { exact: true }).first().boundingBox();
-  expect(long.height).toBeGreaterThan(short.height * 1.5);
-  expect(Math.abs(long.x - short.x)).toBeGreaterThan(5);
-  await page.screenshot({ path: testInfo.outputPath('agenda-week.png'), fullPage: true });
-  await page.getByRole('button', { name: 'Mês', exact: true }).click();
   await expect(page.getByLabel('Calendário: mês')).toContainText('Consulta');
   await page.screenshot({ path: testInfo.outputPath('agenda-month.png'), fullPage: true });
-  await page.getByRole('button', { name: 'Dia', exact: true }).click();
   await page.getByRole('button', { name: 'Hoje', exact: true }).click();
   await openEvent(page, 'Consulta');
   await page.getByRole('button', { name: 'Editar', exact: true }).click();
@@ -117,7 +114,6 @@ test('recorrência recebe checklist novo e edição futura preserva a ocorrênci
   await page.getByLabel('Título do compromisso').fill('Revisão diária');
   await page.getByRole('button', { name: '+ Adicionar checklist', exact: true }).click();
   await page.getByLabel('Item 1', { exact: true }).fill('Revisar notas');
-  await page.getByText('Mais opções', { exact: true }).click();
   await page.getByRole('combobox', { name: 'Repetição', exact: true }).selectOption('daily');
   await page.getByLabel('Ocorrências').fill('3');
   const saved = await saveForm(page);
@@ -228,35 +224,9 @@ test('conflito exige recarga e repetição explícita, preservando o formulário
   expect((await readAccount(page)).agenda).toHaveLength(1);
 });
 
-async function slotPoint(page, time) {
-  const slot = page.locator(`.lume-time-slot[data-time="${time}:00"]`);
-  await slot.scrollIntoViewIfNeeded();
-  await slot.evaluate((el) => {
-    const top = el.getBoundingClientRect().top;
-    const target = Math.max(180, Math.min(top, window.innerHeight - 150));
-    window.scrollBy({ top: top - target, behavior: 'instant' });
-  });
-  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-  const box = await slot.boundingBox();
-  return { x: box.x + box.width / 2, y: box.y + 3 };
-}
-
-test('selecionar horário abre criação já preenchida e mês cria sem horário', async ({ page, isMobile }, testInfo) => {
+test('clicar num dia do mês cria compromisso sem horário', async ({ page, isMobile }) => {
   await seedAccount(page, initial());
   await page.goto('/#agenda');
-  await page.getByRole('button', { name: 'Dia', exact: true }).click();
-  const point = await slotPoint(page, '09:00');
-  if (isMobile) await page.touchscreen.tap(point.x, point.y);
-  else await page.mouse.click(point.x, point.y);
-  await expect(page.getByLabel('Início', { exact: true })).toHaveValue('09:00');
-  await expect(page.getByLabel('Fim', { exact: true })).toHaveValue('09:30');
-  await page.getByLabel('Título do compromisso').fill('Criado na grade');
-  await page.screenshot({ path: testInfo.outputPath('agenda-quick-add.png'), fullPage: true });
-  await saveForm(page);
-  // O aviso de confirmação fica sobre o canto da grade; fechá-lo libera a última célula.
-  await page.getByRole('button', { name: 'Fechar aviso' }).click();
-  await page.getByRole('button', { name: 'Mês', exact: true }).click();
-  // A célula mensal oferece a mesma criação por seleção, sem horário artificial.
   const cell = page.locator('.agenda-calendar [data-date]').last();
   await cell.evaluate((el) => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
   const bounds = await cell.boundingBox();
@@ -265,61 +235,28 @@ test('selecionar horário abre criação já preenchida e mês cria sem horário
   await expect(page.getByRole('checkbox', { name: 'Sem horário', exact: true })).toBeChecked();
   await page.getByLabel('Título do compromisso').fill('Dia livre');
   await saveForm(page);
-  expect((await readAccount(page)).agenda).toHaveLength(2);
+  expect((await readAccount(page)).agenda).toHaveLength(1);
 });
 
-test('arrasto seleciona intervalo, move, redimensiona e agenda tarefa existente', async ({ page, isMobile }) => {
+test('arrastar tarefa existente para um dia do mês agenda sem cópia', async ({ page, isMobile }) => {
   test.skip(isMobile, 'Gestos de mouse no computador; toque e edição acessível cobertos nos dois tamanhos.');
   await page.setViewportSize({ width: 1600, height: 1000 });
   const state = addTask(initial(), { title: 'Tarefa para arrastar', dueDate: '2030-12-01' });
   await seedAccount(page, state);
   await page.goto('/#agenda');
-  await page.getByRole('button', { name: 'Dia', exact: true }).click();
-  const a = await slotPoint(page, '09:00'), b = await slotPoint(page, '09:30');
-  await page.mouse.move(a.x, a.y);
-  await page.mouse.down();
-  await page.mouse.move(b.x, b.y, { steps: 15 });
-  await page.mouse.up();
-  await expect(page.getByLabel('Início', { exact: true })).toHaveValue('09:00');
-  await expect(page.getByLabel('Fim', { exact: true })).toHaveValue('10:00');
-  await page.getByLabel('Título do compromisso').fill('Intervalo escolhido');
-  await saveForm(page);
-  const event = page.getByLabel('Abrir compromisso Intervalo escolhido', { exact: true });
-  let bounds = await event.boundingBox();
-  const hourHeight = (b.y - a.y) * 2;
-  await page.route('**/api/library/actions', (route) => route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Indisponível' }) }));
-  await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + 10);
-  await page.mouse.down();
-  await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + 10 + hourHeight, { steps: 20 });
-  await page.mouse.up();
-  await expect(dialog(page)).toBeVisible();
-  await expect(page.getByLabel('Início', { exact: true })).toHaveValue('10:00');
-  await page.unroute('**/api/library/actions');
-  await dialog(page).getByRole('button', { name: 'Recarregar ou tentar novamente' }).click();
-  await expect(dialog(page).getByRole('button', { name: 'Recarregar ou tentar novamente' })).toHaveCount(0);
-  await saveForm(page);
-  await expect.poll(async () => (await readAccount(page)).agenda[0].start).toBe('10:00');
-  bounds = await event.boundingBox();
-  await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height - 2);
-  await page.mouse.down();
-  await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height - 2 + hourHeight, { steps: 20 });
-  await page.mouse.up();
-  await expect.poll(async () => (await readAccount(page)).agenda[0].end).toBe('12:00');
   await page.getByRole('button', { name: 'Para agendar (1)', exact: true }).click();
+  const today = localDate();
   const source = await page.locator('[data-task-id]').boundingBox();
-  const target = await slotPoint(page, '14:00');
+  const target = await page.locator(`.agenda-calendar [data-date="${today}"]`).boundingBox();
   await page.mouse.move(source.x + source.width / 2, source.y + 10);
   await page.mouse.down();
-  await page.mouse.move(target.x, target.y, { steps: 25 });
+  await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2, { steps: 25 });
   await page.mouse.up();
   await expect(page.getByLabel('Título do compromisso')).toHaveValue('Tarefa para arrastar');
-  await expect(page.getByLabel('Início', { exact: true })).toHaveValue('14:00');
   await saveForm(page);
   const saved = await readAccount(page);
   expect(saved.tasks).toEqual(state.tasks);
-  expect(saved.agenda[1].taskIds).toEqual([state.tasks[0].id]);
-  await page.reload();
-  expect((await readAccount(page)).agenda[0]).toEqual(expect.objectContaining({ start: '10:00', end: '12:00' }));
+  expect(saved.agenda[0]).toEqual(expect.objectContaining({ date: today, start: '', taskIds: [state.tasks[0].id] }));
 });
 
 test('arrastar série pede escopo antes de gravar; cancelar preserva datas', async ({ page, isMobile }) => {
@@ -329,13 +266,13 @@ test('arrastar série pede escopo antes de gravar; cancelar preserva datas', asy
   const state = createAppointment(initial(), { title: 'Estudo recorrente', category: 'study', date, endDate: date, start: '09:00', end: '10:00', timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone, recurrence: 'daily', count: 3 });
   await seedAccount(page, state);
   await page.goto('/#agenda');
-  await page.getByRole('button', { name: 'Dia', exact: true }).click();
+  const next = shiftDate(date, 1);
   async function drag() {
-    const a = await slotPoint(page, '09:00'), b = await slotPoint(page, '10:00');
-    const box = await page.getByLabel('Abrir compromisso Estudo recorrente').boundingBox();
-    await page.mouse.move(box.x + box.width / 2, box.y + 10);
+    const box = await page.getByLabel('Abrir compromisso Estudo recorrente').first().boundingBox();
+    const target = await page.locator(`.agenda-calendar [data-date="${next}"]`).boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.down();
-    await page.mouse.move(box.x + box.width / 2, box.y + 10 + b.y - a.y, { steps: 20 });
+    await page.mouse.move(target.x + target.width / 2, target.y + target.height - 10, { steps: 20 });
     await page.mouse.up();
   }
   await drag();
@@ -346,28 +283,19 @@ test('arrastar série pede escopo antes de gravar; cancelar preserva datas', asy
   await drag();
   await page.getByLabel('Aplicar alteração').selectOption('future');
   await saveForm(page);
-  expect((await readAccount(page)).agenda.map((item) => item.start)).toEqual(['10:00', '10:00', '10:00']);
+  const moved = (await readAccount(page)).agenda;
+  expect(moved.map((item) => item.date)).toEqual([next, shiftDate(date, 2), shiftDate(date, 3)]);
+  expect(moved.map((item) => item.start)).toEqual(['', '', '']);
 });
 
-test('criação rápida expande, filtro por tipo, exclusão com desfazer e visões Lista e 3 dias', async ({ page, isMobile }) => {
+test('criação, filtro por tipo e exclusão com desfazer', async ({ page }) => {
   await seedAccount(page, initial());
   await page.goto('/#agenda');
   await expect(page.getByText('Sua agenda está livre')).toBeVisible();
-  if (isMobile) {
-    await page.getByRole('button', { name: 'Novo compromisso', exact: true }).click();
-    await page.getByLabel('Título do compromisso').fill('Prova de direito');
-    await hours(page, '10:00', '10:30');
-    await page.getByText('Mais opções', { exact: true }).click();
-  } else {
-    await page.getByRole('button', { name: 'Dia', exact: true }).click();
-    const point = await slotPoint(page, '10:00');
-    await page.mouse.click(point.x, point.y);
-    await expect(page.getByLabel('Início', { exact: true })).toHaveValue('10:00');
-    await page.getByLabel('Título do compromisso').fill('Prova de direito');
-    await dialog(page).getByRole('button', { name: 'Mais opções', exact: true }).click();
-    await expect(page.getByLabel('Título do compromisso')).toHaveValue('Prova de direito');
-  }
-  await page.getByRole('combobox', { name: 'Tipo', exact: true }).selectOption('exam');
+  await page.getByRole('button', { name: 'Novo compromisso', exact: true }).click();
+  await page.getByLabel('Título do compromisso').fill('Prova de direito');
+  await hours(page, '10:00', '10:30');
+  await page.getByRole('radio', { name: 'Prova', exact: true }).check();
   const saved = await saveForm(page);
   expect(saved.agenda[0]).toEqual(expect.objectContaining({ title: 'Prova de direito', category: 'exam', start: '10:00', end: '10:30' }));
   await expect(page.getByText('Compromisso agendado.')).toBeVisible();
@@ -382,10 +310,7 @@ test('criação rápida expande, filtro por tipo, exclusão com desfazer e visõ
   await expect.poll(async () => (await readAccount(page)).agenda.length).toBe(0);
   await page.getByRole('button', { name: 'Desfazer', exact: true }).click();
   await expect.poll(async () => (await readAccount(page)).agenda).toEqual(saved.agenda);
-  await page.getByRole('button', { name: 'Lista', exact: true }).click();
-  await expect(page.getByLabel('Calendário: lista')).toContainText('Prova de direito');
-  await page.getByRole('button', { name: '3 dias', exact: true }).click();
-  await expect(page.getByLabel('Calendário: 3 dias')).toContainText('Prova de direito');
+  await expect(page.getByLabel('Calendário: mês')).toContainText('Prova de direito');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 });
 
@@ -397,7 +322,6 @@ test('arrastar no mês move o dia e remove o horário', async ({ page, isMobile 
   await seedAccount(page, state);
   await page.goto('/#agenda');
   await expect(page.getByRole('heading', { name: 'Agenda', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Mês', exact: true }).click();
   const event = page.getByLabel('Abrir compromisso Bloco com hora', { exact: true }).first();
   await expect(event).toBeVisible();
   const source = await event.boundingBox();

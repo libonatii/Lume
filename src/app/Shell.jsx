@@ -48,7 +48,7 @@ export default function Shell({ route, model, children, hideTabs = false, onComf
   const level = model.account
     ? (summary ? levelProgress(summary.totalXP) : { level: 1, current: 0, next: 500, total: 0 })
     : levelInfo(model.state);
-  const xpLabel = model.account ? 'XP elegível' : 'prévia local';
+  const xpLabel = model.account ? 'XP' : 'XP · prévia local';
   const prefs = model.state.preferences;
   const gamified = prefs.gamification;
   const setPreference = model.settingsActions?.setPreference;
@@ -186,7 +186,7 @@ export default function Shell({ route, model, children, hideTabs = false, onComf
               <div className="user-dropdown-header">
                 <strong>{name}</strong>
                 <small>{model.account?.email || 'Modo prévia local'}</small>
-                {gamified && <small className="user-dropdown-level">{model.account && !summary ? 'Sincronizando XP…' : `Nível ${level.level} · ${level.current} / ${level.next} XP ${xpLabel}`}</small>}
+                {gamified && <small className="user-dropdown-level">{model.account && !summary ? 'Sincronizando XP…' : `Nível ${level.level} · ${level.current} / ${level.next} ${xpLabel}`}</small>}
               </div>
               <a className={`user-dropdown-item ${route === 'perfil' ? 'active' : ''}`} href="#perfil" onClick={() => hidePopover(accountPopoverRef)}>
                 <Icon name="user"/>
@@ -200,7 +200,6 @@ export default function Shell({ route, model, children, hideTabs = false, onComf
                 <Icon name="settings"/>
                 <span>Configurações</span>
               </a>
-              {!desktop && <a className="user-dropdown-item" href="#aplicativo" onClick={() => hidePopover(accountPopoverRef)}><Icon name="cloud"/><span>Instalar aplicativo</span></a>}
               <div className="user-dropdown-divider"/>
               <button
                 type="button"
@@ -216,6 +215,6 @@ export default function Shell({ route, model, children, hideTabs = false, onComf
       </div>
     </header>
     <main id="main" tabIndex={-1}>{!hideTabs && <SectionTabs route={route} unread={unread}/>}{children}</main>
-    <footer className="app-footer"><div className="app-footer-inner"><span className="app-footer-brand"><strong>Lume</strong><small>Seu espaço de estudos: ritmo próprio, pausas sem punição e progresso real.</small></span><span className="app-footer-meta"><span>{today}</span><a className="text-link" href="#configuracoes">Preferências</a>{!desktop && <a className="text-link" href="#aplicativo"><Icon name="cloud"/>Instalar aplicativo</a>}<button type="button" className="text-button" onClick={onHelp}>Ajuda</button></span></div></footer>
+    <footer className="app-footer"><div className="app-footer-inner"><span className="app-footer-brand"><strong>Lume</strong><small>Estudar também pode ser divertido!</small></span><span className="app-footer-meta"><span>{today}</span>{!desktop && <a className="text-link" href="#aplicativo"><Icon name="cloud"/>Instalar aplicativo</a>}</span></div></footer>
   </div>;
 }
