@@ -13,7 +13,7 @@ import { prepareProfileImageBlob, uploadProfileBlob } from './profile-media.js';
 // - Nível + insígnia em destaque + botão Editar perfil;
 // - Colecionador de Estudos (estatísticas + trilhas em destaque);
 // - Atividade recente (últimas 2 semanas + barra de progresso de cada trilha);
-// - Barra lateral com Conquistas/Insígnias, Na fila e atalhos.
+// - Barra lateral com Conquistas/Insígnias e atalhos.
 
 const STATUS_LABEL = { active: 'Em andamento', new: 'Começando', paused: 'Pausado', completed: 'Concluído' };
 
@@ -360,29 +360,6 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
             </div> : <p className="inline-note"><Icon name="clock"/><span>Nenhuma atividade recente compartilhada nas últimas semanas.</span></p>}
           </div>
         </section>
-
-        {/* Vitrine 3: Na fila e Concluídos (mantém compatibilidade com os recortes do perfil) */}
-        <div className="profile-grid">
-          <section className="card-surface profile-section">
-            <div className="panel-title"><span className="pace-icon"><Icon name="flag"/></span><div><h2 className="title">Na fila</h2><p className="muted-text">O roteiro que a pessoa vê no Início.</p></div></div>
-            {queue.length > 0 ? <ol className="profile-queue">
-              {queue.map((step, index) => <li key={`${step.course}-${step.lesson}-${index}`}>
-                <span className="profile-queue-index">{index + 1}</span>
-                <span className="profile-item-copy"><strong>{step.lesson}</strong><small>{step.course} · {step.reason}</small></span>
-              </li>)}
-            </ol> : <p className="inline-note"><Icon name="info"/><span>Sem próximos passos compartilhados.</span></p>}
-          </section>
-
-          <section className="card-surface profile-section">
-            <div className="panel-title"><span className="pace-icon"><Icon name="check"/></span><div><h2 className="title">Concluídos</h2><p className="muted-text">Materiais que chegaram ao fim.</p></div></div>
-            {completed.length > 0 ? <ul className="profile-list">
-              {completed.map((item) => <li key={item.id}>
-                <span className="profile-item-copy"><strong>{item.title}</strong><small>{item.type} · concluído</small></span>
-                <span className="profile-check"><Icon name="check"/></span>
-              </li>)}
-            </ul> : <p className="inline-note"><Icon name="info"/><span>Nada concluído por enquanto.</span></p>}
-          </section>
-        </div>
       </div>
 
       {/* Coluna lateral direita estilo Steam */}
@@ -445,7 +422,5 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
         </nav>
       </aside>
     </div>
-
-    <p className="quiet-note">XP, níveis e conquistas de contas são confirmados pelo servidor e refletem apenas eventos elegíveis; o saldo legado do protótipo fica fora do ranking. Perfis de amigos mostram somente o que cada pessoa escolheu compartilhar.</p>
   </div>;
 }

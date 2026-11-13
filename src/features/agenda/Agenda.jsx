@@ -132,7 +132,7 @@ export default function Agenda({ state, actions, taskActions, confirmSave, retry
   useEffect(() => {
     if (!planning || !tray.current) return;
     const node = tray.current;
-    const draggable = new Draggable(node, { itemSelector: '[data-task-id]', eventData: (el) => ({ title: el.dataset.title, duration: '00:30', create: false }) });
+    const draggable = new Draggable(node, { itemSelector: '[data-task-id]', eventData: (el) => ({ title: el.dataset.title, create: false }) });
     // O cartão "levanta" enquanto é carregado para a grade.
     const lift = (event) => event.target.closest('[data-task-id]')?.classList.add('is-lifting');
     const drop = () => node.querySelectorAll('.is-lifting').forEach((el) => el.classList.remove('is-lifting'));
