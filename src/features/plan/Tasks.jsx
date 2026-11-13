@@ -6,7 +6,6 @@ import {
 } from '../../../public/tasks-domain.js';
 import Icon from '../../ui/Icon.jsx';
 import { materialSteps } from '../../../public/material-model.js';
-import { DAILY_SUBTASK_XP_CAP, XP_VALUES } from '../../../public/xp-policy.js';
 import { Button, Empty, stagger } from '../../ui/ui.jsx';
 import SectionTabs from '../../app/SectionTabs.jsx';
 import { localDay } from '../../../public/session-domain.js';
@@ -145,7 +144,6 @@ export default function Tasks({ state, actions, notify, onSchedule }) {
   const pending = tasks.filter((task) => !task.done);
   const overdue = pending.filter((task) => isOverdue(task, today)).length;
   const done = tasks.filter((task) => task.done);
-  const gamified = state.preferences.gamification;
   const courses = new Map(state.courses.map((course) => [course.id, course.title]));
   const lessons = new Map(state.courses.flatMap((course) => materialSteps(course).map((step) => [step.id, step.title])));
   const chosenCourse = state.courses.find((course) => course.id === courseId);
@@ -313,15 +311,12 @@ export default function Tasks({ state, actions, notify, onSchedule }) {
         </section>
 
         <section className="card-surface tasks-summary" aria-labelledby="task-summary-title">
-          <div className="plan-card-head"><h2 id="task-summary-title" className="title"><Icon name="chart"/>Resumo</h2><span className="soft-badge tone-mint">Sem cobrança</span></div>
+          <div className="plan-card-head"><h2 id="task-summary-title" className="title"><Icon name="chart"/>Resumo</h2></div>
           <dl className="tasks-stats">
             <div><dt>Pendentes</dt><dd>{pending.length}</dd></div>
             <div><dt>Para hoje</dt><dd>{dueToday}</dd></div>
             <div><dt>Concluídas hoje</dt><dd className="tone-mint-text">{doneToday}</dd></div>
           </dl>
-          {gamified
-            ? <p className="quiet-note">O servidor concede o XP da aula vinculada uma única vez, mesmo com várias tarefas. Reabrir a tarefa não desfaz a aula nem repete a recompensa. Cada subtarefa concluída vale {XP_VALUES.subtask} XP uma única vez, até {DAILY_SUBTASK_XP_CAP} XP por dia.</p>
-            : <p className="quiet-note">Os indicadores de XP estão ocultos nas preferências. As tarefas continuam funcionando.</p>}
         </section>
       </aside>
     </div>
