@@ -247,10 +247,23 @@ body {
 
 /* Tela de carregamento: cartão com duas camadas atrás e a mesma órbita de borda dos botões. */
 .boot-stage {
-  min-height: 62vh;
+  position: fixed;
+  inset: 0;
+  z-index: 100;
   display: grid;
   place-items: center;
   padding: var(--space-4, 1rem);
+  background: var(--bg);
+}
+.boot-brand {
+  position: absolute;
+  top: clamp(1rem, 3vw, 2rem);
+  right: clamp(1.2rem, 4vw, 3rem);
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 1.6rem;
+  letter-spacing: -0.02em;
+  color: var(--text);
 }
 .boot-card {
   --boot-ring: var(--lume);
