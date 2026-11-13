@@ -17,7 +17,7 @@ const PHASES = [
 ];
 
 const DAILY_GOALS = [
-  { id: 'light', minutes: 45, icon: 'leaf', title: 'Leve e Constante', label: '45 min / dia', desc: '1 a 2 blocos curtos. Excelente para retomar o hábito sem sobrecarga.', cycles: '1 a 2 blocos serenos com pausas suaves.' },
+  { id: 'light', minutes: 45, icon: 'clock', title: 'Leve e Constante', label: '45 min / dia', desc: '1 a 2 blocos curtos. Excelente para retomar o hábito sem sobrecarga.', cycles: '1 a 2 blocos serenos com pausas suaves.' },
   { id: 'ideal', minutes: 90, icon: 'spark', title: 'Ritmo Ideal', label: '1h 30m / dia', badge: 'Recomendado', desc: 'Equilíbrio saudável entre concentração e descanso ativo.', cycles: '3 ciclos de foco serenos com micro-pausas de 5 minutos.' },
   { id: 'deep', minutes: 180, icon: 'flame', title: 'Imersão Profunda', label: '3h / dia', desc: 'Para períodos intensos de preparação ou entrega de projetos.', cycles: 'Blocos mais longos com intervalos programados.' },
   { id: 'custom', minutes: null, icon: 'tune', title: 'Personalizado', label: 'Defina seu fluxo', desc: 'Ajuste sua meta diária em minutos conforme sua semana.', cycles: 'Meta flexível ajustada ao seu momento.' },
@@ -26,8 +26,8 @@ const DAILY_GOALS = [
 const SOUND_OPTIONS = [
   { id: 'off', icon: 'volume-off', title: 'Silêncio Total', subtitle: 'Sem áudio', preview: 'Silêncio Total' },
   { id: 'rain', icon: 'rain', title: 'Chuva Serena', subtitle: 'Ruído suave', preview: 'Chuva Serena de Janela' },
-  { id: 'noise', icon: 'wave', title: 'Ruído Branco', subtitle: 'Foco linear', preview: 'Ruído Branco Suave' },
-  { id: 'library', icon: 'book', title: 'Biblioteca', subtitle: 'Calor acústico', preview: 'Biblioteca Noturna' },
+  { id: 'white', icon: 'wave', title: 'Ruído Branco', subtitle: 'Foco linear', preview: 'Ruído Branco Suave' },
+  { id: 'pink', icon: 'book', title: 'Biblioteca', subtitle: 'Calor acústico', preview: 'Biblioteca Noturna' },
 ];
 
 const QUICK_SUBJECTS = [
@@ -439,7 +439,7 @@ export default function Onboarding({ state, actions, libraryActions, go, notify,
                 </div>
               </div>
               <p className="stitch-calm-pledge">
-                <Icon name="leaf"/>
+                <Icon name="pause"/>
                 <span>Se você não estudar em algum dia, o Lume recalcula seu progresso sem alarmes vermelhos ou quebra punitiva de sequências.</span>
               </p>
             </aside>
@@ -551,7 +551,7 @@ export default function Onboarding({ state, actions, libraryActions, go, notify,
             </div>}
 
             <p className="stitch-calm-pledge">
-              <Icon name="leaf"/>
+              <Icon name="shield"/>
               <span>Você pode adicionar matérias ilimitadas e reorganizar seus ciclos depois na sua <strong>Biblioteca</strong>.</span>
             </p>
           </div>

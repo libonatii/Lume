@@ -101,14 +101,6 @@ export async function eligibleCompletions(db, userId, { materialId = null } = {}
   return map;
 }
 
-export async function activeUnitIds(db, userId) {
-  const rows = await db.all(
-    "SELECT DISTINCT unit_id FROM progress_events WHERE user_id = ? AND type = 'completion' AND reverted_at IS NULL",
-    [userId],
-  );
-  return new Set(rows.map((row) => row.unit_id));
-}
-
 function findUnit(state, materialId, unitId) {
   const course = (state.courses || []).find((item) => item.id === materialId);
   const step = materialSteps(course).find((item) => item.id === unitId);

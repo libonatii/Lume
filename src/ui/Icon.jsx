@@ -30,9 +30,7 @@ const icons = {
   close: '<path d="m6 6 12 12M6 18 18 6"/>',
   play: '<path d="m9 5 11 7-11 7Z"/>',
   pause: '<path d="M8 5v14M16 5v14"/>',
-  sprout: '<path d="M12 21v-9M12 15C3 16 3 7 3 7s9-1 9 8Zm0-3C12 3 21 3 21 3s1 9-9 9Z"/>',
-  leaf: '<path d="M20 3S5 1 4 12c-1 8 9 12 14 5 3-4 2-14 2-14ZM4 21 15 9"/>',
-  tree: '<path d="M12 22v-6m0-14-7 8h3l-5 7h18l-5-7h3Z"/>',
+  flame: '<path d="M12 2c1.5 3.5 4.5 5.5 4.5 10a4.5 4.5 0 1 1-9 0c0-2.5 1.5-4.5 2.5-6 0 2 1.5 3 2 3-.5-2.5 0-5 0-7Z"/>',
   spark: '<path d="m12 2 3 7 7 3-7 3-3 7-3-7-7-3 7-3Z"/>',
   compass: '<circle cx="12" cy="12" r="9"/><path d="m16 8-2 6-6 2 2-6Z"/>',
   focus: '<path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/><circle cx="12" cy="12" r="3"/>',
@@ -77,6 +75,8 @@ const icons = {
   notes: '<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6M8 13h8M8 17h5"/>',
   tune: '<path d="M4 7h4m4 0h8M4 17h8m4 0h4M10 4v6M14 14v6"/>',
   download: '<path d="M12 3v12m-5-5 5 5 5-5M4 19h16"/>',
+  upload: '<path d="M12 15V3m-5 5 5-5 5 5M4 19h16"/>',
+  'volume-off': '<path d="M4 9h4l5-4v14l-5-4H4Z"/><path d="m17 10 4 4m0-4-4 4"/>',
 };
 
 export default function Icon({name, className = ''}) { return <svg className={'icon '+className} viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.8' strokeLinecap='round' strokeLinejoin='round' aria-hidden='true' focusable='false' dangerouslySetInnerHTML={{__html: icons[name] || icons.spark}} />; }

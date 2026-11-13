@@ -16,7 +16,6 @@
 @import './41-responsivo.css';
 @import '../features/library/import.css';
 @import '../features/desktop/desktop.css';
-@import '../features/progress/session.css';
 @import '../features/social/friends.css';
 @import '../features/social/profile.css';
 @import '../features/desktop/window.css';

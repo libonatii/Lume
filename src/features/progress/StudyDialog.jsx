@@ -59,7 +59,7 @@ export default function StudyDialog({ modal, state, libraryActions, progressActi
   if (modal.type === 'success') return <div className="success-content">
     <Glow palette={modal.preparation ? 'mint' : 'lume'}/>
     <div className="success-body">
-      <div className={`dialog-emblem ${modal.preparation ? 'tone-mint' : ''}`}><Icon name={modal.preparation ? 'sprout' : 'spark'}/></div>
+      <div className={`dialog-emblem ${modal.preparation ? 'tone-mint' : ''}`}><Icon name={modal.preparation ? 'steps' : 'spark'}/></div>
       <h2 id="dialog-title" className="headline">{modal.preparation ? 'Material preparado.' : modal.stepTitle ? `Você concluiu ${modal.stepTitle}.` : 'Etapa concluída.'}</h2>
       <p className="muted-text">{modal.preparation ? 'A etapa continua pendente: o avanço é registrado quando você a conclui.' : nextLine(state)}</p>
       <p className="quiet-note">Progresso registrado. Em uma conta, o XP elegível é confirmado pelo servidor e aparece no seu nível e em Conquistas; na prévia, ele não vale para ranking. Preparação não concede XP.</p>
@@ -139,7 +139,7 @@ export default function StudyDialog({ modal, state, libraryActions, progressActi
     open(following ? { type: 'session', id: course.id } : { type: 'course', id: course.id });
   }
   return <div className="session-content">
-    <div className={`dialog-emblem ${modal.preparation ? 'tone-mint' : ''}`}><Icon name={modal.preparation ? 'sprout' : 'focus'}/></div>
+    <div className={`dialog-emblem ${modal.preparation ? 'tone-mint' : ''}`}><Icon name={modal.preparation ? 'steps' : 'focus'}/></div>
     <span className="eyebrow">{modal.preparation ? 'Preparação · sem XP' : 'Etapa · registro manual'}</span>
     <h2 id="dialog-title" className="headline">{modal.preparation ? `Preparar: ${mission.step.title}` : mission.step.title}</h2>
     <p className="session-course">{course.title}</p>
@@ -149,7 +149,7 @@ export default function StudyDialog({ modal, state, libraryActions, progressActi
     <div className="session-actions">
       {!modal.preparation && pendingAfter > 0 && <Button className="full-width" onClick={finishAndContinue}><Icon name="arrow"/>Concluir e seguir para a próxima</Button>}
       <Button className="full-width" secondary={!modal.preparation && pendingAfter > 0} onClick={finish}><Icon name="check"/>{modal.preparation ? 'Preparei meu material' : 'Concluí esse passo'}</Button>
-      {!modal.preparation && !hasPreparation(state, mission.step.id) && <button className="text-button centered" onClick={() => open({ type: 'session', id: course.id, preparation: true })}>Dividir em um passo menor<Icon name="sprout"/></button>}
+      {!modal.preparation && !hasPreparation(state, mission.step.id) && <button className="text-button centered" onClick={() => open({ type: 'session', id: course.id, preparation: true })}>Dividir em um passo menor<Icon name="steps"/></button>}
       <button className="text-button centered" onClick={close}>Fechar · o progresso continua salvo</button>
     </div>
   </div>;

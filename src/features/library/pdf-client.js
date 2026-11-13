@@ -43,7 +43,7 @@ export async function identifyWithAI(text, subjects) {
 
 // Devolve o documento e como fechá-lo: no pdf.js 6 quem libera o worker e a
 // memória é a tarefa de carregamento, não o documento.
-export async function openDocument(data) {
+async function openDocument(data) {
   const lib = await pdfjs();
   // WebAssembly fica desligado: a CSP do site não libera wasm, e imagens JPEG
   // 2000 raras aparecem em branco em vez de quebrar a leitura.
@@ -61,7 +61,7 @@ export async function downloadDocument(fileId, signal) {
 }
 
 // Sumário achatado com a página de cada entrada (até 3 níveis).
-export async function readOutline(doc) {
+async function readOutline(doc) {
   const outline = [];
   const walk = async (items, depth) => {
     for (const item of items || []) {

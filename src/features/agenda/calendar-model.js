@@ -4,7 +4,7 @@ export const browserZone = () => Intl.DateTimeFormat().resolvedOptions().timeZon
 export function emptyDraft(date, extra = {}) {
   return { title: '', category: 'study', date, endDate: date, start: '', end: '', timeZone: browserZone(), taskIds: [], tasks: [], reminder: -1, recurrence: 'none', count: 4, until: '', weekdays: [], ...extra };
 }
-export function wallParts(instant, timeZone) {
+function wallParts(instant, timeZone) {
   const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(instant).map(({ type, value }) => [type, value]));
   return { date: `${parts.year}-${parts.month}-${parts.day}`, time: `${parts.hour}:${parts.minute}` };
 }
@@ -33,7 +33,7 @@ export function calendarEvent(item, tasks) {
 }
 
 // Horários de 15 em 15 minutos, sempre em 24 h, independentemente do idioma do navegador.
-export const TIMES = Array.from({ length: 96 }, (_, i) => `${String(Math.floor(i / 4)).padStart(2, '0')}:${String(i % 4 * 15).padStart(2, '0')}`);
+const TIMES = Array.from({ length: 96 }, (_, i) => `${String(Math.floor(i / 4)).padStart(2, '0')}:${String(i % 4 * 15).padStart(2, '0')}`);
 export const minutesOf = (time) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
 export const timeOf = (minutes) => `${String(Math.floor(minutes / 60) % 24).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
 export function durationLabel(minutes) {

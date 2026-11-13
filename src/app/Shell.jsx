@@ -77,7 +77,7 @@ export default function Shell({ route, model, children, hideTabs = false, onComf
   }
 
   if (entry) return <div className="entry-shell">
-    <header className="entry-header"><a className="brand" href={route === 'conheca' ? '#conheca' : '#login'} aria-label="Lume — início"><Logo size={34}/><span className="brand-name">Lume</span></a><nav aria-label="Entrada no Lume">{route !== 'conheca' && <a className="text-button" href="#conheca">Conheça o Lume</a>}<button className="chip-button" onClick={onComfort}><Icon name="leaf"/>Conforto visual</button>{route === 'login' ? <button className="text-button" onClick={onRegister}>Criar conta</button> : route === 'inicio' ? <button className="text-button" onClick={onExit}>Sair</button> : <a className="text-button" href={route === 'conheca' && model.account ? '#hoje' : '#login'}>{route !== 'conheca' ? 'Voltar à entrada' : model.account ? 'Voltar ao Lume' : 'Entrar'}</a>}<button className="text-button" onClick={onHelp}>Ajuda</button></nav></header>
+    <header className="entry-header"><a className="brand" href={route === 'conheca' ? '#conheca' : '#login'} aria-label="Lume — início"><Logo size={34}/><span className="brand-name">Lume</span></a><nav aria-label="Entrada no Lume">{route !== 'conheca' && <a className="text-button" href="#conheca">Conheça o Lume</a>}<button className="chip-button" onClick={onComfort}><Icon name="tune"/>Conforto visual</button>{route === 'login' ? <button className="text-button" onClick={onRegister}>Criar conta</button> : route === 'inicio' ? <button className="text-button" onClick={onExit}>Sair</button> : <a className="text-button" href={route === 'conheca' && model.account ? '#hoje' : '#login'}>{route !== 'conheca' ? 'Voltar à entrada' : model.account ? 'Voltar ao Lume' : 'Entrar'}</a>}<button className="text-button" onClick={onHelp}>Ajuda</button></nav></header>
     <main id="main" tabIndex={-1} className="entry-main">{children}</main>
     <footer className="entry-footer"><span>Seu espaço de estudos: ritmo próprio, progresso real e amigos por perto.</span><span>Cadastro e acesso com e-mail e senha</span></footer>
   </div>;
@@ -106,7 +106,7 @@ export default function Shell({ route, model, children, hideTabs = false, onComf
             aria-label="Conforto visual"
             title="Tema, paleta de cores e tamanho do texto"
           >
-            <Icon name="leaf"/>
+            <Icon name="tune"/>
             <span>Conforto visual</span>
           </button>
           <div
@@ -144,9 +144,8 @@ export default function Shell({ route, model, children, hideTabs = false, onComf
             <div className="comfort-popover-group">
               <span className="comfort-popover-label">Tamanho do texto</span>
               <div className="comfort-segmented">
-                <button type="button" className={prefs.textSize === 'standard' ? 'is-active' : ''} aria-pressed={prefs.textSize === 'standard'} onClick={() => setPreference?.('textSize', 'standard')}>Padrão</button>
+                <button type="button" className={(prefs.textSize || 'normal') === 'normal' ? 'is-active' : ''} aria-pressed={(prefs.textSize || 'normal') === 'normal'} onClick={() => setPreference?.('textSize', 'normal')}>Padrão</button>
                 <button type="button" className={prefs.textSize === 'large' ? 'is-active' : ''} aria-pressed={prefs.textSize === 'large'} onClick={() => setPreference?.('textSize', 'large')}>Maior</button>
-                <button type="button" className={prefs.textSize === 'comfortable' ? 'is-active' : ''} aria-pressed={prefs.textSize === 'comfortable'} onClick={() => setPreference?.('textSize', 'comfortable')}>Amplo</button>
               </div>
             </div>
             <label className="comfort-switch-row">

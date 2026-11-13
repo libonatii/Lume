@@ -90,7 +90,7 @@ export default function ScheduleSession({ state, actions, confirmSave, notify, g
   return <form className="schedule-root" onSubmit={confirm}>
     <div className="schedule-top">
       <a className="back-link" href="#agenda"><Icon name="back"/>Voltar para a Agenda</a>
-      <span className="soft-badge tone-mint"><span className="soft-dot" aria-hidden="true"/>Ritmo sustentável · foco sem sobrecarga</span>
+      <span className="soft-badge tone-mint"><span className="soft-dot" aria-hidden="true"/>Ritmo constante · foco sem sobrecarga</span>
     </div>
     <header className="schedule-heading">
       <h1 className="display">Agendar sessão de estudo</h1>
@@ -152,7 +152,7 @@ export default function ScheduleSession({ state, actions, confirmSave, notify, g
           <div className="duration-pills" role="group" aria-label="Duração">
             {DURATIONS.map((value) => <button key={value} type="button" className="duration-pill" aria-pressed={duration === value} onClick={() => setDuration(value)}>{formatMinutes(value)}{value === 45 ? ' · sugerido' : ''}</button>)}
           </div>
-          <p id="schedule-end-note" className="inline-note"><Icon name="leaf"/><span>Sessões de até 1h30 com uma pausa no meio costumam ser mais confortáveis. O término segue a duração escolhida.</span></p>
+          <p id="schedule-end-note" className="inline-note"><Icon name="clock"/><span>Sessões de até 1h30 com uma pausa no meio costumam ser mais confortáveis. O término segue a duração escolhida.</span></p>
         </section>
       </div>
 

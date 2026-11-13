@@ -173,7 +173,7 @@ export default function FocusSession({ state, actions, settingsActions, open, no
       </div>
       <div className="focus-goal">
         <span><small className="metric-label">Hoje</small><strong>{formatMinutes(today.minutes)}{goal ? ` / ${formatMinutes(goal)}` : ''}</strong></span>
-        <span className="metric-icon"><Icon name="leaf"/></span>
+        <span className="metric-icon"><Icon name="clock"/></span>
       </div>
     </header>
 
@@ -232,7 +232,7 @@ export default function FocusSession({ state, actions, settingsActions, open, no
               <circle cx="140" cy="140" r={RADIUS} className="focus-dial-progress" stroke="url(#focus-gradient)" strokeDasharray={CIRCUMFERENCE} strokeDashoffset={CIRCUMFERENCE * (1 - progress)}/>
             </svg>
             <div className="focus-dial-center">
-              <span className="soft-badge tone-mint"><Icon name="leaf"/>Ciclo {completedCycles + 1}</span>
+              <span className="soft-badge tone-mint"><Icon name="timer"/>Ciclo {completedCycles + 1}</span>
               <strong className="focus-digits" role="timer" aria-label={active ? `Faltam ${digits} no ciclo` : `Ciclo de ${cycle} minutos`}>{digits}</strong>
               <small>{finished ? 'Ciclo concluído. Pausa sugerida de 5 min.' : <>Pausa sugerida de <span className="tone-mint-text">5 min</span> após este ciclo</>}</small>
             </div>
@@ -258,7 +258,7 @@ export default function FocusSession({ state, actions, settingsActions, open, no
         </section>
 
         <blockquote className="card-surface focus-quote-card">
-          <Icon name="leaf"/>
+          <Icon name="spark"/>
           <div>
             <p>“O segredo da continuidade duradoura não está na pressa de fechar etapas, mas na calma em compreendê-las.”</p>
             <small>Seu ritmo permanece preservado em cada pausa.</small>

@@ -17,9 +17,9 @@ export const STORAGE_KEY = 'lume.prototype.v1';
 // são recusadas; não existe migração automática de dados.
 export const STATE_VERSION = 3;
 export const HABITS = [
-  { id: 'starting', icon: 'sprout', title: 'Quero começar', text: 'Ainda não tenho uma rotina de estudos.' },
-  { id: 'sometimes', icon: 'leaf', title: 'Estudo de vez em quando', text: 'Começo, mas nem sempre consigo manter.' },
-  { id: 'often', icon: 'tree', title: 'Já estudo com frequência', text: 'Quero organizar e acompanhar meu progresso.' },
+  { id: 'starting', icon: 'spark', title: 'Quero começar', text: 'Ainda não tenho uma rotina de estudos.' },
+  { id: 'sometimes', icon: 'compass', title: 'Estudo de vez em quando', text: 'Começo, mas nem sempre consigo manter.' },
+  { id: 'often', icon: 'steps', title: 'Já estudo com frequência', text: 'Quero organizar e acompanhar meu progresso.' },
 ];
 export const CHALLENGES = [
   { id: 'start', title: 'Dar o primeiro passo', icon: 'spark' },
@@ -31,9 +31,9 @@ export const CHALLENGES = [
 ];
 
 export const STUDY_RHYTHMS = [
-  { id: 'starting', icon: 'sprout', label: 'Um começo possível', title: 'Quero começar', subtitle: 'Encontrar prazer nos primeiros passos', text: 'Ainda não tenho uma rotina. Quero descobrir um jeito de começar com ações pequenas e claras.', detail: 'Sugestão inicial: 2 passos por semana', weeklyGoal: 2 },
-  { id: 'sometimes', icon: 'leaf', label: 'Uma chama que continua', title: 'Estudo de vez em quando', subtitle: 'Construir uma rotina que caiba na vida', text: 'Já começo a estudar, mas nem sempre consigo manter. Quero ter um próximo passo esperando meu retorno.', detail: 'Sugestão inicial: 3 passos por semana', weeklyGoal: 3 },
-  { id: 'often', icon: 'tree', label: 'Novas possibilidades', title: 'Estudo com frequência', subtitle: 'Organizar e aprofundar meus interesses', text: 'O estudo já faz parte da minha rotina. Quero acompanhar minhas trilhas e avançar com espaço para descansar.', detail: 'Sugestão inicial: 5 passos por semana', weeklyGoal: 5 },
+  { id: 'starting', icon: 'spark', label: 'Um começo possível', title: 'Quero começar', subtitle: 'Encontrar prazer nos primeiros passos', text: 'Ainda não tenho uma rotina. Quero descobrir um jeito de começar com ações pequenas e claras.', detail: 'Sugestão inicial: 2 passos por semana', weeklyGoal: 2 },
+  { id: 'sometimes', icon: 'compass', label: 'Uma chama que continua', title: 'Estudo de vez em quando', subtitle: 'Construir uma rotina que caiba na vida', text: 'Já começo a estudar, mas nem sempre consigo manter. Quero ter um próximo passo esperando meu retorno.', detail: 'Sugestão inicial: 3 passos por semana', weeklyGoal: 3 },
+  { id: 'often', icon: 'steps', label: 'Novas possibilidades', title: 'Estudo com frequência', subtitle: 'Organizar e aprofundar meus interesses', text: 'O estudo já faz parte da minha rotina. Quero acompanhar minhas trilhas e avançar com espaço para descansar.', detail: 'Sugestão inicial: 5 passos por semana', weeklyGoal: 5 },
 ];
 
 export const STUDY_SUPPORTS = [
@@ -72,15 +72,6 @@ export function resumeLabel(type) {
   if (type === 'exercise') return 'Exercício ou tentativa atual';
   if (type === 'project') return 'Próxima entrega';
   return 'Próxima aula ou ponto de retomada';
-}
-
-export function resumePlaceholder(type) {
-  if (type === 'video') return 'Ex.: 12:30';
-  if (type === 'article') return 'Ex.: seção 3, página 12';
-  if (type === 'book') return 'Ex.: capítulo 4';
-  if (type === 'exercise') return 'Ex.: questão 8, 2ª tentativa';
-  if (type === 'project') return 'Ex.: implementar a autenticação';
-  return 'Ex.: aula 3';
 }
 
 export function parseVideoTime(value) {
@@ -144,27 +135,11 @@ export function positionLabel(type, position) {
   return value.next;
 }
 
-export const SESSION_MINUTES = [10, 20, 30, 45];
-
 // Paletas da Aparência. Os ids são internos (moderno = tela "Redesign Moderno" do Stitch,
 // variante2 = "Variante 2"); para quem usa, os nomes são só Azul e Roxo. O logo não muda.
 export const PALETTES = [
   { id: 'moderno', title: 'Azul', detail: 'Azul com destaques em âmbar · padrão', swatches: ['#090d1f', '#0f172a', '#2563eb', '#f59e0b'] },
   { id: 'variante2', title: 'Roxo', detail: 'Roxo com lavanda e destaques em âmbar', swatches: ['#0b0b18', '#13132b', '#7c3aed', '#f59e0b'] },
-];
-
-export const CONTINUITY_OBSTACLES = [
-  { id: 'choose', title: 'Escolher entre materiais' },
-  { id: 'where', title: 'Esquecer onde parei' },
-  { id: 'time', title: 'Falta de tempo' },
-  { id: 'clear', title: 'Tarefas pouco claras' },
-];
-
-export const TRACKING_PREFERENCES = [
-  { id: 'conclusions', title: 'Conclusões' },
-  { id: 'time', title: 'Tempo efetivo' },
-  { id: 'deliveries', title: 'Entregas' },
-  { id: 'collaboration', title: 'Colaboração' },
 ];
 
 // O onboarding é versionado e retomável: interromper não obriga a recomeçar.
@@ -224,6 +199,14 @@ export function skipJourney(state, now = new Date().toISOString()) {
 // Objetivos de estudo escolhidos no cadastro ou no onboarding. A tela usa os mesmos ids.
 export const STUDY_GOALS = Object.freeze(['college', 'exams', 'research', 'personal']);
 
+// Sons ambiente aceitos nas preferências; aliases antigos ('noise' e 'library')
+// são convertidos para os ids canônicos do motor de áudio ('white' e 'pink').
+export function normalizeSoundscape(value, fallback = 'off') {
+  if (value === 'noise') return 'white';
+  if (value === 'library') return 'pink';
+  return ['off', 'rain', 'pink', 'white'].includes(value) ? value : fallback;
+}
+
 export function completeJourney(state) {
   const current = normalizeOnboarding(state.onboarding);
   const rhythm = STUDY_RHYTHMS.find((item) => item.id === current.journey);
@@ -231,8 +214,7 @@ export function completeJourney(state) {
   const answers = current.answers || {};
   const dailyMinutes = Number.isInteger(answers.dailyMinutes) && answers.dailyMinutes >= 15 && answers.dailyMinutes <= 720
     ? answers.dailyMinutes : state.preferences.dailyMinutes;
-  const soundscape = ['off', 'rain', 'pink', 'white'].includes(answers.soundscape)
-    ? answers.soundscape : state.preferences.soundscape;
+  const soundscape = normalizeSoundscape(answers.soundscape, state.preferences.soundscape);
   const studyGoal = STUDY_GOALS.includes(answers.studyGoal)
     ? answers.studyGoal : state.preferences.studyGoal;
   return {
@@ -507,7 +489,7 @@ export function achievements(state) {
     { id: 'three', title: 'Passo a passo', text: 'Concluir três missões, sem prazo para chegar lá.', icon: 'steps', current: done.length, target: 3 },
     { id: 'course', title: 'Uma nova descoberta', text: 'Concluir todas as etapas de um curso.', icon: 'flag', current: completedCourses, target: 1 },
     { id: 'own', title: 'Do meu jeito', text: 'Adicionar seu próprio curso à biblioteca.', icon: 'book', current: state.courses.filter((course) => !course.example).length, target: 1 },
-    { id: 'days', title: 'No meu ritmo', text: 'Estudar em cinco dias diferentes. Não precisam ser seguidos.', icon: 'leaf', current: days, target: 5 },
+    { id: 'days', title: 'No meu ritmo', text: 'Estudar em cinco dias diferentes. Não precisam ser seguidos.', icon: 'calendar', current: days, target: 5 },
     { id: 'two', title: 'Novos horizontes', text: 'Concluir dois cursos, no seu tempo.', icon: 'mountain', current: completedCourses, target: 2 },
   ];
   return definitions.map((item) => ({ ...item, unlocked: item.current >= item.target, current: Math.min(item.current, item.target) }));
@@ -713,7 +695,7 @@ export function restoreState(raw) {
         weeklyGoal: Number.isInteger(preferences.weeklyGoal) && preferences.weeklyGoal >= 1 && preferences.weeklyGoal <= 7 ? preferences.weeklyGoal : 3,
         weeklyGoalSource: preferences.weeklyGoalSource === 'manual' ? 'manual' : 'suggested',
         dailyMinutes: Number.isInteger(preferences.dailyMinutes) && preferences.dailyMinutes >= 15 && preferences.dailyMinutes <= 720 ? preferences.dailyMinutes : 90,
-        soundscape: ['off', 'rain', 'pink', 'white'].includes(preferences.soundscape) ? preferences.soundscape : 'off',
+        soundscape: normalizeSoundscape(preferences.soundscape, 'off'),
         focusShield: preferences.focusShield === true,
         focusNotes: typeof preferences.focusNotes === 'string' ? preferences.focusNotes.slice(0, 4000) : '',
         studyGoal: STUDY_GOALS.includes(preferences.studyGoal) ? preferences.studyGoal : '',

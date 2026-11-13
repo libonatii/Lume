@@ -5,7 +5,7 @@ export async function requestNotifications() {
   if (!('Notification' in window)) return 'unsupported';
   return Notification.requestPermission();
 }
-export function showNotification(item) {
+function showNotification(item) {
   if (!('Notification' in window) || Notification.permission !== 'granted') return false;
   try {
     // O fuso só aparece quando difere do dispositivo, em forma legível.

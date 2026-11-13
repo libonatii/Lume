@@ -19,12 +19,12 @@ const OBJECTIVE_COPY = {
   college: ['book', 'Faculdade & Graduação', 'Aulas, provas e TCC', 'mint'],
   exams: ['gavel', 'Concursos Públicos', 'Editais e rendimento', 'lume'],
   research: ['science', 'Pós & Pesquisa', 'Mestrado e artigos', 'lilac'],
-  personal: ['leaf', 'Desenvolvimento Pessoal', 'Leituras e idiomas', 'reward'],
+  personal: ['compass', 'Desenvolvimento Pessoal', 'Leituras e idiomas', 'reward'],
 };
 const OBJECTIVES = STUDY_GOALS.map((id) => [id, ...OBJECTIVE_COPY[id]]);
 
 const TRUST_LOGIN = [
-  ['leaf', 'Espaço sem distrações'],
+  ['focus', 'Espaço sem distrações'],
   ['lock', 'Senha guardada só como hash'],
   ['users', 'Amigos e ranking opcionais'],
 ];
@@ -32,7 +32,7 @@ const TRUST_LOGIN = [
 const TRUST_REGISTER = [
   ['shield', '100% gratuito para começar'],
   ['lock', 'Dados privados e protegidos'],
-  ['leaf', 'Pausas sem punição'],
+  ['pause', 'Pausas sem punição'],
 ];
 
 export function Login({ model, mode, setMode, go, notify }) {

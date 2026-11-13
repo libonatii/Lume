@@ -180,7 +180,7 @@ export function Preferences({ state, actions, libraryActions, notify, onPersonal
       </section>
 
         <section className="card-surface settings-panel">
-          <div className="panel-title"><span className="pace-icon"><Icon name="sprout"/></span><div><h2 className="title">Seu momento</h2><p className="muted-text">{studyRhythm(state).title}</p></div></div>
+          <div className="panel-title"><span className="pace-icon"><Icon name="compass"/></span><div><h2 className="title">Seu momento</h2><p className="muted-text">{studyRhythm(state).title}</p></div></div>
           <Button secondary onClick={onPersonalize}>Revisar perguntas iniciais<Icon name="arrow"/></Button>
           <label className="setting-row">
             <span><strong>Plano semanal</strong><span>Passos sugeridos, sem obrigação.</span></span>

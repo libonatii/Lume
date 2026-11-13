@@ -1,4 +1,4 @@
-// Política de XP v1 — compartilhada pelo navegador e pelo servidor.
+// Política de XP v2 — compartilhada pelo navegador e pelo servidor.
 //
 // O navegador calcula apenas candidatos para exibição e para pedir a concessão.
 // Quem decide, grava e impede repetição é o servidor (xp.js). O saldo legado do
@@ -60,10 +60,6 @@ export function levelProgress(value) {
     next: LEVEL_XP,
     total,
   };
-}
-
-export function xpForKind(kind) {
-  return XP_VALUES[kind] ?? 0;
 }
 
 export function isImportedCourse(course) {
@@ -222,14 +218,4 @@ export function periodDays(period, timeZone, now = new Date()) {
     startUtc: zonedDayStartUtc(dayString(start), timeZone),
     endUtc: zonedDayStartUtc(dayString(end), timeZone),
   };
-}
-
-export function periodLabel(period, timeZone) {
-  const range = periodDays(period, timeZone);
-  const format = (day) => new Intl.DateTimeFormat('pt-BR', {
-    timeZone: 'UTC', day: '2-digit', month: 'short',
-  }).format(new Date(`${day}T12:00:00Z`));
-  const lastDay = new Date(`${range.endDay}T12:00:00Z`);
-  lastDay.setUTCDate(lastDay.getUTCDate() - 1);
-  return `${format(range.startDay)} – ${format(dayString(lastDay))}`;
 }

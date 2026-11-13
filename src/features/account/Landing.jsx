@@ -18,7 +18,7 @@ const CONTRAST = {
     ['list', 'Atraso em vermelho', 'Aulas acumuladas viram uma pilha que paralisa em vez de orientar.'],
   ],
   lume: [
-    ['leaf', 'Pausas sem punição', 'Ficar sem estudar não tira nível, XP nem conquistas. A próxima ação continua esperando.'],
+    ['pause', 'Pausas sem punição', 'Ficar sem estudar não tira nível, XP nem conquistas. A próxima ação continua esperando.'],
     ['clock', 'Lembretes que você marca', 'Só existem os lembretes dos compromissos que você criou, na antecedência que escolheu.'],
     ['steps', 'Um próximo passo claro', 'A tela Início mostra a próxima aula ou página, com o tempo a reservar e o motivo da sugestão.'],
   ],
@@ -70,7 +70,7 @@ export default function Landing({ go, setAuthMode, signedIn }) {
       <section className="landing-hero" aria-labelledby="landing-title">
         <span className="soft-badge tone-mint"><Icon name="spark"/>A primeira plataforma de estudos sem sobrecarga</span>
         <h1 id="landing-title" className="landing-title">Estude com profundidade, <span>sem a culpa</span> de não dar conta de tudo.</h1>
-        <p className="lead">O Lume é o espaço sereno onde você cultiva o hábito de aprender no próprio ritmo — com cronômetro flexível, biblioteca com PDFs e respeito ao seu descanso.</p>
+        <p className="lead">O Lume é o espaço sereno onde você constrói o hábito de aprender no próprio ritmo — com cronômetro flexível, biblioteca com PDFs e respeito ao seu descanso.</p>
         <div className="landing-actions">
           <button type="button" className="stitch-mint-cta large" onClick={register}>
             <span>{signedIn ? 'Ir para o Início' : 'Começar Gratuitamente'}</span>
@@ -95,7 +95,7 @@ export default function Landing({ go, setAuthMode, signedIn }) {
         <div className="landing-preview-grid">
           <div className="landing-preview-timer">
             <div className="landing-preview-head">
-              <strong><Icon name="leaf"/>Direito Constitucional · Módulo 3</strong>
+              <strong><Icon name="book"/>Direito Constitucional · Módulo 3</strong>
               <span className="soft-badge">Ciclo suave</span>
             </div>
             <div className="landing-dial">
@@ -196,7 +196,7 @@ export default function Landing({ go, setAuthMode, signedIn }) {
       </section>
 
       <section className="landing-final card-surface" aria-labelledby="landing-final-title">
-        <span className="pillar-icon tone-mint"><Icon name="sprout"/></span>
+        <span className="pillar-icon tone-mint"><Icon name="spark"/></span>
         <h2 id="landing-final-title" className="headline">Pronto para encontrar paz no seu momento de estudo?</h2>
         <p className="muted-text">Crie a conta com e-mail e senha, ou explore a prévia antes. Sem cobranças punitivas: seu lugar fica guardado.</p>
         <div className="landing-actions">

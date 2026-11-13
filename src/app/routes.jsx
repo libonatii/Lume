@@ -47,7 +47,7 @@ export const PUBLIC_ROUTES = new Set(['recuperar', 'redefinir', 'conheca']);
 
 // Endereços antigos continuam válidos: Missões virou o Roteiro dentro do Plano.
 // Endereços antigos continuam válidos: Missões e Roteiro viraram o Plano; Meu caminho, Conquistas.
-export const ALIASES = { missoes: 'plano', roteiro: 'plano', historico: 'conquistas' };
+const ALIASES = { missoes: 'plano', roteiro: 'plano', historico: 'conquistas' };
 
 // Enquanto a sessão é verificada, o formulário não aparece: evita a impressão de estar deslogada.
 function SessionCheck() {
@@ -57,7 +57,7 @@ function SessionCheck() {
 // ctx: { model, state, open, go, notify, params, hash, authMode, setAuthMode, checkingSession }
 // `loading`: forma do esqueleto ('cards' ou 'panel') enquanto a biblioteca da conta
 // carrega; sem ele, a tela se vira sozinha (ex.: Agenda, telas sociais).
-export const ROUTES = [
+const ROUTES = [
   { id: 'login', title: 'Bem-vindo', render: (ctx) => (ctx.checkingSession ? <SessionCheck/> : <Login model={ctx.model} mode={ctx.authMode} setMode={ctx.setAuthMode} go={ctx.go} notify={ctx.notify}/>) },
   { id: 'inicio', title: 'Seu ritmo', render: (ctx) => <Onboarding key={ctx.model.account?.id || 'local'} state={ctx.state} actions={ctx.model.accountActions} libraryActions={ctx.model.libraryActions} open={ctx.open} go={ctx.go} notify={ctx.notify} account={ctx.model.account} onExit={ctx.onExit}/> },
   { id: 'recuperar', title: 'Recuperar acesso', render: (ctx) => <Recovery key="recuperar" reset={false} notify={ctx.notify} go={ctx.go}/> },
@@ -71,7 +71,7 @@ export const ROUTES = [
   { id: 'biblioteca', title: 'Biblioteca', loading: 'cards', section: 'biblioteca', tab: 'Materiais', hideTabs: () => true, render: (ctx) => <Library state={ctx.state} open={ctx.open} go={ctx.go} actions={ctx.model.libraryActions}/> },
   { id: 'disciplinas', title: 'Disciplinas', loading: 'cards', section: 'biblioteca', tab: 'Disciplinas', render: (ctx) => <Subjects key={ctx.params.get('id') || 'todas'} state={ctx.state} actions={ctx.model.libraryActions} open={ctx.open} go={ctx.go} notify={ctx.notify} id={ctx.params.get('id') || ''}/> },
 
-  { id: 'plano', title: 'Plano de Estudos', loading: 'panel', section: 'plano', tab: 'Agenda', tabIcon: 'calendar', hideTabs: () => true, render: (ctx) => <Schedule go={ctx.go} state={ctx.state} actions={ctx.model.planActions} agendaActions={ctx.model.agendaActions} progressActions={ctx.model.progressActions} open={ctx.open} go={ctx.go} notify={ctx.notify}/> },
+  { id: 'plano', title: 'Plano de Estudos', loading: 'panel', section: 'plano', tab: 'Agenda', tabIcon: 'calendar', hideTabs: () => true, render: (ctx) => <Schedule go={ctx.go} state={ctx.state} actions={ctx.model.planActions} agendaActions={ctx.model.agendaActions} progressActions={ctx.model.progressActions} open={ctx.open} notify={ctx.notify}/> },
   { id: 'agenda', title: 'Calendário', section: 'plano', tab: 'Calendário', tabIcon: 'layers', hideTabs: () => true, render: (ctx) => <Agenda key={ctx.hash} state={ctx.state} actions={ctx.model.agendaActions} taskActions={ctx.model.planActions} confirmSave={ctx.model.confirmSave} retrySave={ctx.model.retrySave} saveError={ctx.model.saveError} syncStatus={ctx.model.syncStatus} params={ctx.params} notify={ctx.notify}/> },
   { id: 'agendar', title: 'Agendar sessão', loading: 'panel', section: 'plano', hideTabs: () => true, render: (ctx) => <ScheduleSession state={ctx.state} actions={ctx.model.agendaActions} open={ctx.open} confirmSave={ctx.model.confirmSave} notify={ctx.notify} go={ctx.go}/> },
   { id: 'tarefas', title: 'Tarefas', loading: 'panel', section: 'plano', tab: 'Tarefas', tabIcon: 'check', hideTabs: () => true, render: (ctx) => <Tasks state={ctx.state} actions={ctx.model.planActions} notify={ctx.notify} onSchedule={(task) => ctx.go(`agenda?tarefa=${encodeURIComponent(task.id)}`)}/> },

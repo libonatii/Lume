@@ -12,7 +12,7 @@ function ComfortDialog({ state, settingsActions, close }) {
   const setPalette = (palette) => settingsActions.setPreference('palette', palette);
   const setTextSize = (size) => settingsActions.setPreference('textSize', size);
   return <div className="dialog-content">
-    <span className="dialog-emblem tone-mint"><Icon name="leaf"/></span>
+    <span className="dialog-emblem tone-mint"><Icon name="tune"/></span>
     <h2 id="dialog-title" className="title">Conforto visual</h2>
     <label className="setting-row">
       <span><strong>Tema</strong><span>Escolha o ambiente mais confortável.</span></span>
@@ -27,7 +27,7 @@ function ComfortDialog({ state, settingsActions, close }) {
         {PALETTES.map((palette) => (
           <label key={palette.id} className={`comfort-pill ${state.preferences.palette === palette.id ? 'active' : ''}`}>
             <input type="radio" name="dialog-palette" value={palette.id} checked={state.preferences.palette === palette.id} onChange={() => setPalette(palette.id)}/>
-            <span>{palette.name}</span>
+            <span>{palette.title}</span>
           </label>
         ))}
       </div>
@@ -55,7 +55,7 @@ function NoticeDialog({ icon, tone = '', title, children, close }) {
 const SIMPLE = {
   comfort: (props) => <ComfortDialog {...props}/>,
   help: ({ close }) => <NoticeDialog icon="help" title="Um começo simples" close={close}>Entre na conta ou explore a prévia. Escolha seu ritmo, adicione materiais e retome seus estudos pela biblioteca.</NoticeDialog>,
-  break: ({ close }) => <NoticeDialog icon="leaf" tone="tone-mint" title="Pausa registrada." close={close}>O progresso está salvo e nenhuma etapa foi marcada como concluída. Ao voltar, retome pela próxima ação no Início.</NoticeDialog>,
+  break: ({ close }) => <NoticeDialog icon="pause" tone="tone-mint" title="Pausa registrada." close={close}>O progresso está salvo e nenhuma etapa foi marcada como concluída. Ao voltar, retome pela próxima ação no Início.</NoticeDialog>,
 };
 
 export function ModalContent({ modal, state, settingsActions, libraryActions, progressActions, open, close, notify, go, account }) {

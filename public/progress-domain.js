@@ -1,4 +1,4 @@
-// Registro único de progresso (estado v2).
+// Registro único de progresso (estado v3).
 //
 // Até a versão 1 o progresso vivia em três listas que precisavam concordar:
 // `completed` (ids), `history` (materiais criados à mão, com o saldo legado de
@@ -115,15 +115,6 @@ export function unitOrigin(state, unitId) {
     if (active.some((event) => event.origin === origin)) return origin;
   }
   return null;
-}
-
-// Momento da conclusão que pode valer XP: o registro ativo mais recente que não
-// é histórico. Sem data, não há como comparar com o marco da política.
-export function completionTime(state, unitId) {
-  const events = unitEvents(state, unitId)
-    .filter((event) => event.type === 'completion' && !event.revertedAt && !event.historical && event.at);
-  const at = Date.parse(events.at(-1)?.at);
-  return Number.isFinite(at) ? at : null;
 }
 
 export function legacyProgressXp(state) {

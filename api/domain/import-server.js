@@ -231,14 +231,6 @@ function listItems(html) {
   return items;
 }
 
-function slugLevel(text) {
-  const normalized = text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-  if (/^(disciplina|area|mat[eé]ria|eixo|tema)\b/.test(normalized)) return 'discipline';
-  if (/^(modulo|unidade|capitulo|parte|secao)\b/.test(normalized)) return 'module';
-  if (/^(aula|video|episodio|exercicio|projeto|simulado|questao)\b/.test(normalized)) return 'lesson';
-  return null;
-}
-
 // Uma página de vendas não é uma grade. Só aceitamos itens com cara de aula,
 // ou listas dentro de um bloco explicitamente de conteúdo/currículo. Quando não
 // há evidência suficiente, devolvemos vazio e a interface oferece colar o texto.

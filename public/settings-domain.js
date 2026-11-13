@@ -1,7 +1,12 @@
-import { normalizeProfileCard } from './domain.js';
+import { normalizeProfileCard, normalizeSoundscape } from './domain.js';
 
 export function setPreference(state, key, value) {
-  return { ...state, preferences: { ...state.preferences, [key]: value, ...(key === 'weeklyGoal' ? { weeklyGoalSource: 'manual' } : {}) } };
+  const normalized = key === 'soundscape'
+    ? normalizeSoundscape(value, state.preferences?.soundscape || 'off')
+    : key === 'textSize'
+      ? (value === 'large' ? 'large' : 'normal')
+      : value;
+  return { ...state, preferences: { ...state.preferences, [key]: normalized, ...(key === 'weeklyGoal' ? { weeklyGoalSource: 'manual' } : {}) } };
 }
 
 export function setSharingPreference(state, key, value) {

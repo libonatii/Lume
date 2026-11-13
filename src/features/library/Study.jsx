@@ -70,7 +70,7 @@ export function Home({ state, open, go, planActions, notify, account }) {
             Ritmo: {plan.title}
           </button>
           <span className="soft-badge tone-lume">
-            <Icon name="leaf"/>
+            <Icon name="clock"/>
             {rhythm.activeDays > 0 ? `${rhythm.activeDays} de 7 dias com estudo` : 'Sem cobrança diária'}
           </span>
         </div>
@@ -88,7 +88,7 @@ export function Home({ state, open, go, planActions, notify, account }) {
         </p>
       </div>
       <div className="today-welcome-actions">
-        <Button onClick={() => go('foco')}><Icon name="leaf"/>Iniciar sessão de foco</Button>
+        <Button onClick={() => go('foco')}><Icon name="timer"/>Iniciar sessão de foco</Button>
         <Button secondary onClick={() => go('agendar')}><Icon name="calendar-plus"/>Agendar sessão</Button>
       </div>
     </section>
@@ -122,7 +122,7 @@ export function Home({ state, open, go, planActions, notify, account }) {
         note="Contam só conclusões confirmadas nos últimos 7 dias"
       />
       <Metric
-        label="Ritmo sustentável"
+        label="Ritmo constante"
         icon="trend"
         tone="mint"
         value={rhythm.change === null ? formatMinutes(rhythm.current) : `${rhythm.change > 0 ? '+' : ''}${rhythm.change}%`}
@@ -220,9 +220,9 @@ export function Home({ state, open, go, planActions, notify, account }) {
         <div className="action-row">
           <Button onClick={() => go('foco')}><Icon name="play"/>Iniciar Estudo</Button>
           {prepare
-            ? <Button secondary onClick={() => open({ type: 'session', id: action.courseId, preparation: true })}><Icon name="leaf"/>Preparar o material</Button>
+            ? <Button secondary onClick={() => open({ type: 'session', id: action.courseId, preparation: true })}><Icon name="book"/>Preparar o material</Button>
             : <Button secondary onClick={() => open({ type: 'session', id: action.courseId, stepId: action.lessonId })}><Icon name="check"/>Registrar conclusão</Button>}
-          {!action.imported && <Button secondary onClick={() => open({ type: 'session', id: action.courseId, preparation: !prepare })}><Icon name="sprout"/>{prepare ? 'Ir direto à etapa' : 'Dividir em um passo menor'}</Button>}
+          {!action.imported && <Button secondary onClick={() => open({ type: 'session', id: action.courseId, preparation: !prepare })}><Icon name="steps"/>{prepare ? 'Ir direto à etapa' : 'Dividir em um passo menor'}</Button>}
           <Button ghost onClick={() => open({ type: 'course', id: action.courseId })}><Icon name="external"/>Abrir Material na Biblioteca</Button>
         </div>
         <p className="quiet-note">Reserve {action.minutes} minutos para avançar ({action.durationKnown ? 'duração da fonte' : 'estimativa'}). {!action.imported && 'Preparar ou dividir organiza o caminho; o XP vem ao concluir a etapa.'}</p>
@@ -264,7 +264,7 @@ export function Home({ state, open, go, planActions, notify, account }) {
         <Milestones state={state}/>
 
         <div className="today-calm-card card-surface">
-          <span className="card-icon tone-mint"><Icon name="leaf"/></span>
+          <span className="card-icon tone-mint"><Icon name="pause"/></span>
           <div>
             <strong>Recomendação do santuário</strong>
             <p className="muted-text">Pausar faz parte do caminho: o Lume não pune dias sem estudo e preserva seu lugar em cada material.</p>
@@ -290,7 +290,7 @@ function Metric({ label, icon, tone, value, unit, percent = null, note }) {
 }
 
 // Barras dos últimos sete dias: ritmo declarado, sem meta punitiva.
-export function WeeklyRhythm({ rhythm }) {
+function WeeklyRhythm({ rhythm }) {
   const max = Math.max(60, ...rhythm.days.map((day) => day.minutes));
   const last = rhythm.days.length - 1;
   return <section className="card-surface weekly-rhythm" aria-labelledby="weekly-rhythm-title">
@@ -311,7 +311,7 @@ function weekdayShort(date) {
 }
 
 // Próximas provas, entregas e compromissos da Agenda.
-export function Milestones({ state }) {
+function Milestones({ state }) {
   const today = localDay();
   const upcoming = (state.agenda || [])
     .filter((item) => !item.cancelled && !item.done && item.date >= today)
@@ -396,7 +396,7 @@ function CourseMenu({ course, open }) {
   </div>;
 }
 
-export function CourseCard({ course, state, open, compact = false }) {
+function CourseCard({ course, state, open, compact = false }) {
   const progress = courseProgress(state, course);
   const status = courseStatus(state, course);
   const imported = isImportedCourse(course);
@@ -606,7 +606,7 @@ export function Library({ state, open, actions }) {
       </section>}
 
       {!courses.length && <Empty title="Nenhum material neste filtro." onAdd={() => open({ type: 'new' })}>Troque o filtro ou importe um curso por link.</Empty>}
-      <p className="today-quote"><Icon name="leaf"/><span>Feito com cuidado para quem aprende no próprio compasso.</span></p>
+      <p className="today-quote"><Icon name="compass"/><span>Feito com cuidado para quem aprende no próprio compasso.</span></p>
     </>}
   </div>;
 }

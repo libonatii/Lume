@@ -105,8 +105,8 @@ export function Schedule({ state, actions, open, go, notify }) {
         <p className="lead">{!schedule.courses.length
           ? 'Adicione um curso à biblioteca para montar sua rota de estudos.'
           : hasAvailability
-            ? <>Sua rota de aprendizado com ritmo sustentável: <strong>{formatMinutes(schedule.weeklyMinutes)} por semana</strong>{lastFinish && !schedule.unscheduled ? <>, conclusão prevista em <strong>{shortDate(lastFinish)}</strong></> : ''}.</>
-            : 'Sua rota de aprendizado com ritmo sustentável e equilíbrio. Comece dizendo quanto tempo você tem.'}</p>
+            ? <>Sua rota de aprendizado no seu ritmo: <strong>{formatMinutes(schedule.weeklyMinutes)} por semana</strong>{lastFinish && !schedule.unscheduled ? <>, conclusão prevista em <strong>{shortDate(lastFinish)}</strong></> : ''}.</>
+            : 'Sua rota de aprendizado com equilíbrio e continuidade. Comece dizendo quanto tempo você tem.'}</p>
       </div>
       <div className="page-heading-actions">
         <button type="button" className="button secondary" onClick={() => setShowConfig((value) => !value)} aria-expanded={showConfig || !hasAvailability} aria-controls="plan-settings"><Icon name="settings"/>Disponibilidade e prazos</button>
@@ -292,7 +292,7 @@ function WeekRhythm({ week, today, studied, dayMap, plan }) {
   const activeDays = values.filter((value) => value.date <= today && value.minutes > 0).length;
   const dailyGoal = goal ? Math.round(goal / Math.max(1, values.filter((value) => !value.rest).length)) : 0;
   return <section className="card-surface plan-rhythm" aria-labelledby="plan-rhythm-title">
-    <div className="plan-card-head"><h2 id="plan-rhythm-title" className="title"><Icon name="heart"/>Ritmo da Semana</h2><span className="soft-badge tone-mint">Sustentável</span></div>
+    <div className="plan-card-head"><h2 id="plan-rhythm-title" className="title"><Icon name="heart"/>Ritmo da Semana</h2><span className="soft-badge tone-mint">Equilibrado</span></div>
     <div className="plan-meter">
       <div className="plan-meter-head"><strong>{formatHours(done)}<span> / {goal ? `${formatHours(goal)} meta flexível` : 'sem meta definida'}</span></strong>{goal > 0 && <span className="tone-mint-text">{percent}%</span>}</div>
       <Progress value={percent} max={100} tone="mint" label="Tempo estudado na semana"/>

@@ -50,8 +50,9 @@ export function createSoundscape() {
   }
 
   return {
-    play(kind) {
+    play(rawKind) {
       stop();
+      const kind = rawKind === 'library' ? 'pink' : rawKind === 'noise' ? 'white' : rawKind;
       if (kind === 'off') return;
       const Context = window.AudioContext || window.webkitAudioContext;
       if (!Context) return;
