@@ -69,11 +69,6 @@ export function Achievements({ state, account, xp }) {
           </motion.div>;
         })}
       </div>
-      {validated && <details className="legacy-details">
-        <summary>Selos do protótipo (legado)</summary>
-        <p className="quiet-note">Estes seis selos contam ações do modelo antigo e não entram no ranking nem no nível novo. Eles permanecem para não apagar a memória do que já existia.</p>
-        <ul className="legacy-seal-list">{legacy.map((item) => <li key={item.id} className={item.unlocked ? 'is-unlocked' : ''}><Icon name={item.icon}/><span>{item.title}</span><strong>{item.current}/{item.target}</strong></li>)}</ul>
-      </details>}
     </> : <Empty icon="history" title="Um caminho sem pontuação.">Você ocultou os indicadores. Seu histórico continua guardado.</Empty>}
   </div>;
 }

@@ -106,5 +106,4 @@ test('tarefa vinculada conclui a aula uma vez; subtarefa vale 10 XP uma vez e re
   expect(await xp()).toBe(110);
   await page.goto('/#perfil');
   await expect(page.getByRole('region', { name: 'Cargos de estudo' })).toContainText('Iniciante');
-  await expect(page.getByRole('region', { name: 'Cargos de estudo' })).toContainText('Todas as funcionalidades');
 });
