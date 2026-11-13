@@ -49,7 +49,7 @@ export const PUBLIC_ROUTES = new Set(['recuperar', 'redefinir', 'conheca']);
 const ALIASES = { missoes: 'plano', roteiro: 'plano', historico: 'conquistas' };
 
 // Enquanto a sessão é verificada, o formulário não aparece: evita a impressão de estar deslogada.
-function SessionCheck() {
+export function SessionCheck() {
   return <div className="boot-stage">
     <span className="boot-brand" aria-hidden="true">Lume</span>
     <section className="boot-card" role="status" aria-busy="true">
@@ -64,7 +64,7 @@ function SessionCheck() {
 // `loading`: forma do esqueleto ('cards' ou 'panel') enquanto a biblioteca da conta
 // carrega; sem ele, a tela se vira sozinha (ex.: Agenda, telas sociais).
 const ROUTES = [
-  { id: 'login', title: 'Bem-vindo', render: (ctx) => (ctx.checkingSession ? <SessionCheck/> : <Login model={ctx.model} mode={ctx.authMode} setMode={ctx.setAuthMode} go={ctx.go} notify={ctx.notify}/>) },
+  { id: 'login', title: 'Bem-vindo', render: (ctx) => <Login model={ctx.model} mode={ctx.authMode} setMode={ctx.setAuthMode} go={ctx.go} notify={ctx.notify}/> },
   { id: 'inicio', title: 'Seu ritmo', render: (ctx) => <Onboarding key={ctx.model.account?.id || 'local'} state={ctx.state} actions={ctx.model.accountActions} libraryActions={ctx.model.libraryActions} open={ctx.open} go={ctx.go} notify={ctx.notify} account={ctx.model.account} onExit={ctx.onExit}/> },
   { id: 'recuperar', title: 'Recuperar acesso', render: (ctx) => <Recovery key="recuperar" reset={false} notify={ctx.notify} go={ctx.go}/> },
   { id: 'conheca', title: 'Conheça o Lume', render: (ctx) => <Landing go={ctx.go} setAuthMode={ctx.setAuthMode} signedIn={Boolean(ctx.model.account)}/> },
