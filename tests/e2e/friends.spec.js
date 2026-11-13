@@ -59,7 +59,7 @@ test('convite cria amizade entre duas contas sem compartilhar progresso', async 
 
   // Quem convidou vê a amizade depois de recarregar.
   await page.reload();
-  await expect(page.getByText('Bia do teste')).toBeVisible();
+  await expect(page.locator('#main').getByText('Bia do teste', { exact: true })).toBeVisible();
 
   // Convite mostra quantas pessoas entraram.
   await expect(page.getByText('1 pessoa entrou', { exact: true })).toBeVisible();
