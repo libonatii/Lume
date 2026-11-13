@@ -126,7 +126,6 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
 
   const nothingShared = !studying.length && !queue.length && !completed.length;
   const showcaseCourses = [...studying, ...completed].slice(0, 6);
-  const unlockedBadges = badges.filter((item) => item.unlocked);
   const rhythmLabel = studyRhythm(state).title;
   const bioLines = formatBioLines(customization.bio, rhythmLabel);
 
@@ -390,11 +389,6 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
                 <Icon name={badge.icon}/>
               </div>)}
             </div>
-            <p className="quiet-note">
-              {unlockedBadges.length > 0
-                ? `Última desbloqueada: ${unlockedBadges[unlockedBadges.length - 1].title}`
-                : 'Complete passos de estudo para desbloquear insígnias.'}
-            </p>
             {isSelf && <button type="button" className="text-button accent" onClick={() => go('conquistas')}>
               Ver vitrine de conquistas<Icon name="arrow"/>
             </button>}
