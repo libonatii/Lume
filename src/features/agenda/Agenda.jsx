@@ -203,7 +203,7 @@ export default function Agenda({ state, actions, taskActions, confirmSave, retry
         {!!late.length && <details><summary>Pendências anteriores ({late.length})</summary>{late.map((item) => <button key={item.id} className="agenda-planner-item" onClick={() => setPanel({ id: item.id })}>{item.title} · {item.date}</button>)}</details>}
       </aside>}
     </div>
-    {panel?.draft && <AppointmentEditor key={panel.key || 'initial'} initial={panel.draft} initialExpected={panel.expected} anchor={panel.anchor} state={state} actions={actions} confirmSave={confirmSave} retrySave={retrySave} saveError={saveError} onSaved={saved} onExpand={(draft) => setPanel({ draft: { ...draft, expanded: true }, key: crypto.randomUUID() })} onClose={() => setPanel(null)}/>}
+    {panel?.draft && <AppointmentEditor key={panel.key || 'initial'} initial={panel.draft} initialExpected={panel.expected} anchor={panel.anchor} state={state} actions={actions} confirmSave={confirmSave} retrySave={retrySave} saveError={saveError} onSaved={saved} onExpand={(draft) => setPanel({ draft, key: crypto.randomUUID() })} onClose={() => setPanel(null)}/>}
     {selected && <AppointmentDetails key={selected.id} item={selected} state={state} actions={actions} taskActions={taskActions} confirmSave={confirmSave} retrySave={retrySave} saveError={saveError} edit={edit} onRemove={remove} onClose={() => setPanel(null)}/>}
   </div>;
 }

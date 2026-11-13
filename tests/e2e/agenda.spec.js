@@ -35,7 +35,10 @@ test('calendário mensal, criação, checklist editável e sobreposição', asyn
   await page.getByRole('button', { name: 'Novo compromisso', exact: true }).click();
   await expect(page.getByLabel('Título do compromisso')).toBeFocused();
   await expect(page.getByLabel('Fuso do compromisso')).not.toBeVisible();
-  await expect(page.getByLabel('Repetição', { exact: true })).not.toBeVisible();
+  // Tipo, lembrete e repetição ficam à vista; só o fuso fica recolhido.
+  await expect(page.getByRole('radio', { name: 'Estudo', exact: true })).toBeChecked();
+  await expect(page.getByLabel('Lembrete', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Repetição', { exact: true })).toBeVisible();
   await page.getByLabel('Título do compromisso').fill('Revisão constitucional');
   await hours(page, '09:00', '10:00');
   await page.getByRole('button', { name: '+ Adicionar checklist', exact: true }).click();
@@ -63,8 +66,7 @@ test('calendário mensal, criação, checklist editável e sobreposição', asyn
   await page.getByLabel('Título do compromisso').fill('Consulta');
   await hours(page, '09:30', '10:00');
   await expect(dialog(page)).toContainText('Sobreposição');
-  await page.getByText('Mais opções', { exact: true }).click();
-  await page.getByRole('combobox', { name: 'Tipo', exact: true }).selectOption('personal');
+  await page.getByRole('radio', { name: 'Pessoal', exact: true }).check();
   await saveForm(page);
   await expect(page.getByLabel('Calendário: mês')).toContainText('Consulta');
   await page.screenshot({ path: testInfo.outputPath('agenda-month.png'), fullPage: true });
@@ -112,7 +114,6 @@ test('recorrência recebe checklist novo e edição futura preserva a ocorrênci
   await page.getByLabel('Título do compromisso').fill('Revisão diária');
   await page.getByRole('button', { name: '+ Adicionar checklist', exact: true }).click();
   await page.getByLabel('Item 1', { exact: true }).fill('Revisar notas');
-  await page.getByText('Mais opções', { exact: true }).click();
   await page.getByRole('combobox', { name: 'Repetição', exact: true }).selectOption('daily');
   await page.getByLabel('Ocorrências').fill('3');
   const saved = await saveForm(page);
@@ -294,8 +295,7 @@ test('criação, filtro por tipo e exclusão com desfazer', async ({ page }) => 
   await page.getByRole('button', { name: 'Novo compromisso', exact: true }).click();
   await page.getByLabel('Título do compromisso').fill('Prova de direito');
   await hours(page, '10:00', '10:30');
-  await page.getByText('Mais opções', { exact: true }).click();
-  await page.getByRole('combobox', { name: 'Tipo', exact: true }).selectOption('exam');
+  await page.getByRole('radio', { name: 'Prova', exact: true }).check();
   const saved = await saveForm(page);
   expect(saved.agenda[0]).toEqual(expect.objectContaining({ title: 'Prova de direito', category: 'exam', start: '10:00', end: '10:30' }));
   await expect(page.getByText('Compromisso agendado.')).toBeVisible();

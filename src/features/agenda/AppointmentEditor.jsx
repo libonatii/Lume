@@ -35,6 +35,17 @@ function TimeFields({ draft, setDraft }) {
   </div>;
 }
 
+// Tipo à vista, como botões: define cor, ícone e se o compromisso é prova ou entrega.
+function TypePicker({ value, onChange }) {
+  return <fieldset className="agenda-type-picker">
+    <legend>Tipo</legend>
+    <div className="agenda-type-options">{Object.entries(CATEGORIES).map(([key, label]) => <label key={key} className={`agenda-type-option cat-${key}`}>
+      <input type="radio" name="agenda-category" value={key} checked={value === key} onChange={() => onChange(key)}/>
+      <span className="agenda-category-dot" aria-hidden="true"/>{label}
+    </label>)}</div>
+  </fieldset>;
+}
+
 function RecurrenceFields({ draft, field }) {
   if (draft.recurrence === 'none') return null;
   const days = draft.weekdays.length ? draft.weekdays : [weekdayOf(draft.date)];
@@ -105,6 +116,7 @@ export default function AppointmentEditor({ initial, initialExpected = null, sta
     <form className="agenda-editor-form" onSubmit={save}>
       <fieldset disabled={Boolean(expected)} className="agenda-form-fields">
         <label className="field agenda-title-field">Título do compromisso<input data-autofocus required placeholder="O que você vai fazer?" maxLength={180} value={draft.title} onChange={(e) => field('title', e.target.value)}/></label>
+        <TypePicker value={draft.category} onChange={(value) => field('category', value)}/>
         <p className="agenda-when">{when}</p>
         <label className="agenda-checkbox"><input type="checkbox" checked={!draft.start} onChange={(e) => toggleTime(e.target.checked)}/>Sem horário</label>
         {!!draft.start && <TimeFields draft={draft} setDraft={setDraft}/>}
@@ -112,7 +124,7 @@ export default function AppointmentEditor({ initial, initialExpected = null, sta
         {conflict}
       </fieldset>
       {alerts}
-      <footer className="agenda-panel-footer"><Button secondary type="button" disabled={saving || Boolean(expected)} onClick={() => onExpand({ ...draft, taskIds: tasks.filter((task) => task.id).map((task) => task.id), tasks: tasks.filter((task) => !task.id) })}>Mais opções</Button><Button type="submit" disabled={saving}>{saving ? 'Salvando…' : 'Salvar compromisso'}</Button></footer>
+      <footer className="agenda-panel-footer"><Button secondary type="button" disabled={saving || Boolean(expected)} onClick={() => onExpand({ ...draft, taskIds: tasks.filter((task) => task.id).map((task) => task.id), tasks: tasks.filter((task) => !task.id) })}>Mais detalhes</Button><Button type="submit" disabled={saving}>{saving ? 'Salvando…' : 'Salvar compromisso'}</Button></footer>
     </form>
   </AgendaPanel>;
 
@@ -120,13 +132,27 @@ export default function AppointmentEditor({ initial, initialExpected = null, sta
     <form className="agenda-editor-form" onSubmit={save}>
       <fieldset disabled={Boolean(expected)} className="agenda-form-fields">
         <label className="field agenda-title-field">Título do compromisso<input data-autofocus required placeholder="O que você vai fazer?" maxLength={180} value={draft.title} onChange={(e) => field('title', e.target.value)}/></label>
-        <label className="field">Data<input type="date" required value={draft.date} onChange={(e) => setDraft((old) => ({ ...old, date: e.target.value, endDate: old.endDate === old.date ? e.target.value : old.endDate }))}/></label>
-        <label className="agenda-checkbox"><input type="checkbox" checked={!draft.start} onChange={(e) => toggleTime(e.target.checked)}/>Sem horário</label>
-        {!!draft.start && <TimeFields draft={draft} setDraft={setDraft}/>}
-        <small className="agenda-zone">Horários em {zoneLabel(draft.timeZone)}{draft.endDate !== draft.date ? ` · termina em ${draft.endDate}` : ''}</small>
-        {conflict}
-        <fieldset className="agenda-form-fields" disabled={scope === 'future'}>
-          {tasks.length > 0 && <div className="agenda-checklist-editor"><h3 className="title">Checklist</h3>{tasks.map((task, index) => <TaskFields key={task.id || task.key} task={task} courses={state.courses} index={index} onChange={(value) => setTasks((old) => old.map((item, i) => i === index ? value : item))} onRemove={() => setTasks((old) => old.filter((_, i) => i !== index))}/>)}</div>}
+        <TypePicker value={draft.category} onChange={(value) => field('category', value)}/>
+        <section className="agenda-editor-group" aria-labelledby="agenda-when-title">
+          <h3 id="agenda-when-title" className="agenda-group-title">Quando</h3>
+          <label className="field">Data<input type="date" required value={draft.date} onChange={(e) => setDraft((old) => ({ ...old, date: e.target.value, endDate: old.endDate === old.date ? e.target.value : old.endDate }))}/></label>
+          <label className="agenda-checkbox"><input type="checkbox" checked={!draft.start} onChange={(e) => toggleTime(e.target.checked)}/>Sem horário</label>
+          {!!draft.start && <TimeFields draft={draft} setDraft={setDraft}/>}
+          {!!draft.start && <><label className="agenda-checkbox"><input type="checkbox" checked={draft.endDate !== draft.date} onChange={(e) => field('endDate', e.target.checked ? shiftDate(draft.date, 1) : draft.date)}/>Termina em outro dia</label>{draft.endDate !== draft.date && <label className="field">Data de término<input type="date" required value={draft.endDate} min={draft.date} onChange={(e) => field('endDate', e.target.value)}/></label>}</>}
+          {conflict}
+        </section>
+        <section className="agenda-editor-group" aria-labelledby="agenda-alert-title">
+          <h3 id="agenda-alert-title" className="agenda-group-title">Aviso e repetição</h3>
+          <div className="form-grid">
+            <label className="field">Lembrete<select value={draft.reminder} onChange={(e) => field('reminder', Number(e.target.value))}>{REMINDERS.map((value) => <option key={value} value={value}>{value === -1 ? 'Sem lembrete' : value === 0 ? 'No início' : `${value} minutos antes`}</option>)}</select></label>
+            {!editing && <label className="field">Repetição<select value={draft.recurrence} onChange={(e) => field('recurrence', e.target.value)}>{Object.entries(RECURRENCES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>}
+          </div>
+          {!draft.start && draft.reminder >= 0 && <small>Sem horário, o aviso usa 09h.</small>}
+          {!editing && <RecurrenceFields draft={draft} field={field}/>}
+        </section>
+        <fieldset className="agenda-form-fields agenda-editor-group" disabled={scope === 'future'}>
+          <legend className="agenda-group-title">Checklist e materiais</legend>
+          {tasks.length > 0 && <div className="agenda-checklist-editor">{tasks.map((task, index) => <TaskFields key={task.id || task.key} task={task} courses={state.courses} index={index} onChange={(value) => setTasks((old) => old.map((item, i) => i === index ? value : item))} onRemove={() => setTasks((old) => old.filter((_, i) => i !== index))}/>)}</div>}
           <div className="agenda-add-links"><button type="button" className="text-button" onClick={() => setLinkOpen(!linkOpen)}>+ Vincular material ou tarefa</button><button type="button" className="text-button" onClick={() => addItem()}>+ Adicionar checklist</button></div>
           {linkOpen && <div className="agenda-link-picker"><label className="field">Buscar material ou tarefa<input value={search} onChange={(e) => setSearch(e.target.value)}/></label>
             {state.tasks.filter((task) => !tasks.some((chosen) => chosen.id === task.id) && !task.done && task.title.toLocaleLowerCase().includes(search.toLocaleLowerCase())).map((task) => <button type="button" key={task.id} onClick={() => { setTasks((old) => [...old, task]); setLinkOpen(false); }}>Tarefa · {task.title}</button>)}
@@ -134,12 +160,8 @@ export default function AppointmentEditor({ initial, initialExpected = null, sta
             {!state.tasks.length && !state.courses.length && <p>Sem materiais ou tarefas. Você pode criar um checklist livre.</p>}
           </div>}
         </fieldset>
-        <details className="agenda-options" open={Boolean(initial.expanded)}><summary>Mais opções</summary><div className="agenda-form-fields">
-          <label className="field">Tipo<select value={draft.category} onChange={(e) => field('category', e.target.value)}>{Object.entries(CATEGORIES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-          {!!draft.start && <><label className="agenda-checkbox"><input type="checkbox" checked={draft.endDate !== draft.date} onChange={(e) => field('endDate', e.target.checked ? shiftDate(draft.date, 1) : draft.date)}/>Termina em outro dia</label>{draft.endDate !== draft.date && <label className="field">Data de término<input type="date" required value={draft.endDate} min={draft.date} onChange={(e) => field('endDate', e.target.value)}/></label>}</>}
-          <label className="field">Lembrete<select value={draft.reminder} onChange={(e) => field('reminder', Number(e.target.value))}>{REMINDERS.map((value) => <option key={value} value={value}>{value === -1 ? 'Sem lembrete' : value === 0 ? 'No início' : `${value} minutos antes`}</option>)}</select></label>
-          {!draft.start && draft.reminder >= 0 && <small>Sem horário, o aviso usa 09h.</small>}
-          {!editing && <><label className="field">Repetição<select value={draft.recurrence} onChange={(e) => field('recurrence', e.target.value)}>{Object.entries(RECURRENCES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><RecurrenceFields draft={draft} field={field}/></>}
+        {/* Só o fuso fica recolhido: os horários já usam o fuso do dispositivo. */}
+        <details className="agenda-options"><summary>Fuso horário · {zoneLabel(draft.timeZone)}</summary><div className="agenda-form-fields">
           <label className="field">Fuso do compromisso<select aria-label="Fuso do compromisso" required value={draft.timeZone} onChange={(e) => field('timeZone', e.target.value)}>{timeZones(draft.timeZone).map((zone) => <option key={zone} value={zone}>{zoneLabel(zone)}</option>)}</select></label>
         </div></details>
         {initial.seriesId && <label className="field">Aplicar alteração<select value={scope} onChange={(e) => setScope(e.target.value)}><option value="one">Somente esta ocorrência</option><option value="future">Esta e as futuras pendentes</option></select><small>Alterações futuras preservam checklists e ocorrências encerradas.</small></label>}
