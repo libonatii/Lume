@@ -215,6 +215,6 @@ export default function Shell({ route, model, children, hideTabs = false, onComf
       </div>
     </header>
     <main id="main" tabIndex={-1}>{!hideTabs && <SectionTabs route={route} unread={unread}/>}{children}</main>
-    <footer className="app-footer"><div className="app-footer-inner"><span className="app-footer-brand"><strong>Lume</strong><small>Seu espaço de estudos: ritmo próprio, pausas sem punição e progresso real.</small></span><span className="app-footer-meta"><span>{today}</span><a className="text-link" href="#configuracoes">Preferências</a>{!desktop && <a className="text-link" href="#aplicativo"><Icon name="cloud"/>Instalar aplicativo</a>}<button type="button" className="text-button" onClick={onHelp}>Ajuda</button></span></div></footer>
+    <footer className="app-footer"><div className="app-footer-inner"><span className="app-footer-brand"><strong>Lume</strong><small>Estudar também pode ser divertido!</small></span><span className="app-footer-meta"><span>{today}</span>{!desktop && <a className="text-link" href="#aplicativo"><Icon name="cloud"/>Instalar aplicativo</a>}</span></div></footer>
   </div>;
 }
