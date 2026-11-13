@@ -88,7 +88,6 @@
   padding: 0.9rem 1rem 0.9rem 1.15rem;
   border-radius: var(--radius-md);
   background: linear-gradient(180deg, var(--surface-2), var(--surface));
-  overflow: hidden;
   transition: border-color 0.18s ease;
 }
 .todo-list > .todo-item::before {
@@ -96,6 +95,7 @@
   position: absolute;
   inset: 0 auto 0 0;
   width: 3px;
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
   background: var(--todo-accent);
 }
 .todo-list > .todo-item:hover {

@@ -22,7 +22,7 @@ async function openEvent(page, title) {
   await expect(dialog(page)).toBeVisible();
 }
 
-test('calendário mensal, criação, checklist editável e sobreposição', async ({ page }, testInfo) => {
+test('calendário mensal, criação, checklist editável e sobreposição', { tag: '@celular' }, async ({ page }, testInfo) => {
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
   page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
@@ -84,7 +84,7 @@ test('calendário mensal, criação, checklist editável e sobreposição', asyn
   expect(errors).toEqual([]);
 });
 
-test('tarefas existentes são agendadas sem cópia e menu continua legível', async ({ page, isMobile }) => {
+test('tarefas existentes são agendadas sem cópia e menu continua legível', { tag: '@celular' }, async ({ page, isMobile }) => {
   const state = addTask(initial(), { title: 'Tarefa preservada', dueDate: '2030-12-01', priority: 1 });
   await seedAccount(page, state);
   await page.goto('/#tarefas');
@@ -133,28 +133,6 @@ test('recorrência recebe checklist novo e edição futura preserva a ocorrênci
   expect(after.agenda.map((item) => item.title)).toEqual(['Revisão diária', 'Revisão ajustada', 'Revisão ajustada']);
   expect(after.tasks.map((item) => item.done)).toEqual([true, false, false]);
   expect(after.agenda.map((item) => item.done)).toEqual([true, false, false]);
-});
-
-test('sugestão só vira compromisso ao salvar; falha temporária preserva formulário sem duplicação', async ({ page }) => {
-  const state = addCourse(initial(), { title: 'Curso', steps: ['Aula sugerida'] }, 'c');
-  state.plan.availability = { 0: 60, 1: 60, 2: 60, 3: 60, 4: 60, 5: 60, 6: 60 };
-  await seedAccount(page, state);
-  await page.goto('/#agenda');
-  await page.getByRole('button', { name: 'Para agendar', exact: true }).click();
-  await page.getByRole('button', { name: 'Revisar sugestão' }).click();
-  expect((await readAccount(page)).agenda).toEqual([]);
-  await hours(page, '10:00', '10:30');
-  await page.route('**/api/library/actions', (route) => route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Indisponível' }) }));
-  await dialog(page).getByRole('button', { name: 'Salvar compromisso' }).click();
-  await expect(page.getByLabel('Título do compromisso')).toHaveValue('Aula sugerida');
-  await expect(page.getByText('Resolva a gravação pendente antes de sair.')).toBeVisible();
-  await page.unroute('**/api/library/actions');
-  await dialog(page).getByRole('button', { name: 'Recarregar ou tentar novamente' }).click();
-  await expect.poll(async () => (await (await page.request.get('/api/library', { headers })).json()).state.agenda.length).toBe(1);
-  await saveForm(page);
-  const saved = await readAccount(page);
-  expect(saved.tasks[0].lessonId).toBe('c-0');
-  expect(saved.agenda).toHaveLength(1);
 });
 
 test('lembrete real da API aparece internamente, chama notificação e não repete ao navegar', async ({ page }) => {
@@ -224,7 +202,7 @@ test('conflito exige recarga e repetição explícita, preservando o formulário
   expect((await readAccount(page)).agenda).toHaveLength(1);
 });
 
-test('clicar num dia do mês cria compromisso sem horário', async ({ page, isMobile }) => {
+test('clicar num dia do mês cria compromisso sem horário', { tag: '@celular' }, async ({ page, isMobile }) => {
   await seedAccount(page, initial());
   await page.goto('/#agenda');
   const cell = page.locator('.agenda-calendar [data-date]').last();

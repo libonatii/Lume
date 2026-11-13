@@ -10,8 +10,11 @@ import { applyLibraryActions } from '../domain/library-actions.js';
 import { ensureXpSettings } from '../domain/xp.js';
 import { claimReminders } from '../domain/agenda.js';
 import {
-  AI_TEXT_LIMIT, FileError, aiAvailable, discardPdf, identifyWithAI, readPdf, storagePlan, storageUsage, uploadPdf, validateFileId,
+  AI_TEXT_LIMIT, FileError, aiAvailable, confirmPdfUpload, createPdfUploadUrl, discardPdf, identifyWithAI, readPdf, storagePlan, storageUsage, uploadPdf, validateFileId,
 } from '../domain/library-files.js';
+import {
+  generatePdfInsights, ocrPdfPages, readPdfInsights, savePdfMarkdown, streamPdfInsights,
+} from '../domain/pdf-ai.js';
 import { formatBytes } from '../../public/pdf-domain.js';
 
 const IMPORT_BODY = {
@@ -30,6 +33,12 @@ const FILE_ATTEMPTS = {
   message: 'Muitos envios de PDF em pouco tempo. Aguarde alguns minutos.',
   code: 'rate_limited',
 };
+const INSIGHTS_ATTEMPTS = {
+  key: (ctx) => `insights|${ctx.user?.id || ctx.clientIp}`,
+  limit: 20,
+  message: 'Muitas solicitações de resumo em pouco tempo. Aguarde alguns minutos.',
+  code: 'rate_limited',
+};
 
 export function libraryRoutes(router) {
   const account = { auth: 'Entre na sua conta para acessar sua biblioteca.', origin: true };
@@ -41,6 +50,58 @@ export function libraryRoutes(router) {
 
   // PDFs da biblioteca: privados da conta, sem cópia local nem leitura pública.
   router.add('GET', '/api/library/files', account, async (ctx) => json({ ...await storageUsage(ctx.db, ctx.user.id), ai: aiAvailable(ctx.env), storage: Boolean(ctx.media) }));
+  router.add('POST', '/api/library/files/:fileId/upload-url', { ...account, rateLimit: FILE_ATTEMPTS }, async (ctx) => {
+    const fileId = validateFileId(ctx.params.fileId);
+    const body = await ctx.json(LIMITS.small);
+    return json(await createPdfUploadUrl(ctx.db, ctx.media, ctx.user.id, {
+      fileId,
+      name: body.name,
+      size: body.size,
+      contentType: body.contentType,
+      env: ctx.env,
+    }));
+  });
+  router.add('POST', '/api/library/files/:fileId/confirm', account, async (ctx) => {
+    const file = await confirmPdfUpload(ctx.db, ctx.media, ctx.user.id, ctx.params.fileId);
+    ctx.log('pdf_uploaded', { userId: ctx.user.id, bytes: file.size });
+    return json(file);
+  });
+  router.add('PUT', '/api/library/files/:fileId/markdown', account, async (ctx) => {
+    const body = await ctx.json(1.5 * 1024 * 1024);
+    return json(await savePdfMarkdown(ctx.db, ctx.user.id, ctx.params.fileId, {
+      markdown: body.markdown,
+      source: body.source,
+    }, { env: ctx.env, log: ctx.log }));
+  });
+  router.add('POST', '/api/library/files/:fileId/ocr', { ...account, rateLimit: INSIGHTS_ATTEMPTS }, async (ctx) => {
+    const body = await ctx.json(6 * 1024 * 1024);
+    return json(await ocrPdfPages(ctx.db, ctx.user.id, ctx.params.fileId, { pages: body.pages }, { env: ctx.env, log: ctx.log }));
+  });
+  router.add('GET', '/api/library/files/:fileId/insights', account, async (ctx) => {
+    return json(await readPdfInsights(ctx.db, ctx.user.id, ctx.params.fileId));
+  });
+  router.add('POST', '/api/library/files/:fileId/insights', { ...account, rateLimit: INSIGHTS_ATTEMPTS }, async (ctx) => {
+    const body = await ctx.json(LIMITS.tiny).catch(() => ({}));
+    const refresh = Boolean(body?.refresh);
+    const wantsStream = ctx.url.searchParams.get('stream') === '1'
+      || (ctx.request.headers.get('accept') || '').includes('text/event-stream');
+    if (wantsStream) {
+      const result = await streamPdfInsights(ctx.db, ctx.user.id, ctx.params.fileId, {
+        refresh,
+        signal: ctx.request.signal,
+      }, { env: ctx.env, log: ctx.log });
+      if (result.cached) return json(result);
+      return new Response(result.stream, {
+        status: 200,
+        headers: {
+          ...BASE_HEADERS,
+          'Content-Type': 'text/event-stream; charset=utf-8',
+          'Cache-Control': 'no-cache, no-store',
+        },
+      });
+    }
+    return json(await generatePdfInsights(ctx.db, ctx.user.id, ctx.params.fileId, { refresh }, { env: ctx.env, log: ctx.log }));
+  });
   router.add('PUT', '/api/library/files/:fileId', { ...account, rateLimit: FILE_ATTEMPTS }, async (ctx) => {
     const fileId = validateFileId(ctx.params.fileId);
     const plan = await storagePlan(ctx.db, ctx.user.id);

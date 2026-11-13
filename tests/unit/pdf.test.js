@@ -5,7 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { sqliteAdapter, applyMigrations } from '../../api/adapters/sqlite.js';
 import { readLibrary } from '../../api/domain/library-store.js';
 import { applyLibraryActions } from '../../api/domain/library-actions.js';
-import { discardPdf, identifyWithAI, isPdf, readPdf, removeOrphans, storageUsage, uploadPdf } from '../../api/domain/library-files.js';
+import { confirmPdfUpload, createPdfUploadUrl, discardPdf, identifyWithAI, isPdf, readPdf, removeOrphans, storageUsage, uploadPdf } from '../../api/domain/library-files.js';
+import { MAX_MARKDOWN_CACHE_CHARS, generatePdfInsights, readPdfInsights, savePdfMarkdown, streamPdfInsights } from '../../api/domain/pdf-ai.js';
 import { getXpSnapshot, ensureXpSettings } from '../../api/domain/xp.js';
 import { libraryActions } from '../../public/library-actions.js';
 import { addCourse, completeMission, createInitialState, deleteCourse, restoreState, materialType } from '../../public/domain.js';
@@ -319,4 +320,127 @@ test('identificação por IA só existe com chave e envia apenas o trecho da pá
   const unknown = await identifyWithAI({ text: 'texto', subjects: ['Direito Civil'] }, { env: { LUME_AI_API_KEY: 'chave' }, fetchImpl });
   assert.equal(unknown.subject, '', 'disciplina que a pessoa não tem não é sugerida');
   await assert.rejects(identifyWithAI({ text: '   ', subjects: [] }, { env: { LUME_AI_API_KEY: 'chave' }, fetchImpl }), { code: 'empty_text' });
+});
+
+test('upload por URL assinada (R2 e local) reserva cota, confirma %PDF- e limpa órfãos', async (t) => {
+  const { db, bucket } = fixture(t);
+  const local = await createPdfUploadUrl(db, bucket, 'u1', {
+    fileId: 'presign-1',
+    name: 'aula.pdf',
+    size: PDF_BYTES.byteLength,
+    contentType: 'application/pdf',
+    env: {},
+  });
+  assert.equal(local.direct, false);
+  assert.equal(local.uploadUrl, '/api/library/files/presign-1');
+
+  const r2 = await createPdfUploadUrl(db, bucket, 'u1', {
+    fileId: 'presign-r2',
+    name: 'aula-r2.pdf',
+    size: PDF_BYTES.byteLength,
+    contentType: 'application/pdf',
+    env: {
+      R2_ACCOUNT_ID: 'acc123',
+      R2_ACCESS_KEY_ID: 'key123',
+      R2_SECRET_ACCESS_KEY: 'secret123',
+      R2_BUCKET_NAME: 'lume-media',
+    },
+  });
+  assert.equal(r2.direct, true);
+  assert.match(r2.uploadUrl, /^https:\/\/acc123\.r2\.cloudflarestorage\.com\/lume-media\/pdfs\/u1\/presign-r2\.pdf\?/);
+  assert.match(r2.uploadUrl, /X-Amz-Signature=/);
+
+  await bucket.put('pdfs/u1/presign-r2.pdf', PDF_BYTES, 'application/pdf');
+  const confirmed = await confirmPdfUpload(db, bucket, 'u1', 'presign-r2');
+  assert.equal(confirmed.status, 'ready');
+
+  await bucket.put('pdfs/u1/presign-1.pdf', new TextEncoder().encode('nao eh pdf '.repeat(10)), 'application/pdf');
+  await assert.rejects(confirmPdfUpload(db, bucket, 'u1', 'presign-1'), { code: 'not_pdf' });
+  assert.equal(bucket.objects.has('pdfs/u1/presign-1.pdf'), false);
+});
+
+test('cache de Markdown, condensação acima do teto, geração e stream SSE de insights', async (t) => {
+  const { db, bucket } = fixture(t);
+  await uploadPdf(db, bucket, 'u1', { fileId: FILE.fileId, name: FILE.name, bytes: PDF_BYTES });
+
+  // 1. Dentro do teto: grava direto sem chamar LLM.
+  let llmCalls = 0;
+  const saved = await savePdfMarkdown(db, 'u1', FILE.fileId, {
+    markdown: '## Página 1\nÁrvores AVL mantêm fator de balanceamento entre -1 e 1.',
+    source: 'pdfjs',
+  }, {
+    env: { LUME_AI_API_KEY: 'sk-test' },
+    fetchImpl: async () => { llmCalls += 1; throw new Error('não deveria chamar'); },
+  });
+  assert.equal(saved.markdownStatus, 'ready');
+  assert.equal(saved.condensed, false);
+  assert.equal(llmCalls, 0);
+
+  // 2. Geração de insights com cache subsequente.
+  const insightsPayload = {
+    overview: 'O material apresenta árvores AVL e rotações de balanceamento.',
+    keyTopics: ['Árvores AVL', 'Fator de balanceamento', 'Rotações'],
+    insights: [{ title: 'Invariante AVL', detail: 'Altura das subárvores difere no máximo em 1.', pageRef: 1 }],
+    coverage: 'full',
+  };
+  const gen = await generatePdfInsights(db, 'u1', FILE.fileId, {}, {
+    env: { LUME_AI_API_KEY: 'sk-test' },
+    fetchImpl: async () => {
+      llmCalls += 1;
+      return new Response(JSON.stringify({
+        model: 'gpt-4o-mini',
+        choices: [{ message: { content: JSON.stringify(insightsPayload) } }],
+      }), { status: 200 });
+    },
+  });
+  assert.equal(gen.cached, false);
+  assert.equal(gen.insights.overview, insightsPayload.overview);
+  assert.equal(llmCalls, 1);
+
+  const cached = await generatePdfInsights(db, 'u1', FILE.fileId, {}, {
+    env: { LUME_AI_API_KEY: 'sk-test' },
+    fetchImpl: async () => { llmCalls += 1; throw new Error('deveria usar cache'); },
+  });
+  assert.equal(cached.cached, true);
+  assert.equal(llmCalls, 1);
+
+  // 3. Stream SSE com refresh=true atualiza o cache.
+  const encoder = new TextEncoder();
+  const sseBody = new ReadableStream({
+    start(controller) {
+      const jsonStr = JSON.stringify({ ...insightsPayload, overview: 'Resumo atualizado via SSE.' });
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: jsonStr.slice(0, 20) } }] })}\n\n`));
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: jsonStr.slice(20) } }] })}\n\n`));
+      controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+      controller.close();
+    },
+  });
+  const streamed = await streamPdfInsights(db, 'u1', FILE.fileId, { refresh: true }, {
+    env: { LUME_AI_API_KEY: 'sk-test' },
+    fetchImpl: async () => new Response(sseBody, { status: 200 }),
+  });
+  assert.equal(streamed.cached, false);
+  const reader = streamed.stream.getReader();
+  let sseText = '';
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    sseText += new TextDecoder().decode(value);
+  }
+  assert.match(sseText, /event: done/);
+  assert.match(sseText, /Resumo atualizado via SSE/);
+  assert.equal((await readPdfInsights(db, 'u1', FILE.fileId)).insights.overview, 'Resumo atualizado via SSE.');
+
+  // 4. Acima do teto: condensa via LLM e respeita MAX_MARKDOWN_CACHE_CHARS.
+  const hugeText = `## Página 1\n${'Conteúdo extenso sobre estruturas de dados. '.repeat(7000)}`;
+  assert.ok(hugeText.length > MAX_MARKDOWN_CACHE_CHARS);
+  const condensed = await savePdfMarkdown(db, 'u1', FILE.fileId, { markdown: hugeText, source: 'pdfjs' }, {
+    env: { LUME_AI_API_KEY: 'sk-test' },
+    fetchImpl: async () => new Response(JSON.stringify({
+      choices: [{ message: { content: '## Página 1\nResumo fiel condensado.' } }],
+    }), { status: 200 }),
+  });
+  assert.equal(condensed.condensed, true);
+  assert.equal(condensed.markdownSource, 'pdfjs_condensed');
+  assert.ok(condensed.markdownChars <= MAX_MARKDOWN_CACHE_CHARS);
 });

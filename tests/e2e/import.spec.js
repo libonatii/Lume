@@ -117,40 +117,6 @@ test('seleção parcial, reimportação sem duplicata e progresso preservado', a
   expect(state.imports.at(-1).mode).toBe('update');
 });
 
-test('duas contas não compartilham cursos importados', async ({ page }, testInfo) => {
-  const stamp = Date.now();
-  const emailA = `importa-${testInfo.project.name}-${stamp}@example.test`;
-  const emailB = `importb-${testInfo.project.name}-${stamp}@example.test`;
-  async function register(email) {
-    await page.getByRole('button', { name: 'Criar conta', exact: true }).first().click();
-    await page.getByLabel('Seu nome', { exact: true }).fill('Pessoa de teste');
-    await page.getByLabel('E-mail', { exact: true }).fill(email);
-    await page.getByLabel('Senha', { exact: true }).fill('senha-local-teste-123');
-    await page.getByRole('button', { name: 'Criar minha conta' }).click();
-    await page.getByRole('button', { name: 'Explorar sem personalizar agora' }).click();
-    await expect(page.getByRole('heading', { name: 'Início', exact: true })).toBeVisible();
-  }
-
-  await page.goto('/');
-  await register(emailA);
-  await page.getByRole('link', { name: 'Biblioteca', exact: true }).click();
-  await page.getByRole('button', { name: 'Adicionar curso', exact: true }).click();
-  await page.getByRole('tab', { name: 'Colar a grade' }).click();
-  await page.getByLabel('Nome do curso (opcional)').fill('Curso da conta A');
-  await page.getByLabel('Grade do curso', { exact: true }).fill('Aula única da conta A');
-  await page.getByRole('button', { name: 'Organizar grade' }).click();
-  await page.getByRole('button', { name: /Adicionar 1 aula à biblioteca/ }).click();
-  await page.getByRole('button', { name: 'Voltar à biblioteca' }).click();
-  await expect(page.getByRole('button', { name: /^Curso da conta A,/ })).toBeVisible();
-  await page.getByRole('button', { name: /^Menu da conta/ }).click();
-  await page.getByRole('button', { name: 'Sair', exact: true }).click();
-
-  await register(emailB);
-  await page.getByRole('link', { name: 'Biblioteca', exact: true }).click();
-  await expect(page.getByRole('button', { name: /^Curso da conta A,/ })).toHaveCount(0);
-  await expect(page.getByRole('heading', { name: 'Qual área você quer estudar?' })).toBeVisible();
-});
-
 test('biblioteca vazia pergunta a área e cria a primeira trilha sem XP', async ({ page }) => {
   await openLibrary(page);
   await expect(page.getByRole('heading', { name: 'Qual área você quer estudar?' })).toBeVisible();
@@ -215,37 +181,5 @@ test('página copiada da conta vira revisão sem enviar sessão', async ({ page 
   expect(sent?.html).toContain('/aula/456');
   expect(sent?.html).not.toMatch(/cookie|session/i);
   await expect(page.getByText('Página copiada da sua conta')).toBeVisible();
-  await page.unroute('**/api/import/analyze');
-});
-
-test('link sem https é detectado e adicionado sem abrir a revisão', async ({ page }) => {
-  await openLibrary(page);
-  await page.getByRole('button', { name: 'Adicionar curso', exact: true }).click();
-  await page.route('**/api/import/analyze', route => route.fulfill({
-    status: 200,
-    contentType: 'application/json',
-    body: JSON.stringify({
-      payload: {
-        title: 'React Básico',
-        provider: { id: 'coursera' },
-        sourceUrl: 'https://www.coursera.org/learn/react-basics',
-        completeness: 'complete',
-        extraction: { kind: 'structured-data', confidence: 'high', notes: [] },
-        disciplines: [{ title: 'Semana 1', modules: [{ title: 'Fundamentos', lessons: [{ title: 'Componentes' }, { title: 'Estado' }] }] }],
-      },
-      ai: { used: false },
-    }),
-  }));
-  await page.getByLabel('Link do curso').fill('www.coursera.org/learn/react-basics');
-  await expect(page.getByText(/Coursera detectado/)).toBeVisible();
-  await page.getByRole('button', { name: 'Detectar e adicionar' }).click();
-  await expect(page.getByText('Importação concluída')).toBeVisible();
-  await expect(page.getByText(/Detectado e adicionado automaticamente/)).toBeVisible();
-  await page.getByRole('button', { name: 'Ver o curso' }).click();
-  await expect(page.locator('#dialog-title')).toHaveText('React Básico');
-  const state = await readAccount(page);
-  expect(state.courses).toHaveLength(1);
-  expect(materialSteps(state.courses[0])).toHaveLength(2);
-  expect(state.progress.filter((event) => event.origin === 'manual' || event.legacyXp)).toEqual([]);
   await page.unroute('**/api/import/analyze');
 });

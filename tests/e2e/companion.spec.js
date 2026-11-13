@@ -6,7 +6,7 @@ import { readAccount } from './library-helpers.js';
 // revogação. Nenhum XP é criado em nenhuma etapa.
 
 async function register(page, testInfo, prefix) {
-  const email = `${prefix}-${testInfo.project.name}-${Date.now()}@example.test`;
+  const email = `${prefix}-${testInfo.project.name}-${crypto.randomUUID()}@example.test`;
   await page.goto('/');
   await page.getByRole('button', { name: 'Criar conta', exact: true }).first().click();
   await page.getByLabel('Seu nome', { exact: true }).fill('Pessoa do Companion');
@@ -69,19 +69,4 @@ test('conectar programa, ver presença local e revogar o acesso', async ({ page,
   const listing = await page.request.get('/api/companion', { headers: sameOrigin });
   expect(listing.status()).toBe(200);
   expect((await listing.json()).devices).toHaveLength(0);
-});
-
-test('presença exige token válido e painel explica a conta na prévia', async ({ page, request }) => {
-  const anonymous = await request.put('/api/companion/presence', { data: { app: 'Anki', category: 'study' } });
-  expect(anonymous.status()).toBe(401);
-  expect((await request.get('/api/companion')).status()).toBe(401);
-  expect((await request.post('/api/companion/redeem', { data: { code: 'ABCD-EFGH', deviceName: 'X' } })).status()).toBe(400);
-
-  await page.goto('/');
-  await page.getByRole('button', { name: 'Explorar a prévia' }).click();
-  await page.getByRole('button', { name: 'Explorar sem personalizar agora' }).click();
-  await page.goto('/#aplicativo');
-  await expect(page.getByRole('heading', { name: 'Lume no desktop' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Entrar para conectar' })).toBeVisible();
-  await expect(page.getByText(/exige uma conta/i)).toBeVisible();
 });

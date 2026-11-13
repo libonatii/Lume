@@ -223,13 +223,23 @@
   border-radius: var(--radius-lg);
   background: var(--surface-2);
   border: 1px solid var(--border);
-  overflow: hidden;
 }
 .reading-list > .course-card-wrap + .course-card-wrap {
   border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
 }
+.reading-list > .course-card-wrap:first-child > .reading-row {
+  border-start-start-radius: var(--radius-lg);
+  border-start-end-radius: var(--radius-lg);
+}
+.reading-list > .course-card-wrap:last-child > .reading-row {
+  border-end-start-radius: var(--radius-lg);
+  border-end-end-radius: var(--radius-lg);
+}
 .course-card-wrap.is-row {
   position: relative;
+}
+.course-card-wrap.is-row:has(.course-menu-button[aria-expanded="true"]) {
+  z-index: 10;
 }
 .reading-row {
   display: grid;
