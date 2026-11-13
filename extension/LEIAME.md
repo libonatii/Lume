@@ -4,7 +4,7 @@ Lê, na página que você abriu com a sua conta, os nomes das aulas, as duraçõ
 envia ao Lume para revisão. Serve para plataformas que só mostram a grade depois do login (Gran, Estratégia,
 Udemy, Alura, Coursera, Rocketseat e outras).
 
-**Status:** protótipo. Testado com páginas de exemplo e com um trecho real do painel do Gran. A leitura do Gran pela API foi conferida com uma conta real em 01/11/2026, mas a extensão ainda não foi carregada num Chrome. As outras plataformas ainda não foram vistas com contas reais. Não está publicado na loja. Não é o aplicativo de desktop do Lume (ver [aplicativo de desktop](../docs/COMPANHEIRO.md)): ele só lê cursos na página aberta.
+**Status:** protótipo. Testado com páginas de exemplo e com um trecho real do painel do Gran. A leitura do Gran pela API foi conferida com uma conta real em 01/11/2026, mas a extensão ainda não foi carregada num Chrome. As outras plataformas ainda não foram vistas com contas reais. Não está publicado na loja. Não é o aplicativo de desktop do Lume (ver [aplicativo de desktop](../companion/README.md)): ele só lê cursos na página aberta.
 
 ## Instalar (modo desenvolvedor)
 
@@ -40,9 +40,7 @@ Os endereços aceitos estão em `manifest.json` (`host_permissions` e `content_s
 
 ## Publicar na Chrome Web Store
 
-`npm run extension:package` gera o `.zip` da loja em `dist-extension/`, só com o Lume publicado. O roteiro, os
-textos da ficha e as justificativas de permissão estão em [LOJA.md](LOJA.md); a política de privacidade é
-`public/privacidade-extensao.html`.
+`npm run extension:package` gera o `.zip` da loja em `dist-extension/lume-leitor-de-curso-<versão>.zip`, aceitando apenas `https://lumeacademy.site/*` (sem endereços localhost e sem arquivos de documentação/desenvolvimento); a política de privacidade pública é `public/privacidade-extensao.html`.
 
 ## Arquivos
 

@@ -1,6 +1,13 @@
 # Lume — Regras de Negócio Consolidadas
 
-Este documento é a **fonte de verdade consolidada das regras de negócio em vigor** no Lume após a refatoração de novembro de 2026. Foi escrito para orientar qualquer pessoa ou IA que assuma a manutenção ou evolução do projeto, eliminando ambiguidades entre o protótipo inicial (v1), o documento intermediário (v2) e a arquitetura atual (**persistência direta da biblioteca v3 + política de XP v2 validada no servidor**).
+Este documento é a **fonte única de verdade das regras de negócio e de produto em vigor** no Lume (atualizado em 12/11/2026). Substitui os documentos históricos da v1/v2 e orienta qualquer pessoa ou IA que assuma a manutenção ou evolução do projeto, eliminando ambiguidades entre o protótipo inicial (v1), o documento intermediário (v2) e a arquitetura atual (**persistência direta da biblioteca v3 + política de XP v2 validada no servidor**).
+
+Consulte também:
+- [Instruções técnicas e arquitetura (`AGENTS.md`)](../AGENTS.md)
+- [Estado atual e pendências de implementação (`docs/IMPLEMENTACAO.md`)](IMPLEMENTACAO.md)
+- [Publicação e CI (`docs/RELEASE.md`)](RELEASE.md)
+- [Aplicativo de desktop (`companion/README.md`)](../companion/README.md)
+- [Extensão do navegador (`extension/LEIAME.md`)](../extension/LEIAME.md)
 
 ---
 
@@ -16,16 +23,14 @@ Este documento é a **fonte de verdade consolidada das regras de negócio em vig
 
 ## 2. Mapa de Versões (O que está em vigor vs. O que foi aposentado)
 
-Para evitar confusão entre nomes de versão no código:
-
 | Eixo | Versão atual em vigor | Onde vive no código | O que foi aposentado (NÃO reintroduzir) |
 | --- | --- | --- | --- |
 | **Estado e Biblioteca** | **Estado v3** (`version: 3`, persistência por entidade em tabelas relacionais) | `public/domain.js`, `public/material-model.js`, `api/domain/library-store.js`, `api/domain/library-actions.js` | Estado v1 (`completedLessons`, `xpLog`, `studyLog`) e sincronização por documento inteiro/IndexedDB/outbox no navegador (`outbox.js`, `useProgressSync.js`). |
-| **Política de XP e Níveis** | **Política de XP v2** (`XP_POLICY_VERSION = 2`, validada no servidor via livro `xp_events`) | `public/xp-policy.js`, `api/domain/xp.js`, `api/domain/rewards.js`, `api/domain/library-time.js`, `api/domain/library-subtasks.js` | Política v1 (5 XP por preparar a mesa, 10 XP fixo por etapa ou tarefa de prova, nível linear a cada 100 XP, cálculo de XP confiando no navegador). |
+| **Política de XP e Níveis** | **Política de XP v2** (`XP_POLICY_VERSION = 2`, validada no servidor via livro `xp_events`) | `public/xp-policy.js`, `api/domain/xp.js`, `api/domain/rewards.js`, `api/domain/library-time.js`, `api/domain/library-subtasks.js` | Política v1 (5 XP por preparar a mesa, 10 XP fixo por etapa ou tarefa de prova, nível linear a cada 100/500 XP, cálculo de XP confiando no navegador). |
 | **Sessão de Foco e Som** | **Redesign Sereno (`FocusSession.jsx`)** com paisagens sonoras `'off'`, `'rain'`, `'pink'`, `'white'` | `src/features/progress/FocusSession.jsx`, `src/features/progress/soundscape.js`, `public/session-domain.js` | Barra antiga `StudySession.jsx` / `session.css` e ids legados de som `'noise'` / `'library'` (normalizados automaticamente para `'white'` e `'pink'`). |
 | **Onboarding** | **Onboarding v2** (`Onboarding.jsx`, retomável até 8 passos) | `src/features/account/Onboarding.jsx`, `public/domain.js` (`normalizeOnboarding`, `completeJourney`) | `OnboardingFields.jsx` e constantes órfãs `SESSION_MINUTES`, `CONTINUITY_OBSTACLES` e `TRACKING_PREFERENCES`. |
 
-> **Nota sobre rotas HTTP de compatibilidade:** `/api/state`, `/api/progress` e `/api/xp/complete|bonus|slides|time` permanecem no servidor **exclusivamente** para contas antigas ainda não convertidas e para a suíte de testes de contrato/migração. Contas já migradas para a biblioteca v3 recebem erro `409 client_outdated` se tentarem gravar por essas rotas antigas. Todo fluxo novo do cliente React usa `GET /api/library` e `POST /api/library/actions`.
+> **Rotas HTTP de compatibilidade:** `/api/state`, `/api/progress` e `/api/xp/complete|bonus|slides|time` permanecem no servidor **exclusivamente** para contas antigas ainda não convertidas e para a suíte de testes de contrato/migração. Contas já migradas para a biblioteca v3 recebem erro `409 client_outdated` se tentarem gravar por essas rotas antigas. Todo fluxo novo do cliente React usa `GET /api/library` e `POST /api/library/actions`.
 
 ---
 
@@ -37,7 +42,7 @@ Para evitar confusão entre nomes de versão no código:
    - Senhas novas usam `bcryptjs` (custo configurável por `BCRYPT_ROUNDS`, padrão 6 para caber no orçamento de CPU do Cloudflare Workers Free). Hashes PBKDF2 legados continuam aceitos no login e migram na redefinição de senha.
    - Sessão usa cookie `HttpOnly`, `SameSite=Strict` (`Secure` em produção), armazenando apenas o hash SHA-256 do token no banco (`sessions`).
 2. **Recuperação de senha:**
-   - Gera token de uso único com validade temporária; ao redefinir a senha, todas as sessões anteriores da conta são revogadas.
+   - Gera token de uso único (validade de 30 minutos); ao redefinir a senha, todas as sessões anteriores da conta são revogadas.
    - Com `RESEND_API_KEY` e `EMAIL_FROM`, envia e-mail transacional (`api/domain/email.js`). Sem provedor configurado, nunca expõe o link na resposta HTTP de produção (`SHOW_RESET_LINK="false"`).
 3. **Prévia sem conta (`useAccountSession.js`):**
    - Permite experimentar a interface apenas na memória da aba aberta.
@@ -56,7 +61,7 @@ Para evitar confusão entre nomes de versão no código:
    - Um material pode apontar para `subjectId`. Excluir uma disciplina remove o vínculo (`subjectId: null`) dos materiais, sem apagar os materiais.
 3. **PDFs anexados (`public/pdf-domain.js`, `api/domain/library-files.js`):**
    - Material `type: 'pdf'` tem uma única unidade de leitura (`kind: 'reading'`), metadados em `course.pdf` (`fileId`, `fileName`, `pageCount`, `fingerprint`, `outline`) e posição de leitura em `course.reading` (`currentPage`, `totalPages`, `maxReadPage`, `completedAt`).
-   - O binário do PDF vai via `PUT /api/library/files/:id` para o R2 / `data/media`, respeitando a cota do plano (`storage_plans` / `library_files`). **Nunca guarde binário de PDF no estado JSON ou no navegador.**
+   - O binário do PDF vai via `PUT /api/library/files/:id` para o R2 / `data/media`, respeitando a cota do plano (`storage_plans` / `library_files`, 50 MB por arquivo e 1 GB por conta no plano gratuito). **Nunca guarde binário de PDF no estado JSON ou no navegador.**
    - `library-actions.js` recusa criar material PDF cujo `fileId` não exista na conta e remove o arquivo de mídia quando o material é excluído.
    - A leitura da última página (`currentPage >= totalPages`) marca `reading.completedAt` e conclui automaticamente a unidade do PDF no mesmo envio.
 4. **Apresentações de Slides (`public/slides-domain.js`):**
@@ -97,9 +102,9 @@ Para evitar confusão entre nomes de versão no código:
    - **Entrega de projeto (`project_step`):** `150 XP` (1 vez por unidade elegível).
    - **Apresentação de slides concluída (`slides_complete`):** `80 XP` (1 vez por apresentação, exigindo >= 80% de cobertura + último slide).
    - **Subtarefa concluída (`subtask_complete`):** `10 XP` (1 vez por `subtaskId` na vida da conta, respeitando o teto diário de **50 XP/dia** em `SUBTASK_DAILY_CAP_XP`).
-   - **Bloco de tempo de foco (`study_time_block`):** `30 XP` a cada **25 minutos elegíveis** (`TIME_BLOCK_MINUTES = 25`), até o limite de **4 blocos por dia UTC (`120 XP/dia`)** (`TIME_DAILY_MAX_BLOCKS = 4`). Sobras de minutos acumulam entre sessões do mesmo dia.
+   - **Bloco de tempo de foco (`study_time_block`):** `30 XP` a cada **25 minutos elegíveis** (`TIME_BLOCK_MINUTES = 25`), até o limite de **4 blocos por dia UTC (`120 XP/dia`)** (`TIME_DAILY_MAX_BLOCKS = 4`). Sobras de minutos acumulam entre sessões do mesmo dia, sem duplicar intervalos sobrepostos.
    - **Bônus de curso concluído (`course_complete_bonus`):** `300 XP` (1 vez por curso com **pelo menos 2 unidades**, quando todas as unidades incluídas foram concluídas por estudo elegível — `manual` ou `integration`).
-   - **Bônus de disciplina concluída (`subject_complete_bonus`):** `200 XP` (1 vez por disciplina quando todos os materiais pertencentes a ela são concluídos).
+   - **Bônus de disciplina concluída (`subject_complete_bonus`):** `200 XP` (1 vez por disciplina quando todas as unidades daquela disciplina são concluídas).
 3. **Curva de Níveis (`LEVEL_XP`):**
    - Nível 1: `0 XP` · Nível 2: `100 XP` · Nível 3: `250 XP` · Nível 4: `450 XP` · Nível 5: `700 XP` · Nível 6: `1.000 XP` · Nível 7: `1.350 XP` · Nível 8: `1.750 XP` · Nível 9: `2.200 XP` · Nível 10: `2.700 XP`.
    - Acima do nível 10: incremento de `+600 XP` por nível (`AFTER_TEN_STEP = 600`).
@@ -128,22 +133,23 @@ Para evitar confusão entre nomes de versão no código:
    - Tarefas têm `id`, `title`, `courseId` (opcional), `lessonId` (opcional), `dueDate` (opcional), `priority` (`'none' | 'low' | 'medium' | 'high'`), `done` e `subtasks` (`id`, `title`, `done`).
    - Criar, focar, editar, priorizar ou excluir tarefa **não gera XP**.
    - Concluir uma tarefa **sem** `lessonId` vinculado concede **0 XP**.
-   - Concluir uma tarefa **com** `lessonId` vinculado conclui a unidade correspondente (se ainda não concluída) e aciona a recompensa padrão daquela unidade uma única vez no servidor.
+   - Concluir uma tarefa **com** `lessonId` vinculado conclui a unidade correspondente (se ainda não concluída) e aciona a recompensa padrão daquela unidade uma única vez no servidor. Reabrir tarefa não desfaz a aula concluída.
 
 ---
 
-## 8. Agenda, Calendário e Lembretes (`public/agenda-domain.js`, `docs/AGENDA.md`)
+## 8. Agenda, Calendário e Lembretes (`public/agenda-domain.js`)
 
 1. **Compromissos (`state.appointments`, tabela `agenda_entries`):**
    - Compromissos guardam `id`, `title`, `courseId`, `date` (data civil `YYYY-MM-DD`), `startTime` / `endTime` (opcionais, `HH:MM`), `timezone`, `recurrence` (`none`, `daily`, `weekly`, `monthly`), `taskIds` (referências a tarefas existentes), `checklist` por ocorrência e `remindBeforeMinutes`.
    - Agendar uma tarefa referencia o `taskId` existente sem duplicar nem alterar o prazo, vínculo ou subtarefas da tarefa original.
    - Recorrência gera até **52 ocorrências**; editar ou cancelar ocorrências futuras preserva o histórico das passadas e concluídas.
+   - Sobreposição de horários exibe aviso informativo sem impedir o salvamento.
 2. **Regras de XP e Privacidade da Agenda:**
    - Encerrar um bloco da Agenda **não conclui tarefas automaticamente** e **não concede XP**.
    - Recorrências vinculadas à mesma aula concluem a aula apenas uma vez.
    - A Agenda é estritamente privada e **nunca entra no perfil social entre amigos**.
 3. **Lembretes (`POST /api/agenda/reminders`, tabela `agenda_reminders`):**
-   - Cada lembrete é reivindicado de forma transacional uma única vez por conta/ocorrência para evitar notificações duplicadas entre abas ou entre navegador e aplicativo de desktop.
+   - Cada lembrete é reivindicado de forma transacional uma única vez por conta/ocorrência para evitar notificações duplicadas entre abas ou entre navegador e aplicativo de desktop. Compromisso sem horário usa `09:00` no fuso do compromisso como referência.
 
 ---
 
@@ -166,7 +172,7 @@ Para evitar confusão entre nomes de versão no código:
 ## 10. Social: Amigos, Perfil, Mensagens, Colaboração e Ranking
 
 1. **Amizades (`api/domain/friends.js`):**
-   - Amizade exige convite e aceitação mútua (por busca de usuário ou link/token de convite). Bloqueio ou remoção encerra a amizade e revoga convites pendentes.
+   - Amizade exige convite e aceitação mútua (por código/link de convite de 7 dias). Bloqueio ou remoção encerra a amizade e revoga convites pendentes.
 2. **Privacidade do Perfil (`public/profile-domain.js`):**
    - O perfil controla visibilidade por chave (`showLibrary`, `showQueue`, `showProgress`, `showXP`, `showRanking`, `showActivity`).
    - E-mail, hashes de senha, sessões, compromissos da Agenda, tarefas pessoais e URLs privadas **nunca** saem no payload de perfil para amigos.
@@ -188,12 +194,13 @@ Para evitar confusão entre nomes de versão no código:
 ## 11. Importação de Cursos, Extensão MV3 e Aplicativo de Desktop
 
 1. **Provedores e Importação (`public/import-domain.js`, `public/providers/registry.js`):**
-   - `public/providers/registry.js` é a única lista de domínios reconhecidos (`grancursos`, `estrategia`, `alura`, `udemy`, `coursera`, `youtube`, `generic`).
+   - `public/providers/registry.js` é a única lista de domínios reconhecidos (`grancursos`, `estrategia`, `alura`, `rockeatseat`, `udemy`, `coursera`, `dio`, `hotmart`, `generic`).
    - Cada provedor declara suas capacidades reais (`syllabus`, `progress`, `resume`, `requiresLogin`). Fontes genéricas/desconhecidas **não** leem marcas de aula concluída.
+   - O Lume nunca pede senha ou cookie de plataformas externas. Para cursos que exigem login, a pessoa usa a **extensão do navegador** (`extension/`) ou cola a página copiada da sua sessão.
    - Toda importação ou captura da extensão passa pela tela de revisão antes de gravar na biblioteca.
    - Na reimportação de um mesmo curso (`adoptExistingIds`), unidades já existentes preservam seus IDs internos (casando por `externalId` ou título normalizado), concluindo como `origin: 'integration'` apenas as novas conclusões observadas e confirmadas na revisão (`observedCompletionIds`).
 2. **Backup e Mesclagem (`public/backup-domain.js`, `public/merge-domain.js`):**
    - Exportação e restauração trabalham exclusivamente com arquivos JSON no formato **v3** (`schema: 'lume-backup'`, `version: 3`). Backups v1/v2 são recusados com mensagem clara, sem migração automática.
    - A mesclagem (`mergeStates`) é explícita e idempotente, preservando materiais, progresso, tarefas e compromissos sem duplicar registros.
 3. **Aplicativo de Desktop (`companion/`):**
-   - É o Lume completo em janela Electron, com bandeja do sistema, lembretes em segundo plano (`backgroundThrottling: false`), atualização via GitHub Releases (somente HTTPS) e presença opcional no Discord (`discord-presence.mjs`, ligada por padrão nas configurações do app, com rate-limit mínimo de 15s e limpeza ao pausar ou sair).
+   - É o Lume completo em janela Electron, com bandeja do sistema, lembretes em segundo plano (`backgroundThrottling: false`), atualização via GitHub Releases (somente HTTPS) e presença opcional por allowlist de processos e no Discord (`discord-presence.mjs`, ligada por padrão nas configurações do app, com rate-limit mínimo de 15s e limpeza ao pausar ou sair). Presença nunca conta como estudo nem concede XP.

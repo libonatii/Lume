@@ -9,17 +9,17 @@
 
 ## Referências do produto
 
-Leia nesta ordem: [Regras de Negócio Consolidadas](docs/REGRAS_DE_NEGOCIO.md), [Produto](docs/PRODUTO.md), [Gamificação](docs/GAMIFICACAO.md) e [Continuidade](docs/CONTINUIDADE.md). A [importação de cursos](docs/IMPORTACAO.md) descreve o fluxo por link, as fontes verificadas e suas limitações; o [aplicativo de desktop](docs/COMPANHEIRO.md) (o Lume completo numa janela própria, com bandeja, presença e atualização) e a [extensão do navegador](extension/LEIAME.md) estão descritos à parte; [Publicação e CI](docs/RELEASE.md) explica como gerar o instalador pelo GitHub Actions; [o que falta implementar](docs/IMPLEMENTACAO.md) reúne as lacunas principais, o mapa do que existe e as decisões pendentes; o [diagnóstico e plano de evolução](docs/EVOLUCAO.md) organiza as próximas etapas. As [instruções para colaboradores](AGENTS.md) descrevem os cuidados com dados, integrações e verificação.
+Leia nesta ordem: [Regras de Negócio Consolidadas](docs/REGRAS_DE_NEGOCIO.md) e [Estado Atual e Pendências de Implementação](docs/IMPLEMENTACAO.md). O [aplicativo de desktop](companion/README.md) (o Lume completo numa janela própria, com bandeja, presença e atualização) e a [extensão do navegador](extension/LEIAME.md) estão descritos em seus próprios pacotes; [Publicação e CI](docs/RELEASE.md) explica como gerar o instalador pelo GitHub Actions; as [instruções para agentes e colaboradores](AGENTS.md) descrevem a arquitetura técnica, os cuidados com dados e a verificação.
 
 A gamificação de contas é validada no servidor (`public/xp-policy.js`): **100 XP por aula/leitura concluída, 120 por etapa de prova/exercício, 150 por entrega de projeto, 80 por apresentação de slides, 300 de bônus por curso concluído, 200 de bônus por disciplina concluída, 10 por subtarefa (teto de 50/dia), 30 por bloco de 25 minutos (teto de 120/dia) e curva progressiva de nível (`LEVEL_XP`)**. O livro `xp_events` usa chave de idempotência; repetir uma requisição não duplica recompensa. O saldo antigo do protótipo (5 XP por preparação, 10 XP por etapa e 10 XP por tarefa de prova) continua preservado e separado, fora do nível novo e do ranking.
 
 O onboarding tem três jornadas com sequências próprias: **Quero começar** (assunto, resultado, material e tempo de sessão), **Estudo de vez em quando** (materiais em andamento, prioridade e ponto de retomada) e **Estudo com frequência** (áreas, rotina, o que está em andamento e o que acompanhar). Cada uma cria um primeiro material concreto e um plano sugerido. Concluir o onboarding não concede XP.
 
-A biblioteca aceita **importação por link** em uma entrada única: o servidor lê a página pública, identifica disciplinas, módulos e aulas e a pessoa escolhe as áreas antes de adicionar. Quando a fonte exige login, a **extensão do navegador** (`extension/`, protótipo) lê a página já aberta pela pessoa, com a conta dela, quando ela clica no ícone: disciplinas, aulas, durações e o que aparece concluído, abrindo e fechando as seções para ler; a pessoa revisa antes de adicionar. Colar a página copiada continua como alternativa. Em nenhum caminho o Lume recebe senha, cookie ou sessão; conclusões já visíveis na primeira leitura entram como histórico identificado (sem XP), e só conclusões novas de uma leitura posterior, confirmadas por você, viram registro elegível. A leitura foi testada com páginas de exemplo e um trecho real do painel do Gran, não com contas reais das demais plataformas. Importar e atualizar a grade não gera XP. Detalhes e limitações por plataforma em [Importação](docs/IMPORTACAO.md).
+A biblioteca aceita **importação por link** em uma entrada única: o servidor lê a página pública, identifica disciplinas, módulos e aulas e a pessoa escolhe as áreas antes de adicionar. Quando a fonte exige login, a **extensão do navegador** (`extension/`, protótipo) lê a página já aberta pela pessoa, com a conta dela, quando ela clica no ícone: disciplinas, aulas, durações e o que aparece concluído, abrindo e fechando as seções para ler; a pessoa revisa antes de adicionar. Colar a página copiada continua como alternativa. Em nenhum caminho o Lume recebe senha, cookie ou sessão; conclusões já visíveis na primeira leitura entram como histórico identificado (sem XP), e só conclusões novas de uma leitura posterior, confirmadas por você, viram registro elegível. A leitura foi testada com páginas de exemplo e um trecho real do painel do Gran, não com contas reais das demais plataformas. Importar e atualizar a grade não gera XP. Detalhes em [Regras de Negócio §11](docs/REGRAS_DE_NEGOCIO.md#11-importação-de-cursos-extensão-mv3-e-aplicativo-de-desktop) e [Extensão do navegador](extension/LEIAME.md).
 
 A biblioteca agora também permite **criar material manualmente**, editar título/tipo/retomada, adicionar, renomear, reordenar e remover etapas, excluir com confirmação (pelo menu “…” no canto superior direito do cartão do curso, em **Excluir curso**) e anexar **slides internos**. O visualizador de slides funciona por teclado, salva o progresso e concede XP uma única vez quando 80% do deck foi visto, o último slide foi aberto e a pessoa confirma.
 
-A página **Hoje** abre pela **próxima ação**: a aula indicada pelo mesmo roteiro do aplicativo de desktop, o motivo da prioridade, o tempo a reservar (duração da fonte ou estimativa, sempre rotulada), o link do material e o que falta no curso; abaixo ficam as tarefas relevantes e a evolução recente. Ela também tem uma **sessão de estudo declarada**: a pessoa inicia, pausa e encerra um relógio vinculado ao material. Ao encerrar, o servidor confirma blocos de 25 minutos, com sobra acumulada, desconto de sobreposição e teto diário de 120 XP de tempo; pausas não contam e a sessão não comprova estudo. **Amigos** funcionam por convite reaproveitável de 7 dias, sem busca por e-mail; o **perfil entre amigos** mostra só o que cada pessoa escolhe compartilhar e usa XP validado no servidor. **Mensagens diretas** existem apenas entre amizades aceitas, com histórico, não lidas, compartilhamento de referência, bloqueio e controle de notificações. O **ranking de amigos** tem três abas (nível, cursos concluídos e empenho semanal/mensal), empates compartilhados e opt-in reversível; grupos e ranking público estão fora desta etapa. O **Plano** monta o cronograma a partir da disponibilidade semanal, dos prazos e das prioridades por curso, usando a duração das aulas quando a fonte a publica e uma estimativa rotulada quando não; explica quando um prazo não cabe e oferece três ajustes, e recalcula a partir de hoje a cada conclusão, adiamento ou pausa. Planejar não gera XP. A aba **Tarefas** guarda a lista de estudo com prioridade, aviso de atraso, vínculo opcional a uma aula e subtarefas: criar, priorizar e organizar não gera XP; tarefa sem vínculo vale 0 XP, tarefa vinculada conclui a aula correspondente uma única vez, e cada subtarefa concluída concede 10 XP uma única vez (teto de 50 XP/dia). O **aplicativo de desktop do Lume** é o próprio Lume numa janela própria, não só uma presença: conta, biblioteca, plano, amigos, mensagens, ranking e perfil são os mesmos do site (mesma API, sem banco local). Além do site, ele mantém a bandeja com aulas restantes e roteiro, uma presença opcional do aplicativo autorizado em uso e atualização pelo próprio app — nada disso gera XP. Tecnicamente o pacote se chama Companion (`companion/`, tags `companion-v*`). Ver [aplicativo de desktop](docs/COMPANHEIRO.md).
+A página **Hoje** abre pela **próxima ação**: a aula indicada pelo mesmo roteiro do aplicativo de desktop, o motivo da prioridade, o tempo a reservar (duração da fonte ou estimativa, sempre rotulada), o link do material e o que falta no curso; abaixo ficam as tarefas relevantes e a evolução recente. Ela também tem uma **sessão de estudo declarada**: a pessoa inicia, pausa e encerra um relógio vinculado ao material. Ao encerrar, o servidor confirma blocos de 25 minutos, com sobra acumulada, desconto de sobreposição e teto diário de 120 XP de tempo; pausas não contam e a sessão não comprova estudo. **Amigos** funcionam por convite reaproveitável de 7 dias, sem busca por e-mail; o **perfil entre amigos** mostra só o que cada pessoa escolhe compartilhar e usa XP validado no servidor. **Mensagens diretas** existem apenas entre amizades aceitas, com histórico, não lidas, compartilhamento de referência, bloqueio e controle de notificações. O **ranking de amigos** tem três abas (nível, cursos concluídos e empenho semanal/mensal), empates compartilhados e opt-in reversível; grupos e ranking público estão fora desta etapa. O **Plano** monta o cronograma a partir da disponibilidade semanal, dos prazos e das prioridades por curso, usando a duração das aulas quando a fonte a publica e uma estimativa rotulada quando não; explica quando um prazo não cabe e oferece três ajustes, e recalcula a partir de hoje a cada conclusão, adiamento ou pausa. Planejar não gera XP. A aba **Tarefas** guarda a lista de estudo com prioridade, aviso de atraso, vínculo opcional a uma aula e subtarefas: criar, priorizar e organizar não gera XP; tarefa sem vínculo vale 0 XP, tarefa vinculada conclui a aula correspondente uma única vez, e cada subtarefa concluída concede 10 XP uma única vez (teto de 50 XP/dia). O **aplicativo de desktop do Lume** é o próprio Lume numa janela própria, não só uma presença: conta, biblioteca, plano, amigos, mensagens, ranking e perfil são os mesmos do site (mesma API, sem banco local). Além do site, ele mantém a bandeja com aulas restantes e roteiro, uma presença opcional do aplicativo autorizado em uso e atualização pelo próprio app — nada disso gera XP. Tecnicamente o pacote se chama Companion (`companion/`, tags `companion-v*`). Ver [aplicativo de desktop](companion/README.md).
 
 ```sh
 cd D:\tabletop                    # a pasta deste projeto
@@ -80,12 +80,12 @@ npm run test:e2e
 
 Os testes de navegador usam Chrome instalado, em modo headless, com desktop e viewport móvel. Uma base SQLite separada em `data/e2e-*` impede alterações nas contas locais existentes. Os cenários verificam dados legados, prévia, teclado, busca, filtros, importação por texto, análise de link simulada por interceptação de rota, seleção parcial, reimportação, progresso manual, sessão declarada, importação de conta isolada, convite entre duas contas, Companion (pareamento, presença e revogação), preferências, cadastro, entrada, saída, sincronização, recuperação de senha, edição/exclusão de material, criação manual, slides, restauração de cópia, XP idempotente e ranking de amigos. Os rastros de falhas ficam em `test-results/`, ignorado no Git. O servidor de teste sobe com `LUME_ATTEMPT_LIMIT=1000` para não esbarrar no limite de tentativas compartilhado pelo endereço local; o padrão continua 10.
 
-A verificação atual passou o build, os **165 testes Node de domínio/autenticação/importação/Companion/sessão/amigos/perfil/tarefas/XP/biblioteca/backup/reconciliação/mensagens/e-mail/GitHub/colaboração** e os **54 cenários de navegador** da rodada anterior (27 por projeto, desktop e celular), que não foram reexecutados por inteiro depois da extensão; foram rodados os **16 novos da extensão** (8 por projeto, com páginas de exemplo e um trecho do painel do Gran) e os 6 de importação no desktop. A extração real de páginas foi conferida com acessos à Coursera, Alura, Rocketseat, DIO e Udemy; o resultado está documentado em [Importação](docs/IMPORTACAO.md#4-o-que-foi-realmente-verificado-nesta-rodada).
+A verificação atual inclui os **255 testes Node de domínio/autenticação/importação/Companion/sessão/amigos/perfil/tarefas/XP/biblioteca/backup/reconciliação/mensagens/e-mail/colaboração/agenda/PDF**, build estático e cenários E2E de navegador (desktop e celular).
 
 ## Dados e limites atuais
 
 As contas usam cookies HttpOnly e persistência direta na API: `GET /api/library` carrega a biblioteca e
-`POST /api/library/actions` grava operações por entidade. Materiais, unidades hierárquicas, progresso, tarefas
+`POST /api/library/actions` grava operações por entidade. Materiais, unidades hierárquicas, progresso, tarefas, disciplinas, arquivos PDF, compromissos da Agenda
 e sessões ficam em tabelas separadas. Revisão otimista impede sobrescrita concorrente; repetir a mesma
 operação não duplica XP. Conflitos pedem recarga, sem reconciliação de documentos no navegador.
 
@@ -93,12 +93,11 @@ Dados de estudo antigos do navegador são descartados por decisão explícita; n
 ou cópia em localStorage. A prévia dura só enquanto a página está aberta. Os documentos já existentes em
 `user_state` são preservados como arquivo (sem conversão implícita), e a conta entra com biblioteca v3; clientes antigos recebem
 `client_outdated` ao tentar gravar. Exportação JSON e restauração explícita no formato v3 com prévia
-continuam disponíveis, sem backup no navegador. `materialSteps`, `materialStructure` e `materialLesson` (`public/material-model.js`) derivam as visualizações a partir de `units`. O XP elegível fica em `xp_events`, separado do saldo legado. Esta revisão ainda não
-foi publicada.
+continuam disponíveis, sem backup no navegador. `materialSteps`, `materialStructure` e `materialLesson` (`public/material-model.js`) derivam as visualizações a partir de `units`. O XP elegível fica em `xp_events`, separado do saldo legado.
 
-O banco ganhou `xp_settings`, `xp_events`, `xp_time_sessions`, `user_achievements`, `direct_messages`, `contact_blocks`, `message_preferences`, `delivery_invites`, `companion_devices`, `companion_pair_codes`, `companion_presence`, `friendships` e `friend_invites`. Tokens de dispositivo, códigos de convite e códigos de pareamento são guardados apenas como hash. Presença expira em 90 segundos sem batimento e amizade não compartilha biblioteca nem progresso.
+O banco conta com `xp_settings`, `xp_events`, `xp_time_sessions`, `user_achievements`, `direct_messages`, `contact_blocks`, `message_preferences`, `delivery_invites`, `companion_devices`, `companion_pair_codes`, `companion_presence`, `friendships` e `friend_invites`. Tokens de dispositivo, códigos de convite e códigos de pareamento são guardados apenas como hash. Presença expira em 90 segundos sem batimento e amizade não compartilha biblioteca nem progresso.
 
-Cadastro, login, saída e recuperação por link funcionam. O envio de e-mail usa **Resend** quando `LUME_EMAIL_PROVIDER=resend`, `RESEND_API_KEY` e `LUME_EMAIL_FROM` estão configurados; sem isso, o modo local mostra o link no log e o Worker com `SHOW_RESET_LINK=false` não o devolve na resposta. A prévia continua disponível sem conta. A biblioteca começa vazia; a primeira trilha pode ser criada pela área de atuação informada ou importada por link. A importação de cursos por link existe e é documentada em [Importação](docs/IMPORTACAO.md); a análise depende do que cada plataforma publica e não contorna login.
+Cadastro, login, saída e recuperação por link funcionam. O envio de e-mail usa **Resend** quando `LUME_EMAIL_PROVIDER=resend`, `RESEND_API_KEY` e `LUME_EMAIL_FROM` estão configurados; sem isso, o modo local mostra o link no log e o Worker com `SHOW_RESET_LINK=false` não o devolve na resposta. A prévia continua disponível sem conta. A biblioteca começa vazia; a primeira trilha pode ser criada pela área de atuação informada, anexada como PDF ou importada por link. A análise de cursos por link depende do que cada plataforma publica e não contorna login.
 
 Mensagens diretas entre amizades, bloqueio, não lidas, notificações, compartilhamento de referência e convites de colaboração em entregas já existem. A integração com o GitHub foi removida em 12/11/2026. Compartilhamento de aprendizados em feed e progresso automático por API continuam pendentes. Comunidades, servidores, canais e grupos estão fora do escopo desta etapa.
 
@@ -123,36 +122,29 @@ Verificação desta troca: testes de autenticação/domínio, build estático, b
 | Caminho | Função |
 | --- | --- |
 | `src/pages/index.astro` | Documento HTML e entrada da ilha React |
-| `src/app/` | Casca: `App.jsx`, tabela de rotas (`routes.jsx`), diálogos (`modals.jsx`), menu e `useLume.js` (estado, conta, sincronização e `act`) |
-| `src/features/<área>/` | Telas por funcionalidade: `account`, `library`, `progress`, `plan`, `social`, `settings`, `desktop` |
-| `src/ui/` | Componentes visuais compartilhados e ícones |
-| `src/lib/api.js` | Cliente das APIs existentes |
-| `public/domain.js` | Domínio legado e restauração dos dados, preservados |
-| `public/import-domain.js` | Regras de importação: provedores, normalização, mesclagem, progresso de aulas |
-| `public/session-domain.js` | Sessão declarada: início, pausa, expiração e histórico |
-| `public/tasks-domain.js` | Tarefas de prova: criação, conclusão, XP e normalização |
-| `public/slides-domain.js` | Slides: criação, edição, ordem, progresso e conclusão do deck |
-| `public/xp-policy.js` | Política de XP v1, níveis, blocos, fuso e candidatos de conclusão |
-| `public/backup-domain.js` | Leitura, prévia e mesclagem de cópias JSON |
-| `api/domain/xp.js` | Livro de eventos, conquistas, tempo elegível e ranking no servidor |
-| `public/study-plan.js` | Roteiro por prioridade e contagem de aulas restantes |
+| `src/app/` | Casca: `App.jsx`, tabela de rotas (`routes.jsx`), diálogos (`modals.jsx`), menu (`Shell.jsx`) e `useLume.js` |
+| `src/features/<área>/` | Telas e estilos por funcionalidade: `account`, `library`, `progress`, `plan`, `agenda`, `social`, `settings`, `desktop` |
+| `src/ui/` | Componentes visuais compartilhados e ícones (`Icon.jsx`, `ui.jsx`, `Skeleton.jsx`) |
+| `src/lib/` | Cliente HTTP (`api.js`), cache compartilhado (`resources.js`) e ponte da extensão (`extension.js`) |
+| `src/styles/` | Tokens (`00-tokens.css`), base, shader, diálogos, responsividade e manifesto `lume.css` |
+| `public/domain.js` | Domínio v3, onboarding, cargos, conquistas e restauração validada |
+| `public/material-model.js` | Modelo de materiais/unidades e projeções derivadas (`materialSteps`, `materialStructure`, `materialLesson`) |
+| `public/progress-domain.js` | Registro único de progresso do estado v3 (`state.progress`) |
+| `public/import-domain.js` / `public/providers/` | Regras de importação, registro de provedores, mesclagem e reimportação |
+| `public/session-domain.js` | Sessão declarada: início, pausa, expiração, ritmo semanal e histórico |
+| `public/tasks-domain.js` | Tarefas e subtarefas: criação, conclusão vinculada, foco e normalização |
+| `public/agenda-domain.js` | Agenda: compromissos, recorrência, fuso, checklists e lembretes |
+| `public/pdf-domain.js` / `public/subject-domain.js` | PDFs anexados, leitura por página e disciplinas da biblioteca |
+| `public/slides-domain.js` | Slides: criação, edição, ordem, progresso e conclusão do deck (cobertura >= 80%) |
+| `public/xp-policy.js` | Política de XP v2, curva de níveis (`LEVEL_XP`), blocos de tempo e tetos diários |
+| `public/backup-domain.js` / `public/merge-domain.js` | Exportação, restauração e mesclagem explícita de cópias JSON v3 |
+| `public/study-plan.js` / `public/schedule-domain.js` | Roteiro por prioridade (`nextAction`) e cronograma semanal derivado |
 | `public/companion-domain.js` | Regras do aplicativo de desktop: allowlist, presença e categorias |
-| `extension/` | Extensão do navegador (Manifest V3, sem build): leitor de curso acionado pela pessoa, ponte para o Lume e popup; ver `extension/LEIAME.md` |
-| `src/lib/extension.js` | Recebe a leitura da extensão por `postMessage` e abre a revisão da importação |
-| `public/profile-domain.js` | Projeção do perfil entre amigos, com as escolhas de compartilhamento |
-| `api/domain/import-server.js` | Análise de fontes no servidor: validação de URL, limites, extração e organizador por IA |
-| `api/domain/companion.js` / `companion/` | Aplicativo de desktop (nome técnico Companion): janela com o Lume completo, bandeja, pareamento, presença, roteiro e atualização; núcleo, agente local e app Electron |
-| `companion/electron-builder.yml` | Empacotamento do instalador Windows (NSIS) |
-| `lume.cmd` | Iniciador do app de bandeja; funciona de qualquer pasta |
-| `.github/workflows/` | CI do site e da extensão, e publicação do instalador do aplicativo de desktop |
-| `api/domain/friends.js` | Convites, amizades e remoção |
-| `public/*.css` | Estilos, sistema visual unificado e interações |
-| `public/assets/` | Fontes e imagens locais |
-| `api/domain/auth.js` | Validação, derivação de senha, tokens e cookies |
-| `api/` | App HTTP único: rotas, sessão, limites, erros e adaptadores de banco e imagens |
-| `server.js` | Adaptador Node: SQLite local, imagens em `data/media/` e entrega do build estático |
-| `worker.js` / `wrangler.jsonc` | Adaptador Cloudflare (D1, R2, estáticos) e configuração de build |
-| `migrations/` | Esquema do banco existente |
-| `scripts/` | Desenvolvimento e geração de cabeçalhos CSP |
-| `tests/e2e/` | Verificação dos fluxos no navegador |
-| `docs/` | Produto, gamificação, continuidade e importação |
+| `public/profile-domain.js` | Projeção do perfil entre amigos com controle de privacidade |
+| `extension/` | Extensão do navegador (Manifest V3, build com esbuild via `npm run extension:build`); ver `extension/LEIAME.md` |
+| `api/` | App HTTP único (`api/app.js`), rotas (`api/routes/`), regras de servidor (`api/domain/`) e adaptadores SQLite/D1/mídia |
+| `companion/` | Aplicativo de desktop Electron (janela, bandeja, presença, Discord, atualizador); ver `companion/README.md` |
+| `server.js` / `worker.js` | Adaptadores de execução para Node (`node:sqlite` + `data/media/`) e Cloudflare Workers (D1 + R2) |
+| `migrations/` | Migrações SQL aplicadas em ordem alfabética |
+| `tests/unit/` / `tests/e2e/` | Suíte de testes unitários/contrato (`node --test`) e testes de navegador (Playwright) |
+| `docs/` | Documentação consolidada: `REGRAS_DE_NEGOCIO.md`, `IMPLEMENTACAO.md` e `RELEASE.md` |

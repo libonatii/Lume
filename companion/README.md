@@ -1,7 +1,7 @@
 # Lume — programa de desktop
 
-Este README cobre o pacote `companion/`. A visão completa do programa está em
-[docs/COMPANHEIRO.md](../docs/COMPANHEIRO.md); a publicação do instalador está em
+Este README cobre o pacote `companion/`. As regras de negócio do produto estão em
+[docs/REGRAS_DE_NEGOCIO.md](../docs/REGRAS_DE_NEGOCIO.md); a publicação do instalador está em
 [docs/RELEASE.md](../docs/RELEASE.md).
 
 O app é o **Lume completo em uma janela**: carrega o site publicado na mesma origem
@@ -35,7 +35,7 @@ continua disponível para diagnóstico.
 - Não conta tempo como estudo, não conclui aulas e **não gera XP**.
 - Não tem banco local nem uma segunda conta: o app usa a API do site.
 - Não funciona fora do Windows nesta versão.
-- Presença social entre amigos, mensagens diretas e feed continuam pendentes no produto; ranking de amigos já existe. Comunidades, servidores, canais e grupos estão fora do escopo desta etapa.
+- Comunidades, servidores, canais e grupos estão fora do escopo desta etapa.
 
 ## Desenvolvimento
 
