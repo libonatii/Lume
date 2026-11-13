@@ -136,14 +136,6 @@ export default function Friends({ account, state, xp, inviteCode = '', notify, g
           </section>
 
           <CollaborationInbox account={account} notify={notify}/>
-          {data?.invites.length > 0 && <section className="card-surface social-panel">
-            <h2 className="title">Seus convites</h2><p className="quiet-note">Só o mais recente fica ativo.</p>
-            <ul className="invite-history">{data.invites.map((item, index) => <li key={`${item.createdAt}-${index}`}>
-              <span>{new Date(item.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
-              <span className={`invite-status ${item.expired ? 'is-expired' : item.uses > 0 ? 'is-used' : 'is-open'}`}>{item.expired ? 'expirado' : item.uses > 0 ? `${item.uses} ${item.uses === 1 ? 'pessoa entrou' : 'pessoas entraram'}` : 'aguardando'}</span>
-            </li>)}</ul>
-          </section>}
-          <p className="social-privacy-note"><Icon name="lock"/><span>Uma rede só entre amigos. Publicações, comentários e reações não geram XP.</span></p>
         </aside>
       </div>}
   </div>;

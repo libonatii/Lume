@@ -182,46 +182,6 @@
 .social-invite-form .button { justify-self: start; font-size: 0.8rem; }
 .social-ranking-link p { margin: 0; color: var(--text-subtle); font-size: 0.8rem; line-height: 1.7; }
 .social-ranking-icon { color: var(--reward); }
-.social-privacy-note { display: flex; align-items: flex-start; gap: var(--space-2); margin: 0; color: var(--text-subtle); font-size: 0.7rem; line-height: 1.8; }
-.social-privacy-note .icon { flex-shrink: 0; width: 0.9rem; height: 0.9rem; margin-top: var(--space-1); }
-
-.invite-history {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 0.3rem;
-}
-.invite-history li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  padding-bottom: 0.3rem;
-  border-bottom: 1px solid var(--border);
-}
-.invite-history li:last-child {
-  border-bottom: 0;
-}
-.invite-status {
-  padding: 0.12rem 0.45rem;
-  border-radius: var(--radius-pill);
-  font-size: 0.68rem;
-  font-weight: 600;
-}
-.invite-status.is-open {
-  background: var(--mint-soft);
-  color: var(--mint);
-}
-.invite-status.is-used {
-  background: var(--lume-soft);
-  color: var(--lume);
-}
-.invite-status.is-expired {
-  background: var(--surface-3);
-  color: var(--text-subtle);
-}
 @media (max-width: 900px) {
   .social-layout { grid-template-columns: minmax(0, 1fr); }
   .social-sidebar { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
