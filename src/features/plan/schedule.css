@@ -279,13 +279,13 @@
   padding: 1.15rem;
   border-radius: var(--radius-lg);
   background: color-mix(in srgb, var(--surface-2) 70%, transparent);
-  overflow: hidden;
 }
 .plan-day-detail::before {
   content: "";
   position: absolute;
   inset: 0 0 auto;
   height: 3px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   background: linear-gradient(90deg, var(--lilac), var(--mint));
 }
 .plan-day-detail-head {

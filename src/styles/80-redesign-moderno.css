@@ -86,7 +86,6 @@ body {
 /* Cartões Bento */
 .card-surface {
   position: relative;
-  overflow: hidden;
   border-radius: var(--radius-lg);
   background: linear-gradient(135deg, var(--card-from), var(--card-to));
   border: 1px solid color-mix(in srgb, var(--surface-3) 55%, transparent);
@@ -102,6 +101,7 @@ body {
   position: absolute;
   inset: 0 0 auto;
   height: 2px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   background: var(--crest);
 }
 .card-icon {
@@ -494,5 +494,7 @@ html[data-theme='light'] .soft-badge.tone-reward {
   position: absolute;
   inset: 0 0 auto;
   height: 2px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   background: var(--crest);
+  pointer-events: none;
 }

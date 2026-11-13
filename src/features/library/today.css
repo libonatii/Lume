@@ -16,7 +16,6 @@
 .today-welcome {
   grid-column: 1 / -1;
   position: relative;
-  overflow: hidden;
   display: grid;
   gap: 1.1rem;
   padding: clamp(1.35rem, 2.5vw, 2rem);
@@ -32,6 +31,7 @@
   position: absolute;
   inset: 0 0 auto;
   height: 2px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   background: var(--crest);
   pointer-events: none;
 }
@@ -99,7 +99,6 @@ html[data-theme='light'] .today-greeting span {
   gap: 1.15rem;
   padding: clamp(1.35rem, 2.5vw, 1.85rem);
   position: relative;
-  overflow: hidden;
 }
 
 .today-hero-block::before {
@@ -107,6 +106,7 @@ html[data-theme='light'] .today-greeting span {
   position: absolute;
   inset: 0 0 auto;
   height: 2px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   background: var(--crest);
   pointer-events: none;
 }
