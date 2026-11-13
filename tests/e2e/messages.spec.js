@@ -49,7 +49,7 @@ test('mensagem direta entre amizades, não lida, bloqueio e desbloqueio', async 
 
   // Ana abre a conversa pela lista de amigos.
   await page.reload();
-  await expect(page.getByText('Bia Mensagens')).toBeVisible();
+  await expect(page.locator('#main').getByText('Bia Mensagens', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Conversar com Bia Mensagens' }).click();
   await expect(page.getByRole('heading', { name: 'Mensagens', exact: true })).toBeVisible();
   await expect(page.getByText('Comece uma conversa')).toBeVisible();
@@ -123,7 +123,7 @@ test('fotos de perfil na área Social e aviso flutuante de mensagem nova', async
 
   // A foto da amizade aparece em Amigos, Mensagens e Ranking; sem foto, a inicial.
   await page.reload();
-  await expect(page.locator(`.social-avatar img[src="${avatar}"]`).first()).toBeVisible();
+  await expect(page.locator(`#main .social-avatar img[src="${avatar}"]`).first()).toBeVisible();
   await page.goto('/#mensagens');
   const conversation = page.getByRole('button', { name: /Bia Aviso/ });
   await expect(conversation.locator(`.conversation-avatar img[src="${avatar}"]`)).toBeVisible();
