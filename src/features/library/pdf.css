@@ -221,6 +221,115 @@ dialog#dialog:has(.pdf-reader) > div {
   user-select: none;
 }
 
+/* --- Marca-texto --- */
+.pdf-marker {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.pdf-marker .chip-button.is-active,
+.pdf-marker .icon-button.is-active {
+  border-color: var(--lume);
+  background: color-mix(in srgb, var(--lume) 18%, var(--surface));
+  color: var(--text);
+}
+.pdf-marker-colors {
+  display: flex;
+  gap: 0.35rem;
+}
+.marker-amarelo { --marker: var(--highlight-amarelo); }
+.marker-verde { --marker: var(--highlight-verde); }
+.marker-azul { --marker: var(--highlight-azul); }
+.marker-rosa { --marker: var(--highlight-rosa); }
+.marker-laranja { --marker: var(--highlight-laranja); }
+.marker-swatch {
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--marker);
+  cursor: pointer;
+}
+.marker-swatch[aria-checked="true"] {
+  border-color: var(--text);
+  box-shadow: 0 0 0 2px var(--surface-2), 0 0 0 4px var(--lume);
+}
+.pdf-marker-hint {
+  font-size: 0.82rem;
+  color: var(--text-subtle);
+}
+.pdf-highlights {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.pdf-highlight {
+  position: absolute;
+  background: var(--marker);
+  mix-blend-mode: multiply;
+  opacity: 0.55;
+  border-radius: 2px;
+}
+.pdf-page.is-marking .textLayer ::selection {
+  background: color-mix(in srgb, var(--marker) 60%, transparent);
+}
+.pdf-page.is-marking .textLayer :is(span, br) {
+  cursor: text;
+}
+.pdf-page.is-erasing,
+.pdf-page.is-erasing .textLayer :is(span, br) {
+  cursor: crosshair;
+}
+.pdf-marks .title small {
+  display: block;
+  font-weight: 500;
+}
+.pdf-marks-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+.pdf-marks-list li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.25rem 0.5rem;
+  padding: 0.5rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.marker-dot {
+  width: 0.8rem;
+  height: 0.8rem;
+  margin-top: 0.25rem;
+  border-radius: 50%;
+  background: var(--marker);
+}
+.pdf-mark-text {
+  margin: 0;
+  font-size: 0.85rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.pdf-mark-actions {
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.pdf-mark-actions select {
+  padding: 0.25rem 0.4rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+}
+
 /* --- Disciplinas --- */
 .subjects-grid {
   display: grid;

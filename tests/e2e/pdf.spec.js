@@ -74,3 +74,38 @@ test('concluir o PDF registra a leitura uma vez e excluir libera o arquivo', asy
   const after = await (await page.request.get('/api/library/files', { headers: { origin: 'http://127.0.0.1:4187' } })).json();
   expect(after).toMatchObject({ files: 0, used: 0 });
 });
+
+test('PDF recém-anexado fica não iniciado e o marca-texto marca, troca a cor e apaga', async ({ page }) => {
+  await seedAccount(page, seeded());
+  await page.goto('/#biblioteca');
+  await page.getByRole('button', { name: 'Anexar PDF', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.locator('input[type=file]').setInputFiles({ name: 'apostila-penal.pdf', mimeType: 'application/pdf', buffer: penalPdf() });
+  await expect(dialog.getByText(/6 páginas/)).toBeVisible();
+  await dialog.getByRole('button', { name: 'Anexar PDF' }).click();
+  await expect(dialog.locator('.pdf-page canvas')).toBeVisible();
+  await expect(dialog.locator('.textLayer span').first()).toBeVisible();
+
+  await dialog.getByRole('button', { name: 'Marca-texto' }).click();
+  await dialog.getByRole('radio', { name: 'Verde' }).click();
+  await dialog.locator('.textLayer span').first().selectText();
+  await dialog.locator('.textLayer span').first().dispatchEvent('pointerup');
+  await expect(dialog.locator('.pdf-highlight.marker-verde').first()).toBeVisible();
+  const marks = dialog.getByRole('region', { name: /Marcações/ });
+  await marks.getByLabel(/Cor da marcação/).selectOption('rosa');
+  await expect(dialog.locator('.pdf-highlight.marker-rosa').first()).toBeVisible();
+  await expect.poll(async () => (await readAccount(page)).courses[0]?.highlights?.map((item) => item.color), { timeout: 15000 }).toEqual(['rosa']);
+
+  await dialog.getByRole('button', { name: /Borracha/ }).click();
+  const box = await dialog.locator('.pdf-highlight').first().boundingBox();
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await expect(dialog.locator('.pdf-highlight')).toHaveCount(0);
+  await expect.poll(async () => (await readAccount(page)).courses[0]?.highlights?.length, { timeout: 15000 }).toBe(0);
+
+  await page.getByRole('button', { name: 'Fechar janela' }).click();
+  const saved = await readAccount(page);
+  expect(saved.courses[0].reading).toBeNull();
+  const row = page.locator('.reading-row').filter({ hasText: 'Apostila de Processo Penal' });
+  await expect(row.getByText(/6 páginas · não iniciado/)).toBeVisible();
+  await expect(row.getByText('0%')).toBeVisible();
+});
