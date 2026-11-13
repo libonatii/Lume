@@ -37,8 +37,8 @@ test('calendário mensal, criação, checklist editável e sobreposição', asyn
   await expect(page.getByLabel('Fuso do compromisso')).not.toBeVisible();
   // Tipo, lembrete e repetição ficam à vista; só o fuso fica recolhido.
   await expect(page.getByRole('radio', { name: 'Estudo', exact: true })).toBeChecked();
-  await expect(page.getByLabel('Lembrete', { exact: true })).toBeVisible();
-  await expect(page.getByLabel('Repetição', { exact: true })).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Lembrete', exact: true })).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Repetição', exact: true })).toBeVisible();
   await page.getByLabel('Título do compromisso').fill('Revisão constitucional');
   await hours(page, '09:00', '10:00');
   await page.getByRole('button', { name: '+ Adicionar checklist', exact: true }).click();

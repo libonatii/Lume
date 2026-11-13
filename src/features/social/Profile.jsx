@@ -196,9 +196,9 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
             {isSelf && <Button secondary onClick={() => setEditing((prev) => !prev)} aria-expanded={editing}>
               <Icon name="edit"/>{editing ? 'Fechar edição' : 'Editar perfil'}
             </Button>}
-            <Button secondary onClick={() => go('amigos')}>
+            {!isSelf && <Button secondary onClick={() => go('amigos')}>
               <Icon name="users"/>Amigos
-            </Button>
+            </Button>}
             {isSelf && <Button ghost onClick={() => go('configuracoes')}>
               <Icon name="settings"/>Privacidade
             </Button>}
