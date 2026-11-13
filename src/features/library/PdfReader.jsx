@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { formatBytes, identifyPage, readingLabel } from '../../../public/pdf-domain.js';
+import { HIGHLIGHT_COLORS, formatBytes, highlightAt, identifyPage, readingLabel } from '../../../public/pdf-domain.js';
 import { materialStanding, subjectOf } from '../../../public/subject-domain.js';
 import { materialSteps } from '../../../public/material-model.js';
 import { isCompleted } from '../../../public/progress-domain.js';
@@ -9,6 +9,14 @@ import { Button, Progress, Skeleton } from '../../ui/ui.jsx';
 
 const SAVE_DELAY = 1200;
 const ZOOMS = [0.75, 1, 1.25, 1.5, 2];
+const colorLabel = (id) => HIGHLIGHT_COLORS.find((item) => item.id === id)?.label || id;
+
+// Retângulos da seleção em fração da página, para a marcação acompanhar o zoom.
+function selectionRects(range, box) {
+  return [...range.getClientRects()]
+    .filter((rect) => rect.width > 1 && rect.height > 1)
+    .map((rect) => ({ x: (rect.left - box.left) / box.width, y: (rect.top - box.top) / box.height, w: rect.width / box.width, h: rect.height / box.height }));
+}
 
 function SubjectSelect({ state, course, actions, label = 'Disciplina' }) {
   return <label className="field pdf-subject-field">{label}
@@ -54,7 +62,9 @@ export default function PdfReader({ course, state, actions, progressActions, not
   const [showOutline, setShowOutline] = useState(false);
   const [showPanel, setShowPanel] = useState(true);
   const [ai, setAi] = useState({ available: false, status: 'idle', result: null, error: '' });
+  const [marker, setMarker] = useState({ on: false, color: HIGHLIGHT_COLORS[0].id, erase: false });
   const stage = useRef(null);
+  const sheet = useRef(null);
   const canvas = useRef(null);
   const layer = useRef(null);
   const pending = useRef(null);
@@ -63,6 +73,8 @@ export default function PdfReader({ course, state, actions, progressActions, not
   const pages = course.pdf.pages;
   const subject = subjectOf(state, course);
   const outline = course.pdf.outline;
+  const highlights = course.highlights || [];
+  const pageHighlights = highlights.filter((item) => item.page === page);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -177,6 +189,30 @@ export default function PdfReader({ course, state, actions, progressActions, not
     }
   }
 
+  function mark(rule) {
+    try { rule(); } catch (error) { notify(error.message); }
+  }
+
+  // Com o marca-texto ligado: selecionar texto marca na cor escolhida; clicar
+  // numa marcação troca a cor dela, ou apaga com a borracha.
+  function onMarkerUp(event) {
+    if (!marker.on) return;
+    const box = sheet.current.getBoundingClientRect();
+    const selection = window.getSelection();
+    const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
+    if (range && !range.collapsed && layer.current.contains(range.commonAncestorContainer)) {
+      if (marker.erase) return;
+      const rects = selectionRects(range, box);
+      const text = selection.toString();
+      selection.removeAllRanges();
+      mark(() => actions.addHighlight(course.id, { page, color: marker.color, rects, text }));
+      return;
+    }
+    const hit = highlightAt(highlights, page, { x: (event.clientX - box.left) / box.width, y: (event.clientY - box.top) / box.height });
+    if (!hit) return;
+    mark(() => marker.erase ? actions.removeHighlight(course.id, hit.id) : actions.recolorHighlight(course.id, hit.id, marker.color));
+  }
+
   const aiSubject = ai.result?.subject ? (state.subjects || []).find((item) => item.title === ai.result.subject) : null;
   return <div className={`pdf-reader ${showPanel ? 'with-panel' : ''}`}>
     <header className="pdf-toolbar">
@@ -197,6 +233,17 @@ export default function PdfReader({ course, state, actions, progressActions, not
         {outline.length > 0 && <button type="button" className="chip-button" aria-expanded={showOutline} onClick={() => setShowOutline((value) => !value)}><Icon name="list"/>Sumário</button>}
         <button type="button" className="chip-button" aria-expanded={showPanel} onClick={() => setShowPanel((value) => !value)}><Icon name="spark"/>Leitor inteligente</button>
       </div>
+      <div className="pdf-marker" role="group" aria-label="Marca-texto">
+        <button type="button" className={`chip-button ${marker.on ? 'is-active' : ''}`} aria-pressed={marker.on} onClick={() => setMarker((value) => ({ ...value, on: !value.on, erase: false }))}><Icon name="highlighter"/>Marca-texto</button>
+        {marker.on && <>
+          <div className="pdf-marker-colors" role="radiogroup" aria-label="Cor do marca-texto">
+            {HIGHLIGHT_COLORS.map((item) => <button key={item.id} type="button" role="radio" aria-checked={!marker.erase && marker.color === item.id} aria-label={item.label} title={item.label}
+              className={`marker-swatch marker-${item.id}`} onClick={() => setMarker((value) => ({ ...value, color: item.id, erase: false }))}/>)}
+          </div>
+          <button type="button" className={`icon-button ${marker.erase ? 'is-active' : ''}`} aria-pressed={marker.erase} aria-label="Borracha: clique numa marcação para apagar" title="Borracha" onClick={() => setMarker((value) => ({ ...value, erase: !value.erase }))}><Icon name="eraser"/></button>
+          <span className="pdf-marker-hint" aria-live="polite">{marker.erase ? 'Clique numa marcação para apagar.' : 'Selecione o texto para marcar; clique numa marcação para trocar a cor.'}</span>
+        </>}
+      </div>
     </header>
 
     <div className="pdf-body">
@@ -210,8 +257,12 @@ export default function PdfReader({ course, state, actions, progressActions, not
         {loadError
           ? <p className="form-error" role="alert">{loadError}</p>
           : !doc && <Skeleton label="Abrindo o PDF…" rows={3} variant="text"/>}
-        <div className="pdf-page" hidden={!doc || Boolean(loadError)}>
+        <div ref={sheet} className={`pdf-page ${marker.on ? (marker.erase ? 'is-erasing' : `is-marking marker-${marker.color}`) : ''}`} hidden={!doc || Boolean(loadError)} onPointerUp={onMarkerUp}>
           <canvas ref={canvas}/>
+          <div className="pdf-highlights" aria-hidden="true">
+            {pageHighlights.flatMap((item) => item.rects.map((rect, index) => <span key={`${item.id}-${index}`} className={`pdf-highlight marker-${item.color}`}
+              style={{ left: `${rect.x * 100}%`, top: `${rect.y * 100}%`, width: `${rect.w * 100}%`, height: `${rect.h * 100}%` }}/>))}
+          </div>
           <div ref={layer} className="textLayer"/>
         </div>
       </div>
@@ -242,6 +293,24 @@ export default function PdfReader({ course, state, actions, progressActions, not
             {aiSubject && aiSubject.id !== course.subjectId && <Button ghost onClick={() => actions.linkSubject(course.id, aiSubject.id)}>Vincular a {aiSubject.title}</Button>}
           </div>}
         </div>}
+        <section className="pdf-marks" aria-labelledby="pdf-marks-title">
+          <h3 id="pdf-marks-title" className="title">Marcações <small className="fact-source">{pageHighlights.length} nesta página · {highlights.length} no PDF</small></h3>
+          {pageHighlights.length
+            ? <ul className="pdf-marks-list">{pageHighlights.map((item) => <li key={item.id}>
+              <span className={`marker-dot marker-${item.color}`} aria-hidden="true"/>
+              <p className="pdf-mark-text">{item.text || 'Trecho sem texto extraível'}</p>
+              <div className="pdf-mark-actions">
+                <label><span className="sr-only">Cor da marcação</span>
+                  <select value={item.color} onChange={(event) => mark(() => actions.recolorHighlight(course.id, item.id, event.target.value))} aria-label={`Cor da marcação: ${colorLabel(item.color)}`}>
+                    {HIGHLIGHT_COLORS.map((color) => <option key={color.id} value={color.id}>{color.label}</option>)}
+                  </select>
+                </label>
+                <button type="button" className="icon-button" onClick={() => mark(() => actions.removeHighlight(course.id, item.id))} aria-label="Apagar marcação"><Icon name="trash"/></button>
+              </div>
+            </li>)}</ul>
+            : <p className="quiet-note">{marker.on ? 'Selecione um trecho da página para marcar.' : 'Ligue o marca-texto na barra do leitor para destacar trechos.'}</p>}
+          {highlights.length > pageHighlights.length && <p className="quiet-note">Outras páginas com marcações: {[...new Set(highlights.filter((item) => item.page !== page).map((item) => item.page))].sort((a, b) => a - b).slice(0, 12).map((value, index) => <span key={value}>{index ? ', ' : ''}<button type="button" className="text-button" onClick={() => go(value)}>p. {value}</button></span>)}</p>}
+        </section>
         <SubjectSelect state={state} course={course} actions={actions} label="Vínculo do material"/>
         <div className="pdf-finish">
           {done

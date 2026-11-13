@@ -11,8 +11,8 @@ import { libraryActions } from '../../public/library-actions.js';
 import { addCourse, completeMission, createInitialState, deleteCourse, restoreState, materialType } from '../../public/domain.js';
 import { materialSteps } from '../../public/material-model.js';
 import {
-  PDF_PLANS, addPdfMaterial, identifyPage, linesFromItems, normalizePdfMeta, pageHeading, pageKeywords, readingLabel,
-  scoreSubjects, sectionAt, sectionsCovered, setReadingPage, suggestSubject,
+  MAX_HIGHLIGHTS, PDF_PLANS, addHighlight, addPdfMaterial, highlightAt, identifyPage, linesFromItems, mergeRects, normalizePdfMeta,
+  pageHeading, pageKeywords, readingLabel, recolorHighlight, removeHighlight, scoreSubjects, sectionAt, sectionsCovered, setReadingPage, suggestSubject,
 } from '../../public/pdf-domain.js';
 import { addSubject, deleteSubject, linkMaterialSubject, materialStanding, subjectOverview, updateSubject } from '../../public/subject-domain.js';
 import { nextAction } from '../../public/study-plan.js';
@@ -89,6 +89,59 @@ test('restauração descarta vínculo com disciplina inexistente e PDF sem metad
   assert.equal(normalizePdfMeta({ ...FILE, pages: 0 }), null);
   const invalid = restoreState(JSON.stringify({ ...state, courses: [{ ...state.courses[0], pdf: { fileId: '?' } }] }));
   assert.notEqual(invalid.courses[0].type, 'pdf');
+});
+
+test('abrir o PDF na primeira página não conta como leitura iniciada', () => {
+  let state = addPdfMaterial(createInitialState(), { file: { ...FILE, pages: 3 } }, 'pdf1');
+  assert.equal(setReadingPage(state, 'pdf1', { page: 1 }), state, 'o leitor abre sozinho depois de anexar e não grava a p. 1');
+  const course = state.courses[0];
+  assert.equal(materialStanding(state, course).percent, 0);
+  assert.equal(materialStanding(state, course).label, '3 páginas · não iniciado');
+
+  // Registro antigo gravado só por abrir o leitor volta a "não iniciado".
+  const legacy = restoreState(JSON.stringify({ ...state, courses: [{ ...course, reading: { page: 1, maxPage: 1, section: '', updatedAt: '2026-11-11T10:00:00.000Z' } }] }));
+  assert.equal(legacy.courses[0].reading, null);
+  assert.equal(materialStanding(legacy, legacy.courses[0]).percent, 0);
+  assert.equal(nextAction(legacy).pdf.started, false);
+
+  state = setReadingPage(state, 'pdf1', { page: 2 }, '2026-11-12T10:00:00.000Z');
+  state = setReadingPage(state, 'pdf1', { page: 1 }, '2026-11-12T10:05:00.000Z');
+  assert.deepEqual(state.courses[0].reading, { page: 1, maxPage: 2, section: '', updatedAt: '2026-11-12T10:05:00.000Z' }, 'voltar à p. 1 depois de avançar mantém a retomada');
+  assert.equal(restoreState(JSON.stringify(state)).courses[0].reading.maxPage, 2);
+  assert.equal(materialStanding(state, state.courses[0]).percent, 67);
+});
+
+test('marca-texto: marcações por página, várias cores, troca de cor e remoção', () => {
+  let state = addPdfMaterial(createInitialState(), { file: FILE }, 'pdf1');
+  assert.deepEqual(state.courses[0].highlights, []);
+  const rects = [{ x: 0.1, y: 0.2, w: 0.2, h: 0.02 }, { x: 0.29, y: 0.2, w: 0.3, h: 0.021 }, { x: 0.1, y: 0.23, w: 0.4, h: 0.02 }];
+  state = addHighlight(state, 'pdf1', { page: 3, color: 'verde', rects, text: '  Notitia   criminis ' }, 'h1', '2026-11-12T10:00:00.000Z');
+  const [mark] = state.courses[0].highlights;
+  assert.equal(mark.color, 'verde');
+  assert.equal(mark.text, 'Notitia criminis');
+  assert.equal(mark.rects.length, 2, 'trechos da mesma linha viram um retângulo');
+  assert.deepEqual(mark.rects[0], { x: 0.1, y: 0.2, w: 0.49, h: 0.021 });
+  assert.equal(highlightAt(state.courses[0].highlights, 3, { x: 0.3, y: 0.21 })?.id, 'h1');
+  assert.equal(highlightAt(state.courses[0].highlights, 4, { x: 0.3, y: 0.21 }), null);
+
+  state = addHighlight(state, 'pdf1', { page: 3, color: 'cor-inventada', rects: [{ x: 0.5, y: 0.5, w: 0.1, h: 0.02 }] }, 'h2');
+  assert.equal(state.courses[0].highlights[1].color, 'amarelo', 'cor desconhecida usa a primeira');
+  assert.throws(() => addHighlight(state, 'pdf1', { page: 3, color: 'azul', rects: [] }), /Selecione um trecho/);
+  assert.throws(() => addHighlight(state, 'pdf1', { page: 99, color: 'azul', rects }), /Selecione um trecho/);
+  assert.deepEqual(mergeRects([{ x: -0.1, y: 0.9, w: 0.3, h: 0.2 }]), [{ x: 0, y: 0.9, w: 0.2, h: 0.1 }], 'recorta à página');
+
+  state = recolorHighlight(state, 'pdf1', 'h1', 'rosa');
+  assert.equal(state.courses[0].highlights[0].color, 'rosa');
+  assert.equal(recolorHighlight(state, 'pdf1', 'h1', 'rosa'), state, 'mesma cor não grava');
+  assert.throws(() => recolorHighlight(state, 'pdf1', 'h1', 'roxo'), /desconhecida/);
+  state = removeHighlight(state, 'pdf1', 'h2');
+  assert.deepEqual(state.courses[0].highlights.map((item) => item.id), ['h1']);
+  assert.equal(removeHighlight(state, 'pdf1', 'nao-existe'), state);
+
+  const restored = restoreState(JSON.stringify({ ...state, courses: [{ ...state.courses[0], highlights: [...state.courses[0].highlights, { id: 'ruim', page: 3, rects: [{ x: 2, y: 0, w: 1, h: 1 }] }] }] }));
+  assert.deepEqual(restored.courses[0].highlights.map((item) => item.id), ['h1'], 'marcação inválida é descartada');
+  const full = { ...state, courses: [{ ...state.courses[0], highlights: Array.from({ length: MAX_HIGHLIGHTS }, (_, index) => ({ ...mark, id: `m${index}` })) }] };
+  assert.throws(() => addHighlight(full, 'pdf1', { page: 3, color: 'azul', rects }), /marcações/);
 });
 
 test('disciplinas: nome único, exclusão só desfaz vínculos e visão mostra retomada e seções', () => {
@@ -226,7 +279,9 @@ test('biblioteca aceita PDF enviado, concede 100 XP de leitura uma vez e libera 
   // Virar página só grava a retomada; não há XP.
   current = await save(db, current, setReadingPage(current.state, 'pdf1', { page: 12, section: 'Ação penal pública' }), 'pagina', bucket);
   assert.equal(current.state.courses[0].reading.page, 12);
-  assert.equal((await getXpSnapshot(db, 'u1')).summary.totalXP, 0);
+  current = await save(db, current, addHighlight(current.state, 'pdf1', { page: 12, color: 'azul', rects: [{ x: 0.1, y: 0.1, w: 0.5, h: 0.02 }], text: 'Ação penal' }, 'h1'), 'marca', bucket);
+  assert.deepEqual((await readLibrary(db, 'u1')).state.courses[0].highlights.map((item) => [item.id, item.color, item.page]), [['h1', 'azul', 12]]);
+  assert.equal((await getXpSnapshot(db, 'u1')).summary.totalXP, 0, 'virar páginas e marcar texto não geram XP');
 
   // Trocar o arquivo ou apontar para disciplina inexistente é recusado.
   const swapped = { ...current.state, courses: [{ ...current.state.courses[0], pdf: { ...current.state.courses[0].pdf, fileId: 'outro-arquivo' } }] };

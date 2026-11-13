@@ -10,7 +10,7 @@ import { timeStatements } from './library-time.js';
 import { subtaskStatements } from './library-subtasks.js';
 import { RULES } from './rewards.js';
 import { XP_POLICY_VERSION, localDay } from '../../public/xp-policy.js';
-import { normalizePdfMeta } from '../../public/pdf-domain.js';
+import { normalizeHighlights, normalizePdfMeta } from '../../public/pdf-domain.js';
 import { deleteObjects } from './library-files.js';
 
 const COLLECTIONS = { material: 'courses', task: 'tasks', session: 'studySessions', progress: 'progress', appointment: 'agenda', subject: 'subjects' };
@@ -115,6 +115,8 @@ export async function applyLibraryActions(db, userId, input, { now = Date.now(),
       if (!pdf || value.type !== 'pdf') fail('O PDF do material é inválido.');
       const previousFile = state[field][index]?.pdf?.fileId;
       if (previousFile && previousFile !== pdf.fileId) fail('O arquivo de um PDF não pode ser trocado.');
+      // Marcações também são limitadas aqui, para o material não crescer sem fim.
+      if (value.highlights !== undefined) value.highlights = normalizeHighlights(value.highlights, pdf.pages);
     }
     if (entity === 'material' && value.slideProgress?.completedAt !== state[field][index]?.slideProgress?.completedAt) {
       if (Number.isFinite(Date.parse(value.slideProgress?.completedAt))) value.slideProgress.completedAt = new Date(Math.min(Date.parse(value.slideProgress.completedAt), now)).toISOString();

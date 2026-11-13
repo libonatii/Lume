@@ -5,7 +5,7 @@ import { normalizeAgenda } from './agenda-domain.js';
 import { emptyPlan, normalizePlan } from './schedule-domain.js';
 import { levelProgress } from './xp-policy.js';
 import { normalizeSlideProgress, normalizeSlides } from './slides-domain.js';
-import { normalizePdfMeta, normalizeReading } from './pdf-domain.js';
+import { normalizeHighlights, normalizePdfMeta, normalizeReading } from './pdf-domain.js';
 import { normalizeSubjects } from './subject-domain.js';
 import {
   activeCompletions, completedUnitIds, hasPreparationFor, isCompleted, legacyProgressXp, materialHasActivity,
@@ -363,10 +363,10 @@ function sanitizeCourse(course, subjectIds = new Set()) {
   const slides = normalizeSlides(course.slides);
   const pdf = normalizePdfMeta(course.pdf);
   const type = pdf ? 'pdf' : STUDY_TYPES.some((item) => item.id === course.type) ? course.type : 'lesson';
-  const { pdf: _pdf, reading: _reading, ...rest } = course;
+  const { pdf: _pdf, reading: _reading, highlights: _highlights, ...rest } = course;
   const base = {
     ...rest,
-    ...(pdf ? { pdf, reading: normalizeReading(course.reading, pdf.pages) } : {}),
+    ...(pdf ? { pdf, reading: normalizeReading(course.reading, pdf.pages), highlights: normalizeHighlights(course.highlights, pdf.pages) } : {}),
     subjectId: subjectIds.has(course.subjectId) ? course.subjectId : '',
     type,
     planning: course.planning === true,

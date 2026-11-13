@@ -60,10 +60,12 @@ Consulte também:
    - Coleção `state.subjects` (`id`, `title`, `color`, `order`), operada via ações `subject.put`, `subject.delete` e `subject.order`.
    - Um material pode apontar para `subjectId`. Excluir uma disciplina remove o vínculo (`subjectId: null`) dos materiais, sem apagar os materiais.
 3. **PDFs anexados (`public/pdf-domain.js`, `api/domain/library-files.js`):**
-   - Material `type: 'pdf'` tem uma única unidade de leitura (`kind: 'reading'`), metadados em `course.pdf` (`fileId`, `fileName`, `pageCount`, `fingerprint`, `outline`) e posição de leitura em `course.reading` (`currentPage`, `totalPages`, `maxReadPage`, `completedAt`).
+   - Material `type: 'pdf'` tem uma única unidade de leitura (`kind: 'reading'`), metadados em `course.pdf` (`fileId`, `name`, `size`, `pages`, `outline`, `uploadedAt`), ponto de retomada em `course.reading` (`page`, `maxPage`, `section`, `updatedAt`) e marcações em `course.highlights`.
+   - **Retomada (12/11/2026):** o leitor abre sozinho logo depois de anexar, então ficar na p. 1 sem avançar não cria `reading`; o PDF continua "não iniciado" e com 0%. Registros antigos parados na p. 1 (`maxPage` 1) são descartados por `normalizeReading`. O percentual exibido é `maxPage / pages` (página mais adiante aberta), marcador de retomada e não prova de leitura.
+   - **Marca-texto (12/11/2026):** no leitor, a pessoa liga o marca-texto, escolhe uma cor (`HIGHLIGHT_COLORS`: amarelo, verde, azul, rosa, laranja) e seleciona o texto da página; clicar numa marcação troca a cor, e a borracha a apaga. Cada marcação guarda `page`, `color`, `rects` em fração da página (acompanham o zoom) e o trecho de texto. Máximo de 500 marcações por PDF, normalizadas também no servidor (`library-actions.js`). Marcar texto não gera XP.
    - O binário do PDF vai via `PUT /api/library/files/:id` para o R2 / `data/media`, respeitando a cota do plano (`storage_plans` / `library_files`, 50 MB por arquivo e 1 GB por conta no plano gratuito). **Nunca guarde binário de PDF no estado JSON ou no navegador.**
    - `library-actions.js` recusa criar material PDF cujo `fileId` não exista na conta e remove o arquivo de mídia quando o material é excluído.
-   - A leitura da última página (`currentPage >= totalPages`) marca `reading.completedAt` e conclui automaticamente a unidade do PDF no mesmo envio.
+   - Chegar à última página não conclui o PDF: a conclusão é declarada em "Concluí a leitura do PDF" e vale a recompensa de leitura uma única vez, validada no servidor.
 4. **Apresentações de Slides (`public/slides-domain.js`):**
    - Materiais `type: 'slides'` rastreiam slides visitados (`visitedSlides`), slide atual (`currentSlide`) e total (`slideCount`).
    - Para elegibilidade de XP de apresentação concluída, exige cobertura mínima de **80% dos slides** (`SLIDES_MIN_COVERAGE = 0.8`) **e** passagem pelo último slide.

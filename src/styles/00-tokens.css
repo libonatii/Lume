@@ -31,6 +31,13 @@
   --space-5: 1.5rem;
   --space-6: 2rem;
   --actions-gap: var(--space-2);
+  /* Marca-texto do leitor de PDF: pintado sobre a página branca do documento,
+     por isso não muda com paleta nem tema. */
+  --highlight-amarelo: #ffe14d;
+  --highlight-verde: #7ee787;
+  --highlight-azul: #79c0ff;
+  --highlight-rosa: #ff8fc7;
+  --highlight-laranja: #ffb35c;
   --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   /* O Redesign Moderno usa uma única família; o nome antigo continua apontando para ela. */
   --font-serif: var(--font-sans);

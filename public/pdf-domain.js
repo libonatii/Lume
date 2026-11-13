@@ -63,11 +63,16 @@ export function normalizePdfMeta(value) {
   };
 }
 
+// Abrir o PDF na primeira página não é começar a leitura: o leitor abre sozinho
+// logo depois de anexar. Só existe ponto de retomada depois de passar da p. 1;
+// registros antigos parados na p. 1 voltam a "não iniciado".
 export function normalizeReading(value, pages) {
   if (!value || typeof value !== 'object' || !isPage(value.page, pages)) return null;
+  const maxPage = isPage(value.maxPage, pages) ? Math.max(value.maxPage, value.page) : value.page;
+  if (maxPage <= 1) return null;
   return {
     page: value.page,
-    maxPage: isPage(value.maxPage, pages) ? Math.max(value.maxPage, value.page) : value.page,
+    maxPage,
     section: clean(value.section, 200),
     updatedAt: Number.isFinite(Date.parse(value.updatedAt)) ? value.updatedAt : null,
   };
@@ -90,24 +95,140 @@ export function addPdfMaterial(state, { title, file, subjectId = '' }, id = cryp
     example: false, paused: false, type: 'pdf', planning: false, resumeAt: '', position: null,
     origin: 'manual', subjectId: subjectId || '',
     slides: [], slideProgress: { seen: [], lastId: '', completedAt: null },
-    pdf, reading: null,
+    pdf, reading: null, highlights: [],
     units: stepUnits([{ id: `${id}-0`, title: PDF_STEP_TITLE }]),
   };
   return { ...state, courses: [...state.courses, course], selectedCourseId: id };
 }
 
 // Ponto de retomada por página. Sem mudança devolve o mesmo estado, para não
-// gravar de novo. A página mais adiante (maxPage) só cresce.
+// gravar de novo. A página mais adiante (maxPage) só cresce. Ficar na p. 1 sem
+// ter avançado não cria retomada.
 export function setReadingPage(state, materialId, { page, section = '' }, now = new Date().toISOString()) {
   const course = state.courses.find((item) => item.id === materialId);
   if (!course?.pdf) throw new Error('Este material não é um PDF.');
   const target = Math.max(1, Math.min(Math.round(Number(page) || 1), course.pdf.pages));
   const cleanSection = clean(section, 200);
   const previous = course.reading;
+  if (!previous && target <= 1) return state;
   if (previous && previous.page === target && previous.section === cleanSection) return state;
   const reading = { page: target, maxPage: Math.max(previous?.maxPage || 0, target), section: cleanSection, updatedAt: now };
   const next = { ...course, reading, resumeAt: readingLabel(reading, course.pdf.pages).slice(0, 120) };
   return { ...state, courses: state.courses.map((item) => item.id === materialId ? next : item) };
+}
+
+// ---------------- Marca-texto ----------------
+// Marcações ficam no material, por página, com retângulos em fração da página
+// (0 a 1) para acompanhar qualquer zoom. Marcar texto não gera XP.
+
+export const HIGHLIGHT_COLORS = Object.freeze([
+  Object.freeze({ id: 'amarelo', label: 'Amarelo' }),
+  Object.freeze({ id: 'verde', label: 'Verde' }),
+  Object.freeze({ id: 'azul', label: 'Azul' }),
+  Object.freeze({ id: 'rosa', label: 'Rosa' }),
+  Object.freeze({ id: 'laranja', label: 'Laranja' }),
+]);
+export const MAX_HIGHLIGHTS = 500;
+const MAX_RECTS = 40;
+const COLOR_IDS = new Set(HIGHLIGHT_COLORS.map((item) => item.id));
+const fraction = (value) => Number.isFinite(value) && value >= 0 && value <= 1;
+const round = (value) => Math.round(value * 10000) / 10000;
+
+function normalizeRects(value) {
+  if (!Array.isArray(value)) return [];
+  const rects = [];
+  for (const rect of value) {
+    const { x, y, w, h } = rect || {};
+    if (![x, y, w, h].every(fraction) || w <= 0 || h <= 0 || x + w > 1.001 || y + h > 1.001) continue;
+    rects.push({ x: round(x), y: round(y), w: round(w), h: round(h) });
+    if (rects.length >= MAX_RECTS) break;
+  }
+  return rects;
+}
+
+export function normalizeHighlights(value, pages = MAX_PAGES) {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set();
+  const list = [];
+  for (const item of value) {
+    if (!item || typeof item.id !== 'string' || !item.id || item.id.length > 80 || seen.has(item.id) || !isPage(item.page, pages)) continue;
+    const rects = normalizeRects(item.rects);
+    if (!rects.length) continue;
+    seen.add(item.id);
+    list.push({
+      id: item.id,
+      page: item.page,
+      color: COLOR_IDS.has(item.color) ? item.color : HIGHLIGHT_COLORS[0].id,
+      rects,
+      text: clean(item.text, 300),
+      createdAt: Number.isFinite(Date.parse(item.createdAt)) ? item.createdAt : null,
+    });
+    if (list.length >= MAX_HIGHLIGHTS) break;
+  }
+  return list;
+}
+
+// Recorta à página e junta retângulos da seleção que ficam na mesma linha e se
+// tocam; o navegador devolve um por trecho de texto, muitas vezes sobrepostos.
+export function mergeRects(rects) {
+  const clipped = (rects || []).map((rect) => {
+    const x = Math.max(0, Number(rect?.x)), y = Math.max(0, Number(rect?.y));
+    return { x, y, w: Math.min(1, Number(rect?.x) + Number(rect?.w)) - x, h: Math.min(1, Number(rect?.y) + Number(rect?.h)) - y };
+  });
+  const sorted = normalizeRects(clipped).sort((a, b) => a.y - b.y || a.x - b.x);
+  const lines = [];
+  for (const rect of sorted) {
+    const line = lines.find((item) => Math.abs(item.y - rect.y) <= Math.min(item.h, rect.h) * 0.5
+      && rect.x <= item.x + item.w + 0.01 && rect.x + rect.w >= item.x - 0.01);
+    if (!line) { lines.push({ ...rect }); continue; }
+    const right = Math.max(line.x + line.w, rect.x + rect.w);
+    const bottom = Math.max(line.y + line.h, rect.y + rect.h);
+    line.x = Math.min(line.x, rect.x);
+    line.y = Math.min(line.y, rect.y);
+    line.w = right - line.x;
+    line.h = bottom - line.y;
+  }
+  return normalizeRects(lines);
+}
+
+function changeHighlights(state, materialId, update) {
+  const course = state.courses.find((item) => item.id === materialId);
+  if (!course?.pdf) throw new Error('Este material não é um PDF.');
+  const current = course.highlights || [];
+  const highlights = update(current, course);
+  if (highlights === current) return state;
+  return { ...state, courses: state.courses.map((item) => item.id === materialId ? { ...course, highlights } : item) };
+}
+
+export function addHighlight(state, materialId, { page, color, rects, text = '' }, id = crypto.randomUUID(), now = new Date().toISOString()) {
+  return changeHighlights(state, materialId, (current, course) => {
+    if (current.length >= MAX_HIGHLIGHTS) throw new Error(`Este PDF já tem ${MAX_HIGHLIGHTS} marcações. Remova algumas para marcar mais.`);
+    const [highlight] = normalizeHighlights([{ id, page, color, rects: mergeRects(rects), text, createdAt: now }], course.pdf.pages);
+    if (!highlight) throw new Error('Selecione um trecho de texto da página para marcar.');
+    return [...current, highlight];
+  });
+}
+
+export function recolorHighlight(state, materialId, highlightId, color) {
+  if (!COLOR_IDS.has(color)) throw new Error('Cor de marca-texto desconhecida.');
+  return changeHighlights(state, materialId, (current) => {
+    const target = current.find((item) => item.id === highlightId);
+    if (!target || target.color === color) return current;
+    return current.map((item) => item === target ? { ...item, color } : item);
+  });
+}
+
+export function removeHighlight(state, materialId, highlightId) {
+  return changeHighlights(state, materialId, (current) => {
+    const next = current.filter((item) => item.id !== highlightId);
+    return next.length === current.length ? current : next;
+  });
+}
+
+// Marcação sob um ponto da página (em frações), a mais recente primeiro.
+export function highlightAt(highlights, page, point) {
+  return [...(highlights || [])].reverse().find((item) => item.page === page
+    && item.rects.some((rect) => point.x >= rect.x && point.x <= rect.x + rect.w && point.y >= rect.y && point.y <= rect.y + rect.h)) || null;
 }
 
 // ---------------- Leitor inteligente (determinístico) ----------------
