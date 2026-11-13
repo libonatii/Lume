@@ -258,7 +258,7 @@ body {
 .boot-brand {
   position: absolute;
   top: clamp(1rem, 3vw, 2rem);
-  right: clamp(1.2rem, 4vw, 3rem);
+  left: clamp(1.2rem, 4vw, 3rem);
   font-family: var(--font-sans);
   font-weight: 700;
   font-size: 1.6rem;
