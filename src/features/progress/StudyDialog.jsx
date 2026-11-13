@@ -74,7 +74,7 @@ export default function StudyDialog({ modal, state, libraryActions, progressActi
 
   if (modal.type === 'delete') return <DeleteCourse course={course} actions={libraryActions} close={close} notify={notify}/>;
   if (modal.type === 'edit') return <CourseEditor course={course} actions={libraryActions} close={close} notify={notify}/>;
-  if (course.pdf && ['pdf', 'session'].includes(modal.type)) return <PdfReader course={course} state={state} actions={libraryActions} progressActions={progressActions} notify={notify} open={open} account={account}/>;
+  if (course.pdf && ['pdf', 'session'].includes(modal.type)) return <PdfReader course={course} state={state} actions={libraryActions} progressActions={progressActions} notify={notify} open={open} close={close} account={account}/>;
   if (course.pdf && modal.type === 'course') return <PdfDetails course={course} state={state} actions={libraryActions} open={open} close={close}/>;
   if (modal.type === 'slides') return <SlidesViewer course={course} state={state} actions={libraryActions} progressActions={progressActions} close={close} notify={notify} account={account}/>;
 
