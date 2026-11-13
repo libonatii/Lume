@@ -139,6 +139,8 @@ test('cadastro, saída, login, sincronização e recuperação na API local', as
   await page.getByRole('button', { name: /^Menu da conta/ }).click();
   await page.getByRole('button', { name: 'Sair', exact: true }).click();
   await page.getByRole('link', { name: 'Esqueci minha senha' }).click();
+  // Espera a tela de recuperação: durante a transição, o campo E-mail do login ainda existe.
+  await expect(page.getByRole('heading', { name: 'Vamos recuperar seu acesso.' })).toBeVisible();
   await page.getByLabel('E-mail', { exact: true }).fill(email);
   await page.getByRole('button', { name: 'Solicitar recuperação' }).click();
   await expect(page.getByText(/enviamos um link de recuperação/)).toBeVisible();
