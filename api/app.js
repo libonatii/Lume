@@ -12,12 +12,14 @@ import { libraryRoutes } from './routes/library.js';
 import { mediaRoutes } from './routes/media.js';
 import { progressRoutes } from './routes/progress.js';
 import { socialRoutes } from './routes/social.js';
+import { socialFeedRoutes } from './routes/social-feed.js';
 
 export function buildRouter() {
   const router = createRouter();
   accountRoutes(router);
   libraryRoutes(router);
   socialRoutes(router);
+  socialFeedRoutes(router);
   progressRoutes(router);
   mediaRoutes(router);
   return router;

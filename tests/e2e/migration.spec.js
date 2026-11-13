@@ -189,7 +189,7 @@ test('jornada 3 configura ritmo e primeira matéria sem gerar XP', async ({ page
   // Quatro destinos no menu; as telas secundárias ficam nas abas de cada seção ou no menu da conta.
   const menu = page.getByRole('navigation', { name: 'Navegação' });
   await expect(menu.getByRole('link')).toHaveCount(4);
-  for (const [section, tab, heading] of [['Plano de Estudos', 'Tarefas', 'Tarefas'], ['Amigos', 'Ranking', 'Ranking']]) {
+  for (const [section, tab, heading] of [['Plano de Estudos', 'Tarefas', 'Tarefas'], ['Social', 'Ranking', 'Ranking']]) {
     await menu.getByRole('link', { name: section, exact: true }).click();
     await page.getByRole('navigation', { name: `Seções de ${section}` }).getByRole('link', { name: tab, exact: true }).click();
     await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible();

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { api, apiError } from '../../lib/api.js';
 import Icon from '../../ui/Icon.jsx';
-import { Button, Empty, Heading, Progress, Skeleton, stagger } from '../../ui/ui.jsx';
+import { Button, Empty, Heading, PersonAvatar, Progress, Skeleton, stagger } from '../../ui/ui.jsx';
 import { useResource } from '../../lib/resources.js';
 
 const TABS = [
@@ -128,7 +128,7 @@ export default function Ranking({ account, xp, refreshXP, notify, go }) {
     {entries.length > 0 && <ol className="ranking-list" aria-label={`Ranking por ${TABS.find((item) => item.id === tab)?.label}`}>
       {entries.map((entry, index) => <motion.li key={entry.id} className={`ranking-row ${entry.isSelf ? 'is-self' : ''}`} {...stagger(index)}>
         <span className={`ranking-position ${entry.position <= 3 ? `top-${entry.position}` : ''}`} aria-label={`Posição ${entry.position}`}>{entry.position}º</span>
-        <span className="ranking-avatar" aria-hidden="true">{String(entry.name || '?').slice(0, 1).toUpperCase()}</span>
+        <PersonAvatar person={entry} className="ranking-avatar"/>
         <span className="ranking-copy">
           <strong>{entry.name}{entry.isSelf ? ' · você' : ''}</strong>
           <small>{metric(entry, tab)}</small>

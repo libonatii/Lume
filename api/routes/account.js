@@ -8,6 +8,7 @@ import { sendPasswordResetEmail } from '../domain/email.js';
 import { LIMITS } from '../config.js';
 import { empty, json } from '../http.js';
 import { publicUser, sessionTokenFrom, startSession } from '../session.js';
+import { clearUserPresence, touchUserPresence } from '../domain/friends.js';
 
 const ATTEMPTS = { key: (ctx) => `${ctx.clientIp}|${ctx.url.pathname}`, message: 'Muitas tentativas. Aguarde alguns minutos e tente de novo.' };
 const DUPLICATE = { error: 'Este e-mail já tem uma conta no Lume.', field: 'email' };
@@ -17,9 +18,11 @@ function cookieOptions(url) {
 }
 
 export function accountRoutes(router) {
-  router.add('GET', '/api/me', { auth: 'optional' }, ({ user }) =>
+  router.add('GET', '/api/me', { auth: 'optional' }, async ({ db, user }) => {
+    if (user) await touchUserPresence(db, user.id);
     // 200 com user nulo evita ruído de erro no console de quem não está logado.
-    json({ authenticated: Boolean(user), user: user ? publicUser(user) : null }));
+    return json({ authenticated: Boolean(user), user: user ? publicUser(user) : null });
+  });
 
   router.add('POST', '/api/register', { origin: true, rateLimit: ATTEMPTS }, async (ctx) => {
     const body = await ctx.json(LIMITS.body);
@@ -38,6 +41,7 @@ export function accountRoutes(router) {
       throw error;
     }
     const token = await startSession(ctx.db, id);
+    await touchUserPresence(ctx.db, id);
     ctx.log('account_registered', { userId: id });
     return json({ user: { id, name, email, createdAt } }, 201, { 'Set-Cookie': sessionCookie(token, cookieOptions(ctx.url)) });
   });
@@ -53,13 +57,19 @@ export function accountRoutes(router) {
       return json({ error: 'E-mail ou senha não conferem.' }, 401);
     }
     const token = await startSession(ctx.db, row.id);
+    await touchUserPresence(ctx.db, row.id);
     ctx.log('login_succeeded', { userId: row.id });
     return json({ user: publicUser(row) }, 200, { 'Set-Cookie': sessionCookie(token, cookieOptions(ctx.url)) });
   });
 
   router.add('POST', '/api/logout', { origin: true }, async (ctx) => {
     const token = sessionTokenFrom(ctx.request);
-    if (token) await ctx.db.run('DELETE FROM sessions WHERE token_hash = ?', [await hashSessionToken(token)]);
+    if (token) {
+      const tokenHash = await hashSessionToken(token);
+      const session = await ctx.db.first('SELECT user_id FROM sessions WHERE token_hash = ?', [tokenHash]);
+      await ctx.db.run('DELETE FROM sessions WHERE token_hash = ?', [tokenHash]);
+      if (session?.user_id) await clearUserPresence(ctx.db, session.user_id);
+    }
     return empty(204, { 'Set-Cookie': clearedSessionCookie(cookieOptions(ctx.url)) });
   });
 

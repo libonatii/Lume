@@ -4,7 +4,7 @@ import {
   blockContact, getThread, listBlocks, listConversations, markThreadRead, messagePreferences,
   sendMessage, unblockContact, unreadSummary, updateMessagePreferences, MESSAGE_WINDOW_LIMIT,
 } from '../domain/messages.js';
-import { acceptInvite, createInvite, listFriends, readFriendProfile, removeFriend } from '../domain/friends.js';
+import { acceptInvite, createInvite, listFriends, readFriendProfile, removeFriend, touchUserPresence } from '../domain/friends.js';
 import {
   cancelCollaborationInvite, createCollaborationInvite, listCollaborationInvites, respondCollaborationInvite,
 } from '../domain/collaboration.js';
@@ -17,7 +17,10 @@ const COLLABORATION = { auth: 'Entre na sua conta para convidar alguém para col
 
 export function socialRoutes(router) {
   router
-    .add('GET', '/api/friends', FRIENDS, async ({ db, user }) => json(await listFriends(db, user.id)))
+    .add('GET', '/api/friends', FRIENDS, async ({ db, user }) => {
+      await touchUserPresence(db, user.id);
+      return json(await listFriends(db, user.id));
+    })
     .add('POST', '/api/friends/invite', FRIENDS, async ({ db, user }) => json(await createInvite(db, user.id), 201))
     .add('POST', '/api/friends/accept', {
       ...FRIENDS,
@@ -34,7 +37,10 @@ export function socialRoutes(router) {
 
   router
     .add('GET', '/api/messages', MESSAGES, async ({ db, user }) => json(await listConversations(db, user.id)))
-    .add('GET', '/api/messages/unread', MESSAGES, async ({ db, user }) => json(await unreadSummary(db, user.id)))
+    .add('GET', '/api/messages/unread', MESSAGES, async ({ db, user }) => {
+      await touchUserPresence(db, user.id);
+      return json(await unreadSummary(db, user.id));
+    })
     .add('GET', '/api/messages/settings', MESSAGES, async ({ db, user }) => json(await messagePreferences(db, user.id)))
     .add(['PATCH', 'POST'], '/api/messages/settings', MESSAGES, async (ctx) =>
       json(await updateMessagePreferences(ctx.db, ctx.user.id, await ctx.json(LIMITS.tiny))))

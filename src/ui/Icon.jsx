@@ -40,6 +40,7 @@ const icons = {
   search: '<circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/>',
   lock: '<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V6a4 4 0 0 1 8 0v4m-4 5v2"/>',
   mail: '<path d="M3 6h18v12H3Z"/><path d="m3 7 9 6 9-6"/>',
+  message: '<path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 0 1-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8Z"/>',
   heart: '<path d="M12 20s-7-4.5-7-9a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 4.5-7 9-7 9Z"/>',
   external: '<path d="M14 3h7v7m0-7L10 14m0-11H4v17h17v-6"/>',
   steps: '<path d="M3 20h6v-6h6V8h6V3"/>',

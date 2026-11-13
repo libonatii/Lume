@@ -1,18 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
-import { sqliteAdapter } from '../../api/adapters/sqlite.js';
+import { fileURLToPath } from 'node:url';
+import { applyMigrations, sqliteAdapter } from '../../api/adapters/sqlite.js';
 import {
   MessagesError, blockContact, getThread, listConversations, markThreadRead,
   messagePreferences, sendMessage, unblockContact, unreadSummary, updateMessagePreferences,
 } from '../../api/domain/messages.js';
+import { messageAlert } from '../../public/social-domain.js';
 
 function makeDb() {
   const sqlite = new DatabaseSync(':memory:');
-  for (const file of ['0001_init.sql', '0004_friends.sql', '0008_messages.sql']) {
-    sqlite.exec(readFileSync(new URL(`../../migrations/${file}`, import.meta.url), 'utf8'));
-  }
+  applyMigrations(sqlite, fileURLToPath(new URL('../../migrations/', import.meta.url)));
   const db = sqliteAdapter(sqlite);
   for (const [id, name] of [['u1', 'Ana'], ['u2', 'Bia'], ['u3', 'Carla']]) {
     sqlite.prepare('INSERT INTO users (id, name, email, password_hash, created_at) VALUES (?, ?, ?, ?, ?)')
@@ -90,4 +89,44 @@ test('referência é saneada e preferência de notificação é persistida', asy
     () => sendMessage(db, 'u1', 'u2', {}, NOW),
     (error) => error.code === 'empty_message',
   );
+});
+
+test('conversa e cabeçalho da conversa trazem a foto saneada da amizade', async () => {
+  const sqlite = new DatabaseSync(':memory:');
+  applyMigrations(sqlite, fileURLToPath(new URL('../../migrations/', import.meta.url)));
+  const db = sqliteAdapter(sqlite);
+  for (const [id, name] of [['u1', 'Ana'], ['u2', 'Bia'], ['u3', 'Carla']]) {
+    sqlite.prepare('INSERT INTO users (id, name, email, password_hash, created_at) VALUES (?, ?, ?, ?, ?)').run(id, name, `${id}@example.test`, 'x', '2026-10-31T12:00:00Z');
+  }
+  for (const [a, b] of [['u1', 'u2'], ['u2', 'u1'], ['u1', 'u3'], ['u3', 'u1']]) {
+    sqlite.prepare('INSERT INTO friendships (user_id, friend_id, created_at) VALUES (?, ?, ?)').run(a, b, '2026-10-31T12:00:00Z');
+  }
+  const doc = sqlite.prepare('INSERT INTO account_documents (user_id, data, updated_at) VALUES (?, ?, ?)');
+  doc.run('u2', JSON.stringify({ profile: { avatar: '/api/media/profiles/u2/avatar-1.webp' } }), '2026-10-31T12:00:00Z');
+  doc.run('u3', JSON.stringify({ profile: { avatar: 'javascript:alert(1)' } }), '2026-10-31T12:00:00Z');
+  const list = await listConversations(db, 'u1');
+  const byId = Object.fromEntries(list.conversations.map((item) => [item.id, item]));
+  assert.equal(byId.u2.avatar, '/api/media/profiles/u2/avatar-1.webp');
+  assert.equal(byId.u3.avatar, '');
+  const thread = await getThread(db, 'u1', 'u2');
+  assert.equal(thread.friend.avatar, '/api/media/profiles/u2/avatar-1.webp');
+});
+
+test('aviso de mensagem nova: mais recente, uma vez, nunca da conversa aberta nem silenciado', () => {
+  const conversations = [
+    { id: 'u2', name: 'Bia', avatar: '/api/media/profiles/u2/avatar-1.webp', unread: 1, lastMessage: { id: 'm2', fromMe: false, preview: 'Oi!\n  Vamos   estudar?', at: '2026-10-31T12:05:00Z' } },
+    { id: 'u3', name: 'Carla', avatar: '', unread: 2, lastMessage: { id: 'm1', fromMe: false, preview: 'Mais cedo', at: '2026-10-31T12:00:00Z' } },
+    { id: 'u4', name: 'Duda', unread: 0, lastMessage: { id: 'm3', fromMe: false, preview: 'Lida', at: '2026-10-31T12:10:00Z' } },
+    { id: 'u5', name: 'Eva', unread: 1, lastMessage: { id: 'm4', fromMe: true, preview: 'Minha', at: '2026-10-31T12:20:00Z' } },
+  ];
+  assert.deepEqual(messageAlert(conversations), {
+    messageId: 'm2', from: { id: 'u2', name: 'Bia', avatar: '/api/media/profiles/u2/avatar-1.webp' }, preview: 'Oi! Vamos estudar?',
+  });
+  assert.equal(messageAlert(conversations, { seen: new Set(['m2']) }).from.id, 'u3');
+  assert.equal(messageAlert(conversations, { openContactId: 'u2' }), null, 'conversa aberta não avisa');
+  assert.equal(messageAlert(conversations, { notifications: false }), null, 'notificações desligadas não avisam');
+  assert.equal(messageAlert(conversations, { seen: new Set(['m1', 'm2']) }), null);
+  const long = messageAlert([{ id: 'u2', name: 'Bia', unread: 1, lastMessage: { id: 'x', fromMe: false, preview: 'a'.repeat(200), at: '1' } }]);
+  assert.equal(long.preview.length, 91);
+  assert.ok(long.preview.endsWith('…'));
 });

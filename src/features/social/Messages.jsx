@@ -4,7 +4,7 @@ import { api, apiError } from '../../lib/api.js';
 import { invalidateResources, mutateResource, useResource } from '../../lib/resources.js';
 import { materialType } from '../../../public/domain.js';
 import Icon from '../../ui/Icon.jsx';
-import { Button, Empty, Heading, Skeleton } from '../../ui/ui.jsx';
+import { Button, Empty, Heading, PersonAvatar, Skeleton } from '../../ui/ui.jsx';
 
 function timeLabel(value) {
   if (!value) return '';
@@ -147,7 +147,7 @@ export default function Messages({ account, state, notify, go, contactId = '' })
         <ul className="conversation-list">
           {conversations.map((conversation) => <li key={conversation.id}>
             <button className={`conversation-item ${selected === conversation.id ? 'active' : ''}`} onClick={() => selectConversation(conversation.id)} aria-current={selected === conversation.id ? 'true' : undefined}>
-              <span className="conversation-avatar" aria-hidden="true">{conversation.name.slice(0, 1).toUpperCase()}</span>
+              <PersonAvatar person={conversation} className="conversation-avatar"/>
               <span className="conversation-copy">
                 <strong>{conversation.name}</strong>
                 <small>{conversation.blockedByMe ? 'Você bloqueou esta pessoa' : conversation.blockedMe ? 'Mensagens bloqueadas por ela' : conversation.lastMessage ? `${conversation.lastMessage.fromMe ? 'Você: ' : ''}${conversation.lastMessage.preview}` : 'Comece uma conversa'}</small>

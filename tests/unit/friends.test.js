@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   FriendsError, acceptInvite, createInvite, formatInviteCode, generateInviteCode,
-  friendshipPolicy, normalizeInviteCode, removeFriend,
+  friendshipPolicy, listFriends, normalizeInviteCode, removeFriend,
 } from '../../api/domain/friends.js';
 import { hashSessionToken } from '../../api/domain/auth.js';
 
@@ -130,4 +130,81 @@ test('limite de amigos e remoção', async () => {
     () => removeFriend({ first: async () => null }, 'guest', 'friend_1'),
     (error) => error.code === 'not_found',
   );
+});
+
+test('listFriends projeta presença real: Online, Estudando com disciplina e privacidade da biblioteca', async () => {
+  const now = Date.parse('2026-11-13T00:00:00Z');
+  const rows = [
+    {
+      id: 'f_online',
+      name: 'Gabriel',
+      since: '2026-11-01T10:00:00Z',
+      last_seen_at: new Date(now - 60_000).toISOString(),
+      account_doc: null,
+    },
+    {
+      id: 'f_studying',
+      name: 'José Lucas da Silva',
+      since: '2026-11-02T10:00:00Z',
+      last_seen_at: new Date(now - 30_000).toISOString(),
+      account_doc: JSON.stringify({
+        activeSession: {
+          status: 'active',
+          courseId: 'mat_1',
+          label: 'Aula 1',
+          lastTickAt: new Date(now - 20_000).toISOString(),
+        },
+        preferences: { sharing: { library: true } },
+        profile: { avatar: '/api/media/profiles/f_studying/avatar-1.webp' },
+      }),
+    },
+    {
+      id: 'f_private',
+      name: 'Mariana',
+      since: '2026-11-03T10:00:00Z',
+      last_seen_at: new Date(now - 20_000).toISOString(),
+      account_doc: JSON.stringify({
+        activeSession: {
+          status: 'active',
+          courseId: 'mat_1',
+          label: 'Segredo',
+          lastTickAt: new Date(now - 20_000).toISOString(),
+        },
+        preferences: { sharing: { library: false } },
+        profile: { avatar: 'https://example.test/rastreio.png' },
+      }),
+    },
+    {
+      id: 'f_offline',
+      name: 'Rafael',
+      since: '2026-11-04T10:00:00Z',
+      last_seen_at: new Date(now - 10 * 60_000).toISOString(),
+      account_doc: null,
+    },
+  ];
+  const db = {
+    async all(sql) {
+      if (sql.includes('FROM friendships')) return rows;
+      return [];
+    },
+    async first(sql, params) {
+      if (sql.includes('FROM materials') && params[0] === 'f_studying') {
+        return { data: JSON.stringify({ id: 'mat_1', title: 'Curso Base', subjectId: 'sub_1' }) };
+      }
+      if (sql.includes('FROM study_subjects') && params[0] === 'f_studying') {
+        return { data: JSON.stringify({ id: 'sub_1', title: 'Direito Tributário' }) };
+      }
+      return null;
+    },
+  };
+
+  const result = await listFriends(db, 'viewer', now);
+  const byId = Object.fromEntries(result.friends.map((item) => [item.id, item]));
+  assert.deepEqual(byId.f_online.activity, { active: true, status: 'online', label: 'Online', topic: '' });
+  assert.deepEqual(byId.f_studying.activity, { active: true, status: 'studying', label: 'Estudando', topic: 'Direito Tributário' });
+  assert.deepEqual(byId.f_private.activity, { active: true, status: 'studying', label: 'Estudando', topic: '' });
+  assert.deepEqual(byId.f_offline.activity, { active: false, status: 'offline', label: 'Offline', topic: '' });
+  assert.equal(byId.f_studying.avatar, '/api/media/profiles/f_studying/avatar-1.webp');
+  assert.equal(byId.f_private.avatar, '', 'endereço fora da mídia do Lume é descartado');
+  assert.equal(byId.f_online.avatar, '');
 });
