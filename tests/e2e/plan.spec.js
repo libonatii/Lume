@@ -21,7 +21,7 @@ function seeded() {
   return state;
 }
 
-test('cronograma distribui aulas, explica conflito, recalcula após conclusão e sobrevive ao recarregamento', async ({ page }) => {
+test('cronograma distribui aulas, recalcula após conclusão e sobrevive ao recarregamento', async ({ page }) => {
   await seedAccount(page, seeded());
 
   await page.goto('/#hoje');
@@ -44,18 +44,6 @@ test('cronograma distribui aulas, explica conflito, recalcula após conclusão e
   await expect(aula4).toContainText('(estimativa)');
   await page.locator('.plan-controls').getByRole('button', { name: 'Hoje', exact: true }).click();
 
-  // Prazo para hoje não cabe: o conflito mostra números e opções, sem aplicar nada sozinho.
-  const today = await page.evaluate(() => {
-    const date = new Date();
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-  });
-  await page.getByRole('button', { name: 'Disponibilidade e prazos' }).click();
-  await page.getByLabel('Prazo', { exact: true }).fill(today);
-  await expect(page.getByRole('heading', { name: /não cabe no plano atual/ })).toBeVisible();
-  await expect(page.locator('.plan-conflict').getByText(/Faltam 2 h de estudo/)).toBeVisible();
-  await page.getByRole('button', { name: /^Mudar o prazo para/ }).click();
-  await expect(page.getByRole('heading', { name: /não cabe no plano atual/ })).toHaveCount(0);
-
   // Concluir a primeira aula recalcula o cronograma a partir de hoje.
   await page.getByRole('button', { name: 'Estudar' }).click();
   await page.getByRole('button', { name: 'Concluí esta aula' }).click();
@@ -70,12 +58,10 @@ test('cronograma distribui aulas, explica conflito, recalcula após conclusão e
   expect(Object.keys(beforeReload.plan.postponed)).toEqual([materialSteps(beforeReload.courses[0])[1].id]);
 
   await page.reload();
-  await page.getByRole('button', { name: 'Disponibilidade e prazos' }).click();
-  await expect(page.getByRole('combobox', { name: 'Segunda', exact: true })).toHaveValue('30');
+  await expect(page.getByRole('button', { name: 'Disponibilidade e prazos' })).toHaveCount(0);
   const saved = await readAccount(page);
   const course = saved.courses[0];
   expect(saved.plan.availability).toEqual({ 1: 30, 2: 30, 3: 30, 4: 30, 5: 30 });
-  expect(saved.plan.goals[course.id].deadline).not.toBe('');
   expect(Object.keys(saved.plan.postponed)).toEqual([materialSteps(course)[1].id]);
   expect(saved.progress.filter((event) => event.type === 'completion' && !event.revertedAt).map((event) => event.unitId)).toEqual([materialSteps(course)[0].id]);
   expect(saved.progress.some((event) => event.legacyXp)).toBe(false);

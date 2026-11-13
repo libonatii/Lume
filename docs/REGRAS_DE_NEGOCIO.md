@@ -125,10 +125,12 @@ Consulte também:
      1. Tarefa colocada manualmente em foco (`state.focusTaskId`) se ainda estiver pendente;
      2. Materiais reais (nunca cursos de exemplo `sample: true`), priorizando primeiro passo de material recém-preparado e continuidade recente;
      3. Materiais pausados (`status: 'paused'`) ou concluídos saem da fila ativa, mas permanecem contabilizados na biblioteca.
+   - **"Continuar agora" da Biblioteca (`resumeMaterial`, 12/11/2026):** segue a disciplina do material selecionado. Concluído o material, passa ao próximo pendente da mesma disciplina na ordem da biblioteca; só troca de disciplina quando a pessoa escolhe outro material (concluir um passo, "Continuar" ou avançar páginas de um PDF o seleciona). Disciplina toda concluída mostra "Disciplina concluída", sem pular para outra. Material sem disciplina segue o roteiro geral.
    - Se uma unidade não tiver duração conhecida da fonte, usa a estimativa da conta (`onboarding.answers.sessionMinutes` ou `DEFAULT_SESSION_MINUTES = 25`).
 2. **Cronograma Semanal (`public/schedule-domain.js`):**
    - Derivado de `state.plan` (`availability` por dia da semana `0..6`, `goals` com `deadline` e `priority` por material, e mapa `postponed`).
    - Sem disponibilidade declarada, o cronograma **não inventa datas**.
+   - **Tela (12/11/2026):** o painel "Disponibilidade e prazos" saiu do Plano de Estudos por decisão da responsável. Sem disponibilidade, o Plano oferece só o atalho de segunda a sexta (`useSuggestedAvailability`); prazos e prioridades já gravados continuam valendo, e o alerta de conflito segue com suas opções.
    - Se o volume de aulas até o prazo exceder os minutos disponíveis, gera um alerta de conflito com os números exatos e opções aplicáveis (estender prazo ou ajustar minutos diários), sem alterar nada sozinho.
    - Adiar uma aula move a aula para depois da janela atual e desloca as aulas seguintes do mesmo curso na sequência.
 3. **Tarefas e Subtarefas (`public/tasks-domain.js`):**

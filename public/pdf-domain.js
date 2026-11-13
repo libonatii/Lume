@@ -103,7 +103,7 @@ export function addPdfMaterial(state, { title, file, subjectId = '' }, id = cryp
 
 // Ponto de retomada por página. Sem mudança devolve o mesmo estado, para não
 // gravar de novo. A página mais adiante (maxPage) só cresce. Ficar na p. 1 sem
-// ter avançado não cria retomada.
+// ter avançado não cria retomada. Avançar seleciona o material.
 export function setReadingPage(state, materialId, { page, section = '' }, now = new Date().toISOString()) {
   const course = state.courses.find((item) => item.id === materialId);
   if (!course?.pdf) throw new Error('Este material não é um PDF.');
@@ -114,7 +114,8 @@ export function setReadingPage(state, materialId, { page, section = '' }, now = 
   if (previous && previous.page === target && previous.section === cleanSection) return state;
   const reading = { page: target, maxPage: Math.max(previous?.maxPage || 0, target), section: cleanSection, updatedAt: now };
   const next = { ...course, reading, resumeAt: readingLabel(reading, course.pdf.pages).slice(0, 120) };
-  return { ...state, courses: state.courses.map((item) => item.id === materialId ? next : item) };
+  // Avançar na leitura é escolher este material: "Continuar agora" passa a segui-lo.
+  return { ...state, courses: state.courses.map((item) => item.id === materialId ? next : item), selectedCourseId: materialId };
 }
 
 // ---------------- Marca-texto ----------------

@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import {
-  DAY_MINUTE_OPTIONS, WEEKDAYS, buildSchedule, normalizePlan, suggestedAvailability,
+  buildSchedule, normalizePlan, suggestedAvailability,
 } from '../../../public/schedule-domain.js';
-import { TASK_PRIORITIES, localDate } from '../../../public/tasks-domain.js';
+import { localDate } from '../../../public/tasks-domain.js';
 import Icon from '../../ui/Icon.jsx';
 import { Button, Empty, Progress } from '../../ui/ui.jsx';
 import SectionTabs from '../../app/SectionTabs.jsx';
@@ -43,7 +43,6 @@ export function Schedule({ state, actions, open, go, notify }) {
   const [picked, setPicked] = useState(null);
   const selected = picked || firstScheduled;
   const setSelected = setPicked;
-  const [showConfig, setShowConfig] = useState(false);
 
   const hasAvailability = schedule.weeklyMinutes > 0;
   const lastFinish = schedule.courses.map((course) => course.finish).filter(Boolean).sort().at(-1);
@@ -106,10 +105,9 @@ export function Schedule({ state, actions, open, go, notify }) {
           ? 'Adicione um curso à biblioteca para montar sua rota de estudos.'
           : hasAvailability
             ? <>Sua rota de aprendizado no seu ritmo: <strong>{formatMinutes(schedule.weeklyMinutes)} por semana</strong>{lastFinish && !schedule.unscheduled ? <>, conclusão prevista em <strong>{shortDate(lastFinish)}</strong></> : ''}.</>
-            : 'Sua rota de aprendizado com equilíbrio e continuidade. Comece dizendo quanto tempo você tem.'}</p>
+            : 'Sua rota de aprendizado com equilíbrio e continuidade.'}</p>
       </div>
       <div className="page-heading-actions">
-        <button type="button" className="button secondary" onClick={() => setShowConfig((value) => !value)} aria-expanded={showConfig || !hasAvailability} aria-controls="plan-settings"><Icon name="settings"/>Disponibilidade e prazos</button>
         <a className="button primary" href="#agendar"><Icon name="calendar-plus"/>Agendar Sessão</a>
       </div>
     </header>
@@ -152,8 +150,8 @@ export function Schedule({ state, actions, open, go, notify }) {
 
             {!hasAvailability && schedule.courses.length > 0 && <div className="plan-setup">
               <strong>Quanto tempo você tem por semana?</strong>
-              <p className="muted-text">O cronograma distribui {schedule.unscheduled} aulas na sua disponibilidade. Comece pela sugestão e ajuste os dias depois.</p>
-              <Button onClick={() => { if (actions.useSuggestedAvailability()) notify('Disponibilidade definida. Ajuste os dias quando quiser.'); }}>Usar segunda a sexta, {suggestedAvailability(state)[1]} min por dia</Button>
+              <p className="muted-text">O cronograma distribui {schedule.unscheduled} aulas na sua disponibilidade. Comece pela sugestão de segunda a sexta.</p>
+              <Button onClick={() => { if (actions.useSuggestedAvailability()) notify('Disponibilidade definida: segunda a sexta.'); }}>Usar segunda a sexta, {suggestedAvailability(state)[1]} min por dia</Button>
             </div>}
 
             {view === 'month'
@@ -187,33 +185,6 @@ export function Schedule({ state, actions, open, go, notify }) {
             <p className="quiet-note">{schedule.criteria}</p>
           </section>}
 
-        <section id="plan-settings" className={`card-surface plan-settings ${showConfig || !hasAvailability ? 'is-expanded' : 'is-compact'}`} aria-labelledby="plan-settings-title" hidden={!(showConfig || !hasAvailability)}>
-          <div className="plan-settings-head">
-            <h2 id="plan-settings-title" className="title">Disponibilidade e prazos</h2>
-            {hasAvailability && <button type="button" className="text-button" onClick={() => setShowConfig(false)}>Recolher</button>}
-          </div>
-          <div className="availability-grid" role="group" aria-label="Minutos por dia da semana">
-            {WEEKDAYS.map((day) => <label key={day.id} className="field availability-day">{day.label}
-              <select value={String(plan.availability[day.id] || 0)} onChange={(event) => actions.setAvailability(day.id, event.target.value)}>
-                {[...new Set([...DAY_MINUTE_OPTIONS, plan.availability[day.id] || 0])].sort((a, b) => a - b).map((minutes) => <option key={minutes} value={minutes}>{minutes ? formatMinutes(minutes) : 'Sem estudo'}</option>)}
-              </select>
-            </label>)}
-          </div>
-          {schedule.courses.length > 0 && <div className="goal-list">
-            {schedule.courses.map((course) => <div key={course.courseId} className="goal-row">
-              <span className="goal-title"><strong>{course.title}</strong><small className="todo-meta">{course.remaining} aulas · {formatMinutes(course.remainingMinutes || 0)}{course.finish ? ` · termina em ${shortDate(course.finish)}` : ''}</small></span>
-              <label className="field">Prazo
-                <input type="date" value={plan.goals[course.courseId]?.deadline || ''} onChange={(event) => actions.setGoal(course.courseId, { deadline: event.target.value })}/>
-              </label>
-              <label className="field">Prioridade
-                <select value={String(plan.goals[course.courseId]?.priority || 0)} onChange={(event) => actions.setGoal(course.courseId, { priority: event.target.value })}>
-                  {TASK_PRIORITIES.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
-                </select>
-              </label>
-            </div>)}
-          </div>}
-          <p className="quiet-note">Planejar, adiar e priorizar organizam o estudo e não geram XP. Pausar um curso na biblioteca tira suas aulas do cronograma sem apagar o progresso.</p>
-        </section>
       </div>
 
       <aside className="plan-aside" aria-label="Ritmo e marcos">
@@ -338,7 +309,7 @@ function PlanMilestones({ state, schedule, today }) {
           </span>
         </li>;
       })}</ul>
-      : <p className="muted-text">Nenhuma prova, entrega ou prazo pela frente. Defina prazos em Disponibilidade e prazos ou marque na Agenda.</p>}
+      : <p className="muted-text">Nenhuma prova, entrega ou prazo pela frente. Marque provas e entregas na Agenda.</p>}
     <a className="text-link plan-milestones-link" href="#agenda">Ver todos os prazos no calendário completo<Icon name="arrow"/></a>
   </section>;
 }

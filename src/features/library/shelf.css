@@ -233,7 +233,8 @@
 }
 .reading-row {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) minmax(8rem, 12rem) auto;
+  /* Colunas fixas para progresso e ação: "Ler" e "Revisar" alinham a barra. */
+  grid-template-columns: auto minmax(0, 1fr) minmax(8rem, 12rem) 5.5rem;
   align-items: center;
   gap: 0.9rem;
   width: 100%;
@@ -279,9 +280,13 @@
   gap: 0.5rem;
 }
 .reading-progress .progress {
+  flex: 1;
   height: 0.25rem;
 }
 .reading-progress strong {
+  min-width: 2.4rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
   color: var(--mint);
   font-size: 0.75rem;
 }
@@ -434,6 +439,8 @@
   height: 0.9rem;
 }
 .reading-cta {
+  justify-self: stretch;
+  text-align: center;
   padding: 0.35rem 0.75rem;
   border-radius: var(--radius-md);
   background: var(--inner);

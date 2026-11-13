@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { seedAccount, readAccount } from './library-helpers.js';
-import { createInitialState } from '../../public/domain.js';
+import { addCourse, completeMission, createInitialState } from '../../public/domain.js';
+import { addSubject, linkMaterialSubject } from '../../public/subject-domain.js';
 import { addTask } from '../../public/tasks-domain.js';
 
 // Etapa 2 (registrar a aula e seguir em um passo; conclusão em lote) e
@@ -124,4 +125,31 @@ test('focar uma tarefa a coloca no cartão principal da Hoje, sobrevive ao recar
   saved = await readAccount(page);
   expect(saved.focusTaskId).toBe(null);
   expect(saved.tasks[0].done).toBe(true);
+});
+
+function falencia(doneIds) {
+  let state = addSubject({ ...createInitialState(), onboarded: true }, { title: 'Falência' }, 'falencia');
+  state = addSubject(state, { title: 'Penal' }, 'penal');
+  state = linkMaterialSubject(addCourse(state, { title: 'Penal 1', steps: ['P1'] }, 'penal1'), 'penal1', 'penal');
+  for (const id of ['aula7', 'aula8']) state = linkMaterialSubject(addCourse(state, { title: `Falência ${id}`, steps: [`Etapa ${id}`] }, id), id, 'falencia');
+  for (const id of doneIds) state = completeMission(state, id, `${id}-0`, { now: '2026-11-12T10:00:00.000Z' }).state;
+  return state;
+}
+
+test('Continuar agora segue para o próximo material da mesma disciplina, com um só botão de detalhes', async ({ page }) => {
+  await seedAccount(page, falencia(['aula7']));
+  await page.goto('/#biblioteca');
+  const resume = page.locator('.library-resume');
+  await expect(resume.getByRole('heading', { name: 'Falência aula8' })).toBeVisible();
+  await expect(resume.getByRole('button', { name: /detalhes/i })).toHaveCount(1);
+  await expect(resume.getByRole('button', { name: 'Continuar meu próximo passo' })).toBeVisible();
+});
+
+test('Continuar agora não troca de disciplina sozinho quando a disciplina termina', async ({ page }) => {
+  await seedAccount(page, falencia(['aula7', 'aula8']));
+  await page.goto('/#biblioteca');
+  const resume = page.locator('.library-resume');
+  await expect(resume.getByRole('heading', { name: 'Disciplina concluída' })).toBeVisible();
+  await expect(resume.getByText(/Todos os materiais de Falência estão concluídos/)).toBeVisible();
+  await expect(resume.getByText('Penal 1')).toHaveCount(0);
 });
