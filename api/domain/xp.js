@@ -3,7 +3,7 @@
 // por conclusão ficam em rewards.js e leem o progresso registrado no servidor
 // (progress.js); nada aqui confia no valor enviado pelo navegador.
 
-import { restoreState } from '../../public/domain.js';
+import { restoreState, sanitizeProfileImage } from '../../public/domain.js';
 import { readStoredLibrary } from './library-store.js';
 import {
   DAILY_TIME_XP_CAP, DEFAULT_TIME_ZONE, LEVEL_XP, TIME_BLOCK_SECONDS, TIME_BLOCK_XP,
@@ -509,10 +509,13 @@ export async function getRanking(db, userId, { tab = 'level', period = 'week', t
   const totals = new Map(totalRows.map((row) => [row.user_id, row]));
 
   const names = await db.all(
-    `SELECT id, name FROM users WHERE id IN (${placeholders(ids.length)})`,
+    `SELECT u.id, u.name, json_extract(d.data, '$.profile.avatar') AS avatar
+       FROM users u LEFT JOIN account_documents d ON d.user_id = u.id
+      WHERE u.id IN (${placeholders(ids.length)})`,
     ids,
   );
   const nameMap = new Map(names.map((row) => [row.id, row.name]));
+  const avatarMap = new Map(names.map((row) => [row.id, sanitizeProfileImage(row.avatar)]));
 
   const periodEvents = await db.all(
     `SELECT user_id, kind, xp, granted_at, session_id FROM xp_events
@@ -537,6 +540,7 @@ export async function getRanking(db, userId, { tab = 'level', period = 'week', t
     return {
       id,
       name: nameMap.get(id) || 'Pessoa do Lume',
+      avatar: avatarMap.get(id) || '',
       isSelf: id === userId,
       level: level.level,
       levelCurrent: level.current,

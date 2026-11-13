@@ -4,23 +4,20 @@ import { Button, Heading, Skeleton } from '../../ui/ui.jsx';
 import { api, apiError } from '../../lib/api.js';
 import { copyText, selectText } from '../../lib/clipboard.js';
 import { CollaborationInbox } from '../library/Collaboration.jsx';
-import { useResource } from '../../lib/resources.js';
+import { invalidateResources, useResource } from '../../lib/resources.js';
+import SectionTabs from '../../app/SectionTabs.jsx';
+import SocialFeed, { SocialAvatar } from './SocialFeed.jsx';
 
 // Amizades por convite. O convite é um código reaproveitável, válido por 7 dias;
 // não existe busca por e-mail. Ser amigo não compartilha biblioteca, progresso
 // nem XP — isso depende do perfil e das escolhas de quem é dono dos dados.
 
-function initialOf(name) {
-  return String(name || '?').trim().slice(0, 1).toUpperCase();
-}
-
-export default function Friends({ account, notify, go }) {
+export default function Friends({ account, state, xp, inviteCode = '', notify, go }) {
   const resource = useResource('/api/friends', { enabled: Boolean(account) });
   const data = resource.data;
   const [invite, setInvite] = useState(null);
-  const [code, setCode] = useState(() => new URLSearchParams(location.hash.split('?')[1] || '').get('convite') || '');
+  const [code, setCode] = useState(inviteCode);
   const [actionError, setError] = useState('');
-  const error = actionError || resource.error;
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -31,6 +28,7 @@ export default function Friends({ account, notify, go }) {
   }, [account, resource.refresh]);
 
   useEffect(() => { load().catch(() => {}); }, [load]);
+  useEffect(() => { if (inviteCode) setCode(inviteCode); }, [inviteCode]);
 
   async function createInvite() {
     setBusy(true); setError('');
@@ -50,7 +48,7 @@ export default function Friends({ account, notify, go }) {
       notify('Link do convite copiado. Vale por 7 dias e pode ser usado por várias pessoas.');
       return;
     }
-    selectText('.invite-code');
+    selectText('.companion-code > code');
     notify('Não foi possível copiar automaticamente. O código está selecionado: use Ctrl+C ou toque e segure.');
   }
 
@@ -66,6 +64,7 @@ export default function Friends({ account, notify, go }) {
       setInvite(null);
       history.replaceState(null, '', '#amigos');
       await load();
+      invalidateResources('/api/social/');
     } catch (exception) { setError(exception.message); }
     finally { setBusy(false); }
   }
@@ -77,87 +76,75 @@ export default function Friends({ account, notify, go }) {
       if (!result.ok) throw new Error(apiError(result));
       notify(`${friend.name} saiu da sua lista.`);
       await load();
+      invalidateResources('/api/social/');
     } catch (exception) { setError(exception.message); }
     finally { setBusy(false); }
   }
 
-  return <div className="personal-root">
-    <Heading eyebrow="Aprender junto, sem expor o que é seu" title="Amigos">
-      Convide por link. Cada pessoa escolhe o que os amigos veem no perfil; o e-mail nunca aparece.
+  return <div className="social-root">
+    <Heading eyebrow="Sua rede de estudos" title="Social" actions={<span className="social-friend-count"><Icon name="users"/>{data ? `${data.friends.length} ${data.friends.length === 1 ? 'amizade' : 'amizades'}` : account ? 'Carregando amigos…' : 'Entre amigos'}</span>}>
+      Troque ideias, compartilhe suas vitórias e materiais com seus amigos.
     </Heading>
-
+    <SectionTabs route="amigos"/>
     {!account
-      ? <section className="card-surface settings-panel">
-        <div className="panel-title"><span className="pace-icon"><Icon name="lock"/></span><div><h2 className="title">Amigos exigem uma conta</h2><p className="muted-text">O convite é vinculado a uma pessoa. Na prévia, você pode explorar o resto do Lume.</p></div></div>
-        <Button onClick={() => go('login')}>Entrar para convidar<Icon name="arrow"/></Button>
+      ? <section className="card-surface social-feed-empty">
+        <span className="social-empty-icon"><Icon name="lock"/></span><h2 className="title">Seu espaço entre amigos.</h2>
+        <p>Entre na sua conta para publicar, conversar e compartilhar seus estudos. Cada pessoa escolhe o que mostra no perfil.</p>
+        <Button onClick={() => go('login')}>Entrar para participar<Icon name="arrow"/></Button>
       </section>
-      : <div className="friends-layout">
-        <div className="friends-column">
-          <section className="card-surface settings-panel">
-            <div className="panel-title"><span className="pace-icon"><Icon name="users"/></span><div><h2 className="title">Convidar alguém</h2><p className="muted-text">Você gera um convite e envia como quiser.</p></div></div>
-            <p className="muted-text">Não procuramos pessoas por e-mail: assim ninguém descobre quem tem conta no Lume.</p>
-            <Button onClick={createInvite} disabled={busy}><Icon name="plus"/>Criar convite</Button>
-            {invite && <div className="companion-code" aria-live="polite">
-              <span className="eyebrow">Convite por 7 dias</span>
-              <code>{invite.code}</code>
-              <p className="quiet-note">Vale por 7 dias e pode ser aceito por várias pessoas. Cada uma entra só uma vez.</p>
-              <div className="action-row">
-                <Button secondary onClick={copyInvite}>Copiar link do convite</Button>
-                <button className="text-button" onClick={() => setInvite(null)}>Fechar</button>
-              </div>
-            </div>}
-          </section>
-
-          <section className="card-surface settings-panel">
-            <div className="panel-title"><span className="pace-icon"><Icon name="mail"/></span><div><h2 className="title">Tenho um convite</h2><p className="muted-text">Cole o código de 12 caracteres.</p></div></div>
-            <form className="form-stack" onSubmit={accept}>
-              <label className="field">Código do convite
-                <input value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} placeholder="XXXX-XXXX-XXXX" maxLength={20} autoComplete="off" spellCheck="false"/>
-              </label>
-              <Button type="submit" disabled={busy || !code.trim()}><Icon name="check"/>Aceitar convite</Button>
-            </form>
-          </section>
-        </div>
-
-        <div className="friends-column">
-          <CollaborationInbox account={account} notify={notify}/>
-          <section className="card-surface settings-panel">
-            <div className="panel-title"><span className="pace-icon"><Icon name="heart"/></span><div><h2 className="title">Sua lista</h2><p className="muted-text">{data ? `${data.friends.length} ${data.friends.length === 1 ? 'amizade' : 'amizades'}` : 'Carregando…'}</p></div></div>
-            {!data && <Skeleton label="Carregando sua lista de amigos…" rows={3}/>}
-            {data && data.friends.length === 0 && <p className="inline-note"><Icon name="help"/><span>Ninguém por aqui ainda. Um convite já começa a lista.</span></p>}
-            {data && data.friends.length > 0 && <ul className="friend-list">
-              {data.friends.map((friend) => <li key={friend.id}>
-                <span className="avatar small" aria-hidden="true">{initialOf(friend.name)}</span>
-                <span className="friend-copy">
-                  <strong>{friend.name}</strong>
-                  <small>Amigos desde {new Date(friend.since).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</small>
-                </span>
-                <button className="text-button" onClick={() => go(`perfil?id=${encodeURIComponent(friend.id)}`)}>Ver perfil</button>
-                <button className="text-button accent" onClick={() => go(`mensagens?com=${encodeURIComponent(friend.id)}`)} aria-label={`Conversar com ${friend.name}`}>Mensagem</button>
-                <button className="text-button" onClick={() => remove(friend)} disabled={busy} aria-label={`Remover ${friend.name} da lista`}>Remover</button>
+      : <div className="social-layout">
+        <SocialFeed account={account} avatar={state?.profile?.avatar} xp={xp} notify={notify} go={go}/>
+        <aside className="social-sidebar" aria-label="Amigos e convites">
+          <section className="card-surface social-panel" aria-labelledby="social-friends-title">
+            <div className="social-panel-heading"><h2 id="social-friends-title" className="title"><Icon name="users"/>Amigos</h2><span className="social-count">{data?.friends.length || 0}</span></div>
+            {!data && !resource.error && <Skeleton label="Carregando sua lista de amigos…" rows={3}/>}
+            {data?.friends.length === 0 && <p className="social-sidebar-empty">Ninguém por aqui ainda. Um convite já começa a lista.</p>}
+            {data?.friends.length > 0 && <ul className="social-friend-list">
+              {data.friends.map(friend => <li key={friend.id}>
+                <button type="button" className="social-friend-profile" onClick={() => go(`perfil?id=${encodeURIComponent(friend.id)}`)} aria-label={`Ver perfil de ${friend.name}`}>
+                  <SocialAvatar person={friend}/><span><strong>{friend.name}</strong><small>Amigos desde {new Date(friend.since).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</small></span>
+                </button>
+                <button type="button" className="icon-button" onClick={() => go(`mensagens?com=${encodeURIComponent(friend.id)}`)} aria-label={`Conversar com ${friend.name}`} title="Enviar mensagem"><Icon name="message"/></button>
+                <button type="button" className="icon-button" onClick={() => remove(friend)} disabled={busy} aria-label={`Remover ${friend.name} da lista`} title="Remover amizade"><Icon name="close"/></button>
               </li>)}
             </ul>}
+            {resource.error && <div className="form-error form-error-block" role="alert">{resource.error}<Button secondary onClick={load}>Tentar novamente</Button></div>}
           </section>
 
-          {data && data.invites.length > 0 && <section className="card-surface settings-panel">
-            <div className="panel-title"><span className="pace-icon"><Icon name="clock"/></span><div><h2 className="title">Seus convites</h2><p className="muted-text">Só o mais recente fica ativo.</p></div></div>
-            <ul className="invite-history">
-              {data.invites.map((item, index) => <li key={`${item.createdAt}-${index}`}>
-                <span>{new Date(item.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
-                <span className={`invite-status ${item.expired ? 'is-expired' : item.uses > 0 ? 'is-used' : 'is-open'}`}>
-                  {item.expired
-                    ? 'expirado'
-                    : item.uses > 0
-                      ? `${item.uses} ${item.uses === 1 ? 'pessoa entrou' : 'pessoas entraram'}`
-                      : 'aguardando'}
-                </span>
-              </li>)}
-            </ul>
-          </section>}
-        </div>
-      </div>}
+          <section className="card-surface social-panel" aria-labelledby="social-invite-title">
+            <div className="social-panel-heading"><h2 id="social-invite-title" className="title"><Icon name="plus"/>Convidar amigo</h2></div>
+            <p className="quiet-note">Gere um convite e compartilhe o link. Ele vale por 7 dias.</p>
+            {!invite && <Button secondary onClick={createInvite} disabled={busy}><Icon name="plus"/>Criar convite</Button>}
+            {invite && <div className="companion-code social-invite-code" aria-live="polite">
+              <span className="metric-label">Seu código de convite</span><code>{invite.code}</code>
+              <Button secondary onClick={copyInvite} disabled={busy}><Icon name="layers"/>Copiar link do convite</Button>
+              <button type="button" className="text-button" onClick={createInvite} disabled={busy}>Gerar novo convite</button>
+            </div>}
+            <form className="social-invite-form" onSubmit={accept}>
+              <label className="field">Código do convite
+                <input value={code} onChange={event => setCode(event.target.value.toUpperCase())} placeholder="XXXX-XXXX-XXXX" maxLength={20} autoComplete="off" spellCheck="false" disabled={busy}/>
+              </label>
+              <Button secondary type="submit" disabled={busy || !code.trim()}><Icon name="check"/>Aceitar convite</Button>
+            </form>
+            {actionError && <p className="form-error" role="alert">{actionError}</p>}
+          </section>
 
-    {error && <p className="form-error" role="alert">{error}</p>}
-    <p className="quiet-note">Convites, amizades, mensagens e remoções não geram XP. O perfil mostra só o que cada pessoa autorizou: biblioteca, fila, progresso e XP confirmado pelo servidor. Mensagens diretas entre amizades aceitas e convites de colaboração em entregas já funcionam; o compartilhamento de aprendizados ainda não existe. Grupos, comunidades e canais estão fora do escopo desta etapa. O ranking de amigos é opcional e fica em sua própria página.</p>
+          <section className="card-surface social-panel social-ranking-link">
+            <span className="social-ranking-icon"><Icon name="podium"/></span><h2 className="title">Seu ritmo, entre amigos.</h2>
+            <p>Veja as classificações por nível, cursos concluídos e empenho.</p>
+            <Button secondary onClick={() => go('ranking')}>Ver ranking<Icon name="arrow"/></Button>
+          </section>
+
+          <CollaborationInbox account={account} notify={notify}/>
+          {data?.invites.length > 0 && <section className="card-surface social-panel">
+            <h2 className="title">Seus convites</h2><p className="quiet-note">Só o mais recente fica ativo.</p>
+            <ul className="invite-history">{data.invites.map((item, index) => <li key={`${item.createdAt}-${index}`}>
+              <span>{new Date(item.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
+              <span className={`invite-status ${item.expired ? 'is-expired' : item.uses > 0 ? 'is-used' : 'is-open'}`}>{item.expired ? 'expirado' : item.uses > 0 ? `${item.uses} ${item.uses === 1 ? 'pessoa entrou' : 'pessoas entraram'}` : 'aguardando'}</span>
+            </li>)}</ul>
+          </section>}
+          <p className="social-privacy-note"><Icon name="lock"/><span>Uma rede só entre amigos. Publicações, comentários e reações não geram XP.</span></p>
+        </aside>
+      </div>}
   </div>;
 }

@@ -283,8 +283,11 @@ test('ranking tem três abas, empates compartilhados, opt-in e legado fora', asy
   await event('u2', 'course-2', 'course_bonus', 500);
   await event('u2', 'course-3', 'course_bonus', 500);
 
+  await db.run('INSERT INTO account_documents (user_id, data, updated_at) VALUES (?, ?, ?)', ['u2', JSON.stringify({ profile: { avatar: '/api/media/profiles/u2/avatar-7.png' } }), new Date(NOW).toISOString()]);
   const level = await getRanking(db, 'u1', { tab: 'level', now: NOW, timeZone: 'UTC' });
   assert.equal(level.entries[0].id, 'u2');
+  assert.equal(level.entries[0].avatar, '/api/media/profiles/u2/avatar-7.png');
+  assert.equal(level.entries[1].avatar, '', 'sem foto, o cliente mostra a inicial');
   assert.equal(level.entries[0].position, 1);
   assert.equal(level.entries[1].id, 'u1');
   assert.equal(level.entries.some((entry) => entry.id === 'u3'), false, 'opt-out não aparece');

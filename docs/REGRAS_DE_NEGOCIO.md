@@ -18,6 +18,7 @@ Consulte também:
 3. **Sem viés de sustentabilidade/ecologia:** o look and feel, os ícones e os textos da aplicação **não** usam metáforas ecológicas, botânicas ou de "sustentabilidade" (nada de termos como *"sustentável"*, *"cultivar"*, nem ícones de broto/folha/árvore `sprout`, `leaf`, `tree`). Use vocabulário direto de estudo e constância: **ritmo constante**, **ritmo equilibrado**, **construir o hábito**, **continuidade** e **foco sem sobrecarga**.
 4. **Limites éticos e clínicos:** nenhum registro de tempo, conclusão ou XP pode ser descrito como prova de aprendizado, compreensão, atenção, inteligência ou benefício clínico.
 5. **Escopo social:** o social restringe-se a **amigos** (amizade mútua por convite), **mensagens diretas** entre amizades aceitas, **colaboração em projetos** e **ranking entre amigos**. Comunidades, servidores, canais e grupos públicos estão fora do escopo.
+6. **Botões (12/11/2026):** ações primárias e secundárias seguem o desenho em cápsula, com preenchimento sólido na cor de ação para primárias e superfície tonal com contorno para secundárias. Um destaque percorre o contorno enquanto o mouse permanece sobre um botão habilitado; ao sair, o efeito desaparece. O foco por teclado mantém um anel estático visível. Botões desativados não animam, e telas de toque não mantêm a órbita. Cores acompanham a paleta e o tema; menta continua reservada ao progresso. A animação é CSS, sem alterar medidas, texto ou área de clique.
 
 ---
 
@@ -175,6 +176,14 @@ Consulte também:
 
 ## 10. Social: Amigos, Perfil, Mensagens, Colaboração e Ranking
 
+**Tela Social e feed entre amigos (12/11/2026):**
+   - Social substitui o nome Amigos na navegação, preservando `#amigos` e seus links de convite. Reúne feed, lista de amigos, convites e acesso a Mensagens e Ranking, com o CSS e os botões compartilhados do Lume. Referência visual: projeto Stitch `5451832634560597098`, tela `c6ca3f9cb11c4bc7a2afc1dd447a81f9` (cópia em `designs/stitch/lume-social/`).
+   - Publicações são explícitas e persistidas em `social_posts`; texto até 2.000 caracteres, comentários até 1.000 em `social_comments` e uma reação por pessoa/publicação em `social_reactions`. IDs de envio impedem duplicar publicações e comentários ao repetir uma requisição. O feed é cronológico e paginado; não publica atividades automaticamente nem inventa presença ou pessoas de exemplo.
+   - Uma publicação aceita um PDF de até 10 MB, uma imagem PNG/JPG/WebP/GIF de até 2 MB ou uma conquista própria validada pelo servidor. Arquivos são cópias enviadas explicitamente para R2/`data/media`, com cota social de 100 MB por conta, separada da biblioteca. Nunca publica o arquivo privado da biblioteca por referência. Excluir a publicação remove o objeto e libera a cota. Conquista corrigida deixa de ser exibida como válida.
+   - A API revalida amizade mútua e bloqueios ao listar, comentar, reagir e abrir/baixar cada anexo. Remoção de amizade ou bloqueio encerra o acesso. Não há feed público, grupos ou compartilhamento por URL pública. O autor exclui sua publicação e pode remover comentários nela; cada pessoa também pode remover seus próprios comentários.
+   - Fotos de perfil: Feed, Amigos, Mensagens (lista e conversa) e Ranking devolvem `avatar` lido de `account_documents` (`$.profile.avatar`) e saneado por `sanitizeProfileImage`; sem foto válida, o cliente mostra as iniciais (`PersonAvatar` em `src/ui/ui.jsx`).
+   - Publicações, downloads, comentários e reações não concedem XP. As escolhas de visibilidade do perfil continuam independentes: escrever no feed é uma escolha explícita de compartilhar aquele conteúdo com amigos.
+
 1. **Amizades (`api/domain/friends.js`):**
    - Amizade exige convite e aceitação mútua (por código/link de convite de 7 dias). Bloqueio ou remoção encerra a amizade e revoga convites pendentes.
 2. **Privacidade do Perfil (`public/profile-domain.js`):**
@@ -183,6 +192,7 @@ Consulte também:
 3. **Mensagens Diretas (`api/domain/messages.js`):**
    - Permitidas exclusivamente entre contas com amizade aceita (`status = 'accepted'`).
    - Referências anexadas (`course`, `lesson`, `project`, `achievement`) passam por sanitização que remove URLs externas ou privadas.
+   - **Aviso de mensagem nova (13/11/2026):** quando o contador de não lidas sobe, um aviso flutuante no canto inferior direito mostra foto (ou iniciais), nome e o começo do texto da conversa mais recente (`messageAlert` em `public/social-domain.js`, `src/features/social/MessageAlert.jsx`). Clicar abre `#mensagens?com=<id>`; fecha pelo botão ou sozinho em 8 s (espera enquanto o ponteiro está em cima). Não aparece com a conversa daquela pessoa aberta, com as notificações de mensagens desligadas, durante sessão de foco com Escudo de foco, nem para mensagens que já estavam não lidas ao abrir o Lume. Cada mensagem avisa uma vez. Voltar à janela confere o contador na hora.
 4. **Colaboração em Projetos (`api/domain/collaboration.js`):**
    - Permite convidar um amigo para colaborar em um material do tipo `'project'`.
    - Aceitar um convite de colaboração **não copia** o projeto para a biblioteca privada da outra pessoa; mantém o acesso vinculado ao projeto compartilhado enquanto a colaboração estiver ativa.
@@ -192,6 +202,10 @@ Consulte também:
      2. **Cursos concluídos (`courses`):** quantidade de cursos distintos elegíveis concluídos;
      3. **Empenho no período (`period`):** XP conquistado nos últimos 7 ou 30 dias.
    - Respeita empates compartilhados (mesma posição para valores iguais) e a preferência `showRanking` (quem desativa não aparece no placar compartilhado).
+6. **Sino de notificações (13/11/2026, `api/domain/notifications.js`, `public/notifications-domain.js`):**
+   - O sino do cabeçalho abre um painel (não navega mais para Mensagens) com: amizade nova, convite de colaboração pendente, comentário e curtida de outra pessoa nas suas publicações e novidades do Lume (`LUME_NEWS`, editadas no código). Mensagens diretas continuam no contador do menu Social e no aviso flutuante.
+   - Janela de 30 dias, até 30 itens, mais recentes primeiro. Contatos bloqueados não notificam. Não há tabela de eventos: os avisos são lidos das tabelas existentes, e só o marco `notification_reads.seen_at` é gravado (`GET /api/notifications`, `POST /api/notifications/seen`).
+   - Abrir o painel marca tudo como visto; o marco só avança. Sem marco, conta como novo apenas o que chegou depois da criação da conta. Notificação não gera XP.
 
 ---
 

@@ -10,13 +10,17 @@
 
 import { hashSessionToken } from './auth.js';
 import { AppError } from '../errors.js';
-import { createInitialState, restoreState } from '../../public/domain.js';
-import { buildProfile } from '../../public/profile-domain.js';
+import { createInitialState, restoreState, sanitizeProfileImage } from '../../public/domain.js';
+import { buildProfile, normalizeSharing } from '../../public/profile-domain.js';
+import { STALE_SESSION_MS } from '../../public/session-domain.js';
+import { PRESENCE_TTL_MS, cleanAppLabel } from '../../companion/domain.mjs';
 import { getXpSnapshot } from './xp.js';
 
 export const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const INVITE_CODE_LENGTH = 12;
 export const MAX_FRIENDS = 200;
+export const ONLINE_PRESENCE_TTL_MS = 3 * 60 * 1000;
+const STUDY_COMPANION_CATEGORIES = new Set(['study', 'reading', 'project']);
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 export class FriendsError extends AppError {
@@ -99,15 +103,121 @@ async function publicFriend(db, userId) {
   return row ? { id: row.id, name: row.name } : { id: userId, name: 'Pessoa do Lume' };
 }
 
+function parseJson(raw) {
+  if (!raw || typeof raw !== 'string') return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+export async function touchUserPresence(db, userId, now = Date.now()) {
+  if (!userId) return;
+  await db.run(
+    `INSERT INTO user_presence (user_id, last_seen_at) VALUES (?, ?)
+     ON CONFLICT(user_id) DO UPDATE SET last_seen_at = excluded.last_seen_at`,
+    [userId, iso(now)],
+  );
+}
+
+export async function clearUserPresence(db, userId) {
+  if (!userId) return;
+  await db.run('DELETE FROM user_presence WHERE user_id = ?', [userId]);
+}
+
+async function resolveStudyingTopic(db, userId, activeSession, allowTopic) {
+  if (!allowTopic) return '';
+  if (activeSession.courseId) {
+    const matRow = await db.first(
+      'SELECT data FROM materials WHERE user_id = ? AND id = ?',
+      [userId, activeSession.courseId],
+    );
+    const material = parseJson(matRow?.data);
+    if (material?.subjectId) {
+      const subRow = await db.first(
+        'SELECT data FROM study_subjects WHERE user_id = ? AND id = ?',
+        [userId, material.subjectId],
+      );
+      const subjectTitle = cleanAppLabel(parseJson(subRow?.data)?.title);
+      if (subjectTitle) return subjectTitle;
+    }
+    const materialTitle = cleanAppLabel(material?.title);
+    if (materialTitle) return materialTitle;
+  }
+  const label = cleanAppLabel(activeSession.label);
+  return label && label !== 'Sessão de estudo' ? label : '';
+}
+
+async function buildFriendActivity(db, row, companion, now) {
+  const doc = parseJson(row.account_doc);
+  const sharing = normalizeSharing(doc?.preferences?.sharing);
+  const session = doc?.activeSession;
+  const sessionTick = session?.status === 'active' ? Date.parse(session.lastTickAt) : NaN;
+  const sessionActive = Boolean(session?.status === 'active' && Number.isFinite(sessionTick) && now - sessionTick < STALE_SESSION_MS);
+
+  if (sessionActive) {
+    const topic = await resolveStudyingTopic(db, row.id, session, sharing.library);
+    return { active: true, status: 'studying', label: 'Estudando', topic };
+  }
+
+  const companionUpdated = companion ? Date.parse(companion.updated_at) : NaN;
+  if (Number.isFinite(companionUpdated) && now - companionUpdated < PRESENCE_TTL_MS) {
+    if (STUDY_COMPANION_CATEGORIES.has(companion.category)) {
+      return {
+        active: true,
+        status: 'studying',
+        label: 'Estudando',
+        topic: sharing.library ? cleanAppLabel(companion.app) : '',
+      };
+    }
+    return { active: true, status: 'online', label: 'Online', topic: '' };
+  }
+
+  const webSeen = row.last_seen_at ? Date.parse(row.last_seen_at) : NaN;
+  if (Number.isFinite(webSeen) && now - webSeen < ONLINE_PRESENCE_TTL_MS) {
+    return { active: true, status: 'online', label: 'Online', topic: '' };
+  }
+
+  return { active: false, status: 'offline', label: 'Offline', topic: '' };
+}
+
 export async function listFriends(db, userId, now = Date.now()) {
   if (!userId) throw new FriendsError('Entre na sua conta para ver seus amigos.', 'unauthenticated', 401);
   const friends = await db.all(
-    `SELECT u.id, u.name, f.created_at AS since
-       FROM friendships f JOIN users u ON u.id = f.friend_id
+    `SELECT u.id, u.name, f.created_at AS since,
+            up.last_seen_at AS last_seen_at,
+            ad.data AS account_doc
+       FROM friendships f
+       JOIN users u ON u.id = f.friend_id
+       LEFT JOIN user_presence up ON up.user_id = u.id
+       LEFT JOIN account_documents ad ON ad.user_id = u.id
       WHERE f.user_id = ?
       ORDER BY u.name COLLATE NOCASE`,
     [userId],
   );
+  const friendIds = friends.map((row) => row.id);
+  const companions = new Map();
+  if (friendIds.length) {
+    const placeholders = friendIds.map(() => '?').join(', ');
+    const rows = await db.all(
+      `SELECT user_id, app, category, updated_at
+         FROM companion_presence
+        WHERE user_id IN (${placeholders})
+        ORDER BY updated_at DESC`,
+      friendIds,
+    );
+    for (const row of rows) {
+      if (!companions.has(row.user_id)) companions.set(row.user_id, row);
+    }
+  }
+  const friendItems = await Promise.all(friends.map(async (row) => ({
+    id: row.id,
+    name: row.name,
+    avatar: sanitizeProfileImage(parseJson(row.account_doc)?.profile?.avatar),
+    since: row.since,
+    activity: await buildFriendActivity(db, row, companions.get(row.id) || null, now),
+  })));
   const invites = await db.all(
     `SELECT i.created_at, i.expires_at,
             (SELECT COUNT(*) FROM friend_invite_uses u WHERE u.code_hash = i.code_hash) AS uses
@@ -116,7 +226,7 @@ export async function listFriends(db, userId, now = Date.now()) {
     [userId],
   );
   return {
-    friends: friends.map((row) => ({ id: row.id, name: row.name, since: row.since })),
+    friends: friendItems,
     invites: invites.map((row) => ({
       createdAt: row.created_at,
       expiresAt: row.expires_at,

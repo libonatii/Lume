@@ -8,6 +8,7 @@
 // - referências compartilhadas carregam apenas tipo, id e título, nunca o
 //   conteúdo privado do material.
 
+import { sanitizeProfileImage } from '../../public/domain.js';
 import { AppError } from '../errors.js';
 
 export const MAX_MESSAGE_LENGTH = 4000;
@@ -93,8 +94,9 @@ function assertCanMessage(blocks) {
 export async function listConversations(db, userId, now = Date.now()) {
   if (!userId) throw new MessagesError('Entre na sua conta para ver suas mensagens.', 'unauthenticated', 401);
   const friends = await db.all(
-    `SELECT u.id, u.name, f.created_at AS since
+    `SELECT u.id, u.name, f.created_at AS since, json_extract(d.data, '$.profile.avatar') AS avatar
        FROM friendships f JOIN users u ON u.id = f.friend_id
+       LEFT JOIN account_documents d ON d.user_id = u.id
       WHERE f.user_id = ?
       ORDER BY u.name COLLATE NOCASE`,
     [userId],
@@ -117,6 +119,7 @@ export async function listConversations(db, userId, now = Date.now()) {
     rows.push({
       id: friend.id,
       name: friend.name,
+      avatar: sanitizeProfileImage(friend.avatar),
       since: friend.since,
       lastMessage: last ? {
         id: last.id,
@@ -149,9 +152,13 @@ export async function getThread(db, userId, friendId) {
       ORDER BY created_at DESC, id DESC LIMIT ?`,
     [userId, friendId, friendId, userId, MAX_MESSAGES_PER_THREAD],
   );
-  const friend = await db.first('SELECT id, name FROM users WHERE id = ?', [friendId]);
+  const friend = await db.first(
+    `SELECT u.id, u.name, json_extract(d.data, '$.profile.avatar') AS avatar
+       FROM users u LEFT JOIN account_documents d ON d.user_id = u.id WHERE u.id = ?`,
+    [friendId],
+  );
   return {
-    friend: friend ? { id: friend.id, name: friend.name } : { id: friendId, name: 'Pessoa do Lume' },
+    friend: friend ? { id: friend.id, name: friend.name, avatar: sanitizeProfileImage(friend.avatar) } : { id: friendId, name: 'Pessoa do Lume' },
     messages: rows.reverse().map((row) => serializeMessage(row, userId)),
     blockedByMe: blocks.blockedByMe,
     blockedMe: blocks.blockedMe,

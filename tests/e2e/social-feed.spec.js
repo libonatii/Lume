@@ -1,0 +1,140 @@
+import { test, expect } from '@playwright/test';
+import { seedAccount } from './library-helpers.js';
+import { penalPdf } from '../fixtures/sample-pdf.js';
+
+const origin = `http://127.0.0.1:${process.env.LUME_E2E_PORT || '4187'}`;
+
+test('Social publica, comenta, reage e persiste; desfazer amizade revoga o feed', async ({ page, browser }, testInfo) => {
+  await seedAccount(page);
+  const context = await browser.newContext({ baseURL: origin, extraHTTPHeaders: { origin } });
+  try {
+    const guest = context.request;
+    expect((await guest.post('/api/register', { data: { name: 'Bia Almeida', email: `social-${crypto.randomUUID()}@example.test`, password: 'senha-de-teste-123' } })).status()).toBe(201);
+    const invite = await (await page.request.post('/api/friends/invite', { headers: { origin } })).json();
+    expect((await guest.post('/api/friends/accept', { data: { code: invite.code } })).ok()).toBe(true);
+    const friendPost = crypto.randomUUID();
+    expect((await guest.post('/api/social/posts', { data: { id: friendPost, body: 'Terminei meu resumo de transformações lineares. Alguém quer revisar comigo?' } })).status()).toBe(201);
+
+    await page.goto('/#amigos');
+    await expect(page.getByRole('heading', { name: 'Social', exact: true })).toBeVisible();
+    await expect(page.getByRole('navigation', { name: 'Navegação', exact: true }).getByRole('link', { name: 'Social', exact: true })).toHaveAttribute('aria-current', 'page');
+    await expect(page.getByRole('complementary', { name: 'Amigos e convites' }).getByText('Bia Almeida', { exact: true })).toBeVisible();
+    await page.getByLabel('Sua publicação').fill('Alguém tem uma dica para revisar determinantes? Hoje vou fechar o capítulo 3.');
+    await page.getByLabel('Tipo de publicação').selectOption('question');
+    await page.getByRole('button', { name: 'Postar', exact: true }).click();
+    const mine = page.getByRole('article').filter({ hasText: 'Alguém tem uma dica para revisar determinantes?' });
+    await expect(mine).toBeVisible();
+    await expect(mine.getByText('Dúvida rápida', { exact: true })).toBeVisible();
+    await expect(page.getByLabel('Sua publicação')).toHaveValue('');
+    const theirs = page.getByRole('article').filter({ hasText: 'Terminei meu resumo' });
+    await theirs.getByRole('button', { name: /Curtir/ }).click();
+    await expect(theirs.getByRole('button', { name: /Curtir/ })).toHaveAttribute('aria-pressed', 'true');
+    await theirs.getByRole('button', { name: '0 comentários', exact: true }).click();
+    await theirs.getByLabel('Comentar publicação de Bia Almeida').fill('Quero revisar! Vou começar pelos exemplos do capítulo.');
+    await theirs.getByRole('button', { name: 'Comentar', exact: true }).click();
+    await expect(theirs.getByText('Quero revisar! Vou começar pelos exemplos do capítulo.')).toBeVisible();
+    expect((await (await guest.get(`/api/social/posts/${friendPost}/comments`)).json()).comments).toHaveLength(1);
+    await page.reload();
+    await expect(mine).toBeVisible();
+    await expect(theirs.getByRole('button', { name: /Curtir/ })).toHaveAttribute('aria-pressed', 'true');
+    await expect(theirs.getByText('Quero revisar! Vou começar pelos exemplos do capítulo.')).toBeVisible();
+    await expect(page.getByRole('navigation', { name: 'Seções de Social' }).getByRole('link', { name: 'Mensagens', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Ver ranking', exact: true })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath('social.png'), fullPage: true });
+
+    await page.getByRole('button', { name: 'Conversar com Bia Almeida' }).click();
+    await expect(page.getByRole('heading', { name: 'Mensagens', exact: true })).toBeVisible();
+    await page.goto('/#amigos');
+    await page.getByRole('button', { name: 'Remover Bia Almeida da lista' }).click();
+    await expect(theirs).toHaveCount(0);
+    await expect(mine).toBeVisible();
+    const guestFeed = await (await guest.get('/api/social/feed')).json();
+    expect(guestFeed.posts).toHaveLength(1);
+    expect(guestFeed.posts[0].id).toBe(friendPost);
+    await mine.getByRole('button', { name: 'Excluir publicação', exact: true }).click();
+    await mine.getByRole('button', { name: 'Manter publicação', exact: true }).click();
+    await expect(mine).toBeVisible();
+    await mine.getByRole('button', { name: 'Excluir publicação', exact: true }).click();
+    await mine.getByRole('button', { name: 'Sim, excluir publicação', exact: true }).click();
+    await expect(mine).toHaveCount(0);
+    await expect(page.getByText('As próximas conversas começam aqui.')).toBeVisible();
+  } finally { await context.close(); }
+});
+
+test('PDF só é publicado após confirmação; falha preserva texto e anexo para repetir', async ({ page }) => {
+  await seedAccount(page);
+  await page.goto('/#amigos');
+  await page.getByLabel('Sua publicação').fill('Meu resumo da semana.');
+  await page.getByLabel('Anexar PDF à publicação').setInputFiles({ name: 'resumo-penal.pdf', mimeType: 'application/pdf', buffer: penalPdf() });
+  await page.route('**/api/social/posts', route => route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Envio indisponível no teste.' }) }), { times: 1 });
+  await page.getByRole('button', { name: 'Postar', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('Envio indisponível no teste.');
+  await expect(page.getByLabel('Sua publicação')).toHaveValue('Meu resumo da semana.');
+  await expect(page.locator('.social-draft-attachment')).toContainText('resumo-penal.pdf');
+  await expect(page.getByRole('article')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Postar', exact: true }).click();
+  const post = page.getByRole('article').filter({ hasText: 'Meu resumo da semana.' });
+  await expect(post).toBeVisible();
+  const attachment = post.getByRole('link', { name: 'Abrir', exact: true });
+  const response = await page.request.get(await attachment.getAttribute('href'));
+  expect(response.status()).toBe(200);
+  expect(response.headers()['content-type']).toBe('application/pdf');
+  expect(response.headers()['cache-control']).toBe('no-store');
+  await page.reload();
+  await expect(post.getByText('resumo-penal.pdf')).toBeVisible();
+  await page.getByRole('button', { name: 'Conquista', exact: true }).click();
+  await expect(page.getByLabel('Conquista para compartilhar')).toContainText('Você ainda não tem conquistas validadas');
+  await page.getByLabel('Sua publicação').fill('Foto das minhas anotações.');
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==', 'base64');
+  await page.getByLabel('Anexar foto à publicação').setInputFiles({ name: 'anotacoes.png', mimeType: 'image/png', buffer: png });
+  await expect(page.getByAltText('Prévia do anexo')).toBeVisible();
+  await page.getByRole('button', { name: 'Postar', exact: true }).click();
+  const photo = page.getByRole('article').filter({ hasText: 'Foto das minhas anotações.' });
+  await expect(photo.getByAltText('anotacoes.png')).toBeVisible();
+  expect(await photo.getByAltText('anotacoes.png').evaluate(image => image.naturalWidth)).toBe(1);
+  const xp = await (await page.request.get('/api/xp', { headers: { origin } })).json();
+  expect(xp.summary.totalXP).toBe(0);
+});
+
+test('erro no feed tem repetição e não apaga rascunho; tema claro e paleta roxa se adaptam', async ({ page }, testInfo) => {
+  await seedAccount(page);
+  await page.route('**/api/social/feed', route => route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Feed indisponível no teste.' }) }), { times: 1 });
+  await page.goto('/#amigos');
+  await expect(page.getByRole('alert')).toContainText('Feed indisponível no teste.');
+  await page.getByLabel('Sua publicação').fill('Rascunho guardado na tela');
+  await page.getByRole('button', { name: 'Tentar novamente', exact: true }).click();
+  await expect(page.getByText('As próximas conversas começam aqui.')).toBeVisible();
+  await expect(page.getByLabel('Sua publicação')).toHaveValue('Rascunho guardado na tela');
+  await page.getByRole('button', { name: 'Conforto visual', exact: true }).click();
+  const comfort = page.locator('#comfort-popover');
+  await comfort.getByRole('radio', { name: 'Roxo', exact: true }).check();
+  await comfort.getByRole('button', { name: 'Dia suave', exact: true }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-palette', 'variante2');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.keyboard.press('Escape');
+  await page.screenshot({ path: testInfo.outputPath('social-claro-roxo.png'), fullPage: true });
+});
+
+test('compartilhar conquista validada não duplica a recompensa de estudo', async ({ page }) => {
+  await seedAccount(page);
+  await page.goto('/#biblioteca');
+  await page.getByRole('button', { name: 'Anexar PDF', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.locator('input[type=file]').setInputFiles({ name: 'apostila.pdf', mimeType: 'application/pdf', buffer: penalPdf() });
+  await dialog.getByRole('button', { name: 'Anexar PDF', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Concluí a leitura do PDF' }).click();
+  await expect(dialog.getByText('Leitura concluída.')).toBeVisible();
+  await page.getByRole('button', { name: 'Fechar janela' }).click();
+  await page.goto('/#amigos');
+  await page.reload();
+  await page.getByRole('button', { name: 'Conquista', exact: true }).click();
+  const select = page.getByLabel('Conquista para compartilhar');
+  await expect(select.locator('option:not([value=""])').first()).toBeAttached();
+  await select.selectOption(await select.locator('option:not([value=""])').first().getAttribute('value'));
+  await page.getByRole('button', { name: 'Postar', exact: true }).click();
+  await expect(page.getByRole('article').getByText('Conquista validada', { exact: true })).toBeVisible();
+  const xp = await (await page.request.get('/api/xp', { headers: { origin } })).json();
+  expect(xp.summary.totalXP).toBe(100);
+});

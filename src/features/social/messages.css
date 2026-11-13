@@ -64,11 +64,13 @@
   flex: 0 0 auto;
   display: grid;
   place-items: center;
+  overflow: hidden;
   border-radius: 50%;
   background: var(--surface-3);
   color: var(--lume);
   font-weight: 750;
 }
+.conversation-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .conversation-copy {
   flex: 1 1 auto;
   min-width: 0;
@@ -209,4 +211,44 @@
   .message-thread {
     min-height: 26rem;
   }
+}
+
+/* Aviso flutuante de mensagem nova (MessageAlert.jsx), abaixo dos avisos gerais. */
+.message-alert-region {
+  position: fixed;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  z-index: 119;
+  pointer-events: none;
+}
+.message-alert {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  width: min(360px, calc(100vw - 2rem));
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+  border: 1px solid color-mix(in srgb, var(--lume) 35%, var(--border-strong));
+  color: var(--text);
+  box-shadow: var(--shadow-lg);
+}
+.message-alert-link {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--radius-md);
+}
+.message-alert-copy { min-width: 0; display: grid; gap: .1rem; }
+.message-alert-copy small { display: inline-flex; align-items: center; gap: .35rem; color: var(--lume); font-size: .72rem; font-weight: 700; }
+.message-alert-copy small svg { width: .85rem; height: .85rem; }
+.message-alert-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.message-alert-copy > span { color: var(--text-muted); font-size: .85rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+@media (max-width: 820px) {
+  .message-alert-region { bottom: 5rem; left: 1rem; right: 1rem; display: flex; justify-content: flex-end; }
 }

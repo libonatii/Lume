@@ -1,6 +1,6 @@
 # Lume — Estado Atual e Pendências de Implementação
 
-Atualizado em 12/11/2026. Este documento consolida **o que já existe e foi verificado** no código e **o que ainda falta implementar ou validar em produção**. Para as regras de domínio e de produto, consulte [Regras de Negócio Consolidadas](REGRAS_DE_NEGOCIO.md).
+Atualizado em 13/11/2026. Este documento consolida **o que já existe e foi verificado** no código e **o que ainda falta implementar ou validar em produção**. Para as regras de domínio e de produto, consulte [Regras de Negócio Consolidadas](REGRAS_DE_NEGOCIO.md).
 
 ---
 
@@ -18,16 +18,20 @@ Atualizado em 12/11/2026. Este documento consolida **o que já existe e foi veri
 | **Plano de Estudos, Agenda e Tarefas** | Cronograma derivado (`schedule-domain.js`), calendário interativo FullCalendar 7 (`Agenda.jsx`), recorrência até 52 ocorrências, lembretes únicos (`agenda_reminders`) e tarefas com subtarefas | `src/features/plan/`, `src/features/agenda/`, `public/schedule-domain.js`, `public/agenda-domain.js`, `public/tasks-domain.js` |
 | **XP v2, Níveis, Conquistas e Cargos** | Livro `xp_events` validado no servidor, bônus de curso (300 XP) e disciplina (200 XP), blocos de tempo (30 XP / 25 min, teto 120/dia), subtarefas (10 XP, teto 50/dia) e cargos como títulos | `public/xp-policy.js`, `api/domain/xp.js`, `api/domain/rewards.js`, `api/domain/library-time.js`, `api/domain/library-subtasks.js` |
 | **Social: Amigos, Mensagens, Colaboração e Ranking** | Convites de 7 dias, perfil com privacidade configurável, mensagens diretas com referências sanitizadas, bloqueio, colaboração em projetos e ranking em 3 abas | `api/domain/friends.js`, `api/domain/messages.js`, `api/domain/collaboration.js`, `src/features/social/` |
+| **Tela Social e feed entre amigos** | Substitui a entrada Amigos, preservando `#amigos`; publicações, PDFs/imagens privados, conquistas validadas, comentários, reações, exclusão, convites e atalhos para Mensagens/Ranking. Persistência em `0016_social_feed.sql`, sem XP social | `src/features/social/Friends.jsx`, `src/features/social/SocialFeed.jsx`, `src/features/social/friends.css`, `public/social-domain.js`, `api/domain/social-feed.js`, `api/routes/social-feed.js` |
 | **Conforto Visual e Aparência** | Paletas Azul (`moderno`) e Roxo (`variante2`), temas escuro/claro/suave, tamanho de texto (`normal`/`large`), densidade e som ambiente | `src/styles/00-tokens.css`, `src/app/Shell.jsx`, `src/app/modals.jsx`, `public/settings-domain.js` |
+| **Botões em cápsula** | Primários sólidos, secundários tonais, contorno com destaque giratório durante hover com mouse, foco estático por teclado e desativados sem animação; cores por paleta/tema | `src/styles/80-redesign-moderno.css` |
 | **Backup e Mesclagem v3** | Exportação JSON v3 e restauração/mesclagem explícita com prévia | `public/backup-domain.js`, `public/merge-domain.js` |
 | **Aplicativo de Desktop (`companion/`)** | Janela Electron completa, bandeja, lembretes minimizados, pareamento por código, presença opcional por allowlist, Rich Presence no Discord e atualizador | `companion/` |
+
+**Social publicado e verificado em produção (13/11/2026):** migração `0016_social_feed.sql` aplicada no D1 e nenhuma migração pendente. Versão `05cb8a69-7598-4560-b4c8-d0f676acc0d2` em `lumeacademy.site`, preparada em cópia isolada para preservar as alterações paralelas do Início. Conferidos o CSS publicado, a navegação Social, publicações, comentários, reação idempotente, PDF e PNG no R2, acesso entre amigos e revogação após remover a amizade, sem XP social. O teste autorizado utilizou duas contas temporárias e removeu contas, publicações e anexos ao terminar. Conquistas foram verificadas localmente; não se criaram recompensas artificiais em produção.
 
 ---
 
 ## 2. O que falta verificar em produção (`lumeacademy.site`)
 
-1. **Migrações remotas D1 e armazenamento R2 (`0012` a `0015`):**
-   - Confirmar a aplicação de todas as migrações recentes no D1 remoto (`npx wrangler d1 migrations apply lume --remote`) e validar o upload real de avatares, capas, imagens de slides e arquivos PDF no bucket R2 `lume-media` (`env.MEDIA`), bem como o `Content-Type` JavaScript para o worker `pdf.worker.*.mjs`.
+1. **Arquivos da biblioteca e mídia de perfil:**
+   - Validar os fluxos reais de avatares, capas, imagens de slides e PDFs da biblioteca no bucket R2 `lume-media` (`env.MEDIA`), bem como o `Content-Type` JavaScript para o worker `pdf.worker.*.mjs`. A verificação de anexos do Social em produção não substitui a conferência dessas rotas próprias.
 2. **Entrega real de e-mail transacional (Resend):**
    - Confirmar a verificação do domínio `lumeacademy.site` no painel do Resend e testar o recebimento real do e-mail de recuperação de senha em produção.
 3. **Orçamento de CPU do Cloudflare Workers Free (`BCRYPT_ROUNDS=6`):**
@@ -48,6 +52,6 @@ Atualizado em 12/11/2026. Este documento consolida **o que já existe e foi veri
    - Permitir selecionar quais conquistas aparecem em destaque na vitrine do perfil social.
 4. **Segurança social e reconhecimento entre amigos:**
    - Mecanismo de denúncia de abuso em mensagens diretas.
-   - Reações/reconhecimento em conquistas de amigos e registro de contribuição individual em projetos colaborativos.
+   - Registro de contribuição individual em projetos colaborativos. Reações a conquistas compartilhadas já existem no feed Social; não há reações diretamente na vitrine do perfil.
 5. **Assinatura de código do instalador Windows (`companion/`):**
    - Configurar certificado (`CSC_LINK` e `CSC_KEY_PASSWORD`) no GitHub Actions para evitar o aviso do Windows SmartScreen no `Lume-setup.exe`.

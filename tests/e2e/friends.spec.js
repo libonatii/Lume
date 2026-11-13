@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-// Amizade por convite: código de uso único, sem busca por e-mail e sem
+// Amizade por convite reutilizável, sem busca por e-mail e sem
 // compartilhar biblioteca ou progresso.
 
 async function register(page, testInfo, prefix, name = 'Pessoa de teste') {
@@ -20,8 +20,8 @@ test('convite cria amizade entre duas contas sem compartilhar progresso', async 
   const baseURL = testInfo.project.use.baseURL;
   await register(page, testInfo, 'friend-a', 'Ana do teste');
 
-  await page.getByRole('link', { name: 'Amigos', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Amigos', exact: true })).toBeVisible();
+  await page.getByRole('link', { name: 'Social', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Social', exact: true })).toBeVisible();
   await expect(page.getByText('Ninguém por aqui ainda. Um convite já começa a lista.')).toBeVisible();
 
   await page.getByRole('button', { name: 'Criar convite' }).click();

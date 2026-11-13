@@ -325,6 +325,57 @@ export async function runContract(target, t) {
     assert.equal(removed.data.removed, true);
   });
 
+  await t.test('feed Social: sessão, amizade, persistência, comentários e arquivos privados', async () => {
+    const ana = await register(origin, 'SocialAna');
+    const bia = await register(origin, 'SocialBia');
+    const stranger = await register(origin, 'SocialCarla');
+    assert.equal((await client(origin).request('GET', '/api/social/feed')).status, 401);
+    const invitation = await ana.browser.request('POST', '/api/friends/invite');
+    await bia.browser.request('POST', '/api/friends/accept', { body: { code: invitation.data.code } });
+    const id = crypto.randomUUID();
+    const draft = { id, body: 'Dúvida sobre matrizes', kind: 'question', url: 'https://privado.invalid/segredo' };
+    assert.equal((await ana.browser.request('POST', '/api/social/posts', { body: draft, sameOrigin: false })).status, 403);
+    assert.equal((await ana.browser.request('POST', '/api/social/posts', { body: draft })).status, 201);
+    assert.equal((await ana.browser.request('POST', '/api/social/posts', { body: draft })).status, 201);
+    const feed = await bia.browser.request('GET', '/api/social/feed');
+    assert.equal(feed.status, 200);
+    assert.equal(feed.data.posts.length, 1);
+    assert.equal(feed.data.posts[0].body, draft.body);
+    assert.equal(JSON.stringify(feed.data).includes('privado.invalid'), false);
+    assert.equal((await stranger.browser.request('GET', '/api/social/feed')).data.posts.length, 0);
+    const path = `/api/social/posts/${id}`;
+    for (let i = 0; i < 2; i++) assert.equal((await bia.browser.request('PUT', `${path}/reaction`)).status, 200);
+    const comment = { id: crypto.randomUUID(), body: 'Vamos revisar os exemplos.' };
+    for (let i = 0; i < 2; i++) assert.equal((await bia.browser.request('POST', `${path}/comments`, { body: comment })).status, 201);
+    assert.equal((await ana.browser.request('GET', `${path}/comments`)).data.comments.length, 1);
+    assert.equal((await bia.browser.request('GET', '/api/social/feed')).data.posts[0].reactions, 1);
+    assert.equal((await stranger.browser.request('POST', `${path}/comments`, { body: comment })).status, 404);
+    assert.equal((await bia.browser.request('DELETE', path)).status, 403);
+    const upload = new FormData();
+    const photo = crypto.randomUUID();
+    upload.set('id', photo); upload.set('body', 'Meu resumo'); upload.set('attachment', new Blob([PNG], { type: 'image/png' }), 'resumo.png');
+    const uploaded = await ana.browser.request('POST', '/api/social/posts', { raw: true, body: upload });
+    // O alvo Worker do contrato não tem R2; a falha não pode deixar um post parcial.
+    if (uploaded.status === 503) assert.equal((await ana.browser.request('GET', '/api/social/feed')).data.posts.length, 1);
+    else {
+      assert.equal(uploaded.status, 201, JSON.stringify(uploaded.data));
+      const file = `/api/social/posts/${photo}/attachment`;
+      const image = await bia.browser.request('GET', file);
+      assert.equal(image.status, 200);
+      assert.equal(image.headers.get('Content-Type'), 'image/png');
+      assert.equal(image.headers.get('Cache-Control'), 'no-store');
+      assert.equal((await stranger.browser.request('GET', file)).status, 404);
+      await ana.browser.request('DELETE', `/api/social/posts/${photo}`);
+      assert.equal((await ana.browser.request('GET', file)).status, 404);
+    }
+    await ana.browser.request('DELETE', `/api/friends/${bia.user.id}`);
+    assert.equal((await bia.browser.request('GET', '/api/social/feed')).data.posts.length, 0);
+    assert.equal((await bia.browser.request('GET', `${path}/comments`)).status, 404);
+    assert.equal((await ana.browser.request('GET', '/api/xp')).data.summary.totalXP, 0);
+    assert.equal((await ana.browser.request('DELETE', path)).status, 200);
+    assert.equal((await ana.browser.request('GET', '/api/social/feed')).data.posts.length, 0);
+  });
+
   await t.test('aplicativo de desktop', async () => {
     const { browser } = await register(origin, 'Gabi');
     const pair = await browser.request('POST', '/api/companion/pair');

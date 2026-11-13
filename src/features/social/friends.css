@@ -1,47 +1,190 @@
-/* Convites de amizade e acesso ao aplicativo. */
-
-/* ============================================================
-   Amigos por convite
-   ============================================================ */
-
-.friends-layout {
+/* Social: feed de estudos, amizades e convites. Cores e controles compartilhados. */
+.social-root {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 1rem;
+  gap: var(--space-5);
+}
+.social-root > .section-tabs {
+  margin-top: calc(-1 * var(--space-2));
+}
+.social-friend-count {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-subtle);
+  font-size: 0.8rem;
+}
+.social-friend-count .icon { width: 1rem; height: 1rem; color: var(--lume); }
+.social-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  gap: var(--space-5);
   align-items: start;
 }
-.friends-column {
-  display: grid;
-  gap: 1rem;
-}
-.friend-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 0.4rem;
-}
-.friend-list li {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.55rem 0.7rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-}
-.friend-copy {
+.social-feed-column, .social-feed, .social-feed-page, .social-sidebar {
   display: grid;
   min-width: 0;
-  margin-right: auto;
+  gap: var(--space-5);
 }
-.friend-copy strong {
-  font-size: 0.88rem;
+.social-composer, .social-post, .social-panel { padding: var(--space-5); }
+.social-composer form { display: grid; gap: var(--space-4); min-width: 0; }
+.social-compose-body { display: flex; gap: var(--space-3); align-items: flex-start; }
+.social-avatar {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 2.6rem;
+  height: 2.6rem;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  border: 1px solid color-mix(in srgb, var(--lume) 30%, var(--border));
+  background: var(--lume-soft);
+  color: var(--lume);
+  font-size: 0.8rem;
+  font-weight: 700;
 }
-.friend-copy small {
-  color: var(--text-subtle);
+.social-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.social-avatar.small { width: 2rem; height: 2rem; font-size: 0.65rem; }
+.social-compose-field { flex: 1; min-width: 0; }
+.social-compose-field textarea {
+  min-height: 7.5rem;
+  resize: vertical;
+  background: var(--inner);
+  padding: var(--space-3) var(--space-4);
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+.social-compose-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+.social-attach-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; min-width: 0; }
+.social-attach-actions .chip-button { padding: 0.4rem 0.7rem; font-size: 0.72rem; min-height: 2.25rem; }
+.social-attach-actions .icon { width: 1rem; height: 1rem; color: var(--lume); }
+.social-attach-actions .chip-button:disabled { opacity: 0.52; cursor: not-allowed; }
+.social-attach-actions [aria-pressed='true'] { border-color: var(--lume); background: var(--lume-soft); }
+.social-kind select {
+  max-width: 100%;
+  min-height: 2.25rem;
+  padding: 0.3rem 0.55rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
   font-size: 0.72rem;
+  color: var(--text-muted);
 }
+.social-compose-hint { display: flex; justify-content: space-between; gap: var(--space-3); color: var(--text-subtle); font-size: 0.65rem; }
+.social-compose-hint > span:first-child { display: flex; align-items: flex-start; gap: var(--space-1); }
+.social-compose-hint .icon { width: 0.8rem; height: 0.8rem; flex-shrink: 0; margin-top: 2px; }
+.social-draft-attachment { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3); background: var(--surface-2); border-radius: var(--radius-md); }
+.social-draft-attachment > span { min-width: 0; flex: 1; display: grid; overflow-wrap: anywhere; font-size: 0.8rem; }
+.social-draft-attachment small { color: var(--text-subtle); }
+.social-draft-image { width: 4rem; height: 3rem; object-fit: contain; border-radius: var(--space-2); }
+.social-post { gap: var(--space-4); }
+.social-post-heading { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); }
+.social-author, .social-friend-profile {
+  display: flex;
+  align-items: center;
+  text-align: left;
+  gap: var(--space-3);
+  min-width: 0;
+  margin-right: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+}
+.social-author > span:last-child, .social-friend-profile > span:last-child { display: grid; gap: 0.1rem; min-width: 0; }
+.social-author strong { font-size: 0.9rem; overflow-wrap: anywhere; }
+.social-author:hover strong, .social-friend-profile:hover strong { color: var(--lume); }
+.social-post time { display: inline-flex; align-items: center; gap: var(--space-1); color: var(--text-subtle); font-size: 0.68rem; }
+.social-post time .icon { width: 0.8rem; height: 0.8rem; }
+.social-post-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0.3rem 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--lume) 25%, transparent);
+  border-radius: var(--radius-pill);
+  background: var(--lume-soft);
+  color: var(--lume);
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+.social-post-kind .icon { width: 0.9rem; height: 0.9rem; }
+.social-post.is-question .social-post-kind { color: var(--warning); background: var(--warning-soft); border-color: color-mix(in srgb, var(--warning) 25%, transparent); }
+.social-post-kind.is-reward { color: var(--reward); background: var(--reward-soft); border-color: color-mix(in srgb, var(--reward) 25%, transparent); }
+.social-post-body, .social-comment p { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; font-size: 0.9rem; line-height: 1.85; }
+.social-file { display: flex; gap: var(--space-3); flex-wrap: wrap; align-items: center; padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-2); }
+.social-file-icon, .social-achievement-icon { display: grid; place-items: center; width: 2.8rem; height: 2.8rem; flex-shrink: 0; border-radius: var(--radius-md); background: var(--lume-soft); color: var(--lume); }
+.social-file-copy { min-width: 0; flex: 1 1 8rem; display: grid; gap: var(--space-1); overflow-wrap: anywhere; font-size: 0.8rem; }
+.social-file-copy small { color: var(--text-subtle); font-size: 0.7rem; }
+.social-file-actions { display: flex; gap: var(--space-2); }
+.social-file-actions .button { min-height: 2.25rem; padding: 0.4rem 0.75rem; font-size: 0.75rem; }
+.social-post-image { display: block; border-radius: var(--radius-md); overflow: hidden; background: var(--inner); }
+.social-post-image img { width: 100%; max-height: 32rem; object-fit: contain; }
+.social-achievement { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-5); border: 1px solid color-mix(in srgb, var(--reward) 25%, var(--border)); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--reward) 5%, var(--surface-2)); }
+.social-achievement-icon { color: var(--reward); background: var(--reward-soft); }
+.social-achievement > div { display: grid; gap: var(--space-1); min-width: 0; flex: 1; overflow-wrap: anywhere; }
+.social-achievement strong { font-size: 0.95rem; }
+.social-achievement p { margin: 0; color: var(--text-subtle); font-size: 0.75rem; }
+.social-achievement > .icon { color: var(--reward); flex-shrink: 0; }
+.social-post-actions { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; border-top: 1px solid var(--border); padding-top: var(--space-3); }
+.social-post-actions .text-button { font-size: 0.78rem; }
+.social-post-actions .icon { width: 1rem; height: 1rem; }
+.social-reaction { display: inline-flex; gap: var(--space-2); align-items: center; border: 1px solid transparent; border-radius: var(--radius-pill); padding: 0.4rem 0.75rem; background: none; color: var(--text-muted); font: inherit; font-size: 0.78rem; font-weight: 600; cursor: pointer; }
+.social-reaction:hover, .social-reaction.is-selected { color: var(--lume); background: var(--lume-soft); border-color: var(--border-accent); }
+.social-reaction:disabled { opacity: 0.52; cursor: not-allowed; }
+.social-reaction span { font-size: 0.7rem; }
+.social-comments { display: grid; gap: var(--space-3); padding-left: var(--space-4); border-left: 2px solid var(--border); }
+.social-comment { display: flex; align-items: flex-start; gap: var(--space-2); padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-2); }
+.social-comment > div { min-width: 0; flex: 1; }
+.social-comment-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--space-2); }
+.social-comment-heading strong { font-size: 0.75rem; }
+.social-comment p { font-size: 0.8rem; color: var(--text-muted); margin-top: var(--space-1); }
+.social-comment .icon-button { width: 1.65rem; height: 1.65rem; flex-shrink: 0; }
+.social-comment .icon-button .icon { width: 0.8rem; height: 0.8rem; }
+.social-comment-form { display: grid; gap: var(--space-2); justify-items: end; }
+.social-comment-form .field { width: 100%; }
+.social-comment-form textarea { resize: vertical; min-height: 4rem; font-size: 0.8rem; }
+.social-comment-form .button { min-height: 2.25rem; font-size: 0.75rem; padding: 0.4rem 0.8rem; }
+.social-delete-confirm { display: grid; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-md); background: var(--danger-soft); }
+.social-delete-confirm p { margin: 0; font-size: 0.8rem; }
+.social-feed-empty { align-items: center; text-align: center; padding: var(--space-6); gap: var(--space-3); }
+.social-feed-empty p { max-width: 33rem; margin: 0; color: var(--text-subtle); font-size: 0.85rem; line-height: 1.8; }
+.social-empty-icon { display: grid; place-items: center; width: 3rem; height: 3rem; border-radius: var(--radius-lg); background: var(--lume-soft); color: var(--lume); }
+.social-load-more { justify-self: center; }
+.social-panel { display: grid; gap: var(--space-4); }
+.social-panel-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding-bottom: var(--space-3); border-bottom: 1px solid var(--border); }
+.social-panel-heading h2 { display: inline-flex; align-items: center; gap: var(--space-2); font-size: 0.95rem; }
+.social-panel-heading .icon { width: 1.15rem; height: 1.15rem; color: var(--lume); }
+.social-count { padding: 0.15rem 0.55rem; border-radius: var(--radius-pill); background: var(--surface-3); color: var(--text-muted); font-size: 0.7rem; }
+.social-friend-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.social-friend-list li { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+.social-friend-profile { flex: 1; gap: var(--space-2); }
+.social-friend-profile .social-avatar { width: 2.1rem; height: 2.1rem; font-size: 0.7rem; }
+.social-friend-profile strong { font-size: 0.78rem; overflow-wrap: anywhere; }
+.social-friend-profile small { color: var(--text-subtle); font-size: 0.6rem; }
+.social-friend-list .icon-button { width: 1.8rem; height: 1.8rem; flex-shrink: 0; }
+.social-friend-list .icon-button .icon { width: 0.95rem; height: 0.95rem; }
+.social-sidebar-empty { margin: 0; color: var(--text-subtle); font-size: 0.8rem; line-height: 1.8; }
+.social-invite-code.companion-code { display: grid; justify-items: start; gap: var(--space-3); margin: 0; padding: var(--space-3); border-radius: var(--radius-md); background: var(--inner); }
+.social-invite-code code { font-size: 1rem; color: var(--lume); letter-spacing: 0.06em; }
+.social-invite-code .button { padding-inline: var(--space-3); font-size: 0.75rem; }
+.social-invite-form { display: grid; gap: var(--space-3); border-top: 1px solid var(--border); padding-top: var(--space-4); }
+.social-invite-form .field { min-width: 0; font-size: 0.75rem; }
+.social-invite-form input { width: 100%; min-width: 0; font-size: 0.9rem; letter-spacing: 0.06em; }
+.social-invite-form .button { justify-self: start; font-size: 0.8rem; }
+.social-ranking-link p { margin: 0; color: var(--text-subtle); font-size: 0.8rem; line-height: 1.7; }
+.social-ranking-icon { color: var(--reward); }
+.social-privacy-note { display: flex; align-items: flex-start; gap: var(--space-2); margin: 0; color: var(--text-subtle); font-size: 0.7rem; line-height: 1.8; }
+.social-privacy-note .icon { flex-shrink: 0; width: 0.9rem; height: 0.9rem; margin-top: var(--space-1); }
+
 .invite-history {
   list-style: none;
   margin: 0;
@@ -80,9 +223,25 @@
   color: var(--text-subtle);
 }
 @media (max-width: 900px) {
-  .friends-layout {
-    grid-template-columns: 1fr;
-  }
+  .social-layout { grid-template-columns: minmax(0, 1fr); }
+  .social-sidebar { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+}
+@media (max-width: 560px) {
+  .social-sidebar { grid-template-columns: minmax(0, 1fr); }
+  .social-composer, .social-post, .social-panel { padding: var(--space-4); }
+  .social-compose-body { gap: var(--space-2); }
+  .social-compose-body .social-avatar { width: 2rem; height: 2rem; font-size: 0.65rem; }
+  .social-compose-field textarea { padding: var(--space-3); font-size: 0.8rem; }
+  .social-compose-footer > .button { margin-left: auto; }
+  .social-compose-hint { font-size: 0.6rem; }
+  .social-comments { padding-left: var(--space-2); }
+  .social-post-kind { margin-left: auto; }
+  .social-post-heading { gap: var(--space-2); }
+  .social-post-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+  .social-post-heading > .social-post-kind { grid-row: 2; grid-column: 1 / -1; justify-self: start; margin-left: 0; }
+  .social-post-heading > .icon-button { grid-row: 1; grid-column: 2; }
+  .social-achievement { padding: var(--space-3); gap: var(--space-3); }
+  .social-file-actions { width: 100%; justify-content: flex-end; }
 }
 
 /* Bloco de instalação do Lume Companion no painel de configurações */

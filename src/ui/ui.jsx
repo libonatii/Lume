@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, useSpring, useTransform } from 'motion/react';
 import { MeshGradient } from '@paper-design/shaders-react';
 import Icon from './Icon.jsx';
@@ -91,6 +91,15 @@ export function Logo({ size = 36 }) {
 export function Cover({ art = 'nature', className = '', children }) {
   const safe = ['design', 'code', 'language', 'nature'].includes(art) ? art : 'nature';
   return <div className={`cover art-${safe} ${className}`}><img src={`/assets/stitch/${safe}.png`} alt="" loading="lazy"/>{children}</div>;
+}
+
+// Foto de perfil com as iniciais como reserva (sem foto ou se a imagem falhar).
+export function PersonAvatar({ person, className = 'social-avatar' }) {
+  const [failed, setFailed] = useState('');
+  const src = person?.avatar && failed !== person.avatar ? person.avatar : '';
+  return <span className={className} aria-hidden="true">{src
+    ? <img src={src} alt="" loading="lazy" onError={() => setFailed(src)}/>
+    : String(person?.name || '?').trim().split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase()}</span>;
 }
 
 export function Empty({ title, children, onAdd, icon = 'book' }) {
