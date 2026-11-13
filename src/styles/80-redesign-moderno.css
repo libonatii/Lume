@@ -244,6 +244,76 @@ body {
 @keyframes button-border-orbit {
   to { --button-border-angle: 360deg; }
 }
+
+/* Tela de carregamento: cartão com duas camadas atrás e a mesma órbita de borda dos botões. */
+.boot-stage {
+  min-height: 62vh;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4, 1rem);
+}
+.boot-card {
+  --boot-ring: var(--lume);
+  position: relative;
+  width: min(30rem, 100%);
+  display: grid;
+  justify-items: center;
+  gap: 0.9rem;
+  padding: clamp(2rem, 5vw, 3rem) clamp(1.4rem, 4vw, 2.4rem);
+  border-radius: var(--radius-xl);
+  border: 1px solid color-mix(in srgb, var(--boot-ring) 40%, var(--border));
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  box-shadow: var(--shadow-lg), 0 0 48px color-mix(in srgb, var(--boot-ring) 18%, transparent);
+  text-align: center;
+  isolation: isolate;
+}
+.boot-card .headline { margin: 0; }
+.boot-card .muted-text { margin: 0; }
+.boot-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  border: 1px solid color-mix(in srgb, var(--boot-ring) 22%, transparent);
+  transform: translate(-1.1rem, -0.9rem);
+  box-shadow: -1.1rem -0.9rem 0 -1px color-mix(in srgb, var(--boot-ring) 8%, transparent);
+}
+.boot-dots { display: inline-flex; gap: 0.5rem; }
+.boot-dots i {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--boot-ring);
+  animation: boot-dot 1.2s ease-in-out infinite;
+}
+.boot-dots i:nth-child(2) { animation-delay: 0.15s; }
+.boot-dots i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes boot-dot {
+  0%, 60%, 100% { opacity: 0.35; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-4px); }
+}
+@supports (mask-composite: exclude) or (-webkit-mask-composite: xor) {
+  .boot-card::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    padding: 2px;
+    border-radius: inherit;
+    pointer-events: none;
+    background: conic-gradient(from var(--button-border-angle),
+      transparent 0deg 70deg,
+      color-mix(in srgb, var(--boot-ring) 30%, transparent) 120deg,
+      var(--boot-ring) 170deg,
+      color-mix(in srgb, var(--boot-ring) 55%, var(--text)) 195deg,
+      transparent 235deg 360deg);
+    -webkit-mask: linear-gradient(var(--text) 0 0) content-box, linear-gradient(var(--text) 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(var(--text) 0 0) content-box, linear-gradient(var(--text) 0 0);
+    mask-composite: exclude;
+    animation: button-border-orbit 2.8s linear infinite;
+  }
+}
 .text-link,
 .text-button.accent {
   color: var(--lume);

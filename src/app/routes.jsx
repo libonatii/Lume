@@ -7,7 +7,6 @@ import { Login, Recovery } from '../features/account/Auth.jsx';
 import { Home, Library } from '../features/library/Study.jsx';
 import Onboarding from '../features/account/Onboarding.jsx';
 import Tasks from '../features/plan/Tasks.jsx';
-import Icon from '../ui/Icon.jsx';
 
 // Telas fora do caminho inicial (entrada, Início e Biblioteca) carregam sob
 // demanda: cada uma vira um pacote próprio e o primeiro acesso fica menor.
@@ -51,7 +50,13 @@ const ALIASES = { missoes: 'plano', roteiro: 'plano', historico: 'conquistas' };
 
 // Enquanto a sessão é verificada, o formulário não aparece: evita a impressão de estar deslogada.
 function SessionCheck() {
-  return <section className="recovery-card" aria-busy="true"><span className="dialog-emblem"><Icon name="cloud"/></span><h1 className="headline">Verificando sua sessão.</h1><p className="muted-text">Só um instante enquanto confirmamos se você já está conectada.</p></section>;
+  return <div className="boot-stage">
+    <section className="boot-card" role="status" aria-busy="true">
+      <span className="boot-dots" aria-hidden="true"><i/><i/><i/></span>
+      <h1 className="headline">Verificando sua sessão</h1>
+      <p className="muted-text">Só um instante. Estamos conferindo seu acesso.</p>
+    </section>
+  </div>;
 }
 
 // ctx: { model, state, open, go, notify, params, hash, authMode, setAuthMode, checkingSession }
