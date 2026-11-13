@@ -21,46 +21,97 @@ dialog#dialog:has(.pdf-reader) > div {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.6rem 1rem;
-  padding: 0.85rem 3.5rem 0.85rem 1.2rem;
+  gap: 0.5rem 1rem;
+  min-height: 3rem;
+  padding: 0.45rem 3.5rem 0.45rem 1.2rem;
   border-bottom: 1px solid var(--border);
   background: var(--surface-2);
 }
 .pdf-title {
   min-width: 0;
+  flex: 1 1 14rem;
 }
 .pdf-title .title {
   margin: 0;
+  font-size: 0.98rem;
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .pdf-controls {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem;
+  color: var(--text-muted);
+}
+.pdf-dot {
+  margin-inline: 0.25rem;
+  color: var(--text-subtle);
+}
+.pdf-toolbar-actions {
+  display: flex;
   align-items: center;
   gap: 0.35rem;
+}
+.pdf-toolbar-actions .icon-button.is-active {
+  border-color: var(--lume);
+  background: color-mix(in srgb, var(--lume) 16%, transparent);
+  color: var(--lume);
+}
+.pdf-done-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--mint) 16%, transparent);
+  color: var(--mint);
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 .pdf-page-form {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  color: var(--text-muted);
-}
-.pdf-page-form input {
-  width: 3.6rem;
-  text-align: center;
-  padding: 0.35rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-strong);
-  background: var(--surface);
-  color: var(--text);
-}
-.pdf-zoom {
-  min-width: 3rem;
-  text-align: center;
+  gap: 0.25rem;
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
+}
+.pdf-page-form input {
+  width: 2.8rem;
+  text-align: center;
+  padding: 0.2rem 0.25rem;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.pdf-page-form input:hover,
+.pdf-page-form input:focus-visible {
+  border-color: var(--border-strong);
+  background: var(--surface);
+}
+.pdf-zoom {
+  min-width: 2.8rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  font-variant-numeric: tabular-nums;
+}
+.pdf-marker-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding: 0.45rem 1.2rem;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 92%, var(--lume));
+}
+.pdf-marker-bar .icon-button.is-active {
+  border-color: var(--lume);
+  background: color-mix(in srgb, var(--lume) 18%, var(--surface));
+  color: var(--text);
 }
 .pdf-body {
   flex: 1;
@@ -69,18 +120,18 @@ dialog#dialog:has(.pdf-reader) > div {
   grid-template-columns: minmax(0, 1fr);
 }
 .pdf-reader.with-panel .pdf-body {
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
 }
 .pdf-body:has(.pdf-outline) {
   grid-template-columns: minmax(200px, 260px) minmax(0, 1fr);
 }
 .pdf-reader.with-panel .pdf-body:has(.pdf-outline) {
-  grid-template-columns: minmax(200px, 260px) minmax(0, 1fr) minmax(260px, 320px);
+  grid-template-columns: minmax(200px, 260px) minmax(0, 1fr) minmax(300px, 360px);
 }
 .pdf-stage {
   overflow: auto;
-  padding: 0.75rem;
-  background: color-mix(in srgb, var(--bg) 80%, var(--surface));
+  padding: 1.5rem 1.25rem;
+  background: color-mix(in srgb, var(--bg) 85%, var(--surface));
   outline: none;
 }
 .pdf-page {
@@ -127,18 +178,244 @@ dialog#dialog:has(.pdf-reader) > div {
 .pdf-panel {
   display: flex;
   flex-direction: column;
+  padding: 0;
+}
+.pdf-panel-tabs {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0 1.25rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.pdf-tab {
+  position: relative;
+  padding: 0.85rem 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.pdf-tab:hover {
+  color: var(--text);
+}
+.pdf-tab.is-active {
+  color: var(--text);
+  font-weight: 600;
+}
+.pdf-tab.is-active::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--lume);
+  border-radius: 2px;
+}
+.pdf-panel-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 1.25rem;
+}
+.pdf-summary-empty {
+  display: grid;
   gap: 0.9rem;
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface-2) 65%, transparent);
+  border: 1px solid var(--border);
+}
+.pdf-summary-empty p {
+  margin: 0;
+  line-height: 1.5;
+}
+.pdf-summary-skeleton {
+  display: grid;
+  gap: 0.65rem;
+}
+.pdf-shimmer-line {
+  height: 0.85rem;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--surface-2) 0%,
+    color-mix(in srgb, var(--lume) 16%, var(--surface-2)) 50%,
+    var(--surface-2) 100%
+  );
+  background-size: 200% 100%;
+  animation: pdf-shimmer-sweep 1.6s ease-in-out infinite;
+}
+.pdf-shimmer-line.is-long { width: 100%; }
+.pdf-shimmer-line.is-medium { width: 78%; }
+.pdf-shimmer-line.is-short { width: 46%; }
+
+.pdf-summary-content {
+  display: grid;
+  gap: 1.15rem;
+}
+.pdf-overview-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.pdf-overview-text {
+  margin: 0;
+  line-height: 1.6;
+  font-size: 0.94rem;
+  color: var(--text);
+}
+.pdf-refresh-btn {
+  flex-shrink: 0;
+  color: var(--text-subtle);
+}
+.pdf-inline-topics {
+  margin: 0;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+.pdf-insights-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+}
+.pdf-insight-item {
+  display: grid;
+  gap: 0.25rem;
+}
+.pdf-insight-item p {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+.pdf-insight-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.pdf-insight-head strong {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.pdf-page-chip {
+  flex-shrink: 0;
+  padding: 0.12rem 0.48rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid color-mix(in srgb, var(--lume) 28%, transparent);
+  background: color-mix(in srgb, var(--lume) 10%, transparent);
+  color: var(--lume);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.pdf-page-chip:hover {
+  background: color-mix(in srgb, var(--lume) 20%, transparent);
+}
+.pdf-summary-footnote {
+  margin: 0.25rem 0 0;
+  font-size: 0.78rem;
+  color: var(--text-subtle);
+}
+
+/* Shimmer Text Reveal pós-computação */
+@keyframes pdf-shimmer-sweep {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+@keyframes pdf-reveal-up {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pdf-text-shimmer {
+  0% { background-position: 120% 0; color: transparent; }
+  70% { color: transparent; }
+  100% { background-position: -120% 0; color: var(--text); }
+}
+.pdf-summary-content.is-revealing .pdf-overview-head,
+.pdf-summary-content.is-revealing .pdf-inline-topics,
+.pdf-summary-content.is-revealing .pdf-insight-item {
+  animation: pdf-reveal-up 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.pdf-summary-content.is-revealing .pdf-inline-topics { animation-delay: 80ms; }
+.pdf-summary-content.is-revealing .pdf-insight-item:nth-child(1) { animation-delay: 140ms; }
+.pdf-summary-content.is-revealing .pdf-insight-item:nth-child(2) { animation-delay: 200ms; }
+.pdf-summary-content.is-revealing .pdf-insight-item:nth-child(3) { animation-delay: 260ms; }
+.pdf-summary-content.is-revealing .pdf-overview-text {
+  background: linear-gradient(
+    90deg,
+    var(--text) 0%,
+    var(--lume) 42%,
+    var(--mint) 54%,
+    var(--text) 100%
+  );
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: pdf-text-shimmer 900ms cubic-bezier(0.22, 1, 0.36, 1) 1 forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pdf-shimmer-line,
+  .pdf-summary-content.is-revealing .pdf-overview-head,
+  .pdf-summary-content.is-revealing .pdf-inline-topics,
+  .pdf-summary-content.is-revealing .pdf-insight-item,
+  .pdf-summary-content.is-revealing .pdf-overview-text {
+    animation: none;
+    background: none;
+    color: var(--text);
+  }
+}
+
+.pdf-marks-header {
+  margin-bottom: 0.75rem;
+}
+.pdf-other-marks {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
+}
+.pdf-page-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.pdf-details-tab {
+  display: grid;
+  gap: 1.2rem;
+}
+.pdf-details-section {
+  display: grid;
+  gap: 0.65rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+.pdf-details-section p {
+  margin: 0;
 }
 .pdf-panel .title {
   margin: 0;
 }
 .pdf-facts {
   display: grid;
-  gap: 0.75rem;
+  gap: 0.85rem;
   margin: 0;
 }
 .pdf-facts dt {
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-subtle);
@@ -159,23 +436,7 @@ dialog#dialog:has(.pdf-reader) > div {
   border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--lume) 12%, transparent);
   border: 1px solid color-mix(in srgb, var(--lume) 30%, transparent);
-  font-size: 0.85rem;
-}
-.pdf-ai, .pdf-finish {
-  display: grid;
-  gap: 0.5rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--border);
-}
-.pdf-ai-result {
-  display: grid;
-  gap: 0.35rem;
-  padding: 0.75rem;
-  border-radius: var(--radius-md);
-  background: var(--surface-2);
-}
-.pdf-ai-result p {
-  margin: 0;
+  font-size: 0.84rem;
 }
 
 /* Camada de texto do pdf.js: transparente, só para selecionar e copiar. */

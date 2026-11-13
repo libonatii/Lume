@@ -3,7 +3,9 @@ import { HIGHLIGHT_COLORS, formatBytes, highlightAt, identifyPage, readingLabel 
 import { materialStanding, subjectOf } from '../../../public/subject-domain.js';
 import { materialSteps } from '../../../public/material-model.js';
 import { isCompleted } from '../../../public/progress-domain.js';
-import { downloadDocument, identifyWithAI, readPageText, storageInfo } from './pdf-client.js';
+import {
+  downloadDocument, extractDocumentMarkdown, generatePdfInsights, getPdfInsights, readPageText, savePdfMarkdown, storageInfo,
+} from './pdf-client.js';
 import Icon from '../../ui/Icon.jsx';
 import { Button, Progress, Skeleton } from '../../ui/ui.jsx';
 
@@ -48,9 +50,8 @@ export function PdfDetails({ course, state, actions, open, close }) {
   </div>;
 }
 
-// Leitor embutido. A página aberta é gravada como ponto de retomada depois de
-// uma pausa curta; o painel do leitor inteligente identifica seção, assuntos e
-// disciplina a partir do texto extraído aqui mesmo. IA só sob pedido.
+// Leitor embutido. Abre em 2 zonas limpas (Palco + Painel editorial com abas);
+// Sumário e Marca-texto ficam recolhidos até serem acionados.
 export default function PdfReader({ course, state, actions, progressActions, notify, open, account }) {
   const [doc, setDoc] = useState(null);
   const [loadError, setLoadError] = useState('');
@@ -61,17 +62,27 @@ export default function PdfReader({ course, state, actions, progressActions, not
   const [content, setContent] = useState({ page: 0, text: '', lines: [] });
   const [showOutline, setShowOutline] = useState(false);
   const [showPanel, setShowPanel] = useState(true);
-  const [ai, setAi] = useState({ available: false, status: 'idle', result: null, error: '' });
+  const [activeTab, setActiveTab] = useState('marcacoes');
+  const [aiAvailable, setAiAvailable] = useState(false);
+  const [summary, setSummary] = useState({
+    status: 'idle', // 'idle' | 'loading' | 'ready' | 'error'
+    markdownStatus: 'pending',
+    insights: null,
+    error: '',
+    freshReveal: false,
+  });
   const [marker, setMarker] = useState({ on: false, color: HIGHLIGHT_COLORS[0].id, erase: false });
   const stage = useRef(null);
   const sheet = useRef(null);
   const canvas = useRef(null);
   const layer = useRef(null);
   const pending = useRef(null);
+  const summaryAbort = useRef(null);
   const step = materialSteps(course)[0];
   const done = step ? isCompleted(state, step.id) : false;
   const pages = course.pdf.pages;
   const subject = subjectOf(state, course);
+  const standing = materialStanding(state, course);
   const outline = course.pdf.outline;
   const highlights = course.highlights || [];
   const pageHighlights = highlights.filter((item) => item.page === page);
@@ -87,10 +98,34 @@ export default function PdfReader({ course, state, actions, progressActions, not
 
   useEffect(() => {
     if (!account) return undefined;
+    const controller = new AbortController();
     let alive = true;
-    storageInfo().then((info) => { if (alive) setAi((value) => ({ ...value, available: info.ai === true })); }).catch(() => {});
-    return () => { alive = false; };
-  }, [account]);
+    storageInfo().then((info) => {
+      if (!alive) return;
+      const available = info.ai === true;
+      setAiAvailable(available);
+      if (available) {
+        setActiveTab((current) => (current === 'marcacoes' ? 'resumo' : current));
+        getPdfInsights(course.pdf.fileId, controller.signal)
+          .then((res) => {
+            if (!alive) return;
+            setSummary((prev) => ({
+              ...prev,
+              markdownStatus: res.markdownStatus || 'pending',
+              insights: res.insights || null,
+              status: res.insights ? 'ready' : 'idle',
+              freshReveal: false,
+            }));
+          })
+          .catch(() => {});
+      }
+    }).catch(() => {});
+    return () => {
+      alive = false;
+      controller.abort();
+      summaryAbort.current?.abort();
+    };
+  }, [account, course.pdf.fileId]);
 
   useEffect(() => {
     const node = stage.current;
@@ -110,7 +145,7 @@ export default function PdfReader({ course, state, actions, progressActions, not
       const pdfPage = await doc.getPage(page);
       if (cancelled) return;
       const base = pdfPage.getViewport({ scale: 1 });
-      const scale = Math.max(0.3, (width - 24) / base.width) * zoom;
+      const scale = Math.max(0.3, (width - 48) / base.width) * zoom;
       const viewport = pdfPage.getViewport({ scale });
       const ratio = window.devicePixelRatio || 1;
       const target = canvas.current;
@@ -164,7 +199,7 @@ export default function PdfReader({ course, state, actions, progressActions, not
     return () => document.removeEventListener('keydown', key);
   }, [pages]);
 
-  useEffect(() => { stage.current?.scrollTo({ top: 0 }); setAi((value) => ({ ...value, status: 'idle', result: null, error: '' })); }, [page]);
+  useEffect(() => { stage.current?.scrollTo({ top: 0 }); }, [page]);
 
   function go(target) {
     const value = Math.max(1, Math.min(pages, Math.round(Number(target) || 1)));
@@ -179,13 +214,37 @@ export default function PdfReader({ course, state, actions, progressActions, not
     notify(result.added ? `Leitura concluída: ${course.title}. Em uma conta, o XP da leitura é confirmado pelo servidor.` : 'Esta leitura já estava concluída.');
   }
 
-  async function askAI() {
-    setAi((value) => ({ ...value, status: 'loading', error: '' }));
+  async function requestInsights({ refresh = false } = {}) {
+    summaryAbort.current?.abort();
+    const controller = new AbortController();
+    summaryAbort.current = controller;
+    setSummary((prev) => ({ ...prev, status: 'loading', error: '', freshReveal: false }));
     try {
-      const result = await identifyWithAI(content.text, (state.subjects || []).map((item) => item.title));
-      setAi((value) => ({ ...value, status: 'idle', result }));
+      if (summary.markdownStatus !== 'ready' && doc) {
+        const markdown = await extractDocumentMarkdown(doc);
+        if (controller.signal.aborted) return;
+        const saved = await savePdfMarkdown(course.pdf.fileId, markdown, 'pdfjs');
+        if (saved.markdownStatus !== 'ready') {
+          throw new Error('Este PDF não possui texto extraível para resumir.');
+        }
+      }
+      const res = await generatePdfInsights(course.pdf.fileId, { refresh, signal: controller.signal });
+      if (controller.signal.aborted) return;
+      setSummary((prev) => ({
+        ...prev,
+        markdownStatus: 'ready',
+        status: 'ready',
+        insights: res.insights,
+        error: '',
+        freshReveal: !res.cached || refresh,
+      }));
     } catch (error) {
-      setAi((value) => ({ ...value, status: 'idle', error: error.message }));
+      if (controller.signal.aborted) return;
+      setSummary((prev) => ({
+        ...prev,
+        status: prev.insights ? 'ready' : 'error',
+        error: error.message || 'Não foi possível gerar o resumo agora.',
+      }));
     }
   }
 
@@ -213,38 +272,45 @@ export default function PdfReader({ course, state, actions, progressActions, not
     mark(() => marker.erase ? actions.removeHighlight(course.id, hit.id) : actions.recolorHighlight(course.id, hit.id, marker.color));
   }
 
-  const aiSubject = ai.result?.subject ? (state.subjects || []).find((item) => item.title === ai.result.subject) : null;
+  const otherHighlightedPages = [...new Set(highlights.filter((item) => item.page !== page).map((item) => item.page))].sort((a, b) => a - b);
+
   return <div className={`pdf-reader ${showPanel ? 'with-panel' : ''}`}>
     <header className="pdf-toolbar">
       <div className="pdf-title">
-        <span className="eyebrow">{subject ? subject.title : 'PDF'}</span>
         <h2 id="dialog-title" className="title">{course.title}</h2>
       </div>
+
       <div className="pdf-controls" role="group" aria-label="Navegação do PDF">
-        <button type="button" className="icon-button" onClick={() => go(page - 1)} disabled={page <= 1} aria-label="Página anterior"><Icon name="back"/></button>
+        <button type="button" className="icon-button" onClick={() => go(page - 1)} disabled={page <= 1} aria-label="Página anterior"><Icon name="chevron-left"/></button>
         <form className="pdf-page-form" onSubmit={(event) => { event.preventDefault(); go(draft); }}>
           <label><span className="sr-only">Página</span><input inputMode="numeric" value={draft} onChange={(event) => setDraft(event.target.value.replace(/\D/g, ''))} onBlur={() => go(draft)} aria-label="Página atual"/></label>
-          <span>de {pages}</span>
+          <span>/ {pages}</span>
         </form>
-        <button type="button" className="icon-button" onClick={() => go(page + 1)} disabled={page >= pages} aria-label="Próxima página"><Icon name="arrow"/></button>
+        <button type="button" className="icon-button" onClick={() => go(page + 1)} disabled={page >= pages} aria-label="Próxima página"><Icon name="chevron"/></button>
+        <span className="pdf-dot" aria-hidden="true">·</span>
         <button type="button" className="icon-button" onClick={() => setZoom((value) => ZOOMS[Math.max(0, ZOOMS.indexOf(value) - 1)])} disabled={zoom === ZOOMS[0]} aria-label="Diminuir zoom"><Icon name="minus"/></button>
         <span className="pdf-zoom" aria-live="polite">{Math.round(zoom * 100)}%</span>
         <button type="button" className="icon-button" onClick={() => setZoom((value) => ZOOMS[Math.min(ZOOMS.length - 1, ZOOMS.indexOf(value) + 1)])} disabled={zoom === ZOOMS.at(-1)} aria-label="Aumentar zoom"><Icon name="plus"/></button>
-        {outline.length > 0 && <button type="button" className="chip-button" aria-expanded={showOutline} onClick={() => setShowOutline((value) => !value)}><Icon name="list"/>Sumário</button>}
-        <button type="button" className="chip-button" aria-expanded={showPanel} onClick={() => setShowPanel((value) => !value)}><Icon name="spark"/>Leitor inteligente</button>
       </div>
-      <div className="pdf-marker" role="group" aria-label="Marca-texto">
-        <button type="button" className={`chip-button ${marker.on ? 'is-active' : ''}`} aria-pressed={marker.on} onClick={() => setMarker((value) => ({ ...value, on: !value.on, erase: false }))}><Icon name="highlighter"/>Marca-texto</button>
-        {marker.on && <>
-          <div className="pdf-marker-colors" role="radiogroup" aria-label="Cor do marca-texto">
-            {HIGHLIGHT_COLORS.map((item) => <button key={item.id} type="button" role="radio" aria-checked={!marker.erase && marker.color === item.id} aria-label={item.label} title={item.label}
-              className={`marker-swatch marker-${item.id}`} onClick={() => setMarker((value) => ({ ...value, color: item.id, erase: false }))}/>)}
-          </div>
-          <button type="button" className={`icon-button ${marker.erase ? 'is-active' : ''}`} aria-pressed={marker.erase} aria-label="Borracha: clique numa marcação para apagar" title="Borracha" onClick={() => setMarker((value) => ({ ...value, erase: !value.erase }))}><Icon name="eraser"/></button>
-          <span className="pdf-marker-hint" aria-live="polite">{marker.erase ? 'Clique numa marcação para apagar.' : 'Selecione o texto para marcar; clique numa marcação para trocar a cor.'}</span>
-        </>}
+
+      <div className="pdf-toolbar-actions">
+        {outline.length > 0 && <button type="button" className={`icon-button ${showOutline ? 'is-active' : ''}`} aria-expanded={showOutline} aria-label="Sumário" title="Sumário" onClick={() => setShowOutline((value) => !value)}><Icon name="list"/></button>}
+        <button type="button" className={`icon-button ${marker.on ? 'is-active' : ''}`} aria-pressed={marker.on} aria-label="Marca-texto" title="Marca-texto" onClick={() => setMarker((value) => ({ ...value, on: !value.on, erase: false }))}><Icon name="highlighter"/></button>
+        <button type="button" className={`icon-button ${showPanel ? 'is-active' : ''}`} aria-expanded={showPanel} aria-label="Painel lateral" title="Painel" onClick={() => setShowPanel((value) => !value)}><Icon name="spark"/></button>
+        {done
+          ? <span className="pdf-done-badge"><Icon name="check"/>Concluída</span>
+          : <Button secondary onClick={finish}><Icon name="check"/>Concluir</Button>}
       </div>
     </header>
+
+    {marker.on && <div className="pdf-marker-bar" role="group" aria-label="Opções do marca-texto">
+      <div className="pdf-marker-colors" role="radiogroup" aria-label="Cor do marca-texto">
+        {HIGHLIGHT_COLORS.map((item) => <button key={item.id} type="button" role="radio" aria-checked={!marker.erase && marker.color === item.id} aria-label={item.label} title={item.label}
+          className={`marker-swatch marker-${item.id}`} onClick={() => setMarker((value) => ({ ...value, color: item.id, erase: false }))}/>)}
+      </div>
+      <button type="button" className={`icon-button ${marker.erase ? 'is-active' : ''}`} aria-pressed={marker.erase} aria-label="Borracha: clique numa marcação para apagar" title="Borracha" onClick={() => setMarker((value) => ({ ...value, erase: !value.erase }))}><Icon name="eraser"/></button>
+      <span className="pdf-marker-hint" aria-live="polite">{marker.erase ? 'Clique numa marcação para apagar.' : 'Selecione o texto para marcar; clique numa marcação para trocar a cor.'}</span>
+    </div>}
 
     <div className="pdf-body">
       {showOutline && <nav className="pdf-outline" aria-label="Sumário do PDF">
@@ -267,57 +333,108 @@ export default function PdfReader({ course, state, actions, progressActions, not
         </div>
       </div>
 
-      {showPanel && <aside className="pdf-panel" aria-label="Leitor inteligente">
-        <h3 className="title">Nesta página</h3>
-        <dl className="pdf-facts">
-          <div><dt>Disciplina</dt><dd>{identity.subject
-            ? <>{identity.subject.subject.title} <small className="fact-source">{identity.subject.source === 'link' ? 'vínculo do material' : `pelo texto: ${identity.subject.hits.slice(0, 3).join(', ')}`}</small></>
-            : 'Não identificada pelo texto.'}</dd></div>
-          {!subject && identity.subject && <div><dd><Button secondary onClick={() => actions.linkSubject(course.id, identity.subject.subject.id)}><Icon name="plus"/>Vincular a {identity.subject.subject.title}</Button></dd></div>}
-          {identity.elsewhere && <div><dd className="quiet-note">Esta página cita mais termos de {identity.elsewhere.subject.title} ({identity.elsewhere.hits.slice(0, 3).join(', ')}).</dd></div>}
-          <div><dt>Seção</dt><dd>{identity.section
-            ? <>{identity.section.path.join(' › ')} <small className="fact-source">{identity.section.source === 'outline' ? 'sumário do PDF' : 'título da página'}</small></>
-            : 'Sem sumário nem título reconhecível.'}</dd></div>
-          <div><dt>Assuntos da página</dt><dd>{identity.keywords.length
-            ? <ul className="pdf-keywords">{identity.keywords.map((word) => <li key={word}>{word}</li>)}</ul>
-            : identity.empty ? 'Sem texto extraível (página digitalizada ou só imagem).' : 'Poucos termos repetidos.'}</dd></div>
-        </dl>
-        {ai.available && <div className="pdf-ai">
-          <Button secondary onClick={askAI} disabled={ai.status === 'loading' || identity.empty}><Icon name="spark"/>{ai.status === 'loading' ? 'Identificando…' : 'Identificar com IA'}</Button>
-          <p className="quiet-note">Envia ao servidor só o texto desta página e os nomes das suas disciplinas.</p>
-          {ai.error && <p className="form-error" role="alert">{ai.error}</p>}
-          {ai.result && <div className="pdf-ai-result" role="status">
-            <span className="pill">Sugestão da IA</span>
-            {ai.result.topic && <p><strong>{ai.result.topic}</strong></p>}
-            <p className="muted-text">{aiSubject ? `Disciplina: ${aiSubject.title}` : 'Nenhuma das suas disciplinas.'}{ai.result.keywords.length ? ` · ${ai.result.keywords.join(', ')}` : ''}</p>
-            {aiSubject && aiSubject.id !== course.subjectId && <Button ghost onClick={() => actions.linkSubject(course.id, aiSubject.id)}>Vincular a {aiSubject.title}</Button>}
-          </div>}
-        </div>}
-        <section className="pdf-marks" aria-labelledby="pdf-marks-title">
-          <h3 id="pdf-marks-title" className="title">Marcações <small className="fact-source">{pageHighlights.length} nesta página · {highlights.length} no PDF</small></h3>
-          {pageHighlights.length
-            ? <ul className="pdf-marks-list">{pageHighlights.map((item) => <li key={item.id}>
-              <span className={`marker-dot marker-${item.color}`} aria-hidden="true"/>
-              <p className="pdf-mark-text">{item.text || 'Trecho sem texto extraível'}</p>
-              <div className="pdf-mark-actions">
-                <label><span className="sr-only">Cor da marcação</span>
-                  <select value={item.color} onChange={(event) => mark(() => actions.recolorHighlight(course.id, item.id, event.target.value))} aria-label={`Cor da marcação: ${colorLabel(item.color)}`}>
-                    {HIGHLIGHT_COLORS.map((color) => <option key={color.id} value={color.id}>{color.label}</option>)}
-                  </select>
-                </label>
-                <button type="button" className="icon-button" onClick={() => mark(() => actions.removeHighlight(course.id, item.id))} aria-label="Apagar marcação"><Icon name="trash"/></button>
+      {showPanel && <aside className="pdf-panel" aria-label="Painel do documento">
+        <div className="pdf-panel-tabs" role="tablist" aria-label="Abas do leitor">
+          {aiAvailable && <button type="button" role="tab" aria-selected={activeTab === 'resumo'} className={`pdf-tab ${activeTab === 'resumo' ? 'is-active' : ''}`} onClick={() => setActiveTab('resumo')}>Resumo IA</button>}
+          <button type="button" role="tab" aria-selected={activeTab === 'marcacoes'} className={`pdf-tab ${activeTab === 'marcacoes' ? 'is-active' : ''}`} onClick={() => setActiveTab('marcacoes')}>Marcações</button>
+          <button type="button" role="tab" aria-selected={activeTab === 'detalhes'} className={`pdf-tab ${activeTab === 'detalhes' ? 'is-active' : ''}`} onClick={() => setActiveTab('detalhes')}>Detalhes</button>
+        </div>
+
+        <div className="pdf-panel-body">
+          {activeTab === 'resumo' && aiAvailable && <section className="pdf-summary-tab" role="tabpanel" aria-label="Resumo IA">
+            {summary.status === 'loading' && <div className="pdf-summary-skeleton" aria-live="polite" aria-label="Preparando resumo do documento">
+              <div className="pdf-shimmer-line is-long"/>
+              <div className="pdf-shimmer-line is-long"/>
+              <div className="pdf-shimmer-line is-medium"/>
+              <div className="pdf-shimmer-line is-short"/>
+              <p className="quiet-note">Lendo e organizando o conteúdo do PDF…</p>
+            </div>}
+
+            {summary.status !== 'loading' && !summary.insights && <div className="pdf-summary-empty">
+              <p className="muted-text">Resumo do conteúdo, tópicos-chave e pontos de revisão gerados a partir do texto deste PDF.</p>
+              {summary.error && <p className="form-error" role="alert">{summary.error}</p>}
+              <Button onClick={() => requestInsights()} disabled={!doc}><Icon name="spark"/>Gerar resumo e insights</Button>
+            </div>}
+
+            {summary.status !== 'loading' && summary.insights && <div className={`pdf-summary-content ${summary.freshReveal ? 'is-revealing' : ''}`}>
+              <div className="pdf-overview-head">
+                <p className="pdf-overview-text">{summary.insights.overview}</p>
+                <button type="button" className="icon-button pdf-refresh-btn" onClick={() => requestInsights({ refresh: true })} aria-label="Atualizar resumo" title="Atualizar resumo"><Icon name="history"/></button>
               </div>
-            </li>)}</ul>
-            : <p className="quiet-note">{marker.on ? 'Selecione um trecho da página para marcar.' : 'Ligue o marca-texto na barra do leitor para destacar trechos.'}</p>}
-          {highlights.length > pageHighlights.length && <p className="quiet-note">Outras páginas com marcações: {[...new Set(highlights.filter((item) => item.page !== page).map((item) => item.page))].sort((a, b) => a - b).slice(0, 12).map((value, index) => <span key={value}>{index ? ', ' : ''}<button type="button" className="text-button" onClick={() => go(value)}>p. {value}</button></span>)}</p>}
-        </section>
-        <SubjectSelect state={state} course={course} actions={actions} label="Vínculo do material"/>
-        <div className="pdf-finish">
-          {done
-            ? <p className="completed-message"><Icon name="check"/>Leitura concluída.</p>
-            : <Button onClick={finish}><Icon name="check"/>Concluí a leitura do PDF</Button>}
-          <p className="quiet-note">A página fica salva para retomar. Virar páginas não gera XP; concluir o PDF inteiro vale como leitura concluída, uma vez.</p>
-          <Button ghost onClick={() => open({ type: 'course', id: course.id })}>Detalhes do material</Button>
+
+              {summary.error && <p className="form-error" role="alert">{summary.error}</p>}
+
+              {summary.insights.keyTopics?.length > 0 && <p className="pdf-inline-topics">
+                {summary.insights.keyTopics.join(' · ')}
+              </p>}
+
+              {summary.insights.insights?.length > 0 && <ul className="pdf-insights-list">
+                {summary.insights.insights.map((item, idx) => <li key={idx} className="pdf-insight-item">
+                  <div className="pdf-insight-head">
+                    <strong>{item.title}</strong>
+                    {item.pageRef && <button type="button" className="pdf-page-chip" onClick={() => go(item.pageRef)}>p. {item.pageRef}</button>}
+                  </div>
+                  <p>{item.detail}</p>
+                </li>)}
+              </ul>}
+
+              <p className="pdf-summary-footnote">
+                {summary.insights.coverage === 'condensed'
+                  ? 'Gerado a partir do conteúdo condensado do PDF.'
+                  : 'Gerado a partir do conteúdo do PDF.'}
+              </p>
+            </div>}
+          </section>}
+
+          {activeTab === 'marcacoes' && <section className="pdf-marks" role="tabpanel" aria-label="Marcações">
+            <div className="pdf-marks-header">
+              <span className="quiet-note">{pageHighlights.length} nesta página · {highlights.length} no PDF</span>
+            </div>
+            {pageHighlights.length
+              ? <ul className="pdf-marks-list">{pageHighlights.map((item) => <li key={item.id}>
+                <span className={`marker-dot marker-${item.color}`} aria-hidden="true"/>
+                <p className="pdf-mark-text">{item.text || 'Trecho sem texto extraível'}</p>
+                <div className="pdf-mark-actions">
+                  <label><span className="sr-only">Cor da marcação</span>
+                    <select value={item.color} onChange={(event) => mark(() => actions.recolorHighlight(course.id, item.id, event.target.value))} aria-label={`Cor da marcação: ${colorLabel(item.color)}`}>
+                      {HIGHLIGHT_COLORS.map((color) => <option key={color.id} value={color.id}>{color.label}</option>)}
+                    </select>
+                  </label>
+                  <button type="button" className="icon-button" onClick={() => mark(() => actions.removeHighlight(course.id, item.id))} aria-label="Apagar marcação"><Icon name="trash"/></button>
+                </div>
+              </li>)}</ul>
+              : <p className="quiet-note">{marker.on ? 'Selecione um trecho da página para marcar.' : 'Ligue o marca-texto na barra superior para destacar trechos.'}</p>}
+            {otherHighlightedPages.length > 0 && <div className="pdf-other-marks">
+              <span className="quiet-note">Outras páginas marcadas:</span>
+              <div className="pdf-page-chips">
+                {otherHighlightedPages.slice(0, 12).map((value) => <button key={value} type="button" className="pdf-page-chip" onClick={() => go(value)}>p. {value}</button>)}
+              </div>
+            </div>}
+          </section>}
+
+          {activeTab === 'detalhes' && <section className="pdf-details-tab" role="tabpanel" aria-label="Detalhes">
+            <dl className="pdf-facts">
+              <div><dt>Disciplina</dt><dd>{identity.subject
+                ? <>{identity.subject.subject.title} <small className="fact-source">{identity.subject.source === 'link' ? 'vínculo do material' : `pelo texto: ${identity.subject.hits.slice(0, 3).join(', ')}`}</small></>
+                : 'Não identificada pelo texto.'}</dd></div>
+              {!subject && identity.subject && <div><dd><Button secondary onClick={() => actions.linkSubject(course.id, identity.subject.subject.id)}><Icon name="plus"/>Vincular a {identity.subject.subject.title}</Button></dd></div>}
+              {identity.elsewhere && <div><dd className="quiet-note">Esta página cita mais termos de {identity.elsewhere.subject.title} ({identity.elsewhere.hits.slice(0, 3).join(', ')}).</dd></div>}
+              <div><dt>Seção</dt><dd>{identity.section
+                ? <>{identity.section.path.join(' › ')} <small className="fact-source">{identity.section.source === 'outline' ? 'sumário do PDF' : 'título da página'}</small></>
+                : 'Sem sumário nem título reconhecível.'}</dd></div>
+              <div><dt>Assuntos da página</dt><dd>{identity.keywords.length
+                ? <ul className="pdf-keywords">{identity.keywords.map((word) => <li key={word}>{word}</li>)}</ul>
+                : identity.empty ? 'Sem texto extraível (página digitalizada ou só imagem).' : 'Poucos termos repetidos.'}</dd></div>
+            </dl>
+
+            <div className="pdf-details-section">
+              <SubjectSelect state={state} course={course} actions={actions} label="Vínculo do material"/>
+              <Progress value={standing.percent} tone={standing.done ? 'mint' : 'lume'} label={`Avanço em ${course.title}`}/>
+              <p className="quiet-note">{course.pdf.name} · {pages} páginas · {formatBytes(course.pdf.size)}</p>
+              <p className="quiet-note">A página fica salva para retomar. Virar páginas não gera XP; concluir o PDF inteiro vale como leitura concluída, uma vez.</p>
+              <Button ghost onClick={() => open({ type: 'course', id: course.id })}>Detalhes do material</Button>
+            </div>
+          </section>}
         </div>
       </aside>}
     </div>

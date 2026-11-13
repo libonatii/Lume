@@ -22,13 +22,132 @@ export async function storageInfo() {
 }
 
 export async function uploadPdf(file, fileId) {
-  const response = await fetch(`/api/library/files/${fileId}`, {
-    method: 'PUT', credentials: 'same-origin', body: file,
-    headers: { 'Content-Type': 'application/pdf', 'X-File-Name': encodeURIComponent(file.name || 'documento.pdf') },
+  const presign = await api(`/api/library/files/${fileId}/upload-url`, {
+    method: 'POST',
+    body: {
+      name: file.name || 'documento.pdf',
+      size: file.size,
+      contentType: 'application/pdf',
+    },
   });
-  const data = await response.json().catch(() => null);
-  if (!response.ok) throw new Error(apiError({ data }));
-  return data;
+  if (!presign.ok) throw new Error(apiError(presign));
+
+  const { uploadUrl, method = 'PUT', direct = false, headers = {} } = presign.data;
+  const putRes = await fetch(uploadUrl, {
+    method,
+    credentials: direct ? 'omit' : 'same-origin',
+    headers,
+    body: file,
+  });
+  if (!putRes.ok) {
+    const data = await putRes.json().catch(() => null);
+    throw new Error(apiError({ data }));
+  }
+
+  const confirmed = await api(`/api/library/files/${fileId}/confirm`, { method: 'POST' });
+  if (!confirmed.ok) throw new Error(apiError(confirmed));
+
+  // Pré-processamento assíncrono do Markdown para cache no banco (não bloqueia o anexo).
+  extractAndSaveMarkdown(file, fileId).catch(() => {});
+  return confirmed.data;
+}
+
+export async function extractDocumentMarkdown(doc, { maxPages = 200 } = {}) {
+  const total = Math.min(doc.numPages || 0, maxPages);
+  const parts = [];
+  for (let p = 1; p <= total; p += 1) {
+    const { text } = await readPageText(doc, p).catch(() => ({ text: '' }));
+    if (text && text.trim()) parts.push(`## Página ${p}\n${text.trim()}`);
+  }
+  return parts.join('\n\n');
+}
+
+export async function savePdfMarkdown(fileId, markdown, source = 'pdfjs') {
+  const result = await api(`/api/library/files/${fileId}/markdown`, {
+    method: 'PUT',
+    body: { markdown, source },
+  });
+  if (!result.ok) throw new Error(apiError(result));
+  return result.data;
+}
+
+async function extractAndSaveMarkdown(file, fileId) {
+  const { doc, close } = await openDocument(new Uint8Array(await file.arrayBuffer()));
+  try {
+    const markdown = await extractDocumentMarkdown(doc);
+    await savePdfMarkdown(fileId, markdown, 'pdfjs');
+  } finally {
+    await close().catch(() => {});
+  }
+}
+
+export async function getPdfInsights(fileId, signal) {
+  const result = await api(`/api/library/files/${fileId}/insights`, { signal });
+  if (!result.ok) throw new Error(apiError(result));
+  return result.data;
+}
+
+export async function generatePdfInsights(fileId, { refresh = false, onStatus, onDelta, signal } = {}) {
+  const response = await fetch(`/api/library/files/${fileId}/insights?stream=1`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    signal,
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'text/event-stream',
+    },
+    body: JSON.stringify({ refresh }),
+  });
+
+  const contentType = response.headers.get('content-type') || '';
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(apiError({ data }));
+  }
+  if (!contentType.includes('text/event-stream') || !response.body) {
+    return response.json();
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let eventName = 'message';
+  let finalPayload = null;
+
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let idx;
+      while ((idx = buffer.indexOf('\n')) !== -1) {
+        const line = buffer.slice(0, idx).replace(/\r$/, '');
+        buffer = buffer.slice(idx + 1);
+        if (!line) {
+          eventName = 'message';
+          continue;
+        }
+        if (line.startsWith('event:')) {
+          eventName = line.slice(6).trim();
+          continue;
+        }
+        if (line.startsWith('data:')) {
+          const raw = line.slice(5).trim();
+          let data = null;
+          try { data = JSON.parse(raw); } catch { continue; }
+          if (eventName === 'status' && typeof onStatus === 'function') onStatus(data);
+          else if (eventName === 'delta' && typeof onDelta === 'function') onDelta(data.text || '');
+          else if (eventName === 'done') finalPayload = data;
+          else if (eventName === 'error') throw new Error(data?.error || 'Não foi possível gerar o resumo agora.');
+        }
+      }
+    }
+  } finally {
+    try { reader.releaseLock(); } catch {}
+  }
+
+  if (!finalPayload) throw new Error('A geração do resumo foi interrompida antes de concluir.');
+  return finalPayload;
 }
 
 export async function discardPdf(fileId) {
