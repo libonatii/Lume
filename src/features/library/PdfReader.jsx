@@ -101,6 +101,39 @@ export default function PdfReader({ course, state, actions, progressActions, not
   const highlights = course.highlights || [];
   const pageHighlights = highlights.filter((item) => item.page === page);
 
+  // Abrir o PDF conta como tempo de estudo: o leitor abre uma sessão própria,
+  // pausa com a aba oculta e encerra ao fechar. Se já há sessão em curso (foco),
+  // ela continua sendo a dona do tempo e o leitor não abre outra.
+  const activeRef = useRef(state.activeSession);
+  const ownsSession = useRef(false);
+  const ownedId = useRef('');
+  activeRef.current = state.activeSession;
+  useEffect(() => {
+    const active = state.activeSession;
+    if (ownsSession.current && !ownedId.current && active) ownedId.current = active.id;
+  }, [state.activeSession]);
+  useEffect(() => {
+    if (!activeRef.current) {
+      ownsSession.current = Boolean(progressActions.startSession({ courseId: course.id, label: `Leitura — ${course.title}` }));
+    }
+    const beat = setInterval(() => { if (ownedId.current && activeRef.current?.id === ownedId.current) progressActions.touchSession(); }, 60000);
+    const visibility = () => {
+      const mine = ownedId.current && activeRef.current?.id === ownedId.current;
+      if (!mine) return;
+      const running = activeRef.current.status === 'active';
+      if (document.hidden && running) progressActions.toggleSessionPause();
+      else if (!document.hidden && !running) progressActions.toggleSessionPause();
+    };
+    document.addEventListener('visibilitychange', visibility);
+    return () => {
+      clearInterval(beat);
+      document.removeEventListener('visibilitychange', visibility);
+      if (ownedId.current && activeRef.current?.id === ownedId.current) progressActions.endSession(Date.now());
+      ownsSession.current = false;
+      ownedId.current = '';
+    };
+  }, [course.id, progressActions]);
+
   useEffect(() => {
     const controller = new AbortController();
     let loaded = null;

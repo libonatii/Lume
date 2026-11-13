@@ -162,6 +162,7 @@ Consulte também:
 
 1. **Sessão de Estudo (`state.activeSession` e `state.studySessions`):**
    - Começar, pausar, retomar ou encerrar uma sessão declara tempo dedicado; começar outra sessão encerra e salva a anterior automaticamente.
+   - Abrir um PDF no leitor inicia uma sessão de leitura automática (`Leitura — <título>`), sem precisar do cronômetro de foco: ela pausa com a aba oculta e encerra ao fechar o leitor, passando pela mesma validação do servidor (blocos de 25 minutos, teto diário). Se já houver sessão em curso (foco), o leitor não abre outra e o tempo continua sendo dessa sessão.
    - Sessões esquecidas abertas são pausadas ao carregar e limitadas ao teto de **12 horas** (`MAX_SESSION_SECONDS = 43200`) para não inflar o relógio.
    - `minutesByDay` e `weeklyRhythm` somam os minutos declarados por dia local (incluindo a sessão ativa). Sem dados na semana anterior, a comparação percentual fica nula (não inventa porcentagem).
 2. **Preferências e Conforto Visual (`state.preferences`):**
