@@ -9,7 +9,7 @@ import { courseSummary, isImportedCourse, sourceLabel } from '../../../public/im
 import { slidePositionLabel, slidesSummary } from '../../../public/slides-domain.js';
 import Icon from '../../ui/Icon.jsx';
 import { Button, Empty, Heading, Progress, Skeleton, ease, enter } from '../../ui/ui.jsx';
-import { isCompleted } from '../../../public/progress-domain.js';
+import { activeCompletions, isCompleted } from '../../../public/progress-domain.js';
 import { formatMinutes, localDay, weeklyRhythm } from '../../../public/session-domain.js';
 import { CATEGORIES } from '../../../public/agenda-domain.js';
 import { useResource } from '../../lib/resources.js';
@@ -43,6 +43,14 @@ export function Home({ state, open, go, planActions, notify, account }) {
   }
 
   const rhythm = weeklyRhythm(state);
+  const today = rhythm.days.at(-1);
+  const goal = state.plan?.availability?.[new Date().getDay()] || state.preferences?.dailyMinutes || 90;
+  const goalPercent = goal ? Math.min(100, Math.round((today.minutes / goal) * 100)) : 0;
+  const sessionsToday = today.sessions + (state.activeSession ? 1 : 0);
+  const weekStart = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const weekCompletions = activeCompletions(state).filter((event) => !event.historical && event.at && Date.parse(event.at) >= weekStart).length;
+  const weeklyGoalMinutes = Math.max(120, (Number(state.preferences?.dailyMinutes) || 90) * 5);
+  const weekMinutesPercent = Math.min(100, Math.round((rhythm.current / weeklyGoalMinutes) * 100));
   const firstName = (account?.name || '').split(' ')[0];
   const hour = new Date().getHours();
   const greeting = hour < 5 ? 'Boa noite' : hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
@@ -54,38 +62,74 @@ export function Home({ state, open, go, planActions, notify, account }) {
 
   return <div className="study-root today-root">
     <section className="card-surface today-welcome" aria-labelledby="today-title">
-      <div className="today-welcome-main">
-        <div className="today-welcome-copy">
-          <h1 id="today-title" className="sr-only">Início</h1>
-          <div className="soft-badges">
-            <button type="button" className="soft-badge tone-mint" onClick={() => go('inicio')} title="Ajustar seu ritmo">
-              <span className="soft-dot is-pulse" aria-hidden="true"/>
-              Ritmo: {plan.title}
-            </button>
-            <span className="soft-badge tone-lume">
-              <Icon name="clock"/>
-              {rhythm.activeDays > 0 ? `${rhythm.activeDays} de 7 dias com estudo` : 'Sem cobrança diária'}
-            </span>
-          </div>
-          <p className="today-greeting">
-            {greeting}{firstName ? `, ${firstName}` : ''}. <span>Um passo de cada vez, no seu ritmo.</span>
-          </p>
-          <p className="lead">
-            {focus
-              ? <>Seu foco agora é <strong>{focus.title}</strong>, escolhido por você.</>
-              : action?.pdf
-                ? <>Continue <strong>{action.courseTitle}</strong> na página {action.pdf.page}. Reserve {action.minutes} minutos para avançar.</>
-                : action
-                  ? <>Sua próxima {unit} é <strong>{action.title}</strong>. Reserve {action.minutes} minutos para avançar.</>
-                  : 'Adicione um curso ou material à biblioteca para receber a próxima ação.'}
-          </p>
+      <div className="today-welcome-copy">
+        <h1 id="today-title" className="sr-only">Início</h1>
+        <div className="soft-badges">
+          <button type="button" className="soft-badge tone-mint" onClick={() => go('inicio')} title="Ajustar seu ritmo">
+            <span className="soft-dot" aria-hidden="true"/>
+            Ritmo: {plan.title}
+          </button>
+          <span className="soft-badge tone-lume">
+            <Icon name="clock"/>
+            {rhythm.activeDays > 0 ? `${rhythm.activeDays} de 7 dias com estudo` : 'Sem cobrança diária'}
+          </span>
         </div>
-
-        <div className="today-welcome-actions">
-          <Button onClick={() => go('foco')}><Icon name="timer"/>Iniciar sessão de foco</Button>
-          <Button secondary onClick={() => go('agendar')}><Icon name="calendar-plus"/>Agendar sessão</Button>
-        </div>
+        <p className="today-greeting">
+          {greeting}{firstName ? `, ${firstName}` : ''}. <span>Um passo de cada vez, no seu ritmo.</span>
+        </p>
+        <p className="lead">
+          {focus
+            ? <>Seu foco agora é <strong>{focus.title}</strong>, escolhido por você.</>
+            : action?.pdf
+              ? <>Continue <strong>{action.courseTitle}</strong> na página {action.pdf.page}. Reserve {action.minutes} minutos para avançar.</>
+              : action
+                ? <>Sua próxima {unit} é <strong>{action.title}</strong>. Reserve {action.minutes} minutos para avançar.</>
+                : 'Adicione um curso ou material à biblioteca para receber a próxima ação.'}
+        </p>
       </div>
+      <div className="today-welcome-actions">
+        <Button onClick={() => go('foco')}><Icon name="timer"/>Iniciar sessão de foco</Button>
+        <Button secondary onClick={() => go('agendar')}><Icon name="calendar-plus"/>Agendar sessão</Button>
+      </div>
+    </section>
+
+    <section className="today-metrics" aria-label="Seu ritmo hoje">
+      <Metric
+        label="Tempo de foco hoje"
+        icon="timer"
+        tone="mint"
+        value={formatMinutes(today.minutes)}
+        unit={goal ? `/ ${formatMinutes(goal)}` : ''}
+        percent={goalPercent}
+        note={goal ? (goalPercent >= 100 ? 'Meta flexível do dia concluída' : `${goalPercent}% do planejado para hoje`) : <a className="text-link" href="#plano">Definir tempo no Plano</a>}
+      />
+      <Metric
+        label="Sessões hoje"
+        icon="check"
+        tone="lume"
+        value={String(sessionsToday)}
+        unit={sessionsToday === 1 ? 'sessão registrada' : 'sessões registradas'}
+        percent={Math.min(100, sessionsToday * 50)}
+        note={state.activeSession ? (state.activeSession.status === 'active' ? 'Uma sessão está em andamento' : 'Uma sessão está pausada') : sessionsToday ? 'Encerradas e salvas no seu histórico' : 'Comece quando estiver pronta'}
+      />
+      <Metric
+        label="Conclusões na semana"
+        icon="book"
+        tone="reward"
+        value={String(weekCompletions)}
+        unit={weekCompletions === 1 ? 'aula ou leitura' : 'aulas e leituras'}
+        percent={Math.min(100, weekCompletions * 20)}
+        note="Contam só conclusões confirmadas nos últimos 7 dias"
+      />
+      <Metric
+        label="Ritmo constante"
+        icon="trend"
+        tone="mint"
+        value={rhythm.change === null ? formatMinutes(rhythm.current) : `${rhythm.change > 0 ? '+' : ''}${rhythm.change}%`}
+        unit={rhythm.change === null ? 'nos últimos 7 dias' : 'vs. semana anterior'}
+        percent={weekMinutesPercent}
+        note={`Média de ${formatMinutes(rhythm.average)} por dia, sem cobrança`}
+      />
     </section>
 
     <section className={`card-surface next-action today-hero-block ${focus ? 'is-focus' : ''}`} aria-labelledby="next-title">
@@ -190,101 +234,74 @@ export function Home({ state, open, go, planActions, notify, account }) {
       </>}
     </section>
 
-    <div className="today-main">
-      <div className="today-cards-grid">
-        <section className="card-surface today-bento-card today-tasks" aria-labelledby="today-tasks-title">
-          <div className="today-bento-body">
-            <div className="card-heading">
+    <div className="today-columns">
+      <div className="today-main">
+        <section className="card-surface today-tasks" aria-labelledby="today-tasks-title">
+          <div className="card-heading">
+            <div>
+              <span className="card-icon tone-mint"><Icon name="list"/></span>
               <div>
-                <span className="card-icon tone-mint"><Icon name="list"/></span>
                 <h2 id="today-tasks-title" className="title">Plano do dia</h2>
-                <span className="today-count-pill">{agenda.pending}</span>
+                <p className="card-subtitle">Suas etapas e tarefas organizadas para hoje</p>
               </div>
-              <a className="text-link" href="#tarefas">Abrir lista</a>
             </div>
-            {agenda.overdue > 0 && <p className="inline-note todo-overdue-note" role="status"><Icon name="flag"/><span>{overdueMessage(agenda.overdue)}</span></p>}
-            {agenda.next.length
-              ? <ul className="today-task-list">{agenda.next.map((task) => {
-                const late = isOverdue(task);
-                return <li key={task.id} className={`todo-item ${focus?.id === task.id ? 'is-focus' : ''}`}>
-                  <button
-                    type="button"
-                    aria-pressed={focus?.id === task.id}
-                    title={focus?.id === task.id ? 'Tirar do foco' : 'Focar no Início'}
-                    aria-label={focus?.id === task.id ? `Tirar ${task.title} do foco` : `Focar em ${task.title} no Início`}
-                    className="todo-focus"
-                    onClick={() => toggleFocus(task)}
-                  >
-                    <Icon name="focus"/>
-                  </button>
-                  <span className="todo-copy">
-                    <strong>{task.title}</strong>
-                    <small className="todo-meta">
-                      <Icon name="calendar"/>
-                      <span>{focus?.id === task.id ? 'Em foco · ' : ''}{taskDateLabel(task)}</span>
-                    </small>
-                  </span>
-                  <span className="today-task-right">
-                    {(late || task.priority > 0) && <span className={`task-priority ${late ? 'p-late' : `p-${task.priority}`}`}>{late ? 'Atrasada' : priorityLabel(task.priority)}</span>}
-                    <button
-                      type="button"
-                      role="checkbox"
-                      aria-checked="false"
-                      title="Concluir"
-                      aria-label={`Concluir tarefa ${task.title}`}
-                      className="todo-check today-task-done"
-                      onClick={() => completeTask(task)}
-                    >
-                      <Icon name="check"/>
-                    </button>
-                  </span>
-                </li>;
-              })}</ul>
-              : <p className="muted-text">Sem tarefas pendentes. Defina o próximo passo em <a className="text-link" href="#tarefas">Tarefas</a> ou agende um bloco.</p>}
+            <div className="today-plan-actions">
+              <button type="button" className="chip-button" onClick={() => go('agendar')}><Icon name="plus"/>Adicionar bloco</button>
+              <a className="text-link" href="#tarefas">Abrir lista<Icon name="arrow"/></a>
+            </div>
           </div>
-          <div className="today-card-foot">
-            {agenda.pending > agenda.next.length
-              ? <a className="text-link today-foot-link" href="#tarefas">Mais {agenda.pending - agenda.next.length} {agenda.pending - agenda.next.length === 1 ? 'tarefa' : 'tarefas'}<Icon name="arrow"/></a>
-              : <a className="text-link today-foot-link" href="#agendar">Adicionar bloco<Icon name="arrow"/></a>}
-          </div>
+          {agenda.overdue > 0 && <p className="inline-note todo-overdue-note" role="status"><Icon name="flag"/><span>{overdueMessage(agenda.overdue)}</span></p>}
+          {agenda.next.length
+            ? <ul className="today-task-list">{agenda.next.map((task) => <li key={task.id} className={`todo-item ${focus?.id === task.id ? 'is-focus' : ''}`}>
+              <button type="button" aria-pressed={focus?.id === task.id} title={focus?.id === task.id ? 'Tirar do foco' : 'Focar no Início'} aria-label={focus?.id === task.id ? `Tirar ${task.title} do foco` : `Focar em ${task.title} no Início`} className="todo-focus" onClick={() => toggleFocus(task)}><Icon name="focus"/></button>
+              <span className="todo-copy"><strong>{task.title}</strong><small className="todo-meta">{focus?.id === task.id ? 'Em foco · ' : ''}{taskMeta(task)}</small></span>
+              <button type="button" role="checkbox" aria-checked="false" title="Concluir" aria-label={`Concluir tarefa ${task.title}`} className="todo-check today-task-done" onClick={() => completeTask(task)}><Icon name="check"/></button>
+            </li>)}</ul>
+            : <p className="muted-text">Sem tarefas pendentes. Defina o próximo passo em <a className="text-link" href="#tarefas">Tarefas</a> ou agende um bloco.</p>}
+          {agenda.pending > agenda.next.length && <p className="quiet-note">Mais {agenda.pending - agenda.next.length} na lista.</p>}
         </section>
 
         <Milestones state={state}/>
+
+        <div className="today-calm-card card-surface">
+          <span className="card-icon tone-mint"><Icon name="pause"/></span>
+          <div>
+            <strong>Recomendação do santuário</strong>
+            <p className="muted-text">Pausar faz parte do caminho: o Lume não pune dias sem estudo e preserva seu lugar em cada material.</p>
+          </div>
+        </div>
       </div>
 
-      <WeeklyRhythm rhythm={rhythm}/>
+      <div className="today-side">
+        <WeeklyRhythm rhythm={rhythm}/>
+        <FriendsCard account={account}/>
+      </div>
     </div>
-
-    <aside className="today-side" aria-label="Painel social e amigos">
-      <FriendsCard account={account}/>
-    </aside>
   </div>;
 }
 
-// Barras horizontais dos últimos sete dias: ritmo declarado, sem meta punitiva.
+function Metric({ label, icon, tone, value, unit, percent = null, note }) {
+  return <div className={`card-surface metric-card tone-${tone}`}>
+    <div className="metric-head"><span className="metric-label">{label}</span><span className="metric-icon"><Icon name={icon}/></span></div>
+    <p className="metric-value"><strong>{value}</strong>{unit && <span>{unit}</span>}</p>
+    {percent !== null && <Progress value={percent} max={100} tone={tone === 'reward' ? 'reward' : 'mint'} label={label}/>}
+    <span className="metric-note">{note}</span>
+  </div>;
+}
+
+// Barras dos últimos sete dias: ritmo declarado, sem meta punitiva.
 function WeeklyRhythm({ rhythm }) {
+  const max = Math.max(60, ...rhythm.days.map((day) => day.minutes));
   const last = rhythm.days.length - 1;
   return <section className="card-surface weekly-rhythm" aria-labelledby="weekly-rhythm-title">
-    <div className="weekly-rhythm-head">
-      <span className="card-icon"><Icon name="chart"/></span>
-      <div>
-        <h2 id="weekly-rhythm-title" className="title">Ritmo da semana</h2>
-        <p className="card-subtitle">
-          {formatMinutes(rhythm.current)} nos últimos 7 dias · {rhythm.activeDays} {rhythm.activeDays === 1 ? 'dia com estudo' : 'dias com estudo'}
-        </p>
-      </div>
+    <div className="card-heading"><div><span className="card-icon tone-mint"><Icon name="chart"/></span><div><span className="metric-label">Ritmo semanal</span><h2 id="weekly-rhythm-title" className="title">Constância confortável</h2></div></div></div>
+    <div className="rhythm-bars" role="img" aria-label={`Minutos de estudo nos últimos 7 dias: ${rhythm.days.map((day) => `${weekdayShort(day.date)} ${day.minutes}`).join(', ')}`}>
+      {rhythm.days.map((day, index) => <div key={day.date} className={`rhythm-bar ${index === last ? 'is-today' : ''}`}>
+        <span className="rhythm-bar-track"><span className="rhythm-bar-fill" style={{ height: `${Math.max(day.minutes ? 6 : 2, Math.round((day.minutes / max) * 100))}%` }}/></span>
+        <small>{index === last ? 'Hoje' : weekdayShort(day.date)}</small>
+      </div>)}
     </div>
-    <div className="rhythm-pills" role="img" aria-label={`Minutos de estudo nos últimos 7 dias: ${rhythm.days.map((day) => `${weekdayShort(day.date)} ${day.minutes}`).join(', ')}`}>
-      {rhythm.days.map((day, index) => {
-        const isToday = index === last;
-        const active = day.minutes > 0;
-        const label = isToday ? 'Hoje' : weekdayShort(day.date);
-        return <div key={day.date} className={`rhythm-pill-item ${active ? 'is-active' : ''} ${isToday ? 'is-today' : ''}`} title={`${label}: ${formatMinutes(day.minutes)}`}>
-          <span className="rhythm-pill-bar" aria-hidden="true"/>
-          <small>{label}</small>
-        </div>;
-      })}
-    </div>
+    <p className="rhythm-foot"><span>Média: <strong>{formatMinutes(rhythm.average)}/dia</strong></span><span className="tone-mint-text">Sem sobrecarga</span></p>
   </section>;
 }
 
@@ -293,136 +310,45 @@ function weekdayShort(date) {
   return label.charAt(0).toUpperCase() + label.slice(1, 3);
 }
 
-function monthShort(date) {
-  return new Date(`${date}T12:00:00`).toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '').slice(0, 3).toUpperCase();
-}
-
 // Próximas provas, entregas e compromissos da Agenda.
 function Milestones({ state }) {
   const today = localDay();
-  const monthPrefix = today.slice(0, 7);
-  const upcomingAll = (state.agenda || [])
+  const upcoming = (state.agenda || [])
     .filter((item) => !item.cancelled && !item.done && item.date >= today)
-    .sort((a, b) => `${a.date}${a.start}`.localeCompare(`${b.date}${b.start}`));
-  const upcoming = upcomingAll.slice(0, 3);
-  const monthCount = upcomingAll.filter((item) => item.date.startsWith(monthPrefix)).length;
-
-  return <section className="card-surface today-bento-card today-milestones" aria-labelledby="milestones-title">
-    <div className="today-bento-body">
-      <div className="card-heading">
-        <div>
-          <span className="card-icon tone-reward"><Icon name="calendar"/></span>
-          <h2 id="milestones-title" className="title">Próximos marcos</h2>
-          <span className="today-count-pill">{upcomingAll.length}</span>
-        </div>
-        <a className="text-link" href="#agenda">Calendário</a>
-      </div>
-      {upcoming.length
-        ? <ul className="milestone-list">{upcoming.map((item) => {
-          const days = Math.round((Date.parse(`${item.date}T12:00:00`) - Date.parse(`${today}T12:00:00`)) / 86400000);
-          const isToday = days === 0;
-          return <li key={item.id}>
-            <a className={`milestone milestone-${item.category} ${isToday ? 'is-today' : ''}`} href={`#agenda?data=${encodeURIComponent(item.date)}`}>
-              <span className="milestone-date-badge" aria-hidden="true">
-                <strong>{item.date.slice(8, 10)}</strong>
-                <span>{monthShort(item.date)}</span>
-              </span>
-              <span className="milestone-copy">
-                <strong>{item.title}</strong>
-                <span className="milestone-sub">
-                  {isToday ? <>
-                    <span className="milestone-today-pill"><span className="soft-dot is-pulse" aria-hidden="true"/>Hoje</span>
-                    <span className="milestone-time">{item.start ? <><Icon name="clock"/>{item.start}</> : CATEGORIES[item.category]}</span>
-                  </> : <span className="milestone-when-text">
-                    <span className="milestone-dot" aria-hidden="true"/>
-                    {days === 1 ? 'Amanhã' : `Em ${days} dias`}{item.start ? ` · ${item.start}` : ''}
-                  </span>}
-                </span>
-              </span>
-              <Icon name="chevron" className="milestone-arrow"/>
-            </a>
-          </li>;
-        })}</ul>
-        : <p className="muted-text">Nenhum compromisso pela frente. <a className="text-link" href="#agendar">Agendar uma sessão</a></p>}
-    </div>
-    <div className="today-card-foot has-divider">
-      <span className="milestone-month-meta"><Icon name="calendar"/>{monthCount} {monthCount === 1 ? 'marco previsto' : 'marcos previstos'} para este mês</span>
-      <a className="text-link today-foot-link" href="#agenda">Ver todos<Icon name="arrow"/></a>
-    </div>
+    .sort((a, b) => `${a.date}${a.start}`.localeCompare(`${b.date}${b.start}`))
+    .slice(0, 3);
+  return <section className="card-surface today-milestones" aria-labelledby="milestones-title">
+    <div className="card-heading"><div><span className="card-icon tone-reward"><Icon name="calendar"/></span><h2 id="milestones-title" className="title">Próximos marcos</h2></div><a className="text-link" href="#agenda">Calendário<Icon name="arrow"/></a></div>
+    {upcoming.length
+      ? <ul className="milestone-list">{upcoming.map((item) => {
+        const days = Math.round((Date.parse(`${item.date}T12:00:00`) - Date.parse(`${today}T12:00:00`)) / 86400000);
+        return <li key={item.id} className={`milestone milestone-${item.category}`}>
+          <span className="milestone-copy"><strong>{item.title}</strong><small>{CATEGORIES[item.category]}{item.start ? ` · ${item.start}` : ''}</small></span>
+          <span className="milestone-when"><span className="soft-badge">{days === 0 ? 'Hoje' : days === 1 ? 'Amanhã' : `Em ${days} dias`}</span><small>{new Date(`${item.date}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</small></span>
+        </li>;
+      })}</ul>
+      : <p className="muted-text">Nenhum compromisso pela frente. <a className="text-link" href="#agendar">Agendar uma sessão</a></p>}
   </section>;
 }
 
-// Amigos ativos agora (sessão de foco aberta, Companion ou presença recente), com atalhos para chat, amigos e ranking.
+// Amizades aceitas. Não há presença em tempo real aqui: só a lista e o atalho.
 function FriendsCard({ account }) {
-  const resource = useResource('/api/friends', { interval: 45000, enabled: Boolean(account) });
+  const resource = useResource('/api/friends', { enabled: Boolean(account) });
   const friends = resource.data?.friends || [];
-  const activeFriends = friends
-    .filter((friend) => friend.activity?.active)
-    .sort((a, b) => Number(b.activity?.status === 'studying') - Number(a.activity?.status === 'studying') || a.name.localeCompare(b.name, 'pt-BR'));
-  const [openList, setOpenList] = useState(true);
-
-  return <section className={`card-surface today-friends ${openList ? '' : 'is-collapsed'}`} aria-labelledby="today-friends-title">
-    <div className="card-heading today-friends-head">
-      <div className="today-friends-title">
-        <Icon name="users" className="today-friends-icon"/>
-        <h2 id="today-friends-title" className="title">Ativos agora</h2>
-      </div>
-      <button
-        type="button"
-        className="today-collapse-btn"
-        aria-expanded={openList}
-        aria-label={openList ? 'Recolher lista de ativos agora' : 'Expandir lista de ativos agora'}
-        onClick={() => setOpenList((value) => !value)}
-      >
-        <Icon name={openList ? 'chevron-up' : 'chevron-down'}/>
-      </button>
-    </div>
-
-    {openList && (
-      !account
-        ? <p className="muted-text today-friends-empty">Amigos, mensagens e ranking ficam disponíveis com uma conta.</p>
-        : !resource.data
-          ? <Skeleton label="Carregando amigos…" rows={2}/>
-          : activeFriends.length
-            ? <ul className="today-friend-list">{activeFriends.slice(0, 5).map((friend) => {
-              const activity = friend.activity || { label: 'Online', topic: '' };
-              return <li key={friend.id} className="today-friend-item">
-                <a className="today-friend-link" href={`#perfil?id=${encodeURIComponent(friend.id)}`}>
-                  <span className="avatar today-friend-avatar" aria-hidden="true">{String(friend.name || '?').slice(0, 1).toUpperCase()}</span>
-                  <span className="friend-copy">
-                    <strong>{friend.name}</strong>
-                    <span className="friend-status">
-                      <span className="friend-status-dot" aria-hidden="true"/>
-                      <span>{activity.label}</span>
-                    </span>
-                    {activity.topic && (
-                      <span className="friend-topic-chip" title={activity.topic}>
-                        <Icon name="book"/>
-                        <span>{activity.topic}</span>
-                      </span>
-                    )}
-                  </span>
-                </a>
-                <a className="today-friend-msg" href={`#mensagens?com=${encodeURIComponent(friend.id)}`} aria-label={`Mensagem para ${friend.name}`} title={`Mensagem para ${friend.name}`}>
-                  <Icon name="message"/>
-                </a>
-              </li>;
-            })}</ul>
-            : friends.length
-              ? <p className="muted-text today-friends-empty">Nenhum amigo ativo no momento.</p>
-              : <p className="muted-text today-friends-empty">Estudar junto é opcional. Um convite começa a lista.</p>
-    )}
-
-    <div className="today-side-links">
-      <a className="today-side-link" href="#amigos">
-        <span className="today-side-link-label"><Icon name="users"/>Ver amigos</span>
-        <Icon name="arrow" className="today-side-arrow"/>
-      </a>
-      <a className="today-side-link" href="#ranking">
-        <span className="today-side-link-label"><Icon name="chart"/>Ranking</span>
-        <Icon name="arrow" className="today-side-arrow"/>
-      </a>
-    </div>
+  return <section className="card-surface today-friends" aria-labelledby="today-friends-title">
+    <div className="card-heading"><div><span className="card-icon"><Icon name="users"/></span><h2 id="today-friends-title" className="title">Amigos</h2></div>{account && friends.length > 0 && <span className="metric-label">{friends.length} {friends.length === 1 ? 'amizade' : 'amizades'}</span>}</div>
+    {!account
+      ? <p className="muted-text">Amigos, mensagens e ranking ficam disponíveis com uma conta.</p>
+      : !resource.data
+        ? <Skeleton label="Carregando amigos…" rows={2}/>
+        : friends.length
+          ? <ul className="today-friend-list">{friends.slice(0, 3).map((friend) => <li key={friend.id}>
+            <span className="avatar small" aria-hidden="true">{String(friend.name || '?').slice(0, 1).toUpperCase()}</span>
+            <span className="friend-copy"><strong>{friend.name}</strong><small>Amigos desde {new Date(friend.since).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</small></span>
+            <a className="text-link" href={`#mensagens?com=${encodeURIComponent(friend.id)}`} aria-label={`Mensagem para ${friend.name}`}>Mensagem</a>
+          </li>)}</ul>
+          : <p className="muted-text">Estudar junto é opcional. Um convite começa a lista.</p>}
+    <a className="button secondary full-width" href="#amigos"><Icon name="users"/>{friends.length ? 'Ver todos os amigos' : 'Convidar amigos'}</a>
   </section>;
 }
 
@@ -445,11 +371,6 @@ function taskMeta(task) {
     late ? 'Atrasada' : '',
     task.dueDate ? `${late ? 'venceu' : 'vence'} em ${new Date(`${task.dueDate}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}` : 'sem prazo',
   ].filter(Boolean).join(' · ');
-}
-
-function taskDateLabel(task) {
-  if (!task.dueDate) return 'Sem prazo';
-  return new Date(`${task.dueDate}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
 }
 
 const statuses = { all: 'Todos', active: 'Em andamento', new: 'Para começar', paused: 'Em pausa', completed: 'Concluídos' };

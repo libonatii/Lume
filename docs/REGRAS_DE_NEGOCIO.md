@@ -18,7 +18,6 @@ Consulte também:
 3. **Sem viés de sustentabilidade/ecologia:** o look and feel, os ícones e os textos da aplicação **não** usam metáforas ecológicas, botânicas ou de "sustentabilidade" (nada de termos como *"sustentável"*, *"cultivar"*, nem ícones de broto/folha/árvore `sprout`, `leaf`, `tree`). Use vocabulário direto de estudo e constância: **ritmo constante**, **ritmo equilibrado**, **construir o hábito**, **continuidade** e **foco sem sobrecarga**.
 4. **Limites éticos e clínicos:** nenhum registro de tempo, conclusão ou XP pode ser descrito como prova de aprendizado, compreensão, atenção, inteligência ou benefício clínico.
 5. **Escopo social:** o social restringe-se a **amigos** (amizade mútua por convite), **mensagens diretas** entre amizades aceitas, **colaboração em projetos** e **ranking entre amigos**. Comunidades, servidores, canais e grupos públicos estão fora do escopo.
-6. **Botões (12/11/2026):** ações primárias e secundárias seguem o desenho em cápsula, com preenchimento sólido na cor de ação para primárias e superfície tonal com contorno para secundárias. Um destaque percorre o contorno enquanto o mouse permanece sobre um botão habilitado; ao sair, o efeito desaparece. O foco por teclado mantém um anel estático visível. Botões desativados não animam, e telas de toque não mantêm a órbita. Cores acompanham a paleta e o tema; menta continua reservada ao progresso. A animação é CSS, sem alterar medidas, texto ou área de clique.
 
 ---
 

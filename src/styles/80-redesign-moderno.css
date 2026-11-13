@@ -163,86 +163,29 @@ body {
   text-transform: none;
 }
 
-/* Cápsulas: a luz percorre só o contorno, sem girar texto ou ícone. */
-@property --button-border-angle {
-  syntax: '<angle>';
-  inherits: false;
-  initial-value: 0deg;
-}
-
+/* Botões */
 .button {
-  --button-ring-color: var(--lume);
-  position: relative;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-md);
   font-weight: 600;
-  transition: background-color var(--dur-fast) ease, border-color var(--dur-fast) ease, color var(--dur-fast) ease;
 }
 .button.primary {
   background: var(--action);
   color: var(--action-ink);
-  box-shadow: none;
+  box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--action) 60%, transparent);
 }
 .button.primary:hover:not(:disabled) {
   background: var(--action-hover);
   filter: none;
+  box-shadow: 0 12px 26px -10px color-mix(in srgb, var(--action-hover) 70%, transparent);
 }
 .button.secondary {
-  background: color-mix(in srgb, var(--lume) 6%, var(--surface-2));
-  border-color: color-mix(in srgb, var(--lume) 28%, var(--border));
+  background: color-mix(in srgb, var(--surface-2) 60%, transparent);
+  border-color: var(--border);
   color: var(--text);
 }
 .button.secondary:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--lume) 12%, var(--surface-2));
-  border-color: var(--lume);
-}
-.button.primary.danger-button {
-  --button-ring-color: var(--danger);
-  background: var(--danger);
-  color: var(--danger-ink);
-}
-.button.primary.danger-button:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--danger) 85%, var(--danger-ink));
-}
-.button:focus-visible {
-  outline: 2px solid var(--button-ring-color);
-  outline-offset: 3px;
-}
-
-/* A máscara deixa o centro vazio; o anel não intercepta cliques nem muda medidas.
-   Sem suporte à máscara, permanecem a borda normal e o foco estático. */
-@supports (mask-composite: exclude) or (-webkit-mask-composite: xor) {
-  .button:is(.primary, .secondary):not(:disabled)::before {
-    content: '';
-    position: absolute;
-    inset: -5px;
-    padding: 2px;
-    border-radius: inherit;
-    pointer-events: none;
-    background: conic-gradient(from var(--button-border-angle),
-      transparent 0deg 70deg,
-      color-mix(in srgb, var(--button-ring-color) 30%, transparent) 120deg,
-      var(--button-ring-color) 170deg,
-      color-mix(in srgb, var(--button-ring-color) 55%, var(--text)) 195deg,
-      transparent 235deg 360deg);
-    -webkit-mask: linear-gradient(var(--text) 0 0) content-box, linear-gradient(var(--text) 0 0);
-    -webkit-mask-composite: xor;
-    mask: linear-gradient(var(--text) 0 0) content-box, linear-gradient(var(--text) 0 0);
-    mask-composite: exclude;
-    opacity: 0;
-    transition: opacity var(--dur-fast) ease;
-  }
-
-  /* Só o ponteiro com hover mantém a órbita; toque não deixa um efeito preso. */
-  @media (hover: hover) and (pointer: fine) {
-    .button:is(.primary, .secondary):not(:disabled):hover::before {
-      opacity: 1;
-      animation: button-border-orbit 2.8s linear infinite;
-    }
-  }
-}
-
-@keyframes button-border-orbit {
-  to { --button-border-angle: 360deg; }
+  background: var(--surface-2);
+  border-color: var(--border-strong);
 }
 .text-link,
 .text-button.accent {
