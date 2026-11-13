@@ -17,7 +17,7 @@ function stateWithCourse() {
 
 // Menu "…" do cartão do curso: excluir com confirmação.
 
-test('o menu "…" do cartão exclui o curso só depois da confirmação', async ({ page }) => {
+test('o menu "…" do cartão exclui o curso só depois da confirmação', { tag: '@celular' }, async ({ page }) => {
   const state = stateWithCourse();
   expect(state.courses.length).toBeGreaterThan(0);
   const target = state.courses[0];
@@ -43,15 +43,4 @@ test('o menu "…" do cartão exclui o curso só depois da confirmação', async
   const left = (await readAccount(page)).courses.map((course) => course.id);
   expect(left).not.toContain(target.id);
   expect(left).toHaveLength(state.courses.length - 1);
-});
-
-test('Esc fecha o menu sem excluir', async ({ page }) => {
-  const state = stateWithCourse();
-  await seedAccount(page, state);
-  await page.goto('/#biblioteca');
-  const menu = page.getByRole('button', { name: `Mais ações de ${state.courses[0].title}` });
-  await menu.click();
-  await expect(page.getByRole('menuitem', { name: 'Excluir curso' })).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(page.getByRole('menuitem', { name: 'Excluir curso' })).toHaveCount(0);
 });

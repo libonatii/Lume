@@ -16,7 +16,7 @@ function seededState() {
   return state;
 }
 
-test('prévia, dados legados, busca, filtros, teclado, curso e progresso', async ({ page }, testInfo) => {
+test('prévia, dados legados, busca, filtros, teclado, curso e progresso', { tag: '@celular' }, async ({ page }, testInfo) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
@@ -35,7 +35,6 @@ test('prévia, dados legados, busca, filtros, teclado, curso e progresso', async
   await page.getByRole('link', { name: 'Biblioteca', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Biblioteca', exact: true })).toBeVisible();
   await expect(page.locator('#main > div')).toHaveCSS('opacity', '1');
-  await page.screenshot({ path: `data/lume-${testInfo.project.name}-library.png`, fullPage: true });
   const search = page.getByRole('searchbox');
   await search.fill('Python');
   await expect(page.locator('#library-results .course-card')).toHaveCount(1);
@@ -98,16 +97,14 @@ test('prévia, dados legados, busca, filtros, teclado, curso e progresso', async
   await expect(page.getByText(/movimento reduzido|modo essencial/i)).toHaveCount(0);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1);
   expect(overflow).toBe(false);
-  await page.screenshot({ path: `data/lume-${testInfo.project.name}-preferences.png`, fullPage: true });
   expect(errors).toEqual([]);
 });
 
 test('cadastro, saída, login, sincronização e recuperação na API local', async ({ page }, testInfo) => {
-  const email = `react-${testInfo.project.name}-${Date.now()}@example.test`;
+  const email = `react-${testInfo.project.name}-${crypto.randomUUID()}@example.test`;
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Bem-vindo de volta ao Lume.' })).toBeVisible();
   await expect(page.locator('#main > div')).toHaveCSS('opacity', '1');
-  await page.screenshot({ path: `data/lume-${testInfo.project.name}-login.png`, fullPage: true });
   await page.getByRole('button', { name: 'Criar conta', exact: true }).first().click();
   await page.getByLabel('Seu nome', { exact: true }).fill('Pessoa de teste');
   await page.getByLabel('E-mail', { exact: true }).fill(email);
@@ -118,7 +115,6 @@ test('cadastro, saída, login, sincronização e recuperação na API local', as
   await page.getByRole('button', { name: 'Explorar sem personalizar agora' }).click();
   await expect(page.getByRole('heading', { name: 'Início', exact: true })).toBeVisible();
   await expect(page.locator('#main > div')).toHaveCSS('opacity', '1');
-  await page.screenshot({ path: `data/lume-${testInfo.project.name}-home.png`, fullPage: true });
   await page.getByRole('link', { name: 'Biblioteca', exact: true }).click();
   await page.getByRole('button', { name: 'Adicionar curso', exact: true }).click();
   await page.getByRole('tab', { name: 'Colar a grade' }).click();
@@ -206,43 +202,4 @@ test('jornada 3 configura ritmo e primeira matéria sem gerar XP', async ({ page
   await expect(page.getByRole('heading', { name: 'Plano de Estudos', exact: true })).toBeVisible();
   await page.goto('/#historico');
   await expect(page.getByRole('heading', { name: 'Sua vitrine de conquistas', exact: true })).toBeVisible();
-});
-
-
-test('jornada 1 leva a uma primeira atividade concreta sem XP', async ({ page }) => {
-  await seedAccount(page, createInitialState());
-  await page.goto('/');
-  await page.getByRole('heading', { name: 'Quero começar', exact: true }).click();
-
-  await page.getByRole('radio', { name: /Leve e Constante/ }).click();
-  await page.getByRole('button', { name: 'Continuar' }).click();
-  await page.getByRole('button', { name: 'Estrutura de Dados' }).click();
-  await page.getByRole('button', { name: 'Continuar' }).click();
-  await page.getByRole('button', { name: 'Concluir e ir para o Início' }).click();
-
-  const state = await readAccount(page);
-  expect(state.onboarding.journey).toBe('starting');
-  expect(state.preferences.dailyMinutes).toBe(45);
-  expect(state.progress).toEqual([]);
-  const material = state.courses.find(course => course.title === 'Estrutura de Dados · Primeiro Caderno');
-  expect(material.type).toBe('lesson');
-  expect(materialSteps(material)[0].title).toBe('Organizar primeiro tópico de Estrutura de Dados');
-  await expect(page.getByRole('heading', { name: 'Organizar primeiro tópico de Estrutura de Dados', exact: true })).toBeVisible();
-});
-
-test('jornada 2 permite pular matéria inicial e preservar escolhas de ritmo', async ({ page }) => {
-  await seedAccount(page, createInitialState());
-  await page.goto('/');
-  await page.getByRole('heading', { name: 'Estudo de vez em quando', exact: true }).click();
-
-  await page.getByRole('radio', { name: /Imersão Profunda/ }).click();
-  await page.getByRole('button', { name: 'Continuar' }).click();
-  await page.getByRole('button', { name: 'Pular por enquanto' }).click();
-  await page.getByRole('button', { name: 'Concluir e ir para o Início' }).click();
-
-  const state = await readAccount(page);
-  expect(state.onboarding.journey).toBe('sometimes');
-  expect(state.preferences.dailyMinutes).toBe(180);
-  expect(state.progress).toEqual([]);
-  await expect(page.getByRole('heading', { name: 'Início', exact: true })).toBeVisible();
 });

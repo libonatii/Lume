@@ -71,9 +71,9 @@ async function serve(page, url, html) {
 const read = (page, options = {}) => page.evaluate((extra) => globalThis.LumeCapture.run({ pageUrl: location.href, pageTitle: '', ...extra }), options);
 const lessonsOf = (result) => result.payload.disciplines[0].modules.map((module) => ({ module: module.title, lessons: module.lessons.map((lesson) => lesson.title) }));
 
-test('Udemy: abre as seções fechadas, lê aulas, durações e conclusões, e fecha de novo', async ({ page }) => {
+test('leitores de página: Udemy, Coursera, Alura e página sem lista', async ({ page }) => {
   await serve(page, 'https://www.udemy.com/course/react-do-zero/learn/lecture/101', UDEMY);
-  const result = await read(page);
+  let result = await read(page);
   expect(result.ok).toBe(true);
   expect(result.payload.provider.id).toBe('udemy');
   expect(result.payload.sourceUrl).toBe('https://www.udemy.com/course/react-do-zero');
@@ -87,14 +87,12 @@ test('Udemy: abre as seções fechadas, lê aulas, durações e conclusões, e f
   expect(lessons.map((lesson) => lesson.duration)).toEqual([180, 300, 480, 3720, 750]);
   expect(lessons[0].url).toBe('https://www.udemy.com/course/react-do-zero/learn/lecture/101');
   expect(result.stats).toEqual({ lessons: 5, groups: 2, disciplines: 1, completed: 2, pending: 0, truncated: false });
-  // A página volta ao estado em que estava.
   await expect(page.locator('#p1')).toBeHidden();
   await expect(page.locator('#p2')).toBeHidden();
-});
 
-test('Coursera: lê a barra lateral e ignora menu, perfil e "próxima aula"', async ({ page }) => {
+  await page.unrouteAll({ behavior: 'ignoreErrors' });
   await serve(page, 'https://www.coursera.org/learn/react-basics/lecture/aaa1/introducao', COURSERA);
-  const result = await read(page);
+  result = await read(page);
   expect(result.ok).toBe(true);
   expect(result.payload.provider.id).toBe('coursera');
   expect(result.payload.sourceUrl).toBe('https://www.coursera.org/learn/react-basics');
@@ -104,27 +102,23 @@ test('Coursera: lê a barra lateral e ignora menu, perfil e "próxima aula"', as
   ]);
   const flags = result.payload.disciplines[0].modules.flatMap((module) => module.lessons.map((lesson) => lesson.completed));
   expect(flags).toEqual([true, true, false, false, false]);
-  // O botão de perfil não é uma seção e não foi clicado.
   await expect(page.getByRole('button', { name: 'Menu do perfil' })).toHaveAttribute('aria-expanded', 'false');
-});
 
-test('Alura: lê as seções por título e a conclusão pela classe do ícone', async ({ page }) => {
+  await page.unrouteAll({ behavior: 'ignoreErrors' });
   await serve(page, 'https://cursos.alura.com.br/course/react-componentes/task/1001', ALURA);
-  const result = await read(page);
+  result = await read(page);
   expect(result.ok).toBe(true);
   expect(result.payload.provider.id).toBe('alura');
   expect(result.payload.sourceUrl).toBe('https://cursos.alura.com.br/course/react-componentes');
   expect(lessonsOf(result)).toEqual([
     { module: 'Seção 1: Primeiros passos', lessons: ['Apresentação', 'Criando o projeto'] },
     { module: 'Seção 2: Componentes', lessons: ['Separando em componentes'] },
-  ].map((entry) => entry));
+  ]);
   expect(result.stats.completed).toBe(1);
-});
 
-test('página sem lista de aulas não vira curso', async ({ page }) => {
+  await page.unrouteAll({ behavior: 'ignoreErrors' });
   await serve(page, 'https://www.example-escola.com.br/home', MARKETING);
-  const result = await read(page);
-  expect(result).toEqual({ ok: false, reason: 'no_lessons' });
+  expect(await read(page)).toEqual({ ok: false, reason: 'no_lessons' });
 });
 
 // ---------- Recebimento no Lume ----------
@@ -197,18 +191,14 @@ test('mensagem repetida é confirmada de novo sem abrir outra revisão e payload
   await expect(page.getByRole('heading', { name: 'Não encontrei aulas nesse texto' })).toBeVisible();
 });
 
-test('Gran: o endereço do curso mantém o código e descarta o vídeo', async ({ page }) => {
+test('Gran DOM: URL, painel real, seções preguiçosas e seção vazia', async ({ page }) => {
   await serve(page, 'https://www.grancursosonline.com.br/aluno/curso/video/codigo/Eclic28vUz4%3D/v/wyZ8GPyhbUc%3D', MARKETING);
-  const course = await page.evaluate(() => globalThis.LumeCapture.courseUrlFor(location.href));
-  expect(course).toBe('https://www.grancursosonline.com.br/aluno/curso/video/codigo/Eclic28vUz4%3D');
-});
+  expect(await page.evaluate(() => globalThis.LumeCapture.courseUrlFor(location.href))).toBe('https://www.grancursosonline.com.br/aluno/curso/video/codigo/Eclic28vUz4%3D');
 
-// Trecho real do painel do curso do Gran (estrutura e rótulos copiados da página
-// de uma conta, sem dados pessoais): disciplina → aula → vídeos.
-test('Gran: lê disciplina, aulas e vídeos do painel real, com duração e código do curso', async ({ page }) => {
+  await page.unrouteAll({ behavior: 'ignoreErrors' });
   const html = fs.readFileSync('tests/fixtures/gran-painel.html', 'utf8');
   await serve(page, 'https://www.grancursosonline.com.br/aluno/curso/video/codigo/Eclic28vUz4%3D/v/wyZ8GPyhbUc%3D', html);
-  const result = await read(page);
+  let result = await read(page);
   expect(result.ok).toBe(true);
   const { payload } = result;
   expect(payload.provider.id).toBe('grancursos');
@@ -226,6 +216,31 @@ test('Gran: lê disciplina, aulas e vídeos do painel real, com duração e cód
   expect(first.duration).toBe(2378);
   expect(first.url).toContain('/aluno/curso/video/codigo/Eclic28vUz4%3D/v/');
   expect(first.completed).toBe(false);
+
+  await page.unrouteAll({ behavior: 'ignoreErrors' });
+  await serve(page, 'https://www.grancursosonline.com.br/aluno/curso/video/codigo/XYZ/v/1', LAZY);
+  result = await read(page);
+  expect(result.ok).toBe(true);
+  expect(result.payload.externalId).toBe('77');
+  expect(result.stats).toMatchObject({ lessons: 7, disciplines: 2, groups: 3, pending: 0 });
+  expect(result.payload.disciplines.map((discipline) => discipline.title)).toEqual(['Direito A', 'Direito B']);
+  const lazyModules = result.payload.disciplines[0].modules;
+  expect(lazyModules.map((module) => module.lessons.length)).toEqual([2, 3]);
+  expect(lazyModules[1].lessons.every((lesson) => lesson.completed)).toBe(true);
+  expect(lazyModules[0].lessons.some((lesson) => lesson.completed)).toBe(false);
+  expect(lazyModules[0].lessons[0].duration).toBe(600);
+  await expect(page.locator('[aria-expanded="true"]')).toHaveCount(0);
+
+  await page.unrouteAll({ behavior: 'ignoreErrors' });
+  const withEmpty = LAZY.replace("['Aula 2 - Tema dois'", "['Aula 3 - Sem video', [], true], ['Aula 2 - Tema dois'");
+  await serve(page, 'https://www.grancursosonline.com.br/aluno/curso/video/codigo/XYZ/v/1', withEmpty);
+  result = await read(page);
+  expect(result.ok).toBe(true);
+  expect(result.stats).toMatchObject({ lessons: 8, pending: 1 });
+  const empty = result.payload.disciplines[0].modules.find((module) => module.title === 'Aulas cujos vídeos não foram lidos');
+  expect(empty.lessons).toEqual([{ title: 'Aula 3 - Sem video', url: '', duration: null, completed: true }]);
+  expect(result.payload.disciplines[0].modules.some((module) => module.title === 'Aula 3 - Sem video')).toBe(false);
+  expect(result.payload.warnings.join(' ')).toMatch(/1 seção não abriu/);
 });
 
 // Estrutura que só existe depois de abrir: disciplina → aula → vídeos, criada sob
@@ -263,35 +278,6 @@ for (const [name, topics] of Object.entries(data)) {
   wrap.append(head, body); root.append(wrap);
 }
 </script></body></html>`;
-
-test('abre disciplinas e aulas que só são criadas ao clicar e fecha tudo depois', async ({ page }) => {
-  await serve(page, 'https://www.grancursosonline.com.br/aluno/curso/video/codigo/XYZ/v/1', LAZY);
-  const result = await read(page);
-  expect(result.ok).toBe(true);
-  expect(result.payload.externalId).toBe('77');
-  expect(result.stats).toMatchObject({ lessons: 7, disciplines: 2, groups: 3, pending: 0 });
-  expect(result.payload.disciplines.map((discipline) => discipline.title)).toEqual(['Direito A', 'Direito B']);
-  const modules = result.payload.disciplines[0].modules;
-  expect(modules.map((module) => module.lessons.length)).toEqual([2, 3]);
-  // Selo "Concluído" da aula 2 vale para os vídeos dela.
-  expect(modules[1].lessons.every((lesson) => lesson.completed)).toBe(true);
-  expect(modules[0].lessons.some((lesson) => lesson.completed)).toBe(false);
-  expect(modules[0].lessons[0].duration).toBe(600);
-  await expect(page.locator('[aria-expanded="true"]')).toHaveCount(0);
-});
-
-test('seção sem vídeos carregados entra como um item só, com o selo, e a leitura avisa', async ({ page }) => {
-  const withEmpty = LAZY.replace("['Aula 2 - Tema dois'", "['Aula 3 - Sem video', [], true], ['Aula 2 - Tema dois'");
-  await serve(page, 'https://www.grancursosonline.com.br/aluno/curso/video/codigo/XYZ/v/1', withEmpty);
-  const result = await read(page);
-  expect(result.ok).toBe(true);
-  expect(result.stats).toMatchObject({ lessons: 8, pending: 1 });
-  const empty = result.payload.disciplines[0].modules.find((module) => module.title === 'Aulas cujos vídeos não foram lidos');
-  expect(empty.lessons).toEqual([{ title: 'Aula 3 - Sem video', url: '', duration: null, completed: true }]);
-  // O módulo não repete o nome da aula: nada aparece duas vezes.
-  expect(result.payload.disciplines[0].modules.some((module) => module.title === 'Aula 3 - Sem video')).toBe(false);
-  expect(result.payload.warnings.join(' ')).toMatch(/1 seção não abriu/);
-});
 
 test('"Concluí esta aula" abre a aula certa pelo endereço da página e só registra depois da confirmação', async ({ page }) => {
   await openLume(page);
@@ -366,9 +352,9 @@ async function serveGran(page, api, { fail = [] } = {}) {
   return requests;
 }
 
-test('Gran: lê a grade pela API da página, uma aula do Gran por aula, sem abrir seções', async ({ page }) => {
-  const requests = await serveGran(page, GRAN_API);
-  const result = await read(page);
+test('Gran API: leitura direta, parcial, fallback e acordeão exclusivo', async ({ page }) => {
+  let requests = await serveGran(page, GRAN_API);
+  let result = await read(page);
   expect(result.ok).toBe(true);
   const { payload } = result;
   expect(payload.title).toBe('OAB 1ª Fase');
@@ -378,54 +364,46 @@ test('Gran: lê a grade pela API da página, uma aula do Gran por aula, sem abri
   expect(payload.completeness).toBe('complete');
   expect(payload.warnings).toEqual([]);
   expect(payload.disciplines.map((discipline) => discipline.title)).toEqual(['1ª Fase OAB - Apresentação do Curso', 'Direito Constitucional']);
-  // Cada aula leva a identidade do Gran (disciplina/aula): o título pode mudar.
   expect(payload.disciplines[1].externalId).toBe('21718');
   expect(payload.disciplines[1].modules).toEqual([{
     title: 'Aulas',
     lessons: [
-      // Um vídeo assistido de dois: a aula ainda não está concluída.
       { title: 'Aula 1 - Teoria da Constituição', externalId: '21718/1', url: `${GRAN_COURSE}/v/Ccc1`, duration: 2400, completed: false },
       { title: 'Aula 2 - Poder Constituinte', externalId: '21718/2', url: `${GRAN_COURSE}/v/Ddd1`, duration: 900, completed: true },
       { title: 'Aula 3 - Controle de Constitucionalidade', externalId: '21718/3', url: `${GRAN_COURSE}/v/Eee1`, duration: 1800, completed: false },
     ],
   }]);
-  // O link da aula é o do primeiro vídeo, codificado como a página faz.
   expect(payload.disciplines[0].modules[0].lessons[0]).toEqual({ title: 'Aula 1 - Análise do Edital', externalId: '21717/1', url: `${GRAN_COURSE}/v/ZxxT%2BCmS4Zc%3D`, duration: 2940, completed: true });
   expect(result.stats).toEqual({ lessons: 4, groups: 2, disciplines: 2, completed: 2, pending: 0, truncated: false });
-  // Só leitura, nas rotas da grade; nenhuma seção da página foi aberta.
   expect(requests.every((request) => request.method === 'GET' && request.query === '?audiobooks=true')).toBe(true);
   await expect(page.locator('[aria-expanded="true"]')).toHaveCount(0);
-});
 
-test('Gran: aula sem lista de vídeos usa a contagem do Gran, deixa a leitura parcial e avisa', async ({ page }) => {
+  await page.unrouteAll({ behavior: 'ignoreErrors' });
   await serveGran(page, GRAN_API, { fail: ['/disciplina/21718/conteudo/2', '/disciplina/21718/conteudo/3'] });
-  const result = await read(page);
+  result = await read(page);
   const lessons = result.payload.disciplines[1].modules[0].lessons;
   expect(lessons[1]).toEqual({ title: 'Aula 2 - Poder Constituinte', externalId: '21718/2', url: '', duration: null, completed: true });
   expect(lessons[2]).toEqual({ title: 'Aula 3 - Controle de Constitucionalidade', externalId: '21718/3', url: '', duration: null, completed: false });
   expect(result.payload.completeness).toBe('partial');
   expect(result.payload.warnings.join(' ')).toMatch(/2 aulas vieram sem a lista de vídeos/);
-});
 
-test('Gran: se a API não responder, a leitura volta a abrir as seções da página', async ({ page }) => {
-  const requests = await serveGran(page, GRAN_API, { fail: [''] });
-  const result = await read(page);
+  await page.unrouteAll({ behavior: 'ignoreErrors' });
+  requests = await serveGran(page, GRAN_API, { fail: [''] });
+  result = await read(page);
   expect(requests).toHaveLength(1);
   expect(result.ok).toBe(true);
   expect(result.payload.extraction.confidence).toBe('medium');
   expect(result.payload.disciplines.map((discipline) => discipline.title)).toEqual(['Direito A', 'Direito B']);
   expect(result.stats).toMatchObject({ lessons: 7, pending: 0 });
-});
 
-test('site que fecha as outras disciplinas e entrega os vídeos com atraso: lê todas, uma por vez', async ({ page }) => {
+  await page.unrouteAll({ behavior: 'ignoreErrors' });
   const exclusive = LAZY.replace('const EXCLUSIVE = false, DELAY = 0;', 'const EXCLUSIVE = true, DELAY = 600;');
   await serve(page, 'https://www.grancursosonline.com.br/aluno/curso/video/codigo/XYZ/v/1', exclusive);
-  const result = await read(page);
+  result = await read(page);
   expect(result.ok).toBe(true);
   expect(result.stats).toMatchObject({ lessons: 7, disciplines: 2, pending: 0 });
   expect(result.payload.disciplines.map((discipline) => discipline.title)).toEqual(['Direito A', 'Direito B']);
   const titles = result.payload.disciplines.flatMap((discipline) => discipline.modules.flatMap((module) => module.lessons.map((lesson) => lesson.title)));
-  // "Conteúdo" (aba) e "Retomar" (atalho) não são aulas, e nada se repete.
   expect(titles).not.toContain('Retomar');
   expect(titles).not.toContain('Conteúdo');
   expect(new Set(titles.map((title, index) => `${title}${index}`)).size).toBe(7);

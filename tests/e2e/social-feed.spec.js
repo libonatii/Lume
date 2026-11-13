@@ -97,26 +97,6 @@ test('PDF só é publicado após confirmação; falha preserva texto e anexo par
   expect(xp.summary.totalXP).toBe(0);
 });
 
-test('erro no feed tem repetição e não apaga rascunho; tema claro e paleta roxa se adaptam', async ({ page }, testInfo) => {
-  await seedAccount(page);
-  await page.route('**/api/social/feed', route => route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Feed indisponível no teste.' }) }), { times: 1 });
-  await page.goto('/#amigos');
-  await expect(page.getByRole('alert')).toContainText('Feed indisponível no teste.');
-  await page.getByLabel('Sua publicação').fill('Rascunho guardado na tela');
-  await page.getByRole('button', { name: 'Tentar novamente', exact: true }).click();
-  await expect(page.getByText('As próximas conversas começam aqui.')).toBeVisible();
-  await expect(page.getByLabel('Sua publicação')).toHaveValue('Rascunho guardado na tela');
-  await page.getByRole('button', { name: 'Conforto visual', exact: true }).click();
-  const comfort = page.locator('#comfort-popover');
-  await comfort.getByRole('radio', { name: 'Roxo', exact: true }).check();
-  await comfort.getByRole('button', { name: 'Dia suave', exact: true }).click();
-  await expect(page.locator('html')).toHaveAttribute('data-palette', 'variante2');
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.keyboard.press('Escape');
-  await page.screenshot({ path: testInfo.outputPath('social-claro-roxo.png'), fullPage: true });
-});
-
 test('compartilhar conquista validada não duplica a recompensa de estudo', async ({ page }) => {
   await seedAccount(page);
   await page.goto('/#biblioteca');

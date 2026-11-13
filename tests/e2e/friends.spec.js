@@ -4,7 +4,7 @@ import { test, expect } from '@playwright/test';
 // compartilhar biblioteca ou progresso.
 
 async function register(page, testInfo, prefix, name = 'Pessoa de teste') {
-  const email = `${prefix}-${testInfo.project.name}-${Date.now()}@example.test`;
+  const email = `${prefix}-${testInfo.project.name}-${crypto.randomUUID()}@example.test`;
   await page.goto('/');
   await page.getByRole('button', { name: 'Criar conta', exact: true }).first().click();
   await page.getByLabel('Seu nome', { exact: true }).fill(name);
@@ -35,7 +35,7 @@ test('convite cria amizade entre duas contas sem compartilhar progresso', async 
 
   // Segunda conta, contexto próprio.
   const guest = await playwright.request.newContext({ baseURL, extraHTTPHeaders: { origin: baseURL } });
-  const stamp = `${testInfo.project.name}-${Date.now()}`;
+  const stamp = `${testInfo.project.name}-${crypto.randomUUID()}`;
   const registered = await guest.post('/api/register', {
     data: { name: 'Bia do teste', email: `friend-b-${stamp}@example.test`, password: 'senha-local-teste-123' },
   });
@@ -81,7 +81,7 @@ test('link de convite preenche o código e a amizade não concede XP', async ({ 
   const { code } = await created.json();
 
   const guest = await playwright.request.newContext({ baseURL, extraHTTPHeaders: { origin: baseURL } });
-  const stamp = `${testInfo.project.name}-${Date.now()}`;
+  const stamp = `${testInfo.project.name}-${crypto.randomUUID()}`;
   await guest.post('/api/register', {
     data: { name: 'Eva do teste', email: `friend-d-${stamp}@example.test`, password: 'senha-local-teste-123' },
   });

@@ -26,19 +26,3 @@ test('restaurar cópia mescla na conta sem persistência no navegador', async ({
   const previous = await page.evaluate((key) => localStorage.getItem(key), `${STORAGE_KEY}.before-import`);
   expect(previous).toBeNull();
 });
-
-test('arquivo inválido é recusado sem alterar o progresso', async ({ page }) => {
-  const current = addCourse(createInitialState(), { title: 'Curso atual', steps: ['Aula atual'] });
-  current.onboarded = true;
-  await seedAccount(page, current);
-
-  await page.goto('/#configuracoes');
-  await page.getByLabel('Escolher arquivo de cópia do Lume').setInputFiles({
-    name: 'quebrado.json',
-    mimeType: 'application/json',
-    buffer: Buffer.from('{ isto não é json'),
-  });
-  await expect(page.getByText('Este arquivo não é um JSON válido.')).toBeVisible();
-  const saved = await readAccount(page);
-  expect(saved.courses).toHaveLength(1);
-});

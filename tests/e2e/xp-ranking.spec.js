@@ -6,7 +6,7 @@ import { libraryActions } from '../../public/library-actions.js';
 const PASSWORD = 'senha-local-teste-123';
 
 async function register(requestContext, baseURL, name, prefix) {
-  const email = `${prefix}-${Date.now()}@example.test`;
+  const email = `${prefix}-${crypto.randomUUID()}@example.test`;
   const response = await requestContext.post('/api/register', {
     data: { name, email, password: PASSWORD },
     headers: { origin: baseURL },

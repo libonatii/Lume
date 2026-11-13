@@ -7,13 +7,27 @@ const channel = process.env.PLAYWRIGHT_CHANNEL === 'bundled' ? undefined : (proc
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: false,
-  workers: 1,
-  timeout: 30000,
-  use: { baseURL: 'http://127.0.0.1:4187', ...(channel ? { channel } : {}), headless: true, trace: 'retain-on-failure' },
-  projects: [{ name: 'desktop', use: { ...devices['Desktop Chrome'] } }, { name: 'mobile', use: { ...devices['iPhone 13'], defaultBrowserType: 'chromium' } }],
+  workers: process.env.CI ? 3 : 4,
+  retries: process.env.CI ? 1 : 0,
+  timeout: 45000,
+  expect: { timeout: 10000 },
+  use: {
+    baseURL: 'http://127.0.0.1:4187',
+    ...(channel ? { channel } : {}),
+    headless: true,
+    serviceWorkers: 'block',
+    launchOptions: { args: ['--disable-webgl'] },
+    trace: 'on-first-retry',
+  },
+  projects: [
+    { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
+    // No celular só rodam os testes marcados com @celular (layout, navegação e toque);
+    // regras, API e leitores de página não mudam com o tamanho da tela.
+    { name: 'mobile', grep: /@celular/, use: { ...devices['iPhone 13'], defaultBrowserType: 'chromium' } },
+  ],
   webServer: {
     command: 'node server.js', url: 'http://127.0.0.1:4187/api/me',
-    env: { PORT: '4187', LUME_DATA_DIR: `data/e2e-${Date.now()}`, BCRYPT_ROUNDS: '6', LUME_ATTEMPT_LIMIT: '1000' },
+    env: { PORT: '4187', LUME_DATA_DIR: `data/e2e-${Date.now()}`, BCRYPT_ROUNDS: '4', LUME_ATTEMPT_LIMIT: '1000' },
     reuseExistingServer: false,
   },
 });

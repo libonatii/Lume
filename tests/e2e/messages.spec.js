@@ -4,7 +4,7 @@ import { createInitialState } from '../../public/domain.js';
 const PASSWORD = 'senha-local-teste-123';
 
 async function register(requestContext, baseURL, name, prefix) {
-  const email = `${prefix}-${Date.now()}@example.test`;
+  const email = `${prefix}-${crypto.randomUUID()}@example.test`;
   const response = await requestContext.post('/api/register', {
     data: { name, email, password: PASSWORD },
     headers: { origin: baseURL },
@@ -33,7 +33,7 @@ async function makeFriends(page, requestContext, baseURL, name, prefix) {
   return code;
 }
 
-test('mensagem direta entre amizades, não lida, bloqueio e desbloqueio', async ({ page, browser }, testInfo) => {
+test('mensagem direta entre amizades, não lida, bloqueio e desbloqueio', { tag: '@celular' }, async ({ page, browser }, testInfo) => {
   const baseURL = testInfo.project.use.baseURL;
   const code = await makeFriends(page, page.request, baseURL, 'Ana Mensagens', 'msg-a');
 
@@ -106,6 +106,7 @@ async function setAvatar(requestContext, baseURL) {
 }
 
 test('fotos de perfil na área Social e aviso flutuante de mensagem nova', async ({ page, browser }, testInfo) => {
+  test.slow();
   const baseURL = testInfo.project.use.baseURL;
   const code = await makeFriends(page, page.request, baseURL, 'Ana Aviso', 'alert-a');
   const ana = (await (await page.request.get('/api/me')).json()).user;
@@ -150,6 +151,8 @@ test('fotos de perfil na área Social e aviso flutuante de mensagem nova', async
   await expect(page).toHaveURL((url) => url.hash === `#mensagens?com=${bia.id}`);
   await expect(alert).toHaveCount(0);
   await expect(page.getByRole('region', { name: 'Conversa selecionada' }).getByText('Bora revisar processo civil hoje à noite?')).toBeVisible();
+  // Garante que a leitura da conversa zerou o contador antes da próxima chegada.
+  await recheck();
 
   // Com a conversa dessa pessoa aberta, não há aviso.
   const conversationsRead = page.waitForResponse((response) => response.url().endsWith('/api/messages') && response.request().method() === 'GET');

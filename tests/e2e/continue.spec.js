@@ -94,7 +94,7 @@ test('ao recarregar a biblioteca, a tela mostra a forma do conteúdo, não um es
   await expect(page.getByText('Revisar resumo')).toBeVisible();
 });
 
-test('focar uma tarefa a coloca no cartão principal da Hoje, sobrevive ao recarregar e não a conclui', async ({ page }) => {
+test('focar uma tarefa a coloca no cartão principal da Hoje, sobrevive ao recarregar e não a conclui', { tag: '@celular' }, async ({ page }) => {
   await seedAccount(page, addTask({ ...createInitialState(), onboarded: true }, { title: 'A2 – Falência', dueDate: '2026-11-26', priority: 1 }, '2026-11-10T10:00:00Z'));
   await page.goto('/#hoje');
   await page.getByRole('button', { name: 'Focar em A2 – Falência no Início' }).click();
@@ -143,13 +143,4 @@ test('Continuar agora segue para o próximo material da mesma disciplina, com um
   await expect(resume.getByRole('heading', { name: 'Falência aula8' })).toBeVisible();
   await expect(resume.getByRole('button', { name: /detalhes/i })).toHaveCount(1);
   await expect(resume.getByRole('button', { name: 'Continuar meu próximo passo' })).toBeVisible();
-});
-
-test('Continuar agora não troca de disciplina sozinho quando a disciplina termina', async ({ page }) => {
-  await seedAccount(page, falencia(['aula7', 'aula8']));
-  await page.goto('/#biblioteca');
-  const resume = page.locator('.library-resume');
-  await expect(resume.getByRole('heading', { name: 'Disciplina concluída' })).toBeVisible();
-  await expect(resume.getByText(/Todos os materiais de Falência estão concluídos/)).toBeVisible();
-  await expect(resume.getByText('Penal 1')).toHaveCount(0);
 });

@@ -72,7 +72,7 @@ async function serveStatic(request, response, pathname) {
     response.end('Página não encontrada.');
     return;
   }
-  const data = await readFile(entry[0]);
+  const data = entry[2] ?? (entry[2] = await readFile(entry[0]));
   response.writeHead(200, { ...headers, 'Content-Type': entry[1] });
   response.end(request.method === 'HEAD' ? undefined : data);
 }
@@ -92,6 +92,9 @@ const server = http.createServer(async (request, response) => {
     } else response.end();
   }
 });
+
+server.keepAliveTimeout = 60000;
+server.headersTimeout = 65000;
 
 server.on('error', (error) => {
   console.error(error.code === 'EADDRINUSE'

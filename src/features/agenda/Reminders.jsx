@@ -18,10 +18,11 @@ function showNotification(item) {
 export default function Reminders({ account, syncStatus }) {
   const [items, setItems] = useState([]);
   const status = useRef(syncStatus);
+  const checkRef = useRef(null);
   status.current = syncStatus;
   useEffect(() => {
     setItems([]);
-    if (!account) return undefined;
+    if (!account) { checkRef.current = null; return undefined; }
     let stopped = false, running = false;
     const controller = new AbortController();
     async function check() {
@@ -36,11 +37,15 @@ export default function Reminders({ account, syncStatus }) {
       } catch { /* A próxima consulta tenta novamente; nenhum aviso de sucesso fictício. */ }
       finally { running = false; }
     }
+    checkRef.current = check;
     check();
     const timer = setInterval(check, 15000);
     window.addEventListener('focus', check);
-    return () => { stopped = true; controller.abort(); clearInterval(timer); window.removeEventListener('focus', check); };
+    return () => { stopped = true; checkRef.current = null; controller.abort(); clearInterval(timer); window.removeEventListener('focus', check); };
   }, [account?.id]);
+  useEffect(() => {
+    if (syncStatus === 'saved') checkRef.current?.();
+  }, [syncStatus]);
   if (!account || !items.length) return null;
   return <aside className="agenda-reminders card-surface" aria-label="Lembretes da Agenda" role="status">
     <strong>Lembretes da Agenda</strong>
