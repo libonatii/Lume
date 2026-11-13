@@ -88,6 +88,10 @@ jobs:
           done
           echo "Sintaxe do Companion ok"
 
+      # tests/unit/companion.test.js importa o servidor (api/domain), que usa as dependências da raiz.
+      - name: Instalar dependências do site
+        run: npm ci
+
       - name: Testes unitários do Companion
         run: node --test companion/update.test.js companion/discord-presence.test.js tests/unit/companion.test.js tests/unit/desktop.test.js
 
