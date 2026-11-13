@@ -56,8 +56,11 @@ jobs:
           retention-days: 7
 
   companion:
-    name: Companion (sintaxe e contratos)
-    runs-on: windows-latest
+    name: Companion (${{ matrix.os }})
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
@@ -67,26 +70,29 @@ jobs:
           node-version: "24"
 
       - name: Checar sintaxe do núcleo e do app
-        shell: pwsh
+        shell: bash
         run: |
-          $files = @(
-            "companion/core.mjs",
-            "companion/agent.mjs",
-            "companion/electron/main.mjs",
-            "companion/electron/preload.cjs",
-            "companion/electron/renderer/app.js",
-            "companion/domain.mjs",
-            "companion/discord-presence.mjs",
-            "companion/discord-client.mjs",
-            "companion/update.mjs"
-          )
-          foreach ($file in $files) {
-            node --check $file
-            if ($LASTEXITCODE -ne 0) { throw "Sintaxe inválida em $file" }
-          }
-          Write-Host "Sintaxe do Companion ok"
+          for file in \
+            companion/core.mjs \
+            companion/agent.mjs \
+            companion/electron/main.mjs \
+            companion/electron/preload.cjs \
+            companion/electron/main-preload.cjs \
+            companion/electron/renderer/app.js \
+            companion/domain.mjs \
+            companion/discord-presence.mjs \
+            companion/discord-client.mjs \
+            companion/update.mjs
+          do
+            node --check "$file"
+          done
+          echo "Sintaxe do Companion ok"
+
+      - name: Testes unitários do Companion
+        run: node --test companion/update.test.js companion/discord-presence.test.js tests/unit/companion.test.js tests/unit/desktop.test.js
 
       - name: Conferir a sintaxe da extensão do navegador
+        if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
           foreach ($file in @("extension/capture.js", "extension/bridge.js", "extension/background.js", "extension/popup.js")) {
@@ -97,6 +103,6 @@ jobs:
           Write-Host "Extensão ok"
 
       - name: Ler o contrato de presença sem rede
-        shell: pwsh
+        shell: bash
         run: |
           node -e "import('./companion/domain.mjs').then(m => { const p = m.presenceState({ app: 'Anki', category: 'study', since: new Date().toISOString(), updatedAt: new Date().toISOString() }); if (!p.active || p.app !== 'Anki') process.exit(1); console.log('presenca ok'); })"

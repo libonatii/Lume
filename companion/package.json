@@ -1,8 +1,9 @@
 {
   "name": "lume",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "private": true,
   "description": "Lume — plataforma social de estudos no desktop.",
+  "homepage": "https://lumeacademy.site",
   "author": "Lume",
   "license": "UNLICENSED",
   "type": "module",
@@ -11,7 +12,9 @@
     "start": "electron .",
     "smoke": "electron . --smoke",
     "pack": "electron-builder --win dir",
-    "dist": "electron-builder --win nsis"
+    "dist": "electron-builder --win nsis",
+    "pack:linux": "electron-builder --linux dir",
+    "dist:linux": "electron-builder --linux AppImage deb"
   },
   "devDependencies": {
     "electron": "^45.2.1",

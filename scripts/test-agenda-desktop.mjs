@@ -25,7 +25,7 @@ try {
     server.stdout.on('data', (data) => { if (String(data).includes('disponível')) { clearTimeout(timeout); resolveReady(); } });
     server.once('exit', (code) => { clearTimeout(timeout); reject(new Error(`Servidor encerrou: ${code}`)); });
   });
-  const env = { ...process.env, APPDATA: join(temp, 'appdata'), LUME_API_URL: origin };
+  const env = { ...process.env, APPDATA: join(temp, 'appdata'), XDG_CONFIG_HOME: join(temp, 'appdata'), LUME_API_URL: origin };
   delete env.ELECTRON_RUN_AS_NODE;
   const require = createRequire(new URL('../companion/package.json', import.meta.url));
   desktop = await electron.launch({ executablePath: require('electron'), args: [join(root, 'companion'), `--user-data-dir=${join(temp, 'profile')}`], env, timeout: 30000 });

@@ -4,7 +4,7 @@ import { Button, Heading, Skeleton } from '../../ui/ui.jsx';
 import { api, apiError } from '../../lib/api.js';
 import { useResource } from '../../lib/resources.js';
 import { copyText, selectText } from '../../lib/clipboard.js';
-import { isDesktopApp } from '../../lib/desktop.js';
+import { desktopPlatform, isDesktopApp } from '../../lib/desktop.js';
 import { formatPairCode, presenceState } from '../../../public/companion-domain.js';
 
 // Página do app de desktop: baixar o programa e conectar a presença local.
@@ -12,19 +12,38 @@ import { formatPairCode, presenceState } from '../../../public/companion-domain.
 // instalação e do pareamento do dispositivo.
 
 const RELEASES_URL = 'https://github.com/libonatii/Lume/releases/latest';
-// Release 0.5.0 em diante publica o instalador com o nome novo.
-const DOWNLOAD_URL = `${RELEASES_URL}/download/Lume-setup.exe`;
+const WINDOWS_URL = `${RELEASES_URL}/download/Lume-setup.exe`;
+const LINUX_APPIMAGE_URL = `${RELEASES_URL}/download/Lume.AppImage`;
+const LINUX_DEB_URL = `${RELEASES_URL}/download/Lume.deb`;
 
 const desktop = isDesktopApp();
 
 function InstallApp() {
+  const os = desktopPlatform();
   // Dentro do programa não faz sentido oferecer o download do próprio programa.
   if (desktop) {
     return <div className="companion-install">
       <div>
-        <strong>Você já está no Lume para Windows</strong>
+        <strong>Você já está no Lume para {os === 'linux' ? 'Linux' : 'Windows'}</strong>
         <p className="muted-text small">Esta janela é o próprio programa. A atualização é feita pelo painel de presença, na bandeja.</p>
       </div>
+    </div>;
+  }
+  if (os === 'linux') {
+    return <div className="companion-install">
+      <div>
+        <strong>Lume para Linux</strong>
+        <p className="muted-text small">O Lume inteiro em uma janela, com bandeja, presença local, aulas restantes e roteiro. A conta é a mesma do navegador.</p>
+      </div>
+      <div className="action-row">
+        <a className="button primary" href={LINUX_APPIMAGE_URL} target="_blank" rel="noopener noreferrer">
+          <Icon name="cloud"/>Baixar AppImage
+        </a>
+        <a className="button secondary" href={LINUX_DEB_URL} target="_blank" rel="noopener noreferrer">
+          Pacote .deb
+        </a>
+      </div>
+      <p className="quiet-note">Linux x64 (.AppImage universal ou .deb para Ubuntu/Debian) · também disponível para <a className="text-link" href={WINDOWS_URL} target="_blank" rel="noopener noreferrer">Windows</a>. Versões e notas em <a className="text-link" href={RELEASES_URL} target="_blank" rel="noopener noreferrer">Releases<Icon name="external"/></a>.</p>
     </div>;
   }
   return <div className="companion-install">
@@ -32,10 +51,10 @@ function InstallApp() {
       <strong>Lume para Windows</strong>
       <p className="muted-text small">O Lume inteiro em uma janela, com bandeja, presença local, aulas restantes e roteiro. A conta é a mesma do navegador.</p>
     </div>
-    <a className="button primary full-width" href={DOWNLOAD_URL} target="_blank" rel="noopener noreferrer">
+    <a className="button primary full-width" href={WINDOWS_URL} target="_blank" rel="noopener noreferrer">
       <Icon name="cloud"/>Instalar aplicativo
     </a>
-    <p className="quiet-note">Windows 10/11 · o instalador ainda não tem assinatura digital, então o Windows pode pedir confirmação. Versões e notas em <a className="text-link" href={RELEASES_URL} target="_blank" rel="noopener noreferrer">Releases<Icon name="external"/></a>.</p>
+    <p className="quiet-note">Windows 10/11 · o instalador ainda não tem assinatura digital, então o Windows pode pedir confirmação. Também disponível para Linux (<a className="text-link" href={LINUX_APPIMAGE_URL} target="_blank" rel="noopener noreferrer">AppImage</a> e <a className="text-link" href={LINUX_DEB_URL} target="_blank" rel="noopener noreferrer">.deb</a>) · <a className="text-link" href={RELEASES_URL} target="_blank" rel="noopener noreferrer">Releases<Icon name="external"/></a>.</p>
   </div>;
 }
 
@@ -152,7 +171,7 @@ export default function Companion({ account, notify, go }) {
         <button className="text-button" onClick={() => setPairing(null)}>Fechar</button>
       </div>
       <div className="companion-steps">
-        <p>Abra o <strong>Lume</strong> (ícone na bandeja do Windows), escolha <strong>Presença e pareamento</strong> e cole o código.</p>
+        <p>Abra o <strong>Lume</strong> (ícone na bandeja do sistema), escolha <strong>Presença e pareamento</strong> e cole o código.</p>
         <details>
           <summary>Rodando pelo projeto (desenvolvimento)</summary>
           <code className="companion-command">npm run companion:pair -- {formatPairCode(pairing.code)} --name "Meu computador"</code>

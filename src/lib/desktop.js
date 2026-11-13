@@ -10,6 +10,15 @@ export function isDesktopApp(userAgent) {
   return /\bElectron\//i.test(text) && /\blume\//i.test(text);
 }
 
+export function desktopPlatform(userAgent) {
+  const value = userAgent === undefined
+    ? (typeof navigator === 'undefined' ? '' : navigator.userAgent)
+    : userAgent;
+  const text = String(value || '');
+  if (/\bLinux\b/i.test(text) && !/\bAndroid\b/i.test(text)) return 'linux';
+  return 'windows';
+}
+
 // Marca o documento antes do React desenhar, para a barra de título do app
 // ocupar o topo sem piscar no navegador.
 export function markDesktop() {

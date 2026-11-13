@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
+  build-windows:
     name: Instalador Windows
     runs-on: windows-latest
     timeout-minutes: 30
@@ -47,9 +47,9 @@ jobs:
           if ($tag -ne "companion-v$version") {
             throw "A tag $tag não corresponde a companion-v$version. Atualize companion/package.json ou use a tag certa."
           }
-          Write-Host "Publicando $tag"
+          Write-Host "Publicando $tag (Windows)"
 
-      - name: Gerar instalador
+      - name: Gerar instalador Windows
         run: npm run dist
         env:
           # Sem certificado, gera instalador não assinado (o Windows mostra aviso).
@@ -57,23 +57,108 @@ jobs:
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
 
-      - name: Publicar no GitHub Releases
+      - name: Validar artefatos Windows
         shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = if ("${{ github.event_name }}" -eq "workflow_dispatch") { "${{ inputs.tag }}" } else { "${{ github.ref_name }}" }
-          # Nomes fixos: evita subir o desinstalador e o pacote .7z por engano.
-          $names = @('Lume-setup.exe', 'Lume-setup.exe.blockmap', 'latest.yml')
-          $assets = Get-ChildItem -Path release -File | Where-Object { $names -contains $_.Name } | ForEach-Object { $_.FullName }
-          if (-not $assets) { throw "Nenhum artefato encontrado em companion/release" }
-          gh release create $tag --title "Lume $tag" --generate-notes --verify-tag 2>$null
-          gh release upload $tag $assets --clobber
-          Write-Host "Release $tag publicada com $($assets.Count) arquivo(s)."
+          $required = @('Lume-setup.exe', 'Lume-setup.exe.blockmap', 'latest.yml')
+          foreach ($name in $required) {
+            if (-not (Test-Path "release/$name")) { throw "Artefato ausente em companion/release: $name" }
+          }
 
-      - name: Guardar instalador como artefato
+      - name: Guardar artefatos Windows
         uses: actions/upload-artifact@v4
         with:
           name: lume-companion-windows
-          path: companion/release/*.exe
+          path: |
+            companion/release/Lume-setup.exe
+            companion/release/Lume-setup.exe.blockmap
+            companion/release/latest.yml
           retention-days: 14
+
+  build-linux:
+    name: Pacotes Linux
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: companion
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: companion/package-lock.json
+
+      - name: Instalar dependências do Companion
+        run: npm ci
+
+      - name: Conferir se a tag combina com a versão
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="${{ github.ref_name }}"
+          fi
+          VERSION="$(node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version")"
+          if [ "$TAG" != "companion-v$VERSION" ]; then
+            echo "A tag $TAG não corresponde a companion-v$VERSION. Atualize companion/package.json ou use a tag certa." >&2
+            exit 1
+          fi
+          echo "Publicando $TAG (Linux)"
+
+      - name: Gerar pacotes Linux (.AppImage e .deb)
+        run: npm run dist:linux
+
+      - name: Validar artefatos Linux
+        shell: bash
+        run: |
+          for name in Lume.AppImage Lume.deb latest-linux.yml; do
+            if [ ! -f "release/$name" ]; then
+              echo "Artefato ausente em companion/release: $name" >&2
+              exit 1
+            fi
+          done
+
+      - name: Guardar artefatos Linux
+        uses: actions/upload-artifact@v4
+        with:
+          name: lume-companion-linux
+          path: |
+            companion/release/Lume.AppImage
+            companion/release/Lume.deb
+            companion/release/latest-linux.yml
+          retention-days: 14
+
+  publish:
+    name: Publicar no GitHub Releases
+    needs: [build-windows, build-linux]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: lume-companion-windows
+          path: release-assets
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: lume-companion-linux
+          path: release-assets
+
+      - name: Publicar release com instaladores Windows e Linux
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="${{ github.ref_name }}"
+          fi
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "Lume $TAG" --generate-notes --verify-tag
+          gh release upload "$TAG" release-assets/* --clobber
+          echo "Release $TAG publicada."

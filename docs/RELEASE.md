@@ -4,12 +4,14 @@ O repositório tem dois fluxos no GitHub Actions:
 
 | Workflow | Quando roda | O que faz |
 | --- | --- | --- |
-| `CI` (`.github/workflows/ci.yml`) | push na `main`, pull request e manual | testes de domínio, build estático e 26 cenários de navegador; também checa a sintaxe do Companion |
-| `Companion release` (`.github/workflows/companion-release.yml`) | tag `companion-v*` ou manual | gera o instalador Windows e publica no GitHub Releases |
+| `CI` (`.github/workflows/ci.yml`) | push na `main`, pull request e manual | testes de domínio, build estático e cenários de navegador; checa sintaxe e testes do Companion em Windows e Linux |
+| `Companion release` (`.github/workflows/companion-release.yml`) | tag `companion-v*` ou manual | gera os pacotes Windows (`Lume-setup.exe`) e Linux (`Lume.AppImage` e `Lume.deb`) e publica no GitHub Releases |
 
-O instalador tem nome fixo (`Lume-setup.exe`) justamente para o botão
-**Instalar aplicativo** do site usar um link estável:
-`https://github.com/libonatii/Lume/releases/latest/download/Lume-setup.exe`.
+Os instaladores têm nomes fixos (`Lume-setup.exe`, `Lume.AppImage`, `Lume.deb`) justamente para o botão
+**Instalar aplicativo** do site usar links estáveis:
+- `https://github.com/libonatii/Lume/releases/latest/download/Lume-setup.exe`
+- `https://github.com/libonatii/Lume/releases/latest/download/Lume.AppImage`
+- `https://github.com/libonatii/Lume/releases/latest/download/Lume.deb`
 
 ## 1. Configuração única no GitHub
 
@@ -45,20 +47,19 @@ git push origin main --tags
 O workflow:
 
 1. Confere se a tag bate com `companion/package.json` (falha cedo se não bater).
-2. Roda `npm ci` em `companion/`.
-3. Gera o instalador NSIS (`Lume-setup.exe`).
-4. Cria a release com notas automáticas e envia `.exe`, `.blockmap` e `latest.yml`.
+2. Roda `npm ci` em `companion/` no Windows e no Linux (`ubuntu-latest`).
+3. Gera o instalador NSIS (`Lume-setup.exe`) e os pacotes Linux (`Lume.AppImage` e `Lume.deb`).
+4. Cria a release com notas automáticas e envia `.exe`, `.blockmap`, `latest.yml`, `.AppImage`, `.deb` e `latest-linux.yml`.
 
 Também é possível disparar manualmente em *Actions → Companion release → Run
 workflow*, informando uma tag já existente.
 
 ## 3. O que vai no pacote
 
-- `electron/`, `core.mjs`, `domain.mjs` e `package.json` dentro do `app.asar`.
-- Ícones da bandeja em `resources/assets` (fora do asar).
+- `electron/`, `core.mjs`, `domain.mjs`, `update.mjs`, `discord-*.mjs` e `package.json` dentro do `app.asar`.
+- Ícones da bandeja e da janela em `resources/assets` (fora do asar).
 - O agente de terminal (`agent.mjs`) **não** vai no instalador.
-- Configuração do usuário continua em `%APPDATA%\Lume\companion.json`; atualizar
-  o app não apaga o pareamento.
+- Configuração do usuário continua em `%APPDATA%\Lume\companion.json` (Windows) ou `~/.config/Lume/companion.json` (Linux); atualizar o app não apaga o pareamento.
 
 ## 4. Rodar os testes como o CI roda
 
@@ -85,8 +86,7 @@ Localmente, sem `PLAYWRIGHT_CHANNEL`, os testes usam o Chrome instalado.
 
 ## 6. Limites atuais
 
-- Só Windows x64.
-- Sem auto-update: cada versão é um instalador novo. O `latest.yml` já é gerado,
-  então `electron-updater` pode ser adicionado depois.
+- Windows x64 e Linux x64 (sem macOS).
+- Sem auto-update: cada versão é um instalador/pacote novo. Os arquivos `latest.yml` e `latest-linux.yml` já são gerados, então `electron-updater` pode ser adicionado depois.
 - `npm audit` acusa vulnerabilidades moderadas em dependências transitivas do
   `electron-builder`; nenhuma delas entra no app empacotado (são ferramentas de build).

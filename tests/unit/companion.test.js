@@ -5,10 +5,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   categoryLabel, describeElapsed, formatPairCode, generatePairCode, matchAllowlist,
-  normalizeCategory, normalizePairCode, normalizeProcessName, parseTasklist, presenceState,
+  normalizeCategory, normalizePairCode, normalizeProcessName, parsePs, parseTasklist, presenceState,
 } from '../../public/companion-domain.js';
 import { CompanionError, redeemPairCode } from '../../api/domain/companion.js';
-import { addAllowlistEntry, configPath, migrateLegacyUrl, readConfig, removeAllowlistEntry, setPaused } from '../../companion/core.mjs';
+import {
+  addAllowlistEntry, configPath, defaultAllowlist, migrateLegacyUrl,
+  readConfig, removeAllowlistEntry, setPaused,
+} from '../../companion/core.mjs';
 import { hashSessionToken } from '../../api/domain/auth.js';
 
 const TASKLIST = [
@@ -19,13 +22,27 @@ const TASKLIST = [
   'INFO: Nenhuma tarefa em execução.',
 ].join('\r\n');
 
-test('lê a saída do tasklist e normaliza nomes de processo', () => {
+test('lê a saída do tasklist e do ps (Linux) e normaliza nomes de processo', () => {
   const processes = parseTasklist(TASKLIST);
   assert.equal(processes.length, 4);
   assert.deepEqual(processes[1], { process: 'chrome', pid: 7421 });
   assert.equal(normalizeProcessName('C:\\Program Files\\Anki\\Anki.EXE'), 'anki');
+  assert.equal(normalizeProcessName('/usr/bin/anki'), 'anki');
   assert.equal(normalizeProcessName('  CODE.exe '), 'code');
   assert.equal(normalizeProcessName(''), '');
+
+  const psOutput = [
+    '  PID COMMAND',
+    ' 1204 anki',
+    ' 4321 Code - Insiders',
+    ' 7421 /app/bin/obsidian',
+  ].join('\n');
+  const linuxProcesses = parsePs(psOutput);
+  assert.deepEqual(linuxProcesses, [
+    { process: 'anki', pid: 1204 },
+    { process: 'code - insiders', pid: 4321 },
+    { process: 'obsidian', pid: 7421 },
+  ]);
 });
 
 test('a allowlist decide a atividade pela ordem escolhida', () => {
@@ -175,4 +192,47 @@ test('endereço workers.dev salvo em versões antigas passa para o domínio atua
   assert.equal(migrateLegacyUrl('https://lume.lume-prototype.workers.dev'), 'https://lumeacademy.site');
   assert.equal(migrateLegacyUrl('http://127.0.0.1:4173'), 'http://127.0.0.1:4173');
   assert.equal(migrateLegacyUrl('não é url'), 'não é url');
+});
+
+test('configPath e allowlist padrão consideram Linux com XDG_CONFIG_HOME', () => {
+  const previous = process.env.XDG_CONFIG_HOME;
+  const xdgDir = join(tmpdir(), 'lume-xdg-test');
+  process.env.XDG_CONFIG_HOME = xdgDir;
+  try {
+    assert.equal(configPath('linux'), join(xdgDir, 'Lume', 'companion.json'));
+  } finally {
+    if (previous === undefined) delete process.env.XDG_CONFIG_HOME;
+    else process.env.XDG_CONFIG_HOME = previous;
+  }
+  const linuxList = defaultAllowlist('linux');
+  assert.ok(linuxList.some((entry) => entry.process === 'evince'));
+  assert.ok(linuxList.some((entry) => entry.process === 'anki'));
+});
+
+test('configuração local no Linux cria padrões, evita duplicata e respeita pausa', { skip: process.platform !== 'linux' }, () => {
+  const directory = mkdtempSync(join(tmpdir(), 'lume-companion-linux-'));
+  const previous = process.env.XDG_CONFIG_HOME;
+  process.env.XDG_CONFIG_HOME = directory;
+  try {
+    const initial = readConfig();
+    assert.ok(initial.allowlist.length > 0);
+    assert.equal(initial.paused, false);
+    assert.ok(configPath().startsWith(directory), 'não escreve fora do XDG_CONFIG_HOME de teste');
+
+    assert.equal(addAllowlistEntry('/usr/bin/obsidian', { label: 'Obsidian', category: 'study' }).added, true);
+    assert.equal(addAllowlistEntry('obsidian', { label: 'Outro nome' }).added, false, 'duplicata normalizada');
+    assert.equal(readConfig().allowlist.at(-1).label, 'Obsidian');
+
+    setPaused(true);
+    assert.equal(readConfig().paused, true);
+    setPaused(false);
+    assert.equal(readConfig().paused, false);
+
+    removeAllowlistEntry('obsidian');
+    assert.equal(readConfig().allowlist.some((entry) => entry.process === 'obsidian'), false);
+  } finally {
+    if (previous === undefined) delete process.env.XDG_CONFIG_HOME;
+    else process.env.XDG_CONFIG_HOME = previous;
+    rmSync(directory, { recursive: true, force: true });
+  }
 });

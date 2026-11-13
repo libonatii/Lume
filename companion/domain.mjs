@@ -76,6 +76,18 @@ export function parseTasklist(output) {
   return processes;
 }
 
+// Saída de `ps -eo pid=,comm=`: "  1234 anki" ou "  5678 Code - Insiders"
+export function parsePs(output) {
+  const processes = [];
+  for (const line of String(output ?? '').split(/\r?\n/)) {
+    const match = line.match(/^\s*(\d+)\s+(.+?)\s*$/);
+    if (!match) continue;
+    const process = normalizeProcessName(match[2]);
+    if (process) processes.push({ process, pid: Number(match[1]) });
+  }
+  return processes;
+}
+
 // A allowlist é ordenada: a primeira entrada encontrada define a atividade.
 export function matchAllowlist(processes, allowlist) {
   const running = new Set((processes || []).map((item) => normalizeProcessName(item?.process ?? item)).filter(Boolean));

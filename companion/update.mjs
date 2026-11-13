@@ -1,13 +1,13 @@
 // Atualização do Lume Companion sem reinstalação manual.
 //
 // A verificação usa a API pública de releases do GitHub e nada é baixado sem a
-// pessoa clicar. O instalador é o mesmo NSIS gerado pelo workflow de release:
-// atualizar por ele mantém a conta pareada, porque a configuração fica em
-// %APPDATA%\Lume\companion.json. O arquivo ainda não tem assinatura digital, então
-// o Windows pode pedir confirmação ao executá-lo.
+// pessoa clicar. No Windows, o instalador é o mesmo NSIS gerado pelo workflow
+// de release; no Linux, baixa o pacote `.AppImage` ou `.deb` conforme o sistema.
+// A configuração fica em %APPDATA%\Lume\companion.json (Windows) ou
+// ~/.config/Lume/companion.json (Linux) e é preservada ao atualizar.
 
-import { createWriteStream } from 'node:fs';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { createWriteStream, existsSync } from 'node:fs';
+import { chmod, mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
@@ -18,6 +18,8 @@ export const RELEASES_API = `https://api.github.com/repos/${REPO}/releases?per_p
 export const RELEASES_PAGE = `https://github.com/${REPO}/releases`;
 export const TAG_PREFIX = 'companion-v';
 export const INSTALLER_NAME = 'Lume-setup.exe';
+export const LINUX_APPIMAGE_NAME = 'Lume.AppImage';
+export const LINUX_DEB_NAME = 'Lume.deb';
 // Releases antigas publicaram o instalador com o nome do Companion. Continuam
 // aceitas para que quem está nelas consiga atualizar.
 export const LEGACY_INSTALLER_NAMES = ['Lume-Companion-setup.exe'];
@@ -56,19 +58,44 @@ export function isTrustedUrl(value) {
   }
 }
 
+export function detectLinuxPackageType({ env = process.env, exists = existsSync } = {}) {
+  if (env?.APPIMAGE) return 'appimage';
+  if (exists('/etc/debian_version') || exists('/usr/bin/dpkg')) return 'deb';
+  return 'appimage';
+}
+
+export function assetCandidates({ platform = process.platform, packageType, env = process.env, exists = existsSync } = {}) {
+  if (platform === 'win32') return [INSTALLER_NAME, ...LEGACY_INSTALLER_NAMES];
+  if (platform === 'linux') {
+    const kind = packageType || detectLinuxPackageType({ env, exists });
+    if (kind === 'deb') return [LINUX_DEB_NAME, LINUX_APPIMAGE_NAME];
+    return [LINUX_APPIMAGE_NAME];
+  }
+  return [];
+}
+
+function selectReleaseAsset(assets, options) {
+  const list = Array.isArray(assets) ? assets : [];
+  for (const name of assetCandidates(options)) {
+    const match = list.find((item) => item?.name === name);
+    if (match) return match;
+  }
+  return null;
+}
+
 // Recebe a resposta da API de releases e escolhe a versão mais alta do Companion
-// que tem instalador publicado.
-export function parseRelease(payload) {
+// que tem instalador publicado para a plataforma atual.
+export function parseRelease(payload, options = {}) {
   if (!Array.isArray(payload)) return null;
   const candidates = payload
     .filter((release) => release && !release.draft && !release.prerelease)
     .filter((release) => typeof release.tag_name === 'string' && release.tag_name.startsWith(TAG_PREFIX))
     .map((release) => {
       const version = release.tag_name.slice(TAG_PREFIX.length);
-      const asset = (release.assets || []).find((item) => item?.name === INSTALLER_NAME)
-        || (release.assets || []).find((item) => LEGACY_INSTALLER_NAMES.includes(item?.name));
+      const asset = selectReleaseAsset(release.assets, options);
       return {
         version,
+        assetName: asset?.name || '',
         installerUrl: asset?.browser_download_url || '',
         size: Number(asset?.size) || 0,
         notes: typeof release.body === 'string' ? release.body : '',
@@ -81,17 +108,18 @@ export function parseRelease(payload) {
   return candidates[0] ?? null;
 }
 
-export async function checkForUpdate({ current, fetchImpl = fetch, apiUrl = RELEASES_API } = {}) {
+export async function checkForUpdate({ current, fetchImpl = fetch, apiUrl = RELEASES_API, platform = process.platform, packageType } = {}) {
   const response = await fetchImpl(apiUrl, {
     headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'Lume-Companion' },
   });
   if (!response.ok) throw new Error(`A verificação falhou (HTTP ${response.status}).`);
-  const release = parseRelease(await response.json());
+  const release = parseRelease(await response.json(), { platform, packageType });
   if (!release) return { available: false, current, latest: null };
   return {
     available: isNewer(release.version, current),
     current,
     latest: release.version,
+    assetName: release.assetName,
     installerUrl: release.installerUrl,
     size: release.size,
     notes: release.notes,
@@ -99,8 +127,23 @@ export async function checkForUpdate({ current, fetchImpl = fetch, apiUrl = RELE
   };
 }
 
-// Baixa o instalador para uma pasta temporária e devolve o caminho do arquivo.
-export async function downloadInstaller({ url, version, fetchImpl = fetch, onProgress = () => {} }) {
+export function installerFilename(version, { assetName = '', url = '' } = {}) {
+  const safeVersion = String(version || 'nova').replace(/[^0-9A-Za-z.-]/g, '') || 'nova';
+  let sourceName = String(assetName || '').trim();
+  if (!sourceName && url) {
+    try {
+      sourceName = new URL(url).pathname.split('/').pop() || '';
+    } catch {
+      sourceName = '';
+    }
+  }
+  if (/\.AppImage$/i.test(sourceName)) return `Lume-${safeVersion}.AppImage`;
+  if (/\.deb$/i.test(sourceName)) return `Lume-${safeVersion}.deb`;
+  return `Lume-Companion-setup-${safeVersion}.exe`;
+}
+
+// Baixa o instalador para uma pasta local e devolve o caminho do arquivo.
+export async function downloadInstaller({ url, version, assetName = '', destDir = '', fetchImpl = fetch, onProgress = () => {} }) {
   if (!isTrustedUrl(url)) throw new Error('Endereço de download não confiável.');
   const response = await fetchImpl(url, { headers: { 'User-Agent': 'Lume-Companion' }, redirect: 'follow' });
   if (!response.ok || !response.body) throw new Error(`O download falhou (HTTP ${response.status}).`);
@@ -108,8 +151,11 @@ export async function downloadInstaller({ url, version, fetchImpl = fetch, onPro
   if (response.url && !isTrustedUrl(response.url)) throw new Error('O download terminou em um endereço não confiável.');
 
   const total = Number(response.headers.get('content-length')) || 0;
-  const folder = await mkdtemp(join(tmpdir(), 'lume-update-'));
-  const file = join(folder, `Lume-Companion-setup-${String(version || 'nova').replace(/[^0-9A-Za-z.-]/g, '')}.exe`);
+  const filename = installerFilename(version, { assetName, url });
+  const createdTemp = !destDir;
+  const folder = destDir || await mkdtemp(join(tmpdir(), 'lume-update-'));
+  if (destDir) await mkdir(destDir, { recursive: true });
+  const file = join(folder, filename);
 
   let received = 0;
   const source = Readable.fromWeb(response.body);
@@ -120,8 +166,10 @@ export async function downloadInstaller({ url, version, fetchImpl = fetch, onPro
 
   try {
     await pipeline(source, createWriteStream(file));
+    if (/\.AppImage$/i.test(filename)) await chmod(file, 0o755);
   } catch (error) {
-    await rm(folder, { recursive: true, force: true }).catch(() => {});
+    if (createdTemp) await rm(folder, { recursive: true, force: true }).catch(() => {});
+    else await rm(file, { force: true }).catch(() => {});
     throw error;
   }
   return file;

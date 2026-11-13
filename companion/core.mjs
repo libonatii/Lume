@@ -1,16 +1,18 @@
 // Núcleo compartilhado pelo agente de linha de comando e pelo app Electron.
 //
-// Lê apenas nomes de processo (tasklist). Nunca títulos de janela, tela,
-// teclado ou arquivos. Presença observada não é estudo e não gera XP.
+// Lê apenas nomes de processo (tasklist no Windows; ps ou /proc/<pid>/comm no Linux).
+// Nunca títulos de janela, tela, teclado ou arquivos. Presença observada não é
+// estudo e não gera XP.
 
 import { execFile } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { readdir, readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { promisify } from 'node:util';
 import {
   MAX_ALLOWLIST, cleanAppLabel, matchAllowlist, normalizeCategory,
-  normalizeProcessName, parseTasklist,
+  normalizeProcessName, parsePs, parseTasklist,
 } from './domain.mjs';
 import { DISCORD_CLIENT_ID_PLACEHOLDER, discordFieldsFrom } from './discord-presence.mjs';
 
@@ -31,19 +33,39 @@ export function migrateLegacyUrl(value) {
   }
 }
 
-export const DEFAULT_ALLOWLIST = [
+const WINDOWS_ALLOWLIST = [
   { process: 'anki', label: 'Anki', category: 'study' },
   { process: 'code', label: 'VS Code', category: 'project' },
   { process: 'acrord32', label: 'Leitor de PDF', category: 'reading' },
   { process: 'notion', label: 'Notion', category: 'study' },
 ];
 
-export function configPath() {
-  if (process.platform === 'win32') {
+const LINUX_ALLOWLIST = [
+  { process: 'anki', label: 'Anki', category: 'study' },
+  { process: 'code', label: 'VS Code', category: 'project' },
+  { process: 'evince', label: 'Leitor de PDF', category: 'reading' },
+  { process: 'okular', label: 'Okular', category: 'reading' },
+  { process: 'notion', label: 'Notion', category: 'study' },
+];
+
+export const DEFAULT_ALLOWLIST = WINDOWS_ALLOWLIST;
+
+export function defaultAllowlist(platform = process.platform) {
+  const list = platform === 'linux' ? LINUX_ALLOWLIST : WINDOWS_ALLOWLIST;
+  return list.map((entry) => ({ ...entry }));
+}
+
+export function configPath(platform = process.platform) {
+  if (platform === 'win32') {
     const appData = process.env.APPDATA || join(homedir(), 'AppData', 'Roaming');
     return join(appData, 'Lume', 'companion.json');
   }
-  return join(homedir(), '.lume', 'companion.json');
+  const xdgConfig = process.env.XDG_CONFIG_HOME || join(homedir(), '.config');
+  const xdgPath = join(xdgConfig, 'Lume', 'companion.json');
+  if (process.env.XDG_CONFIG_HOME || existsSync(xdgPath)) return xdgPath;
+  const legacy = join(homedir(), '.lume', 'companion.json');
+  if (existsSync(legacy)) return legacy;
+  return xdgPath;
 }
 
 export function readConfig() {
@@ -51,7 +73,7 @@ export function readConfig() {
   if (!existsSync(path)) {
     const initial = {
       apiUrl: DEFAULT_API, token: '', deviceName: '', intervalSeconds: 5,
-      paused: false, allowlist: DEFAULT_ALLOWLIST,
+      paused: false, allowlist: defaultAllowlist(),
       discordPresence: true,
       discordClientId: DISCORD_CLIENT_ID_PLACEHOLDER,
       discordPublicUrl: '',
@@ -68,7 +90,7 @@ export function readConfig() {
     deviceName: typeof value.deviceName === 'string' ? value.deviceName : '',
     intervalSeconds: Number.isFinite(value.intervalSeconds) && value.intervalSeconds >= 3 ? Math.min(value.intervalSeconds, 120) : 5,
     paused: value.paused === true,
-    allowlist: Array.isArray(value.allowlist) ? value.allowlist.slice(0, MAX_ALLOWLIST) : DEFAULT_ALLOWLIST,
+    allowlist: Array.isArray(value.allowlist) ? value.allowlist.slice(0, MAX_ALLOWLIST) : defaultAllowlist(),
     ...discordFieldsFrom(value),
   };
 }
@@ -111,12 +133,43 @@ export function removeAllowlistEntry(processName) {
   return readConfig();
 }
 
-export async function listProcesses() {
-  if (process.platform !== 'win32') {
-    throw new Error('Esta versão do Companion funciona apenas no Windows.');
+async function readProcComm() {
+  const entries = await readdir('/proc', { withFileTypes: true });
+  const pids = entries
+    .filter((entry) => entry.isDirectory() && /^\d+$/.test(entry.name))
+    .map((entry) => entry.name);
+  const results = await Promise.all(pids.map(async (pid) => {
+    try {
+      const comm = await readFile(`/proc/${pid}/comm`, 'utf8');
+      const process = normalizeProcessName(comm);
+      return process ? { process, pid: Number(pid) } : null;
+    } catch {
+      return null;
+    }
+  }));
+  return results.filter(Boolean);
+}
+
+async function listLinuxProcesses() {
+  try {
+    const { stdout } = await exec('ps', ['-eo', 'pid=,comm='], { timeout: 8000, maxBuffer: 4 * 1024 * 1024 });
+    return parsePs(stdout);
+  } catch (error) {
+    // Sistemas mínimos sem `ps` compatível com `-eo`: lê apenas `/proc/<pid>/comm`.
+    if (existsSync('/proc')) return readProcComm();
+    throw error;
   }
-  const { stdout } = await exec('tasklist', ['/fo', 'csv', '/nh'], { timeout: 8000, windowsHide: true, maxBuffer: 4 * 1024 * 1024 });
-  return parseTasklist(stdout);
+}
+
+export async function listProcesses() {
+  if (process.platform === 'win32') {
+    const { stdout } = await exec('tasklist', ['/fo', 'csv', '/nh'], { timeout: 8000, windowsHide: true, maxBuffer: 4 * 1024 * 1024 });
+    return parseTasklist(stdout);
+  }
+  if (process.platform === 'linux') {
+    return listLinuxProcesses();
+  }
+  throw new Error(`Esta versão do Companion não oferece suporte para ${process.platform}.`);
 }
 
 export async function callApi(config, path, { method = 'GET', body } = {}) {

@@ -25,6 +25,8 @@ extraResources:
     to: assets
     filter:
       - "*.png"
+  - from: build/icon.png
+    to: assets/icon.png
 
 win:
   target:
@@ -40,3 +42,27 @@ nsis:
   createStartMenuShortcut: true
   shortcutName: Lume
   artifactName: Lume-setup.${ext}
+
+linux:
+  target:
+    - target: AppImage
+      arch: [x64]
+    - target: deb
+      arch: [x64]
+  icon: build/icon.png
+  maintainer: Lume <contato@lumeacademy.site>
+  category: Education
+  synopsis: Lume — plataforma social de estudos no desktop
+  description: Lume completo em uma janela, com bandeja, lembretes, presença local opcional e Rich Presence no Discord.
+  desktop:
+    entry:
+      Name: Lume
+      Comment: Plataforma social de estudos
+      Categories: Education;Utility;
+      StartupWMClass: Lume
+
+appImage:
+  artifactName: Lume.${ext}
+
+deb:
+  artifactName: Lume.${ext}

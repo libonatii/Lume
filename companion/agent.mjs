@@ -2,7 +2,7 @@
 // Lume Companion — agente local que informa qual aplicativo da sua allowlist
 // está aberto. Sem dependências externas nesta versão.
 //
-// O que ele lê: nomes de processo via `tasklist`. Só isso.
+// O que ele lê: nomes de processo (`tasklist` no Windows, `ps` ou `/proc` no Linux). Só isso.
 // O que ele NÃO lê: título de janela, conteúdo de tela, teclado, arquivos.
 // O que ele envia: aplicativo escolhido, categoria e desde quando está aberto.
 // Presença observada não é estudo e não gera XP.
@@ -49,16 +49,22 @@ function listAllow() {
   }
 }
 
+function platformLabel() {
+  if (process.platform === 'win32') return 'Windows';
+  if (process.platform === 'linux') return 'Linux';
+  return process.platform;
+}
+
 async function status() {
   const config = readConfig();
   const processes = await listProcesses();
   const match = matchAllowlist(processes, config.allowlist);
-  console.log(`Windows · ${processes.length} processos observados · allowlist com ${config.allowlist.length} entradas`);
+  console.log(`${platformLabel()} · ${processes.length} processos observados · allowlist com ${config.allowlist.length} entradas`);
   if (match) {
     log(`Agora: ${match.label} (${match.process}) · categoria ${match.category}`);
   } else {
     log('Nenhum aplicativo da allowlist está aberto.');
-    const visible = processes.filter((item) => /^(code|anki|notion|acrord32|obsidian|zotero|winword|excel|powerpnt|chrome|msedge|firefox)$/.test(item.process));
+    const visible = processes.filter((item) => /^(code|anki|notion|acrord32|evince|okular|obsidian|zotero|winword|excel|powerpnt|soffice\.bin|chrome|msedge|firefox)$/.test(item.process));
     if (visible.length) console.log(`  Em execução, fora da lista: ${[...new Set(visible.map((item) => item.process))].join(', ')}`);
   }
   console.log(`Token: ${config.token ? 'configurado' : 'ausente — rode companion pair <código>'}`);
@@ -159,9 +165,10 @@ Categorias: ${COMPANION_CATEGORIES.map((item) => item.id).join(', ')}
 Configuração: ${configPath()}
 Limite da allowlist: ${MAX_ALLOWLIST} aplicativos
 
-Privacidade: lê apenas nomes de processo via tasklist. Não lê títulos de
-janela, tela, teclado ou arquivos. Envia só o aplicativo, a categoria e desde
-quando ele está aberto. Presença observada não é estudo e não gera XP.
+Privacidade: lê apenas nomes de processo (tasklist no Windows, ps ou /proc no Linux).
+Não lê títulos de janela, tela, teclado ou arquivos. Envia só o aplicativo, a
+categoria e desde quando ele está aberto. Presença observada não é estudo e não
+gera XP.
 
 Para a janela com bandeja: npm run companion:app`);
 }

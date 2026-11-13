@@ -17,16 +17,19 @@ continua disponível para diagnóstico.
   e o atalho para sair.
 - Painel de presença (400×640): dispositivo, aplicativo detectado, roteiro por
   prioridade, pausa, pareamento, versão, atualização e o interruptor do Discord.
-- Lê a lista de processos do Windows com `tasklist` e compara com a **allowlist**
-  que você escolhe: processo → nome exibido → categoria
-  (`study`, `project`, `reading`, `break`, `game`, `other`).
+- Lê a lista de processos do sistema (`tasklist` no Windows; `ps` ou
+  `/proc/<pid>/comm` no Linux) e compara com a **allowlist** que você escolhe:
+  processo → nome exibido → categoria (`study`, `project`, `reading`, `break`,
+  `game`, `other`).
 - Envia ao Lume o aplicativo encontrado, a categoria e desde quando ele está
   aberto. Sem batimento por 90 segundos, a presença expira sozinha.
 - Mostra quantas aulas faltam por curso e o roteiro por prioridade
   (continuidade, primeiro passo, proximidade do fim, ordem da biblioteca).
 - Botão de atualização consulta a última release `companion-v*` no GitHub, baixa
-  o `Lume-setup.exe` com progresso e abre o instalador. A configuração em
-  `%APPDATA%\Lume\companion.json` é preservada.
+  o instalador compatível (`Lume-setup.exe` no Windows; `Lume.AppImage` ou
+  `Lume.deb` no Linux) com progresso e abre o arquivo/pasta. A configuração em
+  `%APPDATA%\Lume\companion.json` (Windows) ou `~/.config/Lume/companion.json`
+  (Linux) é preservada.
 
 ## O que ele não faz
 
@@ -34,13 +37,13 @@ continua disponível para diagnóstico.
 - Não envia nomes de aplicativos fora da sua lista.
 - Não conta tempo como estudo, não conclui aulas e **não gera XP**.
 - Não tem banco local nem uma segunda conta: o app usa a API do site.
-- Não funciona fora do Windows nesta versão.
+- Não funciona no macOS nesta versão.
 - Comunidades, servidores, canais e grupos estão fora do escopo desta etapa.
 
 ## Desenvolvimento
 
-Node **22.23.4 ou superior** (testado com 24) e Windows. O Electron tem
-dependências próprias, com lockfile separado:
+Node **22.23.4 ou superior** (testado com 24), Windows ou Linux x64. O Electron
+tem dependências próprias, com lockfile separado:
 
 ```sh
 npm install --prefix companion    # Electron e electron-builder, uma vez
@@ -51,10 +54,12 @@ npm run companion                 # agente de terminal
 Comandos do pacote, a partir de `companion/`:
 
 ```sh
-npm start      # igual a npm run companion:app
-npm run smoke  # abre a janela escondida, grava smoke-result.json e encerra
-npm run pack   # electron-builder --win dir (release/win-unpacked)
-npm run dist   # instalador NSIS (release/Lume-setup.exe)
+npm start            # igual a npm run companion:app
+npm run smoke        # abre a janela escondida, grava smoke-result.json e encerra
+npm run pack         # electron-builder --win dir (release/win-unpacked)
+npm run dist         # instalador NSIS (release/Lume-setup.exe)
+npm run pack:linux   # electron-builder --linux dir (release/linux-unpacked)
+npm run dist:linux   # pacotes Linux (release/Lume.AppImage e release/Lume.deb)
 ```
 
 Fora da pasta do projeto, use o iniciador: `D:\tabletop\lume.cmd`
@@ -93,7 +98,7 @@ node companion/agent.mjs unpair
 
 ## Configuração
 
-Fica em `%APPDATA%\Lume\companion.json` (fora do repositório):
+Fica em `%APPDATA%\Lume\companion.json` (Windows) ou `~/.config/Lume/companion.json` (Linux, fora do repositório; arquivos antigos em `~/.lume/companion.json` continuam reconhecidos):
 
 ```json
 {
@@ -186,7 +191,8 @@ e ao sair do aplicativo.
   `companion-v<versão>` que precisa bater com `companion/package.json`.
 - Sem assinatura de código: o Windows pode avisar na primeira execução.
 - Atualização é manual (botão na janela), não automática.
-- Só Windows x64; sem suporte a Linux/macOS.
+- Windows x64 e Linux x64 (`.AppImage` e `.deb`); sem suporte a macOS.
+- No Linux, ambientes sem suporte a bandeja (ex.: GNOME sem extensão AppIndicator) mantêm o uso normal pela janela e o fechamento encerra o processo em vez de ocultar para a bandeja.
 - Sem leitura de progresso automático das plataformas: a conclusão continua
   manual e identificada.
 - O status no Discord mostra curso e aula do roteiro; o Lume não lê a

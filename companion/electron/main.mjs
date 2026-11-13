@@ -5,7 +5,7 @@
 // atualização: o app não lê a tela, apenas nomes de processo da allowlist.
 
 import { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage, shell } from 'electron';
-import { writeFileSync } from 'node:fs';
+import { existsSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -32,10 +32,10 @@ let state = {
 };
 let discordStatus = { enabled: true, configured: false, status: 'unconfigured' };
 let updateInfo = {
-  status: 'idle', currentVersion: '', latest: null, progress: 0, error: null, file: null, page: RELEASES_PAGE,
+  status: 'idle', currentVersion: '', latest: null, assetName: '', progress: 0, error: null, file: null, page: RELEASES_PAGE,
 };
 
-app.setAppUserModelId('com.lume.app');
+if (process.platform === 'win32') app.setAppUserModelId('com.lume.app');
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
@@ -64,10 +64,15 @@ if (!app.requestSingleInstanceLock()) {
     }
     discordStatus = discordGuess();
 
-    tray = new Tray(trayImage(state));
-    tray.on('click', () => showMain());
-    tray.on('double-click', () => showMain());
-    buildMenu();
+    try {
+      tray = new Tray(trayImage(state));
+      tray.on('click', () => showMain());
+      tray.on('double-click', () => showMain());
+      buildMenu();
+    } catch (error) {
+      console.warn(`companion:tray-unavailable ${error?.message || error}`);
+      tray = null;
+    }
 
     if (smoke) {
       // Verificação automática: abre a janela principal escondida, espera o site
@@ -114,7 +119,8 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 app.on('window-all-closed', () => {
-  // No Windows o app continua na bandeja.
+  // Com bandeja ativa, o app continua em segundo plano; sem bandeja, encerra.
+  if (!tray) app.quit();
 });
 
 app.on('before-quit', async (event) => {
@@ -128,6 +134,13 @@ app.on('before-quit', async (event) => {
 
 function image(name) {
   return nativeImage.createFromPath(join(assets, name));
+}
+
+function appIcon() {
+  const packaged = join(assets, 'icon.png');
+  if (existsSync(packaged)) return nativeImage.createFromPath(packaged);
+  const dev = join(here, '..', 'build', 'icon.png');
+  return existsSync(dev) ? nativeImage.createFromPath(dev) : undefined;
 }
 
 function trayImage(value) {
@@ -189,7 +202,7 @@ function discordGuess() {
 }
 
 function snapshot() {
-  return { ...state, discord: discordStatus, update: { ...updateInfo, currentVersion: app.getVersion() } };
+  return { ...state, platform: process.platform, discord: discordStatus, update: { ...updateInfo, currentVersion: app.getVersion() } };
 }
 
 function broadcast() {
@@ -199,7 +212,7 @@ function broadcast() {
   }
   if (panelWindow && !panelWindow.isDestroyed()) panelWindow.webContents.send('state', snapshot());
   if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('lume:update-status', { ...updateInfo, currentVersion: app.getVersion() });
+    mainWindow.webContents.send('lume:update-status', { ...updateInfo, currentVersion: app.getVersion(), platform: process.platform });
   }
 }
 
@@ -214,6 +227,7 @@ async function checkUpdate() {
       ...updateInfo,
       status: result.available ? 'available' : 'current',
       latest: result.latest,
+      assetName: result.assetName || '',
       installerUrl: result.installerUrl || null,
       size: result.size || 0,
       notes: result.notes || '',
@@ -233,9 +247,12 @@ async function downloadUpdate() {
   updateInfo = { ...updateInfo, status: 'downloading', progress: 0, error: null };
   broadcast();
   try {
+    const destDir = process.platform === 'linux' ? app.getPath('downloads') : '';
     const file = await downloadInstaller({
       url: updateInfo.installerUrl,
       version: updateInfo.latest,
+      assetName: updateInfo.assetName,
+      destDir,
       onProgress: (percent) => {
         updateInfo = { ...updateInfo, progress: percent ?? updateInfo.progress };
         broadcast();
@@ -251,8 +268,15 @@ async function downloadUpdate() {
 
 async function installUpdate() {
   if (!updateInfo.file) throw new Error('Nenhum instalador baixado ainda.');
-  const failure = await shell.openPath(updateInfo.file);
-  if (failure) throw new Error(failure);
+  if (process.platform === 'linux' && /\.AppImage$/i.test(updateInfo.file)) {
+    shell.showItemInFolder(updateInfo.file);
+  } else {
+    const failure = await shell.openPath(updateInfo.file);
+    if (failure) {
+      if (process.platform === 'linux') shell.showItemInFolder(updateInfo.file);
+      else throw new Error(failure);
+    }
+  }
   updateInfo = { ...updateInfo, status: 'installing' };
   broadcast();
   return snapshot();
@@ -275,6 +299,7 @@ function createMainWindow() {
     minHeight: 600,
     show: false,
     title: 'Lume',
+    icon: appIcon(),
     backgroundColor: '#080d17',
     autoHideMenuBar: true,
     // Barra de título própria: os botões nativos ficam sobre o topo do site,
@@ -294,7 +319,7 @@ function createMainWindow() {
 
   mainWindow.loadURL(appUrl());
   mainWindow.on('close', (event) => {
-    if (quitting) return;
+    if (quitting || !tray) return;
     event.preventDefault();
     mainWindow.hide();
   });
@@ -322,6 +347,7 @@ function createPanelWindow() {
     minHeight: 480,
     show: false,
     title: 'Lume — presença',
+    icon: appIcon(),
     backgroundColor: '#080d17',
     autoHideMenuBar: true,
     webPreferences: {
@@ -333,7 +359,7 @@ function createPanelWindow() {
   });
   panelWindow.loadFile(join(here, 'renderer', 'index.html'));
   panelWindow.on('close', (event) => {
-    if (quitting) return;
+    if (quitting || !tray) return;
     event.preventDefault();
     panelWindow.hide();
   });

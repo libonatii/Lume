@@ -136,11 +136,20 @@ function renderUpdate() {
   action.textContent = labels[status] || labels.idle;
   action.disabled = busy || status === 'checking' || status === 'downloading';
 
+  const linux = state?.platform === 'linux';
   const notes = {
-    ready: 'O instalador vai abrir. Feche o Lume e conclua. A conta conectada continua valendo.',
-    installing: 'Feche o Lume para a instalaÃ§Ã£o concluir e abra de novo depois.',
+    ready: linux
+      ? 'Arquivo salvo na pasta de Downloads. A conta conectada continua valendo.'
+      : 'O instalador vai abrir. Feche o Lume e conclua. A conta conectada continua valendo.',
+    installing: linux
+      ? (info.file?.endsWith('.AppImage')
+          ? 'Arquivo aberto na pasta de Downloads. Execute a nova versão do AppImage.'
+          : 'Instalador aberto. Conclua a atualização e abra o Lume novamente.')
+      : 'Feche o Lume para a instalaÃ§Ã£o concluir e abra de novo depois.',
     error: info.error || '',
-    available: 'O arquivo ainda nÃ£o tem assinatura digital: o Windows pode pedir confirmaÃ§Ã£o.',
+    available: linux
+      ? 'Será baixado o pacote compatível (.AppImage ou .deb) na pasta de Downloads.'
+      : 'O arquivo ainda nÃ£o tem assinatura digital: o Windows pode pedir confirmaÃ§Ã£o.',
   };
   note.textContent = notes[status] || '';
   note.classList.toggle('hidden', !note.textContent);
