@@ -4,6 +4,7 @@ import { materialSteps } from '../../../public/material-model.js';
 import { completionKindForCourse, stepEventKey } from '../../../public/xp-policy.js';
 import { isCompleted } from '../../../public/progress-domain.js';
 import BackupPanel from './BackupPanel.jsx';
+import HandleSetting from './HandleSetting.jsx';
 import { api, apiError } from '../../lib/api.js';
 import Icon from '../../ui/Icon.jsx';
 import { Heading } from '../../ui/ui.jsx';
@@ -186,6 +187,7 @@ export function Preferences({ state, actions, libraryActions, notify, onPersonal
         {section === 'social' && <div className="cfg-stack">
           <p className="cfg-sub">Seu perfil é visível apenas para amigos.</p>
           {!account && <p className="inline-note"><Icon name="info"/><span>Na prévia não existe lista de amigos: o perfil fica só neste navegador.</span></p>}
+          {account && <HandleSetting notify={notify}/>}
           <div className="cfg-block">
             <h3>O que amigos veem</h3>
             {SHARING.map(([key, label, hint]) => <Toggle key={key} title={label} hint={hint} checked={sharing[key] !== false} onChange={(value) => sharingPreference(key, value)}/>)}

@@ -72,6 +72,18 @@ export async function ensureHandle(db, userId, now = Date.now()) {
   throw new AppError('Não foi possível criar seu @usuário agora. Escolha um manualmente.', 'handle_unavailable', 409);
 }
 
+// Disponibilidade para o cadastro e para a troca em Configurações. O @usuário que
+// já é da própria pessoa conta como disponível.
+export async function checkHandle(db, raw, userId = null) {
+  const handle = normalizeHandle(raw);
+  if (!HANDLE_PATTERN.test(handle) || handle.endsWith('.')) {
+    return { handle, available: false, reason: 'invalid', message: 'Use de 3 a 24 letras minúsculas, números, ponto ou sublinhado.' };
+  }
+  const taken = await db.first('SELECT user_id FROM user_handles WHERE handle = ?', [handle]);
+  if (taken && taken.user_id !== userId) return { handle, available: false, reason: 'taken', message: 'Esse @usuário já está em uso.' };
+  return { handle, available: true, message: 'Disponível.' };
+}
+
 export async function setHandle(db, userId, raw, now = Date.now()) {
   const handle = normalizeHandle(raw);
   if (!HANDLE_PATTERN.test(handle) || handle.endsWith('.')) {

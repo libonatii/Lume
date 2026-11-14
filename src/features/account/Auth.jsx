@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import Icon from '../../ui/Icon.jsx';
 import { Button, Logo, enter } from '../../ui/ui.jsx';
 import { api, apiError } from '../../lib/api.js';
+import HandleField from './HandleField.jsx';
 import { STUDY_GOALS } from '../../../public/domain.js';
 
 // Força da senha só como orientação visual; a regra de verdade é a do servidor
@@ -43,6 +44,7 @@ export function Login({ model, mode, setMode, go, notify }) {
   const [studyGoal, setStudyGoal] = useState('college');
   const [acceptedTerms, setAcceptedTerms] = useState(true);
   const [termsOpen, setTermsOpen] = useState(false);
+  const [handle, setHandle] = useState('');
 
   const registering = mode === 'register';
 
@@ -53,13 +55,18 @@ export function Login({ model, mode, setMode, go, notify }) {
       setError('Confirme que leu o compromisso de privacidade e uso para criar sua conta.');
       return;
     }
+    if (registering && handle.length < 3) {
+      setError('Escolha um @usuário com pelo menos 3 caracteres para que seus amigos encontrem você.');
+      document.getElementById('auth-handle')?.focus();
+      return;
+    }
     const data = new FormData(event.currentTarget);
     setBusy(true);
     setError('');
     try {
       const result = await api(registering ? '/api/register' : '/api/login', {
         method: 'POST',
-        body: { name: data.get('name'), email: data.get('email'), password: data.get('password') },
+        body: { name: data.get('name'), email: data.get('email'), password: data.get('password'), ...(registering ? { handle } : {}) },
       });
       if (!result.ok) throw new Error(apiError(result));
       await model.loadAccountProgress(result.data.user);
@@ -161,6 +168,11 @@ export function Login({ model, mode, setMode, go, notify }) {
                     placeholder="Como você quer ser chamada?"
                   />
                 </span>
+              </div>}
+
+              {registering && <div className="field">
+                <label htmlFor="auth-handle">Seu @usuário</label>
+                <HandleField id="auth-handle" value={handle} onChange={setHandle}/>
               </div>}
 
               <div className="field">

@@ -4,7 +4,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { fileURLToPath } from 'node:url';
 import { applyMigrations, sqliteAdapter } from '../../api/adapters/sqlite.js';
 import {
-  cancelRequest, ensureHandle, listRequests, normalizeHandle, respondRequest,
+  cancelRequest, checkHandle, ensureHandle, listRequests, normalizeHandle, respondRequest,
   searchByHandle, sendRequest, setHandle, slugifyHandle,
 } from '../../api/domain/friend-requests.js';
 
@@ -79,4 +79,13 @@ test('quem bloqueou não aparece na busca', async () => {
   await ensureHandle(db, 'u2');
   sqlite.prepare('INSERT INTO contact_blocks (user_id, blocked_id, created_at) VALUES (?, ?, ?)').run('u2', 'u1', '2026-10-31T12:00:00Z');
   await assert.rejects(searchByHandle(db, 'u1', '@marina.lima'), { code: 'not_found' });
+});
+
+test('disponibilidade do @usuário no cadastro e na troca', async () => {
+  const { db } = makeDb();
+  await ensureHandle(db, 'u2');
+  assert.equal((await checkHandle(db, '@Marina.Lima')).reason, 'taken');
+  assert.equal((await checkHandle(db, 'marina.lima', 'u2')).available, true, 'o próprio @usuário conta como livre');
+  assert.equal((await checkHandle(db, 'ab')).reason, 'invalid');
+  assert.equal((await checkHandle(db, 'novo.usuario')).available, true);
 });

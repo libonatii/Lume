@@ -5,7 +5,7 @@ import {
   sendMessage, unblockContact, unreadSummary, updateMessagePreferences, MESSAGE_WINDOW_LIMIT,
 } from '../domain/messages.js';
 import { acceptInvite, createInvite, listFriends, readFriendProfile, removeFriend, touchUserPresence } from '../domain/friends.js';
-import { cancelRequest, listRequests, respondRequest, searchByHandle, sendRequest, setHandle } from '../domain/friend-requests.js';
+import { cancelRequest, getHandle, listRequests, respondRequest, searchByHandle, sendRequest, setHandle } from '../domain/friend-requests.js';
 import {
   cancelCollaborationInvite, createCollaborationInvite, listCollaborationInvites, respondCollaborationInvite,
 } from '../domain/collaboration.js';
@@ -41,6 +41,7 @@ export function socialRoutes(router) {
       ...FRIENDS,
       rateLimit: { key: (ctx) => `friends-search|${ctx.user.id}`, limit: 30, message: 'Muitas buscas em pouco tempo. Aguarde um instante.', code: 'rate_limited' },
     }, async (ctx) => json(await searchByHandle(ctx.db, ctx.user.id, ctx.url.searchParams.get('handle'))))
+    .add('GET', '/api/friends/handle', FRIENDS, async ({ db, user }) => json({ handle: await getHandle(db, user.id) }))
     .add('PUT', '/api/friends/handle', FRIENDS, async (ctx) =>
       json(await setHandle(ctx.db, ctx.user.id, (await ctx.json(LIMITS.tiny)).handle)))
     .add('POST', '/api/friends/requests', {
