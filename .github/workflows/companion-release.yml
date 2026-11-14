@@ -153,6 +153,8 @@ jobs:
       - name: Publicar release com instaladores Windows e Linux
         env:
           GH_TOKEN: ${{ github.token }}
+          # Este job não faz checkout: sem GH_REPO, o gh não sabe qual repositório usar.
+          GH_REPO: ${{ github.repository }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             TAG="${{ inputs.tag }}"
