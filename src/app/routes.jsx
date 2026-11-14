@@ -27,6 +27,7 @@ const Messages = lazy(() => import('../features/social/Messages.jsx'));
 const Subjects = lazy(() => import('../features/library/Subjects.jsx'));
 const FocusSession = lazy(() => import('../features/progress/FocusSession.jsx'));
 const ScheduleSession = lazy(() => import('../features/agenda/ScheduleSession.jsx'));
+const News = lazy(() => import('../features/news/News.jsx'));
 const Landing = lazy(() => import('../features/account/Landing.jsx'));
 
 // Quatro destinos no cabeçalho; as demais telas ficam em abas ou no menu da conta.
@@ -93,6 +94,7 @@ const ROUTES = [
   { id: 'conquistas', title: 'Conquistas', loading: 'cards', section: 'perfil', tab: 'Conquistas', render: (ctx) => <Achievements state={ctx.state} account={ctx.model.account} xp={ctx.model.xp}/> },
   { id: 'configuracoes', title: 'Configurações', loading: 'panel', section: 'perfil', tab: 'Configurações', render: (ctx) => <Preferences state={ctx.state} actions={ctx.model.settingsActions} libraryActions={ctx.model.libraryActions} account={ctx.model.account} notify={ctx.notify} go={ctx.go} xp={ctx.model.xp} refreshXP={ctx.model.refreshXP} onPersonalize={() => ctx.go('inicio')}/> },
 
+  { id: 'novidades', title: 'Novidades', render: (ctx) => <News go={ctx.go} focusId={ctx.params.get('id') || ''}/> },
   { id: 'aplicativo', title: 'Instalar aplicativo', render: (ctx) => <Companion account={ctx.model.account} notify={ctx.notify} go={ctx.go}/> },
 ];
 

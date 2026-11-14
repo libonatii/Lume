@@ -9,6 +9,10 @@ export const NOTIFICATION_LIMIT = 30;
 
 // Novidades do produto, da mais recente para a mais antiga. Uma linha por
 // mudança visível; o id é estável para não repetir o aviso.
+// Onde a mudança aparece: o site, o aplicativo de desktop ou a extensão.
+export const NEWS_AREAS = { site: 'Site', desktop: 'Aplicativo de desktop', extensao: 'Extensão do navegador' };
+export const newsArea = (value) => (Object.hasOwn(NEWS_AREAS, value) ? value : 'site');
+
 const MANUAL_NEWS = [
   { id: 'news-2026-11-14-norte', at: '2026-11-14T15:00:00.000Z', title: 'Novo visual do Lume', body: 'Início, biblioteca, plano, amigos e perfil foram redesenhados, com a estrela dourada e fundo escuro.', href: '#hoje' },
   { id: 'news-2026-11-13-mensagens', at: '2026-11-13T18:00:00.000Z', title: 'Mensagens em tempo real', body: 'Conversas com amigos chegam na hora, com som de aviso e tela nova.', href: '#amigos' },
@@ -17,7 +21,9 @@ const MANUAL_NEWS = [
   { id: 'news-2026-11-11-pdf', at: '2026-11-11T12:00:00.000Z', title: 'PDFs e disciplinas', body: 'Anexe PDFs à biblioteca e organize materiais por disciplina.', href: '#biblioteca' },
 ];
 
-export const LUME_NEWS = [...GENERATED_NEWS, ...MANUAL_NEWS];
+export const LUME_NEWS = [...GENERATED_NEWS, ...MANUAL_NEWS]
+  .map((news) => ({ ...news, area: newsArea(news.area) }))
+  .sort((a, b) => Date.parse(b.at) - Date.parse(a.at) || a.id.localeCompare(b.id));
 
 // Junta, ordena e marca como novo o que chegou depois do último "visto".
 // Sem marco de leitura, só conta o que chegou depois da criação da conta.

@@ -54,7 +54,7 @@ export async function listNotifications(db, userId, now = Date.now()) {
     ...invites.map((row) => ({ id: `collab-${row.id}`, kind: 'collaboration', at: row.at, person: person(row), title: `${row.name} convidou você para colaborar`, body: `${row.step_title} · ${row.course_title}`, href: '#amigos' })),
     ...comments.map((row) => ({ id: `comment-${row.id}`, kind: 'comment', at: row.at, person: person(row), title: `${row.name} comentou sua publicação`, body: row.body.slice(0, 120), href: '#amigos' })),
     ...reactions.map((row) => ({ id: `reaction-${row.post_id}-${row.person_id}`, kind: 'reaction', at: row.at, person: person(row), title: `${row.name} curtiu sua publicação`, href: '#amigos' })),
-    ...LUME_NEWS.map((news) => ({ ...news, kind: 'news' })),
+    ...LUME_NEWS.map((news) => ({ id: news.id, at: news.at, title: news.title, body: news.body, area: news.area, kind: 'news', href: `#novidades?id=${encodeURIComponent(news.id)}` })),
   ];
   return notificationFeed(items, { seenAt: read?.seen_at || null, since: account?.created_at || null, now });
 }

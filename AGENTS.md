@@ -76,6 +76,10 @@ Extensão MV3 com um passo de build: o leitor de curso, que o usuário aciona na
 
 `npx wrangler deploy` executa `npm run build` antes e envia `dist/` (Worker + D1). Site de referência: <https://lumeacademy.site>. Publicar não é conclusão de tarefa: não faça deploy, migração remota ou release sem pedido explícito.
 
+## Novidades do Lume
+
+Toda mudança visível para quem usa (site, aplicativo de desktop ou extensão) deve entrar na página `#novidades` e no sino: ao commitar, ponha no corpo da mensagem `Novidade: Título | Texto | #rota | área` (área: `site`, `desktop` ou `extensao`) e, para quem tem curiosidade, uma ou mais linhas `Detalhe: o que mudou`. O `npm run build` gera `public/news-generated.js` (versionado) a partir delas. Correções internas, testes e documentação não entram. Veja [Regras de Negócio](docs/REGRAS_DE_NEGOCIO.md) (Sino de notificações).
+
 ## Contexto obrigatório do produto
 
 - Lume é uma plataforma social de estudos: biblioteca, continuidade de materiais, amigos, mensagens diretas, compartilhamento de aprendizados, colaboração, conquistas e placares de estudo.
