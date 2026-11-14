@@ -11,6 +11,7 @@ test('restaurar cópia mescla na conta sem persistência no navegador', async ({
   await seedAccount(page, current);
 
   await page.goto('/#configuracoes');
+  await page.getByRole('button', { name: 'Meus dados' }).click();
   await page.getByLabel('Escolher arquivo de cópia do Lume').setInputFiles({
     name: 'copia-lume.json',
     mimeType: 'application/json',

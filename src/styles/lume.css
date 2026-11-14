@@ -23,6 +23,7 @@
 @import '../features/library/materials.css';
 @import '../features/progress/xp.css';
 @import '../features/settings/backup.css';
+@import '../features/settings/settings.css';
 @import '../features/social/messages.css';
 @import '../features/library/slides.css';
 @import '../features/library/pdf.css';

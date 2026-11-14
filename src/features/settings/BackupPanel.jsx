@@ -43,17 +43,20 @@ export default function BackupPanel({ state, actions, account, notify }) {
     setName('');
   }
 
-  return <section className="card-surface privacy-note">
-    <div className="panel-title"><span className="pace-icon"><Icon name="shield"/></span><div><h2 className="title">Seu espaço, seu progresso.</h2></div></div>
-    <p className="muted-text">{account ? 'Sua biblioteca é salva na conta e o XP elegível é confirmado no servidor. O saldo antigo do protótipo fica separado, fora do nível novo e do ranking.' : 'A prévia dura só enquanto esta página está aberta. Você pode exportar uma cópia antes de sair.'}</p>
-    <p className="quiet-note">Não inclua senhas ou informações sensíveis nas suas etapas.</p>
-    <button className="text-button accent" onClick={download}>Baixar cópia dos meus dados<Icon name="arrow"/></button>
-    <div className="backup-restore">
-      <strong className="title">Restaurar uma cópia</strong>
-      <p className="muted-text">Mescla cursos, progresso, histórico, tarefas e Agenda de um arquivo JSON. Suas preferências, privacidade e onboarding atuais não são substituídos.</p>
+  return <>
+    <div className="cfg-block cfg-row cfg-download">
+      <span className="cfg-row-copy"><h3>Baixar uma cópia</h3><span>Guarde uma cópia dos seus dados de estudo.</span></span>
+      <Button secondary onClick={download}><Icon name="download"/>Baixar cópia</Button>
+    </div>
+    <div className="cfg-block backup-restore">
+      <h3>Restaurar uma cópia</h3>
+      <p className="cfg-sub">Escolha uma cópia do Lume para revisar antes de mesclar.</p>
       <input ref={input} type="file" accept=".json,application/json" className="sr-only" onChange={choose} aria-label="Escolher arquivo de cópia do Lume"/>
-      <Button secondary onClick={() => input.current?.click()}><Icon name="return"/>Escolher arquivo JSON</Button>
-      {name && <p className="quiet-note">Arquivo: {name}</p>}
+      <div className="cfg-file">
+        <span className={`cfg-file-field ${name ? 'has-file' : ''}`}><Icon name="upload"/>{name || 'Arquivo de cópia (.json)'}</span>
+        <Button secondary onClick={() => input.current?.click()}>Escolher arquivo</Button>
+      </div>
+      <p className="quiet-note">Você confirma a mesclagem depois da revisão.</p>
       {error && <p className="form-error" role="alert">{error}</p>}
       {summary && <div className="backup-preview">
         <p className="inline-note"><Icon name="info"/><span>Esta cópia acrescenta {summary.newCourseCount} {summary.newCourseCount === 1 ? 'material novo' : 'materiais novos'}, {summary.newCompleted} {summary.newCompleted === 1 ? 'conclusão' : 'conclusões'} e {summary.newTasks} {summary.newTasks === 1 ? 'tarefa' : 'tarefas'}. {summary.unchanged > 0 ? `${summary.unchanged} material(is) já existente(s) serão mesclados.` : ''}</span></p>
@@ -65,5 +68,11 @@ export default function BackupPanel({ state, actions, account, notify }) {
         </div>
       </div>}
     </div>
-  </section>;
+    <details className="cfg-details">
+      <summary><Icon name="chevron"/>O que entra na cópia?</summary>
+      <p>Cursos, progresso, histórico, tarefas e Agenda de um arquivo JSON são mesclados. Suas preferências, privacidade e onboarding atuais não são substituídos.</p>
+      <p>{account ? 'Sua biblioteca é salva na conta e o XP elegível é confirmado no servidor. O saldo antigo do protótipo fica separado, fora do nível novo e do ranking.' : 'A prévia dura só enquanto esta página está aberta. Você pode exportar uma cópia antes de sair.'}</p>
+      <p>Não inclua senhas ou informações sensíveis nas suas etapas.</p>
+    </details>
+  </>;
 }

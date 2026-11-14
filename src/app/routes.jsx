@@ -15,7 +15,7 @@ const named = (load, name) => lazy(() => load().then((module) => ({ default: mod
 const personal = () => import('../features/settings/Personal.jsx');
 const plan = () => import('../features/plan/Plan.jsx');
 const Achievements = named(personal, 'Achievements');
-const Preferences = named(personal, 'Preferences');
+const Preferences = named(() => import('../features/settings/Settings.jsx'), 'Preferences');
 const Schedule = named(plan, 'Schedule');
 const Friends = lazy(() => import('../features/social/Friends.jsx'));
 const Profile = lazy(() => import('../features/social/Profile.jsx'));

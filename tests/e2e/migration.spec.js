@@ -92,7 +92,7 @@ test('prévia, dados legados, busca, filtros, teclado, curso e progresso', { tag
   await page.screenshot({ path: `data/lume-${testInfo.project.name}-profile.png`, fullPage: true });
   await page.getByRole('button', { name: /^Menu da conta/ }).click();
   await page.getByLabel('Opções do usuário').getByRole('link', { name: 'Configurações', exact: true }).click();
-  await page.getByRole('combobox', { name: /^Tema/ }).selectOption('light');
+  await page.getByRole('radio', { name: 'Claro' }).check();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await expect(page.getByText(/movimento reduzido|modo essencial/i)).toHaveCount(0);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1);
