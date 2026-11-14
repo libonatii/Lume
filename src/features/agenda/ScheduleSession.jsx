@@ -39,7 +39,6 @@ export default function ScheduleSession({ state, actions, confirmSave, notify, g
   const [duration, setDuration] = useState(45);
   const [reminderEnabled, setReminderEnabled] = useState(true);
   const [reminder, setReminder] = useState(15);
-  const [silenceNotice, setSilenceNotice] = useState(true);
   const [linkTask, setLinkTask] = useState(true);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -157,7 +156,7 @@ export default function ScheduleSession({ state, actions, confirmSave, notify, g
 
       <aside className="schedule-side">
         <section className="card-surface schedule-card" aria-labelledby="schedule-comfort-title">
-          <h2 id="schedule-comfort-title" className="title"><span className="card-icon tone-mint"><Icon name="bell"/></span>Conforto &amp; Foco</h2>
+          <h2 id="schedule-comfort-title" className="title"><span className="card-icon tone-mint"><Icon name="bell"/></span>Lembrete e tarefa</h2>
 
           <label className="toggle-row">
             <span><strong>Lembrete antes</strong><small>Avisa com o Lume aberto no navegador ou app.</small></span>
@@ -169,11 +168,6 @@ export default function ScheduleSession({ state, actions, confirmSave, notify, g
               {REMINDERS.filter((v) => v >= 0).map((value) => <option key={value} value={value}>{value === 0 ? 'No início da sessão' : `${value} minutos antes`}</option>)}
             </select>
           </label>}
-
-          <label className="toggle-row">
-            <span><strong>Avisos discretos</strong><small>Sem sons nem destaques durante a sessão.</small></span>
-            <input type="checkbox" role="switch" switch="" checked={silenceNotice} onChange={(event) => setSilenceNotice(event.target.checked)}/>
-          </label>
 
           {course && <label className="toggle-row">
             <span><strong>Criar tarefa vinculada</strong><small>{lesson ? `Concluir a tarefa conclui “${lesson.title}”.` : 'Inclui tarefa ligada ao material no checklist.'}</small></span>

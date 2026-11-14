@@ -37,10 +37,8 @@ function positionPopoverFallback(panel, trigger) {
   panel.style.left = `${Math.round(left)}px`;
 }
 
-export default function Shell({ route, model, children, hideTabs = false, onComfort, onHelp, onRegister, onExit }) {
+export default function Shell({ route, model, children, hideTabs = false, onHelp, onRegister, onExit }) {
   const section = sectionOf(route);
-  const comfortTriggerRef = useRef(null);
-  const comfortPopoverRef = useRef(null);
   const accountTriggerRef = useRef(null);
   const accountPopoverRef = useRef(null);
   const entry = ENTRY_ROUTES.has(route);
@@ -52,7 +50,6 @@ export default function Shell({ route, model, children, hideTabs = false, onComf
   const xpLabel = model.account ? 'XP' : 'XP · prévia local';
   const prefs = model.state.preferences;
   const gamified = prefs.gamification;
-  const setPreference = model.settingsActions?.setPreference;
   const name = model.account?.name || 'Prévia';
   const todayLabel = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
   const today = todayLabel.charAt(0).toUpperCase() + todayLabel.slice(1);
@@ -62,7 +59,6 @@ export default function Shell({ route, model, children, hideTabs = false, onComf
   };
 
   useEffect(() => {
-    hidePopover(comfortPopoverRef);
     hidePopover(accountPopoverRef);
   }, [route]);
 
@@ -78,14 +74,11 @@ export default function Shell({ route, model, children, hideTabs = false, onComf
   }
 
   if (entry) return <div className="entry-shell">
-    <header className="entry-header"><a className="brand" href={route === 'conheca' ? '#conheca' : '#login'} aria-label="Lume — início"><Logo size={22}/><span className="brand-name">Lume</span></a><nav aria-label="Entrada no Lume">{route !== 'conheca' && <a className="text-button" href="#conheca">Conheça o Lume</a>}<button className="chip-button" onClick={onComfort}><Icon name="tune"/>Conforto visual</button>{route === 'login' ? <button className="text-button" onClick={onRegister}>Criar conta</button> : route === 'inicio' ? <button className="text-button" onClick={onExit}>Sair</button> : <a className="text-button" href={route === 'conheca' && model.account ? '#hoje' : '#login'}>{route !== 'conheca' ? 'Voltar à entrada' : model.account ? 'Voltar ao Lume' : 'Entrar'}</a>}<button className="text-button" onClick={onHelp}>Ajuda</button></nav></header>
+    <header className="entry-header"><a className="brand" href={route === 'conheca' ? '#conheca' : '#login'} aria-label="Lume — início"><Logo size={22}/><span className="brand-name">Lume</span></a><nav aria-label="Entrada no Lume">{route !== 'conheca' && <a className="text-button" href="#conheca">Conheça o Lume</a>}{route === 'login' ? <button className="text-button" onClick={onRegister}>Criar conta</button> : route === 'inicio' ? <button className="text-button" onClick={onExit}>Sair</button> : <a className="text-button" href={route === 'conheca' && model.account ? '#hoje' : '#login'}>{route !== 'conheca' ? 'Voltar à entrada' : model.account ? 'Voltar ao Lume' : 'Entrar'}</a>}<button className="text-button" onClick={onHelp}>Ajuda</button></nav></header>
     <main id="main" tabIndex={-1} className="entry-main">{children}</main>
     <footer className="entry-footer"><span>Provas, trabalhos e entregas em dia, disciplina por disciplina.</span><span>Cadastro e acesso com e-mail e senha</span></footer>
   </div>;
 
-  const toggleComfortFallback = event => {
-    if (event.newState === 'open') positionPopoverFallback(comfortPopoverRef.current, comfortTriggerRef.current);
-  };
   const toggleAccountFallback = event => {
     if (event.newState === 'open') positionPopoverFallback(accountPopoverRef.current, accountTriggerRef.current);
   };
@@ -99,53 +92,6 @@ export default function Shell({ route, model, children, hideTabs = false, onComf
           {model.account && (model.syncStatus === 'saving' || model.syncStatus === 'loading') && <span className={`sr-only sync-${model.syncStatus}`} role="status">{syncLabels[model.syncStatus]}</span>}
           {(!model.account || model.syncStatus === 'error') && <span className={`sync-chip sync-${model.account ? model.syncStatus : 'local'}`} role="status"><Icon name="cloud"/>{model.account ? syncLabels[model.syncStatus] : 'Prévia temporária'}</span>}
           {desktop && <DesktopUpdate/>}
-          <button
-            type="button"
-            ref={comfortTriggerRef}
-            popoverTarget="comfort-popover"
-            className="comfort-chip"
-            aria-label="Conforto visual"
-            title="Tema e tamanho do texto"
-          >
-            <Icon name="tune"/>
-            <span>Conforto visual</span>
-          </button>
-          <div
-            id="comfort-popover"
-            ref={comfortPopoverRef}
-            popover="auto"
-            className="shell-popover comfort-popover anchored-overlay"
-            onToggle={toggleComfortFallback}
-            aria-label="Conforto visual"
-          >
-            <div className="shell-popover-head">
-              <strong>Conforto visual</strong>
-              <small>Tema, tamanho do texto e XP</small>
-            </div>
-            <div className="comfort-popover-group">
-              <span className="comfort-popover-label">Tema</span>
-              <div className="comfort-segmented">
-                <button type="button" className={prefs.theme === 'dark' ? 'is-active' : ''} aria-pressed={prefs.theme === 'dark'} onClick={() => setPreference?.('theme', 'dark')}>Escuro</button>
-                <button type="button" className={prefs.theme === 'light' ? 'is-active' : ''} aria-pressed={prefs.theme === 'light'} onClick={() => setPreference?.('theme', 'light')}>Claro</button>
-              </div>
-            </div>
-            <div className="comfort-popover-group">
-              <span className="comfort-popover-label">Tamanho do texto</span>
-              <div className="comfort-segmented">
-                <button type="button" className={(prefs.textSize || 'normal') === 'normal' ? 'is-active' : ''} aria-pressed={(prefs.textSize || 'normal') === 'normal'} onClick={() => setPreference?.('textSize', 'normal')}>Padrão</button>
-                <button type="button" className={prefs.textSize === 'large' ? 'is-active' : ''} aria-pressed={prefs.textSize === 'large'} onClick={() => setPreference?.('textSize', 'large')}>Maior</button>
-              </div>
-            </div>
-            <label className="comfort-switch-row">
-              <span>Menos estímulo (ocultar XP)</span>
-              <input type="checkbox" role="switch" switch="" checked={!gamified} onChange={e => setPreference?.('gamification', !e.target.checked)}/>
-            </label>
-            <div className="shell-popover-foot">
-              <a href="#configuracoes" className="text-link" onClick={() => hidePopover(comfortPopoverRef)}>Mais preferências →</a>
-              <button type="button" className="text-button" onClick={() => { hidePopover(comfortPopoverRef); onComfort?.(); }}>Modo foco visual</button>
-            </div>
-          </div>
-
           <NotificationBell account={model.account} positionFallback={positionPopoverFallback}/>
 
           {gamified && !(model.account && !summary) && <a className="level-chip" href="#conquistas" aria-label={`Nível ${level.level}, ${level.current} de ${level.next} ${xpLabel}`} title="Conquistas">

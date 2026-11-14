@@ -60,7 +60,9 @@ jobs:
       - name: Validar artefatos Windows
         shell: pwsh
         run: |
-          $required = @('Lume-setup.exe', 'Lume-setup.exe.blockmap', 'latest.yml')
+          # latest.yml não é gerado (sem bloco publish no electron-builder) nem usado:
+          # o app procura versões novas pela API de releases do GitHub.
+          $required = @('Lume-setup.exe', 'Lume-setup.exe.blockmap')
           foreach ($name in $required) {
             if (-not (Test-Path "release/$name")) { throw "Artefato ausente em companion/release: $name" }
           }
@@ -72,7 +74,6 @@ jobs:
           path: |
             companion/release/Lume-setup.exe
             companion/release/Lume-setup.exe.blockmap
-            companion/release/latest.yml
           retention-days: 14
 
   build-linux:
@@ -117,7 +118,7 @@ jobs:
       - name: Validar artefatos Linux
         shell: bash
         run: |
-          for name in Lume.AppImage Lume.deb latest-linux.yml; do
+          for name in Lume.AppImage Lume.deb; do
             if [ ! -f "release/$name" ]; then
               echo "Artefato ausente em companion/release: $name" >&2
               exit 1
@@ -131,7 +132,6 @@ jobs:
           path: |
             companion/release/Lume.AppImage
             companion/release/Lume.deb
-            companion/release/latest-linux.yml
           retention-days: 14
 
   publish:
@@ -153,6 +153,8 @@ jobs:
       - name: Publicar release com instaladores Windows e Linux
         env:
           GH_TOKEN: ${{ github.token }}
+          # Este job não faz checkout: sem GH_REPO, o gh não sabe qual repositório usar.
+          GH_REPO: ${{ github.repository }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             TAG="${{ inputs.tag }}"

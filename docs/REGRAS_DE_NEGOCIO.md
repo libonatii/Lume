@@ -175,7 +175,7 @@ Consulte também:
    - Abrir um PDF no leitor inicia uma sessão de leitura automática (`Leitura — <título>`), sem precisar do cronômetro de foco: ela pausa com a aba oculta e encerra ao fechar o leitor, passando pela mesma validação do servidor (blocos de 25 minutos, teto diário). Se já houver sessão em curso (foco), o leitor não abre outra e o tempo continua sendo dessa sessão.
    - Sessões esquecidas abertas são pausadas ao carregar e limitadas ao teto de **12 horas** (`MAX_SESSION_SECONDS = 43200`) para não inflar o relógio.
    - `minutesByDay` e `weeklyRhythm` somam os minutos declarados por dia local (incluindo a sessão ativa). Sem dados na semana anterior, a comparação percentual fica nula (não inventa porcentagem).
-2. **Preferências e Conforto Visual (`state.preferences`):**
+2. **Preferências e Conforto Visual (`state.preferences`):** ajustadas em Configurações › Aparência (o atalho "Conforto visual" do cabeçalho e o diálogo de conforto foram retirados em 14/11/2026).
    - `palette`: **aposentada da interface (14/11/2026).** A identidade Norte tem uma só paleta; o campo continua aceito em `restoreState` (`'moderno'` ou `'variante2'`) só para compatibilidade dos dados, não é oferecido em Configurações nem no Conforto visual e não muda as cores (`html[data-palette]` não é mais definido).
    - `theme`: `'dark'` (Escuro, padrão) ou `'light'` (Claro). Aplicado em `html[data-theme]`. Valores desconhecidos voltam para `'dark'`; não há tema "Suave" separado no código.
    - `density`: `'minimal'` (Essencial) ou `'balanced'` (Equilibrada).

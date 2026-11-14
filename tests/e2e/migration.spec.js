@@ -80,8 +80,8 @@ test('prévia, dados legados, busca, filtros, teclado, curso e progresso', { tag
   await expect(page.getByRole('heading', { name: 'Atividade recente', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Conquistas', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Editar perfil' }).click();
-  await page.getByLabel('Selecionar foto de perfil do computador').setInputFiles('public/assets/stitch/calm.png');
-  await page.getByLabel('Selecionar imagem de capa (header) do computador').setInputFiles('public/assets/stitch/detail.png');
+  await page.getByLabel('Selecionar foto de perfil do computador').setInputFiles('tests/fixtures/avatar.png');
+  await page.getByLabel('Selecionar imagem de capa (header) do computador').setInputFiles('tests/fixtures/header.png');
   await page.getByLabel(/Apresentação e metas/).fill('Estudando React e Arquitetura\nMeta: 3 sessões por semana');
   await page.getByRole('button', { name: 'Salvar apresentação' }).click();
   await expect(page.getByText('Estudando React e Arquitetura')).toBeVisible();
