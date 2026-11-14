@@ -225,7 +225,8 @@ export async function xpSummary(db, userId, settings = null, now = Date.now()) {
 
 // `create: false` é usado pelo perfil de outra pessoa: consultar um perfil não
 // pode iniciar a política de XP de quem ainda não a abriu.
-export async function getXpSnapshot(db, userId, { now = Date.now(), timeZone = '', create = true } = {}) {
+// `withEvents: false` pula o extrato (100 eventos) quando só o resumo, as conquistas e os cargos interessam.
+export async function getXpSnapshot(db, userId, { now = Date.now(), timeZone = '', create = true, withEvents = true } = {}) {
   const settings = await ensureXpSettings(db, userId, {
     now, timeZone, create, updateTimeZone: create && Boolean(timeZone),
   });
@@ -239,21 +240,21 @@ export async function getXpSnapshot(db, userId, { now = Date.now(), timeZone = '
       titles: [],
     };
   }
-  const events = await db.all(
-    `SELECT * FROM xp_events WHERE user_id = ? ORDER BY granted_at DESC, id DESC LIMIT 100`,
-    [userId],
-  );
-  const achievements = await db.all(
-    `SELECT * FROM user_achievements WHERE user_id = ? AND revoked_at IS NULL ORDER BY earned_at DESC LIMIT 50`,
-    [userId],
-  );
+  const [events, achievements, summary, titles] = await Promise.all([
+    withEvents
+      ? db.all(`SELECT * FROM xp_events WHERE user_id = ? ORDER BY granted_at DESC, id DESC LIMIT 100`, [userId])
+      : [],
+    db.all(`SELECT * FROM user_achievements WHERE user_id = ? AND revoked_at IS NULL ORDER BY earned_at DESC LIMIT 50`, [userId]),
+    xpSummary(db, userId, settings, now),
+    readTitles(db, userId, { now }),
+  ]);
   return {
     policy: xpPolicy(),
-    summary: await xpSummary(db, userId, settings, now),
+    summary,
     settings: serializeSettings(settings),
     events: events.map(serializeEvent),
     achievements: achievements.map(serializeAchievement),
-    titles: await readTitles(db, userId, { now }),
+    titles,
   };
 }
 

@@ -60,6 +60,10 @@
     "LUME_AI_MODEL": "gemini-3.5-flash-lite"
   },
 
+  // Posiciona o Worker perto do D1: cada consulta ao banco deixa de cruzar a distância
+  // entre o ponto de entrada do usuário e o banco. Medir antes/depois; é reversível.
+  "placement": { "mode": "smart" },
+
   // bcrypt com custo 6 para o orçamento do Free (10 ms de CPU por requisição).
   // Abaixo do mínimo 10 recomendado pela OWASP; medir CPU após publicar.
   "observability": {

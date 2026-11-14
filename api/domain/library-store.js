@@ -93,16 +93,23 @@ export async function readStoredLibrary(db, userId) {
 }
 
 export async function readLibrary(db, userId) {
-  await ensureLibrary(db, userId);
   // Se uma escrita ocorrer durante a leitura, refaz a projeção. Não devolve
   // metade de uma revisão junto com metade da seguinte.
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    const document = await db.first('SELECT * FROM account_documents WHERE user_id=?', [userId]);
+    let document = await db.first('SELECT * FROM account_documents WHERE user_id=?', [userId]);
+    if (!document) {
+      await ensureLibrary(db, userId);
+      document = await db.first('SELECT * FROM account_documents WHERE user_id=?', [userId]);
+    }
     if (JSON.parse(document.data).version !== STATE_VERSION) throw new AppError('Formato de biblioteca incompatível. Os dados existentes foram preservados.', 'library_format_unsupported', 409);
-    const materials = await db.all('SELECT * FROM materials WHERE user_id=? ORDER BY position', [userId]);
-    const units = await db.all('SELECT * FROM units WHERE user_id=? ORDER BY position', [userId]);
+    // Cada consulta ao D1 é uma ida e volta à rede: as independentes rodam juntas.
+    const [materials, units, ...collections] = await Promise.all([
+      db.all('SELECT * FROM materials WHERE user_id=? ORDER BY position', [userId]),
+      db.all('SELECT * FROM units WHERE user_id=? ORDER BY position', [userId]),
+      ...Object.values(COLLECTIONS).map((table) => db.all(`SELECT data FROM ${table} WHERE user_id=? ORDER BY position`, [userId])),
+    ]);
     const state = { ...createInitialState(), ...JSON.parse(document.data), courses: materials.map((row) => projectMaterial(JSON.parse(row.data), units.filter((unit) => unit.material_id === row.id).map((unit) => ({ id: unit.id, parentId: unit.parent_id, kind: unit.kind, position: unit.position, selected: Boolean(unit.selected), data: JSON.parse(unit.data) })))) };
-    for (const [field, table] of Object.entries(COLLECTIONS)) state[field] = (await db.all(`SELECT data FROM ${table} WHERE user_id=? ORDER BY position`, [userId])).map((row) => JSON.parse(row.data));
+    Object.keys(COLLECTIONS).forEach((field, index) => { state[field] = collections[index].map((row) => JSON.parse(row.data)); });
     const latest = await db.first('SELECT revision FROM account_documents WHERE user_id=?', [userId]);
     if (latest.revision === document.revision) return { state: reconcileSession(state), revision: document.revision, updatedAt: document.updated_at };
   }

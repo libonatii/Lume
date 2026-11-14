@@ -301,7 +301,7 @@ export async function readFriendProfile(db, viewerId, friendId) {
 // Resumo validado no servidor (nível e conquistas); ausente se a pessoa não tem XP.
 async function validatedProfile(db, userId) {
   try {
-    const snapshot = await getXpSnapshot(db, userId, { create: false });
+    const snapshot = await getXpSnapshot(db, userId, { create: false, withEvents: false });
     return { ...snapshot.summary, achievements: snapshot.achievements, titles: snapshot.titles };
   } catch {
     return null;
