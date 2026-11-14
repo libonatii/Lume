@@ -160,14 +160,6 @@
 .cfg-appearance-main { display: grid; gap: 1rem; min-width: 0; }
 .cfg-group { border: 0; margin: 0; padding: 0; display: grid; gap: 0.75rem; }
 .cfg-group legend { margin-bottom: 0.6rem; padding: 0; }
-.cfg-group.palette-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.cfg-group .palette-option {
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  grid-template-areas: 'radio copy swatch';
-  padding: 0.75rem 0.9rem;
-  border-radius: var(--radius-md);
-}
-.cfg-group .palette-swatches { height: 1.6rem; width: 5.5rem; }
 .cfg-themes { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
 .cfg-theme { display: grid; gap: 0.5rem; cursor: pointer; }
 .cfg-theme-preview {
@@ -283,7 +275,6 @@
   .cfg-preview { padding-left: 0; border-left: 0; padding-top: 1rem; border-top: 1px solid var(--border); }
 }
 @media (max-width: 560px) {
-  .cfg-group.palette-options { grid-template-columns: minmax(0, 1fr); }
   .cfg-head { flex-wrap: wrap; }
 }
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import Icon from '../ui/Icon.jsx';
-import { Logo } from '../ui/ui.jsx';
+import { Logo, Star } from '../ui/ui.jsx';
 import { levelInfo } from '../../public/domain.js';
 import { levelProgress } from '../../public/xp-policy.js';
 import { useResource } from '../lib/resources.js';
@@ -78,9 +78,9 @@ export default function Shell({ route, model, children, hideTabs = false, onComf
   }
 
   if (entry) return <div className="entry-shell">
-    <header className="entry-header"><a className="brand" href={route === 'conheca' ? '#conheca' : '#login'} aria-label="Lume — início"><Logo size={34}/><span className="brand-name">Lume</span></a><nav aria-label="Entrada no Lume">{route !== 'conheca' && <a className="text-button" href="#conheca">Conheça o Lume</a>}<button className="chip-button" onClick={onComfort}><Icon name="tune"/>Conforto visual</button>{route === 'login' ? <button className="text-button" onClick={onRegister}>Criar conta</button> : route === 'inicio' ? <button className="text-button" onClick={onExit}>Sair</button> : <a className="text-button" href={route === 'conheca' && model.account ? '#hoje' : '#login'}>{route !== 'conheca' ? 'Voltar à entrada' : model.account ? 'Voltar ao Lume' : 'Entrar'}</a>}<button className="text-button" onClick={onHelp}>Ajuda</button></nav></header>
+    <header className="entry-header"><a className="brand" href={route === 'conheca' ? '#conheca' : '#login'} aria-label="Lume — início"><Logo size={22}/><span className="brand-name">Lume</span></a><nav aria-label="Entrada no Lume">{route !== 'conheca' && <a className="text-button" href="#conheca">Conheça o Lume</a>}<button className="chip-button" onClick={onComfort}><Icon name="tune"/>Conforto visual</button>{route === 'login' ? <button className="text-button" onClick={onRegister}>Criar conta</button> : route === 'inicio' ? <button className="text-button" onClick={onExit}>Sair</button> : <a className="text-button" href={route === 'conheca' && model.account ? '#hoje' : '#login'}>{route !== 'conheca' ? 'Voltar à entrada' : model.account ? 'Voltar ao Lume' : 'Entrar'}</a>}<button className="text-button" onClick={onHelp}>Ajuda</button></nav></header>
     <main id="main" tabIndex={-1} className="entry-main">{children}</main>
-    <footer className="entry-footer"><span>Seu espaço de estudos: ritmo próprio, progresso real e amigos por perto.</span><span>Cadastro e acesso com e-mail e senha</span></footer>
+    <footer className="entry-footer"><span>Provas, trabalhos e entregas em dia, disciplina por disciplina.</span><span>Cadastro e acesso com e-mail e senha</span></footer>
   </div>;
 
   const toggleComfortFallback = event => {
@@ -93,7 +93,7 @@ export default function Shell({ route, model, children, hideTabs = false, onComf
   return <div className="app-shell">
     <header className="topbar app-header">
       <div className="app-header-inner">
-        <a href="#hoje" className="brand" aria-label="Lume — página inicial"><Logo size={34}/><span className="brand-name">Lume</span></a>
+        <a href="#hoje" className="brand" aria-label="Lume — página inicial"><Logo size={22}/><span className="brand-name">Lume</span></a>
         <nav className="nav" aria-label="Navegação">{links.map(([key, path, icon, label]) => <a key={key} href={`#${path}`} className={`nav-link ${section === key ? 'active' : ''}`} aria-current={section === key ? 'page' : undefined} aria-label={key === 'amigos' && unread > 0 ? `${label} (${unread} mensagens não lidas)` : undefined}>{section === key && <motion.span className="nav-highlight" layoutId="active-navigation" transition={{ duration: .3, ease: [.22, 1, .36, 1] }}/>}<Icon name={icon}/><span className="nav-label">{label}</span>{key === 'amigos' && unread > 0 && <span className="nav-badge" aria-hidden="true">{unread > 99 ? '99+' : unread}</span>}</a>)}</nav>
         <div className="topbar-right">
           {model.account && (model.syncStatus === 'saving' || model.syncStatus === 'loading') && <span className={`sr-only sync-${model.syncStatus}`} role="status">{syncLabels[model.syncStatus]}</span>}
@@ -105,7 +105,7 @@ export default function Shell({ route, model, children, hideTabs = false, onComf
             popoverTarget="comfort-popover"
             className="comfort-chip"
             aria-label="Conforto visual"
-            title="Tema, paleta de cores e tamanho do texto"
+            title="Tema e tamanho do texto"
           >
             <Icon name="tune"/>
             <span>Conforto visual</span>
@@ -120,28 +120,15 @@ export default function Shell({ route, model, children, hideTabs = false, onComf
           >
             <div className="shell-popover-head">
               <strong>Conforto visual</strong>
-              <small>Personalize tema, paleta e densidade</small>
+              <small>Tema, tamanho do texto e XP</small>
             </div>
             <div className="comfort-popover-group">
               <span className="comfort-popover-label">Tema</span>
               <div className="comfort-segmented">
-                <button type="button" className={prefs.theme === 'dark' ? 'is-active' : ''} aria-pressed={prefs.theme === 'dark'} onClick={() => setPreference?.('theme', 'dark')}>Noite serena</button>
-                <button type="button" className={prefs.theme === 'light' ? 'is-active' : ''} aria-pressed={prefs.theme === 'light'} onClick={() => setPreference?.('theme', 'light')}>Dia suave</button>
+                <button type="button" className={prefs.theme === 'dark' ? 'is-active' : ''} aria-pressed={prefs.theme === 'dark'} onClick={() => setPreference?.('theme', 'dark')}>Escuro</button>
+                <button type="button" className={prefs.theme === 'light' ? 'is-active' : ''} aria-pressed={prefs.theme === 'light'} onClick={() => setPreference?.('theme', 'light')}>Claro</button>
               </div>
             </div>
-            <fieldset className="comfort-popover-group comfort-fieldset">
-              <legend className="comfort-popover-label">Paleta de cores</legend>
-              <div className="comfort-segmented" role="radiogroup" aria-label="Paleta de cores">
-                <label className={`comfort-radio ${(prefs.palette || 'moderno') === 'moderno' ? 'is-active' : ''}`}>
-                  <input type="radio" name="shell-palette" value="moderno" checked={(prefs.palette || 'moderno') === 'moderno'} onChange={() => setPreference?.('palette', 'moderno')}/>
-                  <span>Azul</span>
-                </label>
-                <label className={`comfort-radio ${prefs.palette === 'variante2' ? 'is-active' : ''}`}>
-                  <input type="radio" name="shell-palette" value="variante2" checked={prefs.palette === 'variante2'} onChange={() => setPreference?.('palette', 'variante2')}/>
-                  <span>Roxo</span>
-                </label>
-              </div>
-            </fieldset>
             <div className="comfort-popover-group">
               <span className="comfort-popover-label">Tamanho do texto</span>
               <div className="comfort-segmented">
@@ -160,6 +147,12 @@ export default function Shell({ route, model, children, hideTabs = false, onComf
           </div>
 
           <NotificationBell account={model.account} positionFallback={positionPopoverFallback}/>
+
+          {gamified && !(model.account && !summary) && <a className="level-chip" href="#conquistas" aria-label={`Nível ${level.level}, ${level.current} de ${level.next} ${xpLabel}`} title="Conquistas">
+            <Star size={12}/>
+            <strong>nível {level.level}</strong>
+            <span className="level-chip-note">{level.current}/{level.next} xp</span>
+          </a>}
 
           <div className="user-menu-wrap">
             <button
@@ -216,6 +209,6 @@ export default function Shell({ route, model, children, hideTabs = false, onComf
       </div>
     </header>
     <main id="main" tabIndex={-1}>{!hideTabs && <SectionTabs route={route} unread={unread}/>}{children}</main>
-    <footer className="app-footer"><div className="app-footer-inner"><span className="app-footer-brand"><strong>Lume</strong><small>Estudar também pode ser divertido!</small></span><span className="app-footer-meta"><span>{today}</span>{!desktop && <a className="text-link" href="#aplicativo"><Icon name="cloud"/>Instalar aplicativo</a>}</span></div></footer>
+    <footer className="app-footer"><div className="app-footer-inner"><span className="app-footer-brand"><strong>Lume</strong><small>Seu norte para provas, trabalhos e entregas.</small></span><span className="app-footer-meta"><span>{today}</span>{!desktop && <a className="text-link" href="#aplicativo"><Icon name="cloud"/>Instalar aplicativo</a>}</span></div></footer>
   </div>;
 }

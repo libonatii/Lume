@@ -56,36 +56,26 @@ function supportsWebGL() {
 }
 
 // Luz ambiente com o MeshGradient da Paper Shaders (FGLibs). Sem WebGL, fica o gradiente em CSS.
-// As cores acompanham a paleta escolhida em Aparência (html[data-palette]).
-const glowPalettes = {
-  moderno: {
-    lume: ['#090d1f', '#3b82f6', '#60a5fa', '#1e295d'],
-    dusk: ['#090d1f', '#2563eb', '#f59e0b', '#172346'],
-    mint: ['#090d1f', '#60a5fa', '#fbbf24', '#0f172a'],
-  },
-  variante2: {
-    lume: ['#0b0b18', '#8b5cf6', '#c084fc', '#26244d'],
-    dusk: ['#0b0b18', '#7c3aed', '#f59e0b', '#1c1c3d'],
-    mint: ['#0b0b18', '#c084fc', '#fbbf24', '#13132b'],
-  },
+// Cores da identidade Norte: noite, azul-claro do caminho e dourado da estrela.
+const glowPalette = {
+  lume: ['#0c111b', '#1c2537', '#9ec5ff', '#141b2a'],
+  dusk: ['#0c111b', '#26324d', '#f6c165', '#141b2a'],
+  mint: ['#0c111b', '#9ec5ff', '#f6c165', '#141b2a'],
 };
 export function Glow({ palette = 'lume', speed = 0, className = '' }) {
   const enabled = typeof document !== 'undefined' && supportsWebGL();
-  const scheme = glowPalettes[typeof document !== 'undefined' && document.documentElement.dataset.palette === 'variante2' ? 'variante2' : 'moderno'];
-  return <div className={`glow glow-${palette} ${className}`} aria-hidden="true">{enabled && <MeshGradient className="glow-canvas" colors={scheme[palette] || scheme.lume} distortion={.85} swirl={.2} speed={speed} maxPixelCount={640 * 640} minPixelRatio={1}/>}</div>;
+  return <div className={`glow glow-${palette} ${className}`} aria-hidden="true">{enabled && <MeshGradient className="glow-canvas" colors={glowPalette[palette] || glowPalette.lume} distortion={.85} swirl={.2} speed={speed} maxPixelCount={640 * 640} minPixelRatio={1}/>}</div>;
 }
 
-export function Logo({ size = 36 }) {
-  return <svg className="logo-mark" width={size} height={size} viewBox="0 0 48 48" aria-hidden="true" focusable="false">
-    <defs>
-      <radialGradient id="logo-light" cx="50%" cy="28%" r="40%"><stop offset="0%" stopColor="#d8ecff"/><stop offset="55%" stopColor="#5ea8ff"/><stop offset="100%" stopColor="#5ea8ff" stopOpacity="0"/></radialGradient>
-      <linearGradient id="logo-leaf" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#7ff0c6"/><stop offset="100%" stopColor="#2fae86"/></linearGradient>
-    </defs>
-    <rect width="48" height="48" rx="14" fill="var(--logo-bg, #101b30)"/>
-    <circle cx="24" cy="14" r="10" fill="url(#logo-light)" opacity=".58"/>
-    <path d="m24 7 2 4.6 4.6 2-4.6 2L24 20.2l-2-4.6-4.6-2 4.6-2Z" fill="#8cc2ff"/>
-    <path d="M24 39V26m0 6c-7.5.8-10-5.6-10-9.6 6.4 0 10 3.6 10 9.6Zm0-2c0-6 3.6-9.6 10-9.6 0 4-2.5 10.4-10 9.6Z" fill="url(#logo-leaf)" stroke="url(#logo-leaf)" strokeWidth="1.4" strokeLinejoin="round"/>
-  </svg>;
+// Estrela de quatro pontas da marca. Também marca "hoje" e a aula atual.
+export const STAR_PATH = 'M12 0 L14.3 9.7 L24 12 L14.3 14.3 L12 24 L9.7 14.3 L0 12 L9.7 9.7 Z';
+export function Star({ size = 16, className = '' }) {
+  return <svg className={`star-mark ${className}`.trim()} width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d={STAR_PATH} fill="var(--star, #f6c165)"/></svg>;
+}
+
+// Logo do Lume: a estrela dourada. O nome "Lume" fica ao lado, em texto.
+export function Logo({ size = 24 }) {
+  return <Star size={size} className="logo-mark"/>;
 }
 
 export function Cover({ art = 'nature', className = '', children }) {

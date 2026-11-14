@@ -205,7 +205,7 @@ html[data-theme='light'] .steam-hero.has-custom-header .steam-hero-backdrop {
 }
 
 .steam-level-word {
-  font-family: var(--font-serif);
+  font-family: var(--font-mono);
   font-size: 1.35rem;
   color: var(--text);
 }
@@ -373,7 +373,7 @@ html[data-theme='light'] .steam-bio-form {
 }
 
 .steam-stat-cell strong {
-  font-family: var(--font-serif);
+  font-family: var(--font-mono);
   font-size: 1.9rem;
   line-height: 1.05;
   color: var(--text);
@@ -578,7 +578,7 @@ html[data-theme='light'] .steam-bio-form {
 }
 
 .steam-side-count {
-  font-family: var(--font-serif);
+  font-family: var(--font-mono);
   font-size: 1.25rem;
   color: var(--text-muted);
 }

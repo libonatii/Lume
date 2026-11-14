@@ -50,8 +50,8 @@
   gap: 0.7rem;
 }
 .brand-name {
-  font-family: var(--font-serif);
-  font-weight: 650;
+  font-family: var(--font-display);
+  font-weight: 700;
   font-size: 1.35rem;
   letter-spacing: -0.02em;
 }

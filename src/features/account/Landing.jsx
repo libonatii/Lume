@@ -13,7 +13,7 @@ const PILLARS = [
 
 const CONTRAST = {
   tired: [
-    ['flag', 'Sequência que zera', 'Um dia difícil apaga semanas de esforço e a culpa atrapalha a volta.'],
+    ['flag', 'Sequência que zera', 'Um dia sem estudo apaga semanas de avanço e atrapalha a volta.'],
     ['bell', 'Avisos que pressionam', 'Notificações insistentes no fim do dia, sem relação com o que você planejou.'],
     ['list', 'Atraso em vermelho', 'Aulas acumuladas viram uma pilha que paralisa em vez de orientar.'],
   ],
@@ -52,15 +52,15 @@ export default function Landing({ go, setAuthMode, signedIn }) {
     <header className="stitch-landing-header">
       <div className="stitch-landing-header-inner">
         <a className="brand" href="#conheca" aria-label="Lume — início">
-          <Logo size={36}/>
-          <span className="brand-name">Lume <span className="brand-sub">Academy</span></span>
+          <Logo size={24}/>
+          <span className="brand-name">Lume</span>
         </a>
         <div className="stitch-landing-nav-actions">
           <button type="button" className="text-button" onClick={login}>
             {signedIn ? 'Voltar ao Lume' : 'Entrar'}
           </button>
           <button type="button" className="stitch-mint-cta" onClick={register}>
-            <span>{signedIn ? 'Ir para o Início' : 'Começar Gratuitamente'}</span>
+            <span>{signedIn ? 'Ir para o Início' : 'Começar grátis'}</span>
           </button>
         </div>
       </div>
@@ -68,12 +68,12 @@ export default function Landing({ go, setAuthMode, signedIn }) {
 
     <div className="landing-root stitch-landing-main">
       <section className="landing-hero" aria-labelledby="landing-title">
-        <span className="soft-badge tone-mint"><Icon name="spark"/>A primeira plataforma de estudos sem sobrecarga</span>
-        <h1 id="landing-title" className="landing-title">Estude com profundidade, <span>sem a culpa</span> de não dar conta de tudo.</h1>
-        <p className="lead">O Lume é o espaço sereno onde você constrói o hábito de aprender no próprio ritmo — com cronômetro flexível, biblioteca com PDFs e respeito ao seu descanso.</p>
+        <span className="soft-badge">para faculdade, provas e concursos</span>
+        <h1 id="landing-title" className="landing-title">Provas, trabalhos e entregas. <span>Em dia, uma disciplina por vez.</span></h1>
+        <p className="lead">O Lume mostra de onde você parou, quanto falta pra fechar cada módulo e o que vence nos próximos dias. Sessão de foco, biblioteca com PDFs, agenda e amigos no mesmo lugar.</p>
         <div className="landing-actions">
           <button type="button" className="stitch-mint-cta large" onClick={register}>
-            <span>{signedIn ? 'Ir para o Início' : 'Começar Gratuitamente'}</span>
+            <span>{signedIn ? 'Ir para o Início' : 'Começar grátis'}</span>
             <Icon name="arrow"/>
           </button>
           <Button className="large" secondary onClick={() => preview.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
@@ -82,7 +82,7 @@ export default function Landing({ go, setAuthMode, signedIn }) {
         </div>
         <p className="landing-trust">
           <span className="soft-dot tone-mint-text" aria-hidden="true"/>
-          Cadastro gratuito com e-mail e senha · prévia sem conta disponível · pausas sem punição
+          Cadastro grátis com e-mail e senha · prévia sem conta · pausar não tira XP
         </p>
       </section>
 
@@ -90,13 +90,13 @@ export default function Landing({ go, setAuthMode, signedIn }) {
         <div className="landing-preview-bar">
           <span className="landing-dots" aria-hidden="true"><span/><span/><span/></span>
           <span className="metric-label">Exemplo ilustrativo · Sessão de foco</span>
-          <span className="soft-badge tone-mint"><span className="soft-dot" aria-hidden="true"/>{samplePaused ? 'Pausa tranquila' : 'Modo silêncio ativo'}</span>
+          <span className="soft-badge tone-mint"><span className="soft-dot" aria-hidden="true"/>{samplePaused ? 'Em pausa' : 'Em foco'}</span>
         </div>
         <div className="landing-preview-grid">
           <div className="landing-preview-timer">
             <div className="landing-preview-head">
               <strong><Icon name="book"/>Direito Constitucional · Módulo 3</strong>
-              <span className="soft-badge">Ciclo suave</span>
+              <span className="soft-badge">ciclo de 25 min</span>
             </div>
             <div className="landing-dial">
               <svg viewBox="0 0 160 160" aria-hidden="true" focusable="false">
@@ -111,7 +111,7 @@ export default function Landing({ go, setAuthMode, signedIn }) {
               </svg>
               <span>
                 <strong>{formatMMSS(sampleSeconds)}</strong>
-                <small>{samplePaused ? 'Em pausa sem culpa' : 'Inspire suavemente'}</small>
+                <small>{samplePaused ? 'Pausado' : 'Aula 14 de 22'}</small>
               </span>
             </div>
             <div className="landing-preview-controls" role="group" aria-label="Controles ilustrativos do ciclo">
@@ -120,14 +120,14 @@ export default function Landing({ go, setAuthMode, signedIn }) {
               </button>
               <button type="button" className="landing-pause-btn" onClick={() => setSamplePaused(p => !p)}>
                 <Icon name={samplePaused ? 'play' : 'pause'}/>
-                <span>{samplePaused ? 'Retomar no exemplo' : 'Pausar sem pressa'}</span>
+                <span>{samplePaused ? 'Retomar no exemplo' : 'Pausar no exemplo'}</span>
               </button>
               <button type="button" className="landing-circle-btn" aria-label="Adicionar 10 minutos no exemplo" onClick={() => setSampleSeconds(s => Math.min(3600, s + 600))}>
                 <Icon name="forward10"/>
               </button>
             </div>
             <div className="landing-sound-row">
-              <p className="landing-sound"><Icon name="rain"/>Chuva suave · volume 40% · gerada no navegador</p>
+              <p className="landing-sound"><Icon name="rain"/>Som de chuva · volume 40% · gerado no navegador</p>
               <span className={`landing-eq ${samplePaused ? 'is-paused' : ''}`} aria-hidden="true">
                 <span/><span/><span/>
               </span>
@@ -146,8 +146,8 @@ export default function Landing({ go, setAuthMode, signedIn }) {
             <div className="landing-note">
               <Icon name="moon"/>
               <span>
-                <strong>Sem atraso, só vida</strong>
-                <small>Ontem foi dia de descanso. A próxima aula continua no mesmo lugar, sem pilha acumulada nem punição.</small>
+                <strong>Ontem ficou apagado</strong>
+                <small>Dia sem estudo não tira XP nem nível. A próxima aula continua no mesmo lugar.</small>
               </span>
             </div>
           </div>
@@ -156,9 +156,9 @@ export default function Landing({ go, setAuthMode, signedIn }) {
 
       <section className="landing-section landing-contrast" aria-labelledby="landing-contrast-title">
         <header>
-          <span className="metric-label tone-mint-text">O contraste que liberta</span>
-          <h2 id="landing-contrast-title" className="headline">Estudar não deveria parecer uma corrida contra punições.</h2>
-          <p className="muted-text">Conheça a diferença entre ferramentas que cobram demais e um espaço feito para proteger sua continuidade.</p>
+          <span className="metric-label">a diferença</span>
+          <h2 id="landing-contrast-title" className="headline">Incentivo pra continuar, não punição por parar.</h2>
+          <p className="muted-text">O Lume conta o que você avançou. O que ficou para depois continua no lugar.</p>
         </header>
         <div className="contrast-grid">
           <div className="card-surface contrast-card">
@@ -174,8 +174,8 @@ export default function Landing({ go, setAuthMode, signedIn }) {
 
       <section className="landing-section" aria-labelledby="landing-pillars-title">
         <header>
-          <span className="metric-label">O que já funciona</span>
-          <h2 id="landing-pillars-title" className="headline">Quatro partes pensadas para proteger sua energia.</h2>
+          <span className="metric-label">o que já funciona</span>
+          <h2 id="landing-pillars-title" className="headline">Quatro partes para ficar em dia.</h2>
         </header>
         <div className="pillar-grid">{PILLARS.map(([icon, title, text, foot, tone]) => <article key={title} className={`card-surface pillar-card tone-${tone}`}>
           <span className="pillar-icon"><Icon name={icon}/></span>
@@ -186,7 +186,7 @@ export default function Landing({ go, setAuthMode, signedIn }) {
       </section>
 
       <section className="landing-section landing-xp" aria-labelledby="landing-xp-title">
-        <div className="card-surface landing-xp-card crest-card">
+        <div className="card-surface landing-xp-card">
           <span className="pillar-icon tone-reward"><Icon name="trophy"/></span>
           <div>
             <h2 id="landing-xp-title" className="title">XP por avanço real, não por clique</h2>
@@ -197,8 +197,8 @@ export default function Landing({ go, setAuthMode, signedIn }) {
 
       <section className="landing-final card-surface" aria-labelledby="landing-final-title">
         <span className="pillar-icon tone-mint"><Icon name="spark"/></span>
-        <h2 id="landing-final-title" className="headline">Pronto para encontrar paz no seu momento de estudo?</h2>
-        <p className="muted-text">Crie a conta com e-mail e senha, ou explore a prévia antes. Sem cobranças punitivas: seu lugar fica guardado.</p>
+        <h2 id="landing-final-title" className="headline">Comece pela disciplina que vence primeiro.</h2>
+        <p className="muted-text">Crie a conta com e-mail e senha, ou explore a prévia antes. Seu progresso fica guardado na conta.</p>
         <div className="landing-actions">
           <button type="button" className="stitch-mint-cta large" onClick={register}>
             <span>{signedIn ? 'Ir para o Início' : 'Criar minha conta gratuita'}</span>
@@ -214,11 +214,10 @@ export default function Landing({ go, setAuthMode, signedIn }) {
         <div className="stitch-landing-footer-top">
           <div className="stitch-landing-footer-brand">
             <div className="stitch-footer-logo-row">
-              <Logo size={28}/>
+              <Logo size={22}/>
               <strong>Lume</strong>
-              <span className="soft-badge tone-mint">Santuário de estudos</span>
             </div>
-            <p>Seu ritmo, sua jornada. Uma plataforma social e neuroinclusiva para aprender com continuidade e pausas sem punição.</p>
+            <p>Plataforma social de estudos: disciplinas, provas e entregas em dia, com amigos e ranking opcionais.</p>
           </div>
           <div className="stitch-landing-footer-cols">
             <div>
@@ -242,7 +241,7 @@ export default function Landing({ go, setAuthMode, signedIn }) {
         </div>
         <div className="stitch-landing-footer-bottom">
           <span>Lume · Cadastro com e-mail e senha · Prévia temporária disponível</span>
-          <span className="stitch-status-pill"><span className="soft-dot tone-mint-text" aria-hidden="true"/>Ritmo Autônomo Ativo</span>
+          
         </div>
       </div>
     </footer>

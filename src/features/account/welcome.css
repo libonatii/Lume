@@ -272,16 +272,15 @@
 }
 .landing-title {
   margin: 0;
+  font-family: var(--font-display);
   font-size: clamp(2rem, 5.2vw, 3.6rem);
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.03em;
-  line-height: 1.12;
+  line-height: 1.06;
 }
 .landing-title span {
-  background: linear-gradient(90deg, var(--mint), var(--lume), var(--lilac));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  display: block;
+  color: var(--reward);
 }
 .landing-hero .lead {
   margin: 0;
@@ -679,10 +678,6 @@
   justify-content: space-between;
   gap: 1rem;
 }
-.brand-sub {
-  font-weight: 500;
-  color: var(--lume);
-}
 .stitch-landing-nav-actions,
 .stitch-entry-topbar-actions {
   display: flex;
@@ -698,21 +693,19 @@
   padding: 0.65rem 1.35rem;
   border-radius: var(--radius-md);
   border: 0;
-  background: linear-gradient(135deg, var(--mint), color-mix(in srgb, var(--lume) 75%, var(--mint)));
-  color: var(--lume-ink);
+  background: var(--action);
+  color: var(--action-ink);
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   cursor: pointer;
-  box-shadow: 0 0 24px color-mix(in srgb, var(--mint) 36%, transparent);
-  transition: transform 0.16s ease, filter 0.16s ease;
+  transition: background-color 0.16s ease;
 }
 .stitch-mint-cta.large {
   padding: 0.85rem 1.75rem;
   font-size: 0.96rem;
 }
 .stitch-mint-cta:hover {
-  filter: brightness(1.06);
-  transform: translateY(-1px);
+  background: var(--action-hover);
 }
 .stitch-landing-main {
   padding: clamp(2.5rem, 6vw, 4.5rem) clamp(1rem, 4vw, 3rem);
