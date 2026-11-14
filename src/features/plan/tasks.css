@@ -87,7 +87,7 @@
   row-gap: 0.25rem;
   padding: 0.9rem 1rem 0.9rem 1.15rem;
   border-radius: var(--radius-md);
-  background: linear-gradient(180deg, var(--surface-2), var(--surface));
+  background: var(--inner);
   transition: border-color 0.18s ease;
 }
 .todo-list > .todo-item::before {
@@ -101,9 +101,10 @@
 .todo-list > .todo-item:hover {
   border-color: var(--border-strong);
 }
-.todo-list > .todo-item.priority-1 { --todo-accent: var(--danger); }
-.todo-list > .todo-item.priority-2 { --todo-accent: var(--reward); }
-.todo-list > .todo-item.priority-3 { --todo-accent: var(--mint); }
+/* Prioridade em intensidade (papel, azul-claro, sutil); coral só para atraso. */
+.todo-list > .todo-item.priority-1 { --todo-accent: var(--text); }
+.todo-list > .todo-item.priority-2 { --todo-accent: var(--lume); }
+.todo-list > .todo-item.priority-3 { --todo-accent: var(--text-subtle); }
 .todo-list > .todo-item.is-late { --todo-accent: var(--warning); }
 .todo-list > .todo-item.is-done { --todo-accent: transparent; }
 .todo-item.priority-1:not(.is-done) .todo-check {
@@ -135,12 +136,13 @@
   align-items: center;
   gap: 0.3rem;
   max-width: 100%;
-  padding: 0.12rem 0.55rem;
-  border-radius: var(--radius-pill);
+  padding: 0.12rem 0.5rem;
+  border-radius: 6px;
   background: color-mix(in srgb, var(--text-muted) 12%, transparent);
   color: var(--text-muted);
-  font-size: 0.76rem;
-  font-weight: 600;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -169,12 +171,12 @@
   max-width: 9.5rem;
   height: 2.1rem;
   padding: 0 0.6rem;
-  border-radius: var(--radius-pill);
+  border-radius: 10px;
   background: var(--inner);
   border: 1px solid var(--border);
   color: var(--text);
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
 }
 .todo-priority-select:focus {
@@ -236,7 +238,7 @@
   max-width: 100%;
   padding: 0.2rem 0.6rem 0.2rem 0.35rem;
   margin-left: -0.35rem;
-  border-radius: var(--radius-pill);
+  border-radius: 8px;
   color: var(--text-muted);
   font-weight: 600;
   cursor: pointer;
@@ -269,7 +271,7 @@
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: var(--mint);
+  background: var(--trail);
   transition: width 0.36s var(--ease-out);
 }
 .subtask-meter.is-full span {
@@ -454,11 +456,11 @@
 .subtask-add {
   flex: 0 0 auto;
   padding: 0.35rem 0.85rem;
-  border: none;
-  border-radius: var(--radius-pill);
-  background: var(--lume-soft);
-  color: var(--lume);
-  font-weight: 700;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  font-weight: 500;
   font-size: 0.82rem;
   cursor: pointer;
   transition: opacity 0.16s ease;

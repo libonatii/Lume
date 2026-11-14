@@ -133,7 +133,7 @@
   background: var(--surface);
 }
 .slide-number {
-  font-family: var(--font-serif);
+  font-family: var(--font-mono);
   color: var(--lume);
   font-size: 1.1rem;
   min-width: 1.7rem;

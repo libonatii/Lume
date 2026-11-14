@@ -1,92 +1,91 @@
 import { test, expect } from '@playwright/test';
 import { seedAccount, readAccount } from './library-helpers.js';
-import { createInitialState, STORAGE_KEY } from '../../public/domain.js';
+import { createInitialState } from '../../public/domain.js';
 
-for (const palette of ['moderno', 'variante2']) {
-  for (const theme of ['dark', 'light']) {
-    test(`botões em cápsula preservam foco, hover e estado desativado (${palette}, ${theme})`, async ({ page }, testInfo) => {
-      const state = { ...createInitialState(), onboarded: true };
-      state.preferences = { ...state.preferences, palette, theme };
-      await seedAccount(page, state);
-      // Contexto novo do Playwright: sem assets antigos do service worker.
-      await page.goto('/#biblioteca');
-      const toolbar = page.locator('.library-root > .page-heading');
-      const primary = toolbar.getByRole('button', { name: 'Adicionar curso', exact: true });
-      const secondary = toolbar.getByRole('button', { name: 'Anexar PDF', exact: true });
-      await expect(primary).toBeVisible();
-      await expect(page.locator('html')).toHaveAttribute('data-palette', palette);
-      await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+for (const theme of ['dark', 'light']) {
+  test(`botões com cantos de 12px preservam foco, hover e estado desativado (${theme})`, async ({ page }, testInfo) => {
+    const state = { ...createInitialState(), onboarded: true };
+    state.preferences = { ...state.preferences, theme };
+    await seedAccount(page, state);
+    // Contexto novo do Playwright: sem assets antigos do service worker.
+    await page.goto('/#biblioteca');
+    const toolbar = page.locator('.library-root > .page-heading');
+    const primary = toolbar.getByRole('button', { name: 'Adicionar curso', exact: true });
+    const secondary = toolbar.getByRole('button', { name: 'Anexar PDF', exact: true });
+    await expect(primary).toBeVisible();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
 
-      for (const button of [primary, secondary]) {
-        const initial = await button.evaluate((element) => {
-          const style = getComputedStyle(element);
-          return { radius: parseFloat(style.borderTopLeftRadius), height: element.offsetHeight };
-        });
-        expect(initial.radius).toBeGreaterThanOrEqual(initial.height / 2);
-        if (testInfo.project.name === 'desktop') {
-          await button.hover();
-          await expect.poll(() => button.evaluate((element) => getComputedStyle(element, '::before').opacity)).toBe('1');
-          const start = await button.evaluate((element) => getComputedStyle(element, '::before').backgroundImage);
-          // Verifica movimento real do destaque, não só a presença de uma classe.
-          await expect.poll(() => button.evaluate((element) => getComputedStyle(element, '::before').backgroundImage)).not.toBe(start);
-          expect(await button.evaluate((element) => element.offsetHeight)).toBe(initial.height);
-          await page.mouse.move(0, 0);
-          await expect.poll(() => button.evaluate((element) => getComputedStyle(element, '::before').opacity)).toBe('0');
-          expect(await button.evaluate((element) => element.getAnimations({ subtree: true }).length)).toBe(0);
-        } else {
-          // Um toque não deve deixar uma animação de hover rodando no celular.
-          await button.hover();
-          expect(await button.evaluate((element) => getComputedStyle(element, '::before').animationName)).toBe('none');
-        }
-      }
-
-      await page.mouse.move(0, 0);
-      await secondary.focus();
-      await page.keyboard.press('Tab');
-      await expect(primary).toBeFocused();
-      expect(await primary.evaluate((element) => element.matches(':focus-visible'))).toBe(true);
-      expect(await primary.evaluate((element) => getComputedStyle(element).outlineStyle)).toBe('solid');
-      expect(await primary.evaluate((element) => parseFloat(getComputedStyle(element).outlineWidth))).toBeGreaterThanOrEqual(2);
-
-      // O novo contorno não bloqueia o clique nem a abertura do diálogo.
-      await secondary.click();
-      const submit = page.getByRole('dialog').getByRole('button', { name: 'Anexar PDF', exact: true });
-      await expect(submit).toBeDisabled();
-      await submit.hover();
-      expect(await submit.evaluate((element) => element.getAnimations({ subtree: true }).length)).toBe(0);
-      await page.getByRole('button', { name: 'Cancelar', exact: true }).click();
-      await expect(page.getByRole('dialog')).not.toBeVisible();
-      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    for (const button of [primary, secondary]) {
+      const initial = await button.evaluate((element) => {
+        const style = getComputedStyle(element);
+        return { radius: parseFloat(style.borderTopLeftRadius), height: element.offsetHeight };
+      });
+      expect(initial.radius).toBe(12);
+      if (testInfo.project.name === 'desktop') await button.hover();
+      // Sem órbita nem outro efeito em movimento no contorno.
+      expect(await button.evaluate((element) => getComputedStyle(element, '::before').content)).toBe('none');
+      expect(await button.evaluate((element) => element.getAnimations({ subtree: true }).filter((animation) => animation instanceof CSSAnimation).length)).toBe(0);
+      expect(await button.evaluate((element) => element.offsetHeight)).toBe(initial.height);
+    }
+    // Primário dourado sólido; secundário só com contorno.
+    const colors = await page.evaluate(() => {
+      const root = getComputedStyle(document.documentElement);
+      const probe = document.createElement('span');
+      probe.style.color = root.getPropertyValue('--action');
+      document.body.append(probe);
+      const action = getComputedStyle(probe).color;
+      probe.remove();
+      return { action };
     });
-  }
+    await page.mouse.move(0, 0);
+    await expect.poll(() => primary.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe(colors.action);
+    await expect.poll(() => secondary.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe('rgba(0, 0, 0, 0)');
+
+    await secondary.focus();
+    await page.keyboard.press('Tab');
+    await expect(primary).toBeFocused();
+    expect(await primary.evaluate((element) => element.matches(':focus-visible'))).toBe(true);
+    expect(await primary.evaluate((element) => getComputedStyle(element).outlineStyle)).toBe('solid');
+    expect(await primary.evaluate((element) => parseFloat(getComputedStyle(element).outlineWidth))).toBeGreaterThanOrEqual(2);
+
+    await secondary.click();
+    const submit = page.getByRole('dialog').getByRole('button', { name: 'Anexar PDF', exact: true });
+    await expect(submit).toBeDisabled();
+    await page.getByRole('button', { name: 'Cancelar', exact: true }).click();
+    await expect(page.getByRole('dialog')).not.toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  });
 }
 
-test('Aparência troca a paleta, aplica no documento e preserva a escolha ao recarregar', async ({ page }) => {
-  await seedAccount(page, { ...createInitialState(), onboarded: true });
+test('identidade única: paleta antiga salva não muda as cores e a escolha de paleta não é oferecida', async ({ page }) => {
+  const state = { ...createInitialState(), onboarded: true };
+  state.preferences = { ...state.preferences, palette: 'variante2' };
+  await seedAccount(page, state);
 
   await page.goto('/#hoje');
-  await expect(page.locator('html')).toHaveAttribute('data-palette', 'moderno');
+  await expect(page.locator('html')).not.toHaveAttribute('data-palette', /.*/);
+  const tokens = await page.evaluate(() => {
+    const root = getComputedStyle(document.documentElement);
+    return { action: root.getPropertyValue('--action').trim(), bg: root.getPropertyValue('--bg').trim(), trail: root.getPropertyValue('--trail').trim() };
+  });
+  expect(tokens).toEqual({ action: '#f6c165', bg: '#0c111b', trail: '#9ec5ff' });
+  await expect(page.locator('.app-header .logo-mark path')).toHaveAttribute('d', /^M12 0 L14\.3 9\.7/);
+
   await page.getByRole('button', { name: 'Conforto visual' }).click();
-  const group = page.locator('#comfort-popover').getByRole('radiogroup', { name: 'Paleta de cores' });
-  await expect(group.getByRole('radio', { name: 'Azul' })).toBeChecked();
-
-  await group.getByRole('radio', { name: 'Roxo' }).check();
-  await expect(page.locator('html')).toHaveAttribute('data-palette', 'variante2');
-  const action = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--action').trim());
-  expect(action).toBe('#7c3aed');
-
+  await expect(page.locator('#comfort-popover').getByText('Paleta de cores')).toHaveCount(0);
+  await page.locator('#comfort-popover').getByRole('button', { name: 'Claro', exact: true }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await page.reload();
-  await expect(page.locator('html')).toHaveAttribute('data-palette', 'variante2');
-  await page.getByRole('button', { name: 'Conforto visual' }).click();
-  await expect(page.locator('#comfort-popover').getByRole('radiogroup', { name: 'Paleta de cores' }).getByRole('radio', { name: 'Roxo' })).toBeChecked();
-  const saved = (await readAccount(page)).preferences.palette;
-  expect(saved).toBe('variante2');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+
+  const saved = await readAccount(page);
+  // O campo continua aceito nos dados só por compatibilidade.
+  expect(saved.preferences.palette).toBe('variante2');
+  expect(saved.preferences.theme).toBe('light');
 
   await page.goto('/#configuracoes');
   await expect(page.getByRole('heading', { name: 'Configurações', exact: true })).toBeVisible();
-  await expect(page.getByRole('group', { name: 'Paleta de cores' }).getByRole('radio', { name: /^Roxo/ })).toBeChecked();
-  await page.getByRole('group', { name: 'Paleta de cores' }).getByRole('radio', { name: /^Azul/ }).check();
-  await expect(page.locator('html')).toHaveAttribute('data-palette', 'moderno');
-  const moderno = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--action').trim());
-  expect(moderno).toBe('#4d8eff');
+  await expect(page.getByRole('group', { name: 'Paleta de cores' })).toHaveCount(0);
+  await expect(page.getByRole('radio', { name: 'Escuro' })).not.toBeChecked();
+  await expect(page.getByRole('radio', { name: 'Claro' })).toBeChecked();
 });

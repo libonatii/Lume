@@ -88,7 +88,7 @@
   transition: transform 0.16s ease;
 }
 .switch:checked {
-  background: var(--mint);
+  background: var(--action);
 }
 .switch:checked::after {
   transform: translateX(1.25rem);
@@ -114,8 +114,8 @@
   background: var(--surface-3);
 }
 .style-card[aria-checked="true"] {
-  background: var(--surface-3);
-  border-color: color-mix(in srgb, var(--mint) 45%, transparent);
+  background: var(--surface-2);
+  border-color: var(--text);
 }
 .style-card small {
   color: var(--text-subtle);
@@ -137,7 +137,7 @@
   color: var(--bg);
 }
 .style-card[aria-checked="true"] .style-check {
-  background: var(--mint);
+  background: var(--text);
 }
 .style-check .icon {
   width: 0.8rem;
@@ -154,29 +154,30 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.5rem 0.95rem;
-  border-radius: var(--radius-pill);
-  border: 1px solid transparent;
-  background: var(--surface-2);
+  padding: 0.5rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: transparent;
   color: var(--text-muted);
-  font-size: 0.82rem;
-  font-weight: 600;
+  font-size: 0.85rem;
+  font-weight: 500;
   cursor: pointer;
 }
 .duration-pill {
-  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
 }
 .day-chip small {
-  color: var(--text-subtle);
+  color: inherit;
+  opacity: 0.75;
+  font-family: var(--font-mono);
   font-weight: 500;
 }
 .day-chip[aria-pressed="true"],
 .duration-pill[aria-pressed="true"] {
-  background: var(--surface-3);
-  color: var(--text);
-}
-.duration-pill[aria-pressed="true"] {
-  color: var(--mint);
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--bg);
+  font-weight: 700;
 }
 .day-chip-date input {
   border: 0;
@@ -194,7 +195,7 @@
 }
 .schedule-summary-head h2 {
   margin: 0;
-  color: var(--lume);
+  color: var(--text-subtle);
 }
 .summary-list {
   display: grid;
@@ -261,7 +262,8 @@
 }
 .planned-list small {
   color: var(--text-subtle);
-  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
 }
 
 @media (max-width: 1080px) {
@@ -301,9 +303,10 @@
   flex: 1;
 }
 .schedule-linked-copy small {
-  font-size: 0.72rem;
-  color: var(--mint);
-  font-weight: 600;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--lume);
+  font-weight: 500;
 }
 .schedule-linked-copy strong {
   font-size: 0.9rem;

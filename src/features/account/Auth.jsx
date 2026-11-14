@@ -24,7 +24,7 @@ const OBJECTIVE_COPY = {
 const OBJECTIVES = STUDY_GOALS.map((id) => [id, ...OBJECTIVE_COPY[id]]);
 
 const TRUST_LOGIN = [
-  ['focus', 'Espaço sem distrações'],
+  ['calendar', 'Provas e entregas em dia'],
   ['lock', 'Senha guardada só como hash'],
   ['users', 'Amigos e ranking opcionais'],
 ];
@@ -32,7 +32,7 @@ const TRUST_LOGIN = [
 const TRUST_REGISTER = [
   ['shield', '100% gratuito para começar'],
   ['lock', 'Dados privados e protegidos'],
-  ['pause', 'Pausas sem punição'],
+  ['pause', 'Pausar não tira XP'],
 ];
 
 export function Login({ model, mode, setMode, go, notify }) {
@@ -84,8 +84,8 @@ export function Login({ model, mode, setMode, go, notify }) {
     <header className="stitch-entry-topbar">
       <div className="stitch-entry-topbar-inner">
         <a className="brand" href="#conheca" aria-label="Lume — início">
-          <Logo size={34}/>
-          <span className="brand-name">Lume <span className="brand-sub">Academy</span></span>
+          <Logo size={24}/>
+          <span className="brand-name">Lume</span>
         </a>
         <div className="stitch-entry-topbar-actions">
           <a className="text-button" href="#conheca">Conheça o Lume</a>
@@ -105,16 +105,15 @@ export function Login({ model, mode, setMode, go, notify }) {
         <section className="auth-card crest-card stitch-auth-card" aria-labelledby="welcome-title">
           <div className="stitch-auth-emblem-head">
             <span className="auth-emblem"><Logo size={48}/></span>
-            <span className="soft-badge tone-mint">
-              <span className="soft-dot" aria-hidden="true"/>
-              {registering ? 'Nova jornada · Santuário do estudante' : 'Santuário de estudos'}
+            <span className="soft-badge">
+              {registering ? 'conta nova · grátis' : 'de volta aos estudos'}
             </span>
             <h1 id="welcome-title" className="headline stitch-auth-heading">
-              {registering ? 'Crie seu santuário no Lume' : 'Entre no Lume'}
+              {registering ? 'Crie sua conta no Lume' : 'Entre no Lume'}
             </h1>
             <p className="muted-text stitch-auth-sub">
               {registering
-                ? 'Um ambiente sereno para aprender no seu ritmo, sem distrações nem cobranças punitivas.'
+                ? 'Organize disciplinas, provas e entregas, e veja o quanto já avançou.'
                 : 'Retome suas sessões de foco e seus materiais exatamente onde parou.'}
             </p>
           </div>
@@ -143,7 +142,7 @@ export function Login({ model, mode, setMode, go, notify }) {
             {/* No cadastro o título do cartão já apresenta a tela, como na versão nova do Stitch. */}
             {!registering && <div className="auth-title">
               <h2 id="login-title" className="title">Bem-vindo de volta ao Lume.</h2>
-              <p>Seu próximo aprendizado está esperando por você.</p>
+              <p>A próxima aula está onde você parou.</p>
             </div>}
 
             <form id="auth-form" className="form-stack stitch-auth-form" onSubmit={submit} aria-busy={busy}>
@@ -295,7 +294,7 @@ export function Login({ model, mode, setMode, go, notify }) {
 
     <footer className="stitch-entry-footer">
       <div className="stitch-entry-footer-inner">
-        <span>Seu espaço de estudos: ritmo próprio, pausas sem punição e acesso com e-mail e senha.</span>
+        <span>Provas, trabalhos e entregas em dia. Acesso com e-mail e senha.</span>
         <nav aria-label="Links de entrada">
           <a href="#conheca">Conheça o Lume</a>
           <a href="#recuperar">Recuperar acesso</a>

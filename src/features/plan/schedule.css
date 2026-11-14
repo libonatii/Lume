@@ -5,7 +5,7 @@
 }
 .plan-conflict {
   border-color: var(--warning);
-  background: linear-gradient(var(--warning-soft), var(--warning-soft)), var(--surface);
+  background: color-mix(in srgb, var(--warning) 8%, var(--surface));
 }
 .plan-conflict .title {
   display: flex;
@@ -57,8 +57,9 @@
   }
 }
 
-/* Plano de Estudos no desenho do Stitch: cabeçalho, abas, faixa de datas,
-   distribuição dos blocos (8 colunas) e ritmo e marcos (4 colunas). */
+/* Plano de Estudos (identidade Norte): cabeçalho, abas, faixa de datas,
+   distribuição dos blocos (8 colunas), semana e marcos (4 colunas). Hoje em
+   dourado, progresso em azul-claro, coral só para atraso; datas em mono. */
 .plan-root {
   gap: 1.5rem;
 }
@@ -85,7 +86,7 @@
   height: 1.1rem;
 }
 .section-tab.active .icon {
-  color: var(--lume);
+  color: inherit;
 }
 
 .plan-controls.card-surface {
@@ -128,18 +129,21 @@
 }
 .plan-range-label {
   padding: 0 0.85rem;
+  font-family: var(--font-mono);
   font-size: 0.82rem;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text);
   white-space: nowrap;
 }
 .plan-today {
   padding: 0.4rem 0.8rem;
   border: 0;
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--surface-3) 80%, transparent);
-  color: var(--lilac);
-  font-size: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--reward);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
 }
@@ -157,9 +161,9 @@
   cursor: pointer;
 }
 .plan-view-switch button[aria-pressed='true'] {
-  background: var(--surface-3);
-  color: var(--text);
-  box-shadow: var(--shadow-sm);
+  background: var(--text);
+  color: var(--bg);
+  box-shadow: none;
 }
 
 .plan-layout {
@@ -195,19 +199,17 @@
   gap: 0.5rem;
   margin: 0;
 }
-.plan-board-head .title .icon {
-  color: var(--lilac);
-}
+.plan-board-head .title .icon,
 .plan-card-head .title .icon {
-  color: var(--mint);
-}
-.plan-milestones .plan-card-head .title .icon {
-  color: var(--warning);
+  color: var(--text-subtle);
 }
 .plan-board-head .muted-text,
-.plan-card-head .muted-text {
+.plan-card-head .muted-text,
+.plan-card-meta {
   margin: 0;
+  font-family: var(--font-mono);
   font-size: 0.8rem;
+  color: var(--text-subtle);
 }
 .plan-setup {
   display: grid;
@@ -231,45 +233,46 @@
   justify-items: center;
   gap: 0.1rem;
   padding: 0.55rem 0.25rem;
-  border: 1px solid transparent;
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--surface-2) 45%, transparent);
+  background: transparent;
   color: var(--text);
+  font-family: var(--font-mono);
   cursor: pointer;
 }
 .plan-week-day span {
   color: var(--text-subtle);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-transform: lowercase;
 }
 .plan-week-day strong {
-  font-size: 1.1rem;
+  font-size: 1.15rem;
+  font-weight: 700;
 }
 .plan-week-day i {
   width: 0.375rem;
   height: 0.375rem;
   border-radius: 50%;
-  background: var(--lume);
+  background: var(--reward);
 }
 .plan-week-day:hover {
   background: var(--surface-2);
 }
-.plan-week-day.is-rest {
-  background: color-mix(in srgb, var(--mint) 6%, transparent);
-}
+/* Dia sem disponibilidade fica só apagado. */
 .plan-week-day.is-rest span,
 .plan-week-day.is-rest strong {
-  color: var(--mint);
+  color: var(--text-subtle);
+  opacity: 0.7;
 }
-.plan-week-day.is-today span {
-  color: var(--lume);
+.plan-week-day.is-today span,
+.plan-week-day.is-today strong {
+  color: var(--reward);
 }
 .plan-week-day.is-selected {
-  background: var(--surface-3);
-  border-color: color-mix(in srgb, var(--lume) 30%, transparent);
-  box-shadow: 0 0 16px color-mix(in srgb, var(--lume) 20%, transparent);
+  background: var(--surface-2);
+  border-color: var(--text-subtle);
+  box-shadow: none;
 }
 
 .plan-day-detail {
@@ -278,15 +281,8 @@
   gap: 0.9rem;
   padding: 1.15rem;
   border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--surface-2) 70%, transparent);
-}
-.plan-day-detail::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  height: 3px;
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  background: linear-gradient(90deg, var(--lilac), var(--mint));
+  background: var(--inner);
+  border: 1px solid var(--border);
 }
 .plan-day-detail-head {
   display: flex;
@@ -301,10 +297,13 @@
   gap: 0.6rem;
 }
 .plan-day-chips .soft-badge {
-  background: color-mix(in srgb, var(--lilac) 18%, transparent);
-  color: var(--lilac);
+  color: var(--text);
+}
+.plan-day-detail.is-today .plan-day-chips .soft-badge {
+  color: var(--reward);
 }
 .plan-day-chips .muted-text {
+  font-family: var(--font-mono);
   font-size: 0.8rem;
 }
 .plan-done-count {
@@ -331,9 +330,9 @@
 }
 .plan-block.is-current {
   padding: 1rem;
-  background: var(--surface-3);
-  box-shadow: var(--shadow-lg);
-  border-left: 2px solid var(--lume);
+  background: var(--surface-2);
+  box-shadow: none;
+  border-left: 2px solid var(--reward);
 }
 .plan-block.is-done .plan-item-copy strong {
   color: var(--text-muted);
@@ -346,7 +345,7 @@
   height: 2rem;
   border-radius: 0.5rem;
   background: var(--surface-2);
-  color: var(--reward);
+  color: var(--lume);
 }
 .plan-block-icon.tone-mint {
   background: var(--mint-soft);
@@ -379,9 +378,9 @@
   display: grid;
   gap: 0.75rem;
   padding: 0.9rem 1rem;
-  border: 1px solid transparent;
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--surface-2) 45%, transparent);
+  background: transparent;
   color: var(--text);
   text-align: left;
   cursor: pointer;
@@ -397,18 +396,16 @@
 }
 .plan-mini-head small {
   color: var(--text-subtle);
+  font-family: var(--font-mono);
   font-size: 0.72rem;
 }
 .plan-mini-copy {
   color: var(--text-subtle);
   font-size: 0.78rem;
 }
-.plan-mini-day.is-rest {
-  background: color-mix(in srgb, var(--mint) 6%, transparent);
-}
 .plan-mini-day.is-rest strong,
 .plan-mini-day.is-rest small {
-  color: var(--mint);
+  color: var(--text-subtle);
 }
 
 .plan-month {
@@ -419,11 +416,11 @@
 .plan-month-label {
   padding-bottom: 0.25rem;
   color: var(--text-subtle);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
   text-align: center;
-  text-transform: uppercase;
+  text-transform: lowercase;
 }
 .plan-month-day {
   display: grid;
@@ -431,29 +428,33 @@
   gap: 0.2rem;
   min-height: 4rem;
   padding: 0.45rem;
-  border: 1px solid transparent;
+  border: 1px solid var(--border);
   border-radius: 0.6rem;
-  background: color-mix(in srgb, var(--surface-2) 45%, transparent);
+  background: transparent;
   color: var(--text);
+  font-family: var(--font-mono);
   text-align: left;
   cursor: pointer;
 }
 .plan-month-day small {
-  color: var(--lilac);
+  color: var(--lume);
   font-size: 0.68rem;
-  font-weight: 600;
+  font-weight: 500;
 }
 .plan-month-day.is-outside {
   opacity: 0.4;
 }
 .plan-month-day.is-rest strong {
-  color: var(--mint);
+  color: var(--text-subtle);
 }
 .plan-month-day.is-today {
-  border-color: color-mix(in srgb, var(--lume) 40%, transparent);
+  border-color: var(--reward);
+}
+.plan-month-day.is-today strong {
+  color: var(--reward);
 }
 .plan-month-day.is-selected {
-  background: var(--surface-3);
+  background: var(--surface-2);
 }
 
 .plan-settings[hidden] {
@@ -483,9 +484,10 @@
   gap: 0.5rem;
 }
 .plan-meter-head strong {
+  font-family: var(--font-mono);
   font-size: 1.6rem;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 .plan-meter-head strong span {
   color: var(--text-subtle);
@@ -509,10 +511,9 @@
   justify-content: space-between;
   gap: 0.5rem;
   color: var(--text-subtle);
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
 }
 .plan-load-bars {
   display: grid;
@@ -535,28 +536,31 @@
   align-self: end;
   width: 100%;
   border-radius: 0.4rem 0.4rem 0.15rem 0.15rem;
-  background: color-mix(in srgb, var(--lilac) 70%, transparent);
+  background: var(--trail);
 }
 .plan-load-bar.is-today i {
-  background: var(--lume);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--lume) 40%, transparent);
+  background: var(--reward);
 }
+/* Planejado: só o contorno tracejado, como o caminho que falta na constelação. */
 .plan-load-bar.is-planned i {
-  background: color-mix(in srgb, var(--surface-4, var(--surface-3)) 70%, transparent);
+  background: transparent;
+  border: 1.5px dashed var(--trail-future);
+  border-bottom: 0;
 }
-.plan-load-bar.is-rest i {
-  background: color-mix(in srgb, var(--mint) 40%, transparent);
+/* Dia sem disponibilidade e sem estudo fica só apagado. */
+.plan-load-bar.is-rest.is-planned i {
+  background: var(--dot-off);
+  border: 0;
 }
 .plan-load-bar small {
   color: var(--text-subtle);
-  font-size: 0.68rem;
-  font-weight: 700;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 500;
 }
 .plan-load-bar.is-today small {
-  color: var(--lume);
-}
-.plan-load-bar.is-rest small {
-  color: var(--mint);
+  color: var(--reward);
+  font-weight: 700;
 }
 
 .plan-milestone-list {
@@ -566,36 +570,26 @@
   display: grid;
   gap: 0.75rem;
 }
+/* Marcos em contagem regressiva: dias em mono grande; o mais próximo em dourado. */
 .plan-milestone {
   display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 0.85rem;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.8rem 0.95rem;
   border-radius: var(--radius-md);
   background: var(--inner);
-  --tone: var(--lume);
+  border: 1px solid var(--border);
+  --tone: var(--text-subtle);
 }
-.plan-milestone.tone-warning { --tone: var(--warning); }
-.plan-milestone.tone-mint { --tone: var(--mint); }
-.plan-milestone-date {
-  display: grid;
-  place-items: center;
+.plan-milestone.tone-warning { --tone: var(--warning); border-color: var(--warning); }
+.plan-milestone-days {
   flex: none;
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--tone) 15%, transparent);
-  color: var(--tone);
-  line-height: 1;
-}
-.plan-milestone-date strong {
-  font-size: 0.8rem;
-}
-.plan-milestone-date small {
-  font-size: 0.56rem;
+  min-width: 2ch;
+  font-family: var(--font-mono);
+  font-size: 2rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  line-height: 1;
+  color: var(--tone);
 }
 .plan-milestone-copy {
   display: grid;
@@ -603,40 +597,27 @@
   flex: 1;
   min-width: 0;
 }
-.plan-milestone-top {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.5rem;
+.plan-milestone-when,
+.plan-milestone-detail {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-subtle);
 }
-.plan-milestone-top strong {
+.plan-milestone-copy strong {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.88rem;
+  font-size: 0.92rem;
 }
-.plan-milestone-top small {
-  flex: none;
-  color: var(--tone);
-  font-size: 0.72rem;
-  font-weight: 700;
+.plan-milestone.is-next {
+  background: var(--action);
+  border-color: var(--action);
+  color: var(--action-ink);
 }
-.plan-milestone-copy .muted-text {
-  font-size: 0.78rem;
-}
-.plan-milestone-note {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin-top: 0.35rem;
-  color: var(--text-muted);
-  font-size: 0.72rem;
-  font-weight: 600;
-}
-.plan-milestone-note i {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 50%;
-  background: var(--tone);
+.plan-milestone.is-next .plan-milestone-days,
+.plan-milestone.is-next .plan-milestone-when,
+.plan-milestone.is-next .plan-milestone-detail {
+  color: var(--action-ink);
 }
 .plan-milestones-link {
   justify-self: center;
@@ -676,7 +657,7 @@
   margin: 0;
 }
 .tasks-done summary .title .icon {
-  color: var(--mint);
+  color: var(--lume);
 }
 .tasks-done[open] summary > .icon {
   transform: rotate(180deg);
@@ -704,12 +685,14 @@
 }
 .tasks-stats dt {
   color: var(--text-subtle);
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
 }
 .tasks-stats dd {
   margin: 0;
-  font-size: 1.2rem;
+  font-family: var(--font-mono);
+  font-size: 1.4rem;
   font-weight: 700;
 }
 
@@ -740,4 +723,16 @@
   .plan-month-day small {
     display: none;
   }
+}
+
+/* Marco atrasado continua em coral, mesmo sendo o mais próximo. */
+.plan-milestone.is-next.tone-warning {
+  background: var(--warning);
+  border-color: var(--warning);
+  color: var(--warning-ink);
+}
+.plan-milestone.is-next.tone-warning .plan-milestone-days,
+.plan-milestone.is-next.tone-warning .plan-milestone-when,
+.plan-milestone.is-next.tone-warning .plan-milestone-detail {
+  color: var(--warning-ink);
 }

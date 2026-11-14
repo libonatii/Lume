@@ -169,7 +169,7 @@ export default function FocusSession({ state, actions, settingsActions, open, no
           </span>
           {shieldEnabled && active && <span className="soft-badge tone-lume"><Icon name="shield"/>Escudo ativo</span>}
         </div>
-        <p className="lead">Escolha um ciclo, vincule seu material e estude em serenidade. Pausar não apaga nada.</p>
+        <p className="lead">Escolha um ciclo, vincule o material e comece. Pausar não apaga nada.</p>
       </div>
       <div className="focus-goal">
         <span><small className="metric-label">Hoje</small><strong>{formatMinutes(today.minutes)}{goal ? ` / ${formatMinutes(goal)}` : ''}</strong></span>
@@ -193,7 +193,7 @@ export default function FocusSession({ state, actions, settingsActions, open, no
 
     <div className="focus-grid">
       <div className="focus-main-col">
-        <section className="card-surface focus-timer crest-card" aria-labelledby="focus-cycle-title">
+        <section className="card-surface focus-timer" aria-labelledby="focus-cycle-title">
           <div className="focus-cycles">
             <div className="focus-cycles-head">
               <span id="focus-cycle-title" className="metric-label">Ciclos sugeridos</span>
@@ -220,16 +220,9 @@ export default function FocusSession({ state, actions, settingsActions, open, no
 
           <div className="focus-dial">
             <svg viewBox="0 0 280 280" aria-hidden="true" focusable="false">
-              <defs>
-                <linearGradient id="focus-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="var(--mint)"/>
-                  <stop offset="60%" stopColor="var(--lume-2)"/>
-                  <stop offset="100%" stopColor="var(--lume)"/>
-                </linearGradient>
-              </defs>
               <circle cx="140" cy="140" r={RADIUS} className="focus-dial-track"/>
               <circle cx="140" cy="140" r="98" className="focus-dial-well"/>
-              <circle cx="140" cy="140" r={RADIUS} className="focus-dial-progress" stroke="url(#focus-gradient)" strokeDasharray={CIRCUMFERENCE} strokeDashoffset={CIRCUMFERENCE * (1 - progress)}/>
+              <circle cx="140" cy="140" r={RADIUS} className="focus-dial-progress" strokeDasharray={CIRCUMFERENCE} strokeDashoffset={CIRCUMFERENCE * (1 - progress)}/>
             </svg>
             <div className="focus-dial-center">
               <span className="soft-badge tone-mint"><Icon name="timer"/>Ciclo {completedCycles + 1}</span>
@@ -257,13 +250,6 @@ export default function FocusSession({ state, actions, settingsActions, open, no
           </p>
         </section>
 
-        <blockquote className="card-surface focus-quote-card">
-          <Icon name="spark"/>
-          <div>
-            <p>“O segredo da continuidade duradoura não está na pressa de fechar etapas, mas na calma em compreendê-las.”</p>
-            <small>Seu ritmo permanece preservado em cada pausa.</small>
-          </div>
-        </blockquote>
       </div>
 
       <div className="focus-side">
@@ -299,7 +285,7 @@ export default function FocusSession({ state, actions, settingsActions, open, no
           <div className="card-heading">
             <div>
               <span className="card-icon tone-lume"><Icon name="notes"/></span>
-              <h2 id="focus-notes-title" className="title">Anotações rápidas (modo Zen)</h2>
+              <h2 id="focus-notes-title" className="title">Anotações rápidas</h2>
             </div>
             <button type="button" className="text-button" aria-expanded={zenNotesOpen} onClick={() => setZenNotesOpen(o => !o)}>
               {zenNotesOpen ? 'Recolher' : 'Abrir'}

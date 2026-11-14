@@ -262,8 +262,8 @@ export default function Onboarding({ state, actions, libraryActions, go, notify,
     <header className="stitch-entry-topbar">
       <div className="stitch-entry-topbar-inner">
         <a className="brand" href="#conheca" aria-label="Lume — início">
-          <Logo size={34}/>
-          <span className="brand-name">Lume <span className="brand-sub">Academy</span></span>
+          <Logo size={24}/>
+          <span className="brand-name">Lume</span>
         </a>
         <div className="stitch-entry-topbar-actions">
           <span className="soft-badge">Passo {phase + 1} de 4</span>

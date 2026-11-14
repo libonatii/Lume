@@ -2,17 +2,17 @@
    As folhas de estrutura não repetem estas declarações. */
 
 /* ==========================================================================
-   Redesign Sereno (Stitch · Lume Academy Design System): cartões com filete
-   luminoso, cabeçalho em vidro com navegação em pílula e tipografia única em
-   Plus Jakarta Sans. A casca fica em src/app/shell.css.
-   As cores vêm dos tokens; a paleta muda por html[data-palette].
+   Identidade Norte: fundo noturno com malha discreta de pontos, cartões planos
+   com borda, títulos em Bricolage Grotesque, texto em Atkinson Hyperlegible
+   Next e números e contexto gamificado em JetBrains Mono. Dourado é marca,
+   ação principal, hoje e XP; azul-claro é progresso e caminho percorrido.
+   A casca fica em src/app/shell.css. As cores vêm dos tokens.
    ========================================================================== */
 
 body {
   background-color: var(--bg);
-  background-image:
-    radial-gradient(ellipse 520px 520px at 30% 8%, var(--glow-a), transparent 70%),
-    radial-gradient(ellipse 480px 480px at 72% 92%, var(--glow-b), transparent 70%);
+  background-image: radial-gradient(var(--grid-dot) 1px, transparent 1.4px);
+  background-size: 28px 28px;
   background-attachment: fixed;
 }
 ::selection {
@@ -22,22 +22,22 @@ body {
 
 /* Tipografia */
 .display {
-  font-family: var(--font-sans);
-  font-weight: 800;
+  font-family: var(--font-display);
+  font-weight: 700;
   font-size: clamp(1.9rem, 3vw, 2.35rem);
   letter-spacing: -0.025em;
   line-height: 1.1;
   font-variation-settings: normal;
 }
 .headline {
-  font-family: var(--font-sans);
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: clamp(1.3rem, 2vw, 1.55rem);
   letter-spacing: -0.02em;
   font-variation-settings: normal;
 }
 .title {
-  font-family: var(--font-sans);
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 1.05rem;
   letter-spacing: -0.01em;
@@ -48,10 +48,19 @@ body {
   color: var(--lume);
 }
 .eyebrow {
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  color: var(--lume);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-subtle);
+}
+/* Números, datas e todo contexto gamificado: JetBrains Mono. */
+.mono,
+.metric-label,
+.animated-number,
+.ring-content {
+  font-family: var(--font-mono);
 }
 .lead,
 .muted-text {
@@ -65,7 +74,7 @@ body {
 }
 .chip-button,
 .account-chip {
-  border-radius: var(--radius-pill);
+  border-radius: 10px;
   background: var(--surface);
   border: 1px solid var(--border);
   color: var(--text-muted);
@@ -79,30 +88,19 @@ body {
   color: var(--lume);
 }
 .avatar {
-  background: linear-gradient(45deg, var(--action), var(--lume));
-  color: var(--action-ink);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
 }
 
 /* Cartões Bento */
 .card-surface {
   position: relative;
-  border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, var(--card-from), var(--card-to));
-  border: 1px solid color-mix(in srgb, var(--surface-3) 55%, transparent);
-  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: none;
   padding: 1.5rem;
-  transition: border-color 0.2s ease;
-}
-.card-surface:hover {
-  border-color: var(--border-accent);
-}
-.next-action::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  height: 2px;
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  background: var(--crest);
 }
 .card-icon {
   display: inline-grid;
@@ -146,14 +144,15 @@ body {
   gap: 0.4rem;
   width: fit-content;
   padding: 0.28rem 0.75rem;
-  border-radius: var(--radius-pill);
-  background: var(--lume-soft);
-  border: 1px solid color-mix(in srgb, var(--lume-2) 30%, transparent);
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
   color: var(--lume);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
 }
 .pill.tone-reward {
   background: var(--reward-soft);
@@ -163,18 +162,13 @@ body {
   text-transform: none;
 }
 
-/* Cápsulas: a luz percorre só o contorno, sem girar texto ou ícone. */
-@property --button-border-angle {
-  syntax: '<angle>';
-  inherits: false;
-  initial-value: 0deg;
-}
-
+/* Botões: cantos de 12px. Primário dourado sólido, secundário com contorno,
+   terciário (ghost) só texto em azul-claro. Sem efeito em movimento. */
 .button {
   --button-ring-color: var(--lume);
   position: relative;
-  border-radius: var(--radius-pill);
-  font-weight: 600;
+  border-radius: var(--radius-md);
+  font-weight: 700;
   transition: background-color var(--dur-fast) ease, border-color var(--dur-fast) ease, color var(--dur-fast) ease;
 }
 .button.primary {
@@ -187,13 +181,23 @@ body {
   filter: none;
 }
 .button.secondary {
-  background: color-mix(in srgb, var(--lume) 6%, var(--surface-2));
-  border-color: color-mix(in srgb, var(--lume) 28%, var(--border));
+  background: transparent;
+  border-color: var(--border-strong);
   color: var(--text);
+  font-weight: 500;
 }
 .button.secondary:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--lume) 12%, var(--surface-2));
-  border-color: var(--lume);
+  background: var(--surface-2);
+  border-color: var(--text-subtle);
+}
+.button.ghost {
+  background: transparent;
+  color: var(--lume);
+  font-weight: 500;
+  padding-inline: 0.5rem;
+}
+.button.ghost:hover:not(:disabled) {
+  background: var(--lume-soft);
 }
 .button.primary.danger-button {
   --button-ring-color: var(--danger);
@@ -208,44 +212,8 @@ body {
   outline-offset: 3px;
 }
 
-/* A máscara deixa o centro vazio; o anel não intercepta cliques nem muda medidas.
-   Sem suporte à máscara, permanecem a borda normal e o foco estático. */
-@supports (mask-composite: exclude) or (-webkit-mask-composite: xor) {
-  .button:is(.primary, .secondary):not(:disabled)::before {
-    content: '';
-    position: absolute;
-    inset: -5px;
-    padding: 2px;
-    border-radius: inherit;
-    pointer-events: none;
-    background: conic-gradient(from var(--button-border-angle),
-      transparent 0deg 70deg,
-      color-mix(in srgb, var(--button-ring-color) 30%, transparent) 120deg,
-      var(--button-ring-color) 170deg,
-      color-mix(in srgb, var(--button-ring-color) 55%, var(--text)) 195deg,
-      transparent 235deg 360deg);
-    -webkit-mask: linear-gradient(var(--text) 0 0) content-box, linear-gradient(var(--text) 0 0);
-    -webkit-mask-composite: xor;
-    mask: linear-gradient(var(--text) 0 0) content-box, linear-gradient(var(--text) 0 0);
-    mask-composite: exclude;
-    opacity: 0;
-    transition: opacity var(--dur-fast) ease;
-  }
 
-  /* Só o ponteiro com hover mantém a órbita; toque não deixa um efeito preso. */
-  @media (hover: hover) and (pointer: fine) {
-    .button:is(.primary, .secondary):not(:disabled):hover::before {
-      opacity: 1;
-      animation: button-border-orbit 2.8s linear infinite;
-    }
-  }
-}
-
-@keyframes button-border-orbit {
-  to { --button-border-angle: 360deg; }
-}
-
-/* Tela de carregamento: cartão com duas camadas atrás e a mesma órbita de borda dos botões. */
+/* Tela de carregamento: cartão com duas camadas atrás e três pontos. */
 .boot-stage {
   position: fixed;
   inset: 0;
@@ -259,7 +227,7 @@ body {
   position: absolute;
   top: clamp(1rem, 3vw, 2rem);
   left: clamp(1.2rem, 4vw, 3rem);
-  font-family: var(--font-sans);
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 1.6rem;
   letter-spacing: -0.02em;
@@ -274,9 +242,8 @@ body {
   gap: 0.9rem;
   padding: clamp(2rem, 5vw, 3rem) clamp(1.4rem, 4vw, 2.4rem);
   border-radius: var(--radius-xl);
-  border: 1px solid color-mix(in srgb, var(--boot-ring) 40%, var(--border));
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
-  box-shadow: var(--shadow-lg), 0 0 48px color-mix(in srgb, var(--boot-ring) 18%, transparent);
+  border: 1px solid var(--border);
+  background: var(--surface);
   text-align: center;
   isolation: isolate;
 }
@@ -305,27 +272,6 @@ body {
 @keyframes boot-dot {
   0%, 60%, 100% { opacity: 0.35; transform: translateY(0); }
   30% { opacity: 1; transform: translateY(-4px); }
-}
-@supports (mask-composite: exclude) or (-webkit-mask-composite: xor) {
-  .boot-card::before {
-    content: '';
-    position: absolute;
-    inset: -2px;
-    padding: 2px;
-    border-radius: inherit;
-    pointer-events: none;
-    background: conic-gradient(from var(--button-border-angle),
-      transparent 0deg 70deg,
-      color-mix(in srgb, var(--boot-ring) 30%, transparent) 120deg,
-      var(--boot-ring) 170deg,
-      color-mix(in srgb, var(--boot-ring) 55%, var(--text)) 195deg,
-      transparent 235deg 360deg);
-    -webkit-mask: linear-gradient(var(--text) 0 0) content-box, linear-gradient(var(--text) 0 0);
-    -webkit-mask-composite: xor;
-    mask: linear-gradient(var(--text) 0 0) content-box, linear-gradient(var(--text) 0 0);
-    mask-composite: exclude;
-    animation: button-border-orbit 2.8s linear infinite;
-  }
 }
 .text-link,
 .text-button.accent {
@@ -358,11 +304,10 @@ body {
 }
 .progress > span,
 .progress.tone-lume > span {
-  background: linear-gradient(90deg, var(--lume-2), var(--lume));
+  background: var(--trail);
 }
 .progress.tone-reward > span {
   background: linear-gradient(90deg, var(--xp-from), var(--xp-to));
-  box-shadow: 0 0 10px color-mix(in srgb, var(--reward-strong) 50%, transparent);
 }
 
 /* Cabeçalho de página: sobrancelha com ponto, título forte e filete inferior. */
@@ -374,15 +319,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  color: var(--mint);
-  text-transform: uppercase;
-}
-.page-heading .eyebrow::before {
-  content: '';
-  width: 0.375rem;
-  height: 0.375rem;
-  border-radius: 50%;
-  background: currentColor;
+  color: var(--text-subtle);
 }
 .page-heading .display {
   margin: 0.35rem 0 0.25rem;
@@ -406,9 +343,9 @@ body {
   font-size: 0.85rem;
 }
 .section-tab.active {
-  background: var(--surface-3);
-  color: var(--text);
-  box-shadow: 0 0 16px color-mix(in srgb, var(--lume) 15%, transparent);
+  background: var(--text);
+  color: var(--bg);
+  box-shadow: none;
 }
 
 .next-action .action-row {
@@ -417,69 +354,13 @@ body {
   border-top: 1px solid var(--border);
 }
 
-/* Aparência */
-.palette-options {
-  border: 0;
-  margin: 0.25rem 0 0.5rem;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
-}
-.palette-options legend {
-  font-weight: 600;
-  margin-bottom: 0.6rem;
-}
-.palette-option {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  grid-template-areas: 'swatch swatch' 'radio copy';
-  gap: 0.6rem 0.65rem;
-  align-items: center;
-  padding: 0.9rem;
-  border-radius: 16px;
-  background: var(--inner);
-  border: 1px solid var(--border);
-  cursor: pointer;
-}
-.palette-option input {
-  grid-area: radio;
-  accent-color: var(--action);
-}
-.palette-option.is-selected {
-  border-color: var(--border-strong);
-  box-shadow: 0 0 0 3px var(--lume-soft);
-}
-.palette-swatches {
-  grid-area: swatch;
-  display: flex;
-  height: 2.2rem;
-  border-radius: 10px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-}
-.palette-swatches span {
-  flex: 1;
-}
-.palette-copy {
-  grid-area: copy;
-  display: grid;
-  gap: 0.1rem;
-}
-.palette-copy small {
-  color: var(--text-subtle);
-}
-
 @media (max-width: 820px) {
-  .palette-options {
-    grid-template-columns: minmax(0, 1fr);
-  }
   .card-surface {
     padding: 1.25rem;
   }
 }
 
-/* Peças do Redesign Sereno usadas em várias telas. */
+/* Peças comuns usadas em várias telas. */
 .soft-badges {
   display: flex;
   flex-wrap: wrap;
@@ -492,14 +373,15 @@ body {
   gap: 0.4rem;
   width: fit-content;
   padding: 0.25rem 0.75rem;
-  border: 0;
-  border-radius: var(--radius-pill);
-  background: var(--inner);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
   color: var(--lume);
   font: inherit;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0;
   line-height: 1.4;
 }
 button.soft-badge {
@@ -516,7 +398,8 @@ button.soft-badge:hover {
   color: var(--mint);
 }
 .soft-badge.tone-reward {
-  color: var(--reward-strong);
+  color: var(--reward);
+  font-weight: 700;
 }
 html[data-theme='light'] .soft-badge {
   background: var(--surface-2);
@@ -529,7 +412,6 @@ html[data-theme='light'] .soft-badge.tone-reward {
   height: 0.5rem;
   border-radius: 50%;
   background: currentColor;
-  box-shadow: 0 0 8px currentColor;
 }
 .card-subtitle {
   margin: 0;
@@ -547,10 +429,9 @@ html[data-theme='light'] .soft-badge.tone-reward {
 }
 .metric-label {
   color: var(--text-subtle);
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0;
 }
 .today-quote {
   display: flex;
@@ -569,7 +450,7 @@ html[data-theme='light'] .soft-badge.tone-reward {
   flex: none;
 }
 .progress.tone-mint > span {
-  background: linear-gradient(90deg, var(--mint), var(--lume));
+  background: var(--trail);
 }
 /* Filete luminoso no topo dos cartões de destaque. */
 .crest-card::before {

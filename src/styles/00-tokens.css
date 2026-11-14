@@ -1,24 +1,57 @@
-/* Fontes locais e tokens de cor por paleta (Azul e Roxo) e tema. */
+/* Identidade Norte: fontes locais (OFL) e tokens de cor por tema.
+   O escuro é o padrão; o claro acompanha a mesma identidade. Não há paletas. */
 
 @font-face {
-  font-family: 'Plus Jakarta Sans';
+  font-family: 'Bricolage Grotesque';
   font-style: normal;
-  font-weight: 400 700;
+  font-weight: 500 800;
   font-display: swap;
-  src: url('/assets/fonts/plus-jakarta-sans-latin-ext.woff2') format('woff2');
+  src: url('/assets/fonts/bricolage-grotesque-latin-ext.woff2') format('woff2');
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 @font-face {
-  font-family: 'Plus Jakarta Sans';
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 500 800;
+  font-display: swap;
+  src: url('/assets/fonts/bricolage-grotesque-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible Next';
   font-style: normal;
   font-weight: 400 700;
   font-display: swap;
-  src: url('/assets/fonts/plus-jakarta-sans-latin.woff2') format('woff2');
+  src: url('/assets/fonts/atkinson-hyperlegible-next-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible Next';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/assets/fonts/atkinson-hyperlegible-next-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/assets/fonts/jetbrains-mono-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/assets/fonts/jetbrains-mono-latin.woff2') format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 :root {
-  /* Movimento curto; a borda dos botões repete só enquanto há hover. */
+  /* Movimento curto e finito. */
   --ease-out: cubic-bezier(.22, 1, .36, 1);
   --ease-spring: cubic-bezier(.34, 1.4, .64, 1);
   --dur-fast: 150ms;
@@ -32,195 +65,166 @@
   --space-6: 2rem;
   --actions-gap: var(--space-2);
   /* Marca-texto do leitor de PDF: pintado sobre a página branca do documento,
-     por isso não muda com paleta nem tema. */
+     por isso não muda com o tema. */
   --highlight-amarelo: #ffe14d;
   --highlight-verde: #7ee787;
   --highlight-azul: #79c0ff;
   --highlight-rosa: #ff8fc7;
   --highlight-laranja: #ffb35c;
-  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  /* O Redesign Moderno usa uma única família; o nome antigo continua apontando para ela. */
-  --font-serif: var(--font-sans);
-  /* Redesign Sereno (padrão, telas do Lume Academy Design System):
-     azul-noite, azul safira, menta de progresso e âmbar de recompensa.
+  /* Texto corrido em Atkinson Hyperlegible Next; títulos e marca em Bricolage
+     Grotesque 700; números, datas, rótulos pequenos e todo contexto gamificado
+     (XP, nível, cargo, ranking, recompensa) em JetBrains Mono. */
+  --font-sans: 'Atkinson Hyperlegible Next', 'Atkinson Hyperlegible', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Bricolage Grotesque', var(--font-sans);
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  /* Nome antigo: as folhas que ainda usam --font-serif recebem a letra de títulos. */
+  --font-serif: var(--font-display);
+  /* Identidade Norte (padrão, tema escuro).
      Funções de cor:
-     --action  botão principal          --lume    destaque, links e navegação ativa
-     --mint    progresso                --success conclusão confirmada (sempre com ícone ou texto)
-     --reward  XP, nível e sessão       --warning atraso       --danger erro */
-  --bg: #081328;
-  --bg-elevated: #0c1322;
-  --surface: #0f172a;
-  --surface-2: #101b30;
-  --surface-3: #1f2a40;
-  --surface-4: #2a354b;
-  --surface-glass: rgba(15, 23, 42, 0.9);
-  --inner: rgba(9, 13, 31, 0.6);
-  --card-from: rgba(15, 23, 42, 0.94);
-  --card-to: rgba(15, 23, 42, 0.94);
-  --border: #1e293b;
-  --border-strong: rgba(59, 130, 246, 0.42);
-  --border-accent: rgba(59, 130, 246, 0.28);
-  --text: #f8fafc;
-  --text-muted: #cbd5e1;
-  --text-subtle: #94a3b8;
-  --action: #4d8eff;
-  --action-hover: #60a5fa;
-  --action-ink: #00285d;
-  --lume: #5ea8ff;
-  --lume-2: #4d8eff;
-  --lume-soft: rgba(77, 142, 255, 0.16);
-  --lume-ink: #06112a;
-  --mint: #4de0b8;
-  --mint-soft: rgba(77, 224, 184, 0.12);
-  --lilac: #adc6ff;
-  --success: #34d399;
-  --success-soft: rgba(52, 211, 153, 0.14);
-  --reward: #fbbf24;
-  --reward-strong: #f59e0b;
-  --reward-hover: #d97706;
-  --reward-soft: rgba(245, 158, 11, 0.15);
-  --reward-ink: #1a1203;
-  --warning: #fb923c;
-  --warning-soft: rgba(251, 146, 60, 0.15);
-  --danger: #f87171;
-  --danger-soft: rgba(248, 113, 113, 0.14);
-  --xp-from: #4d8eff;
-  --xp-to: #f59e0b;
-  --track: #1e293b;
-  --glow-a: rgba(77, 142, 255, 0.1);
-  --glow-b: rgba(77, 224, 184, 0.06);
-  /* Filete luminoso no topo dos cartões principais. */
-  --crest: linear-gradient(90deg, var(--lume-2), var(--lume), var(--mint));
-  --shadow-lg: 0 12px 40px rgba(2, 6, 23, 0.45);
-  --shadow-sm: 0 8px 24px -12px rgba(2, 6, 23, 0.7);
+     --action  botão principal (dourado)    --lume    destaque, links e navegação ativa
+     --mint    progresso e caminho (azul)   --success conclusão confirmada (sempre com ícone ou texto)
+     --reward  XP, nível, hoje (dourado)    --warning atraso (coral)   --danger erro
+     --star    a estrela da marca           --trail   caminho percorrido, pontos acesos */
+  --bg: #0c111b;
+  --bg-elevated: #101623;
+  --surface: #141b2a;
+  --surface-2: #1c2537;
+  --surface-3: #26324d;
+  --surface-4: #2f3c5c;
+  --surface-glass: rgba(16, 22, 35, 0.92);
+  --inner: #101623;
+  --card-from: #141b2a;
+  --card-to: #141b2a;
+  --border: #2a3550;
+  --border-strong: #3a4868;
+  --border-accent: #3a4868;
+  --text: #eef2f7;
+  --text-muted: #c3ccda;
+  --text-subtle: #9aa7ba;
+  --action: #f6c165;
+  --action-hover: #f9d08a;
+  --action-ink: #1f1503;
+  --lume: #9ec5ff;
+  --lume-2: #9ec5ff;
+  --lume-soft: rgba(158, 197, 255, 0.14);
+  --lume-ink: #0c111b;
+  --mint: #9ec5ff;
+  --mint-soft: rgba(158, 197, 255, 0.12);
+  --lilac: #9ec5ff;
+  --success: #9ec5ff;
+  --success-soft: rgba(158, 197, 255, 0.14);
+  --reward: #f6c165;
+  --reward-strong: #f6c165;
+  --reward-hover: #f9d08a;
+  --reward-soft: rgba(246, 193, 101, 0.14);
+  --reward-ink: #1f1503;
+  --warning: #ff8f73;
+  --warning-soft: rgba(255, 143, 115, 0.14);
+  --warning-ink: #2b0d05;
+  --danger: #ff8a8a;
+  --danger-soft: rgba(255, 138, 138, 0.14);
+  --xp-from: #f6c165;
+  --xp-to: #f6c165;
+  --track: #26324d;
+  --star: #f6c165;
+  --star-ink: #1f1503;
+  --trail: #9ec5ff;
+  --trail-future: #50638a;
+  --trail-hollow: #6b80aa;
+  --dot-off: #26324d;
+  /* Cores que a pessoa escolhe para cada disciplina: só identificam, não têm função. */
+  --subject-lume: #9ec5ff;
+  --subject-mint: #7fd6c2;
+  --subject-violet: #c3b3ff;
+  --subject-amber: #f6c165;
+  --subject-coral: #f2a0b8;
+  /* Malha discreta de pontos no fundo da página. */
+  --grid-dot: #26324d;
+  --glow-a: transparent;
+  --glow-b: transparent;
+  /* Nome antigo do filete dos cartões: na identidade Norte o cartão não tem filete colorido. */
+  --crest: transparent;
+  --shadow-lg: none;
+  --shadow-sm: 0 8px 24px -14px rgba(0, 0, 0, 0.6);
   /* Texto sobre imagens e medalhas do ranking não dependem do tema. */
-  --media-ink: #f5f1e8;
-  --media-scrim: rgba(14, 13, 20, 0.9);
-  --glass-surface: rgba(14, 13, 20, 0.42);
-  --glass-surface-strong: rgba(14, 13, 20, 0.62);
-  --medal-1: #f7cf62;
-  --medal-2: #c9d6ea;
+  --media-ink: #eef2f7;
+  --media-scrim: rgba(12, 17, 27, 0.9);
+  --glass-surface: rgba(12, 17, 27, 0.42);
+  --glass-surface-strong: rgba(12, 17, 27, 0.62);
+  --medal-1: #f6c165;
+  --medal-2: #c3ccda;
   --medal-3: #d19a6a;
-  --danger-ink: #1a0508;
-  --radius-xl: 24px;
+  --danger-ink: #2b0508;
+  --radius-xl: 20px;
   --radius-lg: 16px;
   --radius-md: 12px;
   --radius-pill: 999px;
-  --logo-bg: #101b30;
+  --logo-bg: #0c111b;
   color-scheme: dark;
 }
 
-/* Variante 2: ametista crepuscular com lavanda e âmbar. */
-html[data-palette='variante2'] {
-  --bg: #0b0b18;
-  --bg-elevated: #0e0e22;
-  --surface: #13132b;
-  --surface-2: #1c1c3d;
-  --surface-3: #26244d;
-  --surface-4: #312e5e;
-  --surface-glass: rgba(19, 19, 43, 0.9);
-  --inner: rgba(11, 11, 24, 0.6);
-  --card-from: rgba(22, 22, 51, 0.92);
-  --card-to: rgba(14, 14, 34, 0.92);
-  --border: #26244d;
-  --border-strong: rgba(168, 85, 247, 0.45);
-  --border-accent: rgba(168, 85, 247, 0.25);
-  --text: #faf5ff;
-  --text-muted: #e9d5ff;
-  --text-subtle: #a59cc4;
-  --action: #7c3aed;
-  --action-hover: #8b5cf6;
-  --action-ink: #ffffff;
-  --lume: #c084fc;
-  --lume-2: #8b5cf6;
-  --lume-soft: rgba(124, 58, 237, 0.18);
-  --lume-ink: #1a0b2e;
-  --mint: #c084fc;
-  --mint-soft: rgba(168, 85, 247, 0.15);
-  --lilac: #a855f7;
-  --xp-from: #8b5cf6;
-  --xp-to: #f59e0b;
-  --track: #26244d;
-  --glow-a: rgba(139, 92, 246, 0.12);
-  --glow-b: rgba(245, 158, 11, 0.07);
-  --shadow-lg: 0 8px 32px rgba(5, 3, 15, 0.8);
-  --shadow-sm: 0 8px 24px -12px rgba(5, 3, 15, 0.7);
-}
-
 html[data-theme='light'] {
-  --bg: #f4f6fb;
-  --bg-elevated: #e9edf6;
+  /* Claro: mesma identidade em papel; o dourado escurece para manter contraste. */
+  --bg: #f4f6fa;
+  --bg-elevated: #eaeef5;
   --surface: #ffffff;
-  --surface-2: #eef2f9;
-  --surface-3: #e0e7f3;
-  --surface-4: #d3dcec;
-  --surface-glass: rgba(255, 255, 255, 0.92);
-  --inner: #f4f6fb;
+  --surface-2: #eef2f8;
+  --surface-3: #dfe5ef;
+  --surface-4: #cfd7e5;
+  --surface-glass: rgba(255, 255, 255, 0.94);
+  --inner: #f4f6fa;
   --card-from: #ffffff;
-  --card-to: #f8fafc;
-  --border: #dbe2ee;
-  --border-strong: rgba(37, 99, 235, 0.38);
-  --border-accent: rgba(37, 99, 235, 0.22);
-  --text: #0f172a;
-  --text-muted: #334155;
-  --text-subtle: #526075;
-  --action: #2563eb;
-  --action-hover: #1d4ed8;
-  --action-ink: #ffffff;
-  --lume: #1d4ed8;
-  --lume-2: #2563eb;
-  --lume-soft: rgba(37, 99, 235, 0.1);
+  --card-to: #ffffff;
+  --border: #d9e0eb;
+  --border-strong: #b7c2d4;
+  --border-accent: #b7c2d4;
+  --text: #0c111b;
+  --text-muted: #2f3a4d;
+  --text-subtle: #556176;
+  --action: #f6c165;
+  --action-hover: #f0b247;
+  --action-ink: #1f1503;
+  --lume: #1f5fbf;
+  --lume-2: #1f5fbf;
+  --lume-soft: rgba(31, 95, 191, 0.1);
   --lume-ink: #ffffff;
-  --mint: #0f7a62;
-  --mint-soft: rgba(15, 122, 98, 0.1);
-  --lilac: #2563eb;
-  --success: #047857;
-  --success-soft: rgba(4, 120, 87, 0.1);
-  --reward: #a14a07;
-  --reward-strong: #f59e0b;
-  --reward-hover: #d97706;
-  --reward-soft: rgba(245, 158, 11, 0.14);
-  --reward-ink: #1a1203;
-  --warning: #c2410c;
-  --warning-soft: rgba(194, 65, 12, 0.1);
-  --danger: #b91c1c;
-  --danger-soft: rgba(185, 28, 28, 0.08);
+  --mint: #1f5fbf;
+  --mint-soft: rgba(31, 95, 191, 0.1);
+  --lilac: #1f5fbf;
+  --success: #1f5fbf;
+  --success-soft: rgba(31, 95, 191, 0.1);
+  --reward: #8a5a00;
+  --reward-strong: #c98a1c;
+  --reward-hover: #a8700a;
+  --reward-soft: rgba(201, 138, 28, 0.14);
+  --reward-ink: #1f1503;
+  --warning: #b8401f;
+  --warning-soft: rgba(184, 64, 31, 0.1);
+  --warning-ink: #ffffff;
+  --danger: #b42335;
+  --danger-soft: rgba(180, 35, 53, 0.08);
   --danger-ink: #ffffff;
-  --xp-from: #2563eb;
-  --xp-to: #f59e0b;
-  --track: #e2e8f0;
-  --glow-a: rgba(37, 99, 235, 0.06);
-  --glow-b: rgba(245, 158, 11, 0.05);
-  --shadow-lg: 0 18px 40px -20px rgba(15, 23, 42, 0.18);
-  --shadow-sm: 0 10px 24px -16px rgba(15, 23, 42, 0.14);
-  --logo-bg: #12213b;
+  --xp-from: #c98a1c;
+  --xp-to: #c98a1c;
+  --track: #dfe5ef;
+  --star: #c98a1c;
+  --star-ink: #1f1503;
+  --trail: #1f5fbf;
+  --trail-future: #9aa7ba;
+  --trail-hollow: #7d8aa0;
+  --dot-off: #d3dae6;
+  --subject-lume: #1f5fbf;
+  --subject-mint: #12806b;
+  --subject-violet: #6b4fc4;
+  --subject-amber: #a86f00;
+  --subject-coral: #b8406a;
+  --grid-dot: #dde3ed;
+  --glow-a: transparent;
+  --glow-b: transparent;
+  --shadow-lg: none;
+  --shadow-sm: 0 10px 24px -16px rgba(12, 17, 27, 0.16);
+  --logo-bg: #0c111b;
   color-scheme: light;
-}
-
-html[data-theme='light'][data-palette='variante2'] {
-  --bg: #f7f5fc;
-  --bg-elevated: #efeaf8;
-  --surface-2: #f3effc;
-  --surface-3: #e9e2f8;
-  --inner: #f7f5fc;
-  --card-to: #fbf9fe;
-  --border: #e4dcf3;
-  --border-strong: rgba(124, 58, 237, 0.38);
-  --border-accent: rgba(124, 58, 237, 0.22);
-  --text: #1e1037;
-  --text-muted: #45365f;
-  --text-subtle: #64577e;
-  --action: #7c3aed;
-  --action-hover: #6d28d9;
-  --lume: #6d28d9;
-  --lume-2: #7c3aed;
-  --lume-soft: rgba(124, 58, 237, 0.1);
-  --mint: #6d28d9;
-  --mint-soft: rgba(124, 58, 237, 0.1);
-  --lilac: #7c3aed;
-  --xp-from: #7c3aed;
-  --track: #ece6f7;
-  --glow-a: rgba(124, 58, 237, 0.06);
 }
 
 html[data-text='large'] {
@@ -238,7 +242,7 @@ html, body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
-  line-height: 1.55;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   overflow-x: clip;
 }
