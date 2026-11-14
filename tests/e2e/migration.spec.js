@@ -107,6 +107,7 @@ test('cadastro, saída, login, sincronização e recuperação na API local', as
   await expect(page.locator('#main > div')).toHaveCSS('opacity', '1');
   await page.getByRole('button', { name: 'Criar conta', exact: true }).first().click();
   await page.getByLabel('Seu nome', { exact: true }).fill('Pessoa de teste');
+  await page.getByLabel('Seu @usuário').fill('u' + crypto.randomUUID().replace(/-/g, '').slice(0, 14));
   await page.getByLabel('E-mail', { exact: true }).fill(email);
   await page.getByLabel('Senha', { exact: true }).fill('senha-local-teste-123');
   await page.getByRole('button', { name: 'Mostrar senha' }).click();

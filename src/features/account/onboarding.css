@@ -667,3 +667,10 @@ html[data-theme='light'] .plan-material-highlight {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* @usuário: prefixo fixo e estado da conferência de disponibilidade. */
+.handle-input .handle-at { position: absolute; left: 1rem; color: var(--text-subtle); font-family: var(--font-mono); font-size: 1.05rem; pointer-events: none; }
+.handle-input input { font-family: var(--font-mono); }
+.handle-status { font-size: 0.78rem; color: var(--text-subtle); }
+.handle-status.ok { color: var(--success); }
+.handle-status.bad { color: var(--danger); }

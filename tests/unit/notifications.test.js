@@ -58,3 +58,13 @@ test('feed descarta itens fora da janela e o que antecede a conta não conta com
   assert.deepEqual(result.items.map(item => [item.id, item.unread]), [['after', true], ['before', false]]);
   assert.equal(result.unseen, 1);
 });
+
+test('avisos de novidade abrem a página de novidades e têm a área do que mudou', async t => {
+  const { db } = fixture(t);
+  const news = (await listNotifications(db, 'ana', NOW)).items.filter(item => item.kind === 'news');
+  assert.ok(news.length > 0);
+  for (const item of news) {
+    assert.match(item.href, /^#novidades\?id=/);
+    assert.ok(['site', 'desktop', 'extensao'].includes(item.area));
+  }
+});

@@ -1,5 +1,5 @@
 // Gera public/news-generated.js com as novidades do sino a partir do histórico
-// do Git: todo commit com uma linha "Novidade: Título | Texto | #rota" no corpo
+// do Git: todo commit com uma linha "Novidade: Título | Texto | #rota | área" (área: site, desktop ou extensao); linhas "Detalhe: texto" no mesmo corpo viram a lista detalhada da página de novidades no corpo
 // vira um aviso (data = data do commit). Sem Git disponível, o arquivo atual
 // é mantido. Roda no `npm run build`.
 import { execFileSync } from 'node:child_process';
@@ -17,11 +17,13 @@ try {
 const items = [];
 for (const record of raw.split('\x1e')) {
   const [hash, at, body] = record.trim().split('\x1f');
-  const line = body?.split('\n').find((l) => /^Novidade:/i.test(l.trim()));
+  const lines = body?.split('\n').map((l) => l.trim()) || [];
+  const line = lines.find((l) => /^Novidade:/i.test(l));
+  const details = lines.filter((l) => /^Detalhe:/i.test(l)).map((l) => l.replace(/^Detalhe:\s*/i, '')).filter(Boolean);
   if (!hash || !line) continue;
-  const [title, text = '', href = '#hoje'] = line.replace(/^\s*Novidade:/i, '').split('|').map((s) => s.trim());
+  const [title, text = '', href = '#hoje', area = 'site'] = line.replace(/^\s*Novidade:/i, '').split('|').map((s) => s.trim());
   if (!title) continue;
-  items.push({ id: `news-${hash.slice(0, 8)}`, at: new Date(at).toISOString(), title, body: text, href: href.startsWith('#') ? href : '#hoje' });
+  items.push({ id: `news-${hash.slice(0, 8)}`, at: new Date(at).toISOString(), title, body: text, href: href.startsWith('#') ? href : '#hoje', area: area.toLowerCase(), ...(details.length && { details }) });
 }
 
 const out = `// GERADO por scripts/build-news.mjs a partir de commits com "Novidade:". Não edite.\nexport const GENERATED_NEWS = ${JSON.stringify(items, null, 2)};\n`;

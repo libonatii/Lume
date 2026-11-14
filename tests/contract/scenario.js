@@ -34,6 +34,28 @@ async function register(origin, name) {
 export async function runContract(target, t) {
   const { origin } = target;
 
+  await t.test('@usuário no cadastro: escolha, disponibilidade e troca', async () => {
+    const handle = ('u' + Math.random().toString(36).slice(2, 12)).toLowerCase();
+    const guest = client(origin);
+    const before = await guest.request('GET', `/api/handle/check?handle=${handle}`);
+    assert.equal(before.status, 200);
+    assert.equal(before.data.available, true);
+    const first = client(origin);
+    const created = await first.request('POST', '/api/register', { body: { name: 'Com Usuario', email: `${unique('h')}@example.test`, password: 'senha-de-teste-1', handle: `@${handle}` } });
+    assert.equal(created.status, 201, JSON.stringify(created.data));
+    assert.equal((await first.request('GET', '/api/friends/handle')).data.handle, handle);
+    assert.equal((await guest.request('GET', `/api/handle/check?handle=${handle}`)).data.reason, 'taken');
+    const second = client(origin);
+    const taken = await second.request('POST', '/api/register', { body: { name: 'Outra Pessoa', email: `${unique('h')}@example.test`, password: 'senha-de-teste-1', handle } });
+    assert.equal(taken.status, 409);
+    assert.equal(taken.data.field, 'handle');
+    const invalid = await second.request('POST', '/api/register', { body: { name: 'Outra Pessoa', email: `${unique('h')}@example.test`, password: 'senha-de-teste-1', handle: 'a!' } });
+    assert.equal(invalid.status, 400);
+    const renamed = await first.request('PUT', '/api/friends/handle', { body: { handle: `${handle}.novo` } });
+    assert.equal(renamed.status, 200);
+    assert.equal((await guest.request('GET', `/api/handle/check?handle=${handle}`)).data.available, true, 'o antigo fica livre');
+  });
+
   await t.test('Agenda e lembretes autenticados: persistência, isolamento e deduplicação', async () => {
     const { browser } = await register(origin, 'Agenda');
     const current = (await browser.request('GET', '/api/library')).data;

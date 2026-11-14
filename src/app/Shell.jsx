@@ -155,6 +155,6 @@ export default function Shell({ route, model, children, hideTabs = false, onHelp
       </div>
     </header>
     <main id="main" tabIndex={-1}>{!hideTabs && <SectionTabs route={route} unread={unread}/>}{children}</main>
-    <footer className="app-footer"><div className="app-footer-inner"><span className="app-footer-brand"><strong>Lume</strong><small>Seu norte para provas, trabalhos e entregas.</small></span><span className="app-footer-meta"><span>{today}</span>{!desktop && <a className="text-link" href="#aplicativo"><Icon name="cloud"/>Instalar aplicativo</a>}</span></div></footer>
+    <footer className="app-footer"><div className="app-footer-inner"><span className="app-footer-brand"><strong>Lume</strong><small>Seu norte para provas, trabalhos e entregas.</small></span><span className="app-footer-meta"><span>{today}</span><a className="text-link" href="#novidades"><Icon name="spark"/>Novidades</a>{!desktop && <a className="text-link" href="#aplicativo"><Icon name="cloud"/>Instalar aplicativo</a>}</span></div></footer>
   </div>;
 }

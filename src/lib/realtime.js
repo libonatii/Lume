@@ -62,7 +62,9 @@ export function openChannel() {
     current.onmessage = (event) => {
       if (event.data === 'pong') { clearTimeout(pongTimer); return; }
       try {
-        if (JSON.parse(event.data)?.type === 'message') invalidateResources('/api/messages');
+        const type = JSON.parse(event.data)?.type;
+        if (type === 'message') invalidateResources('/api/messages');
+        if (type === 'friend_request') invalidateResources('/api/friends');
       } catch { /* aviso ilegível: a consulta periódica cobre */ }
     };
     current.onclose = () => {

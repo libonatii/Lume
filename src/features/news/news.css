@@ -1,0 +1,20 @@
+/* Novidades do Lume */
+.news-root { display: grid; gap: var(--space-4); max-width: 46rem; }
+.news-filters { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.news-month { display: grid; gap: var(--space-2); }
+.news-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.news-item {
+  display: flex; gap: 0.85rem; align-items: flex-start; padding: var(--space-3);
+  border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface);
+}
+.news-item.is-focus { border-color: var(--lume); background: color-mix(in srgb, var(--lume) 8%, var(--surface)); }
+.news-icon {
+  flex: none; display: inline-grid; place-items: center; width: 2.2rem; height: 2.2rem;
+  border-radius: 50%; background: var(--lume-soft); color: var(--lume);
+}
+.news-icon .icon { width: 1.05rem; height: 1.05rem; }
+.news-copy { display: grid; gap: 0.35rem; min-width: 0; }
+.news-copy p { margin: 0; overflow-wrap: anywhere; }
+.news-meta { display: flex; align-items: center; gap: 0.6rem; font-size: 0.75rem; color: var(--text-subtle); }
+.news-go { justify-self: start; }
+.news-details { margin: 0; padding-left: 1.1rem; display: grid; gap: 0.25rem; font-size: 0.86rem; color: var(--text-muted); }

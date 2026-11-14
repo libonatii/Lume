@@ -25,10 +25,12 @@ const Profile = lazy(() => import('../features/social/Profile.jsx'));
 const Companion = lazy(() => import('../features/desktop/Companion.jsx'));
 const Agenda = lazy(() => import('../features/agenda/Agenda.jsx'));
 const Ranking = lazy(() => import('../features/social/Ranking.jsx'));
+const AddFriends = lazy(() => import('../features/social/AddFriends.jsx'));
 const Messages = lazy(() => import('../features/social/Messages.jsx'));
 const Subjects = lazy(() => import('../features/library/Subjects.jsx'));
 const FocusSession = lazy(() => import('../features/progress/FocusSession.jsx'));
 const ScheduleSession = lazy(() => import('../features/agenda/ScheduleSession.jsx'));
+const News = lazy(() => import('../features/news/News.jsx'));
 const Landing = lazy(() => import('../features/account/Landing.jsx'));
 
 // Quatro destinos no cabeçalho; as demais telas ficam em abas ou no menu da conta.
@@ -81,6 +83,7 @@ const ROUTES = [
   { id: 'amigos', title: 'Social', section: 'amigos', tab: 'Feed', hideTabs: () => true, render: (ctx) => <Friends account={ctx.model.account} state={ctx.state} xp={ctx.model.xp} inviteCode={ctx.params.get('convite') || ''} notify={ctx.notify} go={ctx.go}/> },
   { id: 'mensagens', title: 'Mensagens', section: 'amigos', tab: 'Mensagens', render: (ctx) => <Messages account={ctx.model.account} state={ctx.state} notify={ctx.notify} go={ctx.go} contactId={ctx.params.get('com') || ''}/> },
   { id: 'ranking', title: 'Ranking', section: 'amigos', tab: 'Ranking', render: (ctx) => <Ranking account={ctx.model.account} xp={ctx.model.xp} refreshXP={ctx.model.refreshXP} notify={ctx.notify} go={ctx.go}/> },
+  { id: 'adicionar', title: 'Adicionar amigos', section: 'amigos', tab: 'Amigos', tabIcon: 'users', render: (ctx) => <AddFriends account={ctx.model.account} notify={ctx.notify} go={ctx.go}/> },
 
 
   // Perfil de uma amizade (#perfil?id=) não mostra as abas da própria conta.
@@ -89,6 +92,7 @@ const ROUTES = [
   { id: 'armazenamento', title: 'Armazenamento', loading: 'panel', section: 'perfil', tab: 'Armazenamento', render: (ctx) => <StoragePage state={ctx.state} account={ctx.model.account} libraryActions={ctx.model.libraryActions} confirmSave={ctx.model.confirmSave} notify={ctx.notify} open={ctx.open} go={ctx.go}/> },
   { id: 'configuracoes', title: 'Configurações', loading: 'panel', section: 'perfil', tab: 'Configurações', render: (ctx) => <Preferences state={ctx.state} actions={ctx.model.settingsActions} libraryActions={ctx.model.libraryActions} confirmSave={ctx.model.confirmSave} account={ctx.model.account} notify={ctx.notify} go={ctx.go} open={ctx.open} xp={ctx.model.xp} refreshXP={ctx.model.refreshXP} initialSection={ctx.params.get('secao') || ''} onPersonalize={() => ctx.go('inicio')}/> },
 
+  { id: 'novidades', title: 'Novidades', render: (ctx) => <News go={ctx.go} focusId={ctx.params.get('id') || ''}/> },
   { id: 'aplicativo', title: 'Instalar aplicativo', render: (ctx) => <Companion account={ctx.model.account} notify={ctx.notify} go={ctx.go}/> },
 ];
 

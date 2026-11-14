@@ -8,6 +8,7 @@ import { sendPasswordResetEmail } from '../domain/email.js';
 import { LIMITS, isCreator } from '../config.js';
 import { empty, json } from '../http.js';
 import { publicUser, sessionTokenFrom, startSession } from '../session.js';
+import { checkHandle, ensureHandle, normalizeHandle } from '../domain/friend-requests.js';
 import { clearUserPresence, touchUserPresence } from '../domain/friends.js';
 
 const ATTEMPTS = { key: (ctx) => `${ctx.clientIp}|${ctx.url.pathname}`, message: 'Muitas tentativas. Aguarde alguns minutos e tente de novo.' };
@@ -30,12 +31,21 @@ export function accountRoutes(router) {
     return json({ authenticated: Boolean(user), user: sessionUser(user, config) });
   });
 
+  router.add('GET', '/api/handle/check', { auth: 'optional', rateLimit: { key: (ctx) => `handle-check|${ctx.clientIp}`, limit: 120, message: 'Muitas consultas. Aguarde um instante.', code: 'rate_limited' } },
+    async (ctx) => json(await checkHandle(ctx.db, ctx.url.searchParams.get('handle'), ctx.user?.id || null)));
+
   router.add('POST', '/api/register', { origin: true, rateLimit: ATTEMPTS }, async (ctx) => {
     const body = await ctx.json(LIMITS.body);
     const name = validateName(body.name);
     const email = validateEmail(body.email);
     const password = validatePassword(body.password);
     if (await ctx.db.first('SELECT id FROM users WHERE email = ?', [email])) return json(DUPLICATE, 409);
+    // O @usuário é escolhido no cadastro; clientes antigos que não o enviam recebem um gerado do nome.
+    const wantsHandle = body.handle !== undefined && body.handle !== null && body.handle !== '';
+    if (wantsHandle) {
+      const check = await checkHandle(ctx.db, body.handle);
+      if (!check.available) return json({ error: check.message, field: 'handle' }, check.reason === 'taken' ? 409 : 400);
+    }
 
     const id = crypto.randomUUID();
     const createdAt = new Date().toISOString();
@@ -44,6 +54,18 @@ export function accountRoutes(router) {
       await ctx.db.run('INSERT INTO users (id, name, email, password_hash, created_at) VALUES (?, ?, ?, ?, ?)', [id, name, email, passwordHash, createdAt]);
     } catch (error) {
       if (String(error.message).includes('UNIQUE')) return json(DUPLICATE, 409);
+      throw error;
+    }
+    try {
+      if (wantsHandle) {
+        await ctx.db.run('INSERT INTO user_handles (user_id, handle, created_at) VALUES (?, ?, ?)', [id, normalizeHandle(body.handle), createdAt]);
+      } else {
+        await ensureHandle(ctx.db, id);
+      }
+    } catch (error) {
+      // Outra pessoa levou o @usuário no meio do caminho: desfaz a conta para tentar de novo.
+      await ctx.db.run('DELETE FROM users WHERE id = ?', [id]);
+      if (String(error.message).includes('UNIQUE')) return json({ error: 'Esse @usuário já está em uso.', field: 'handle' }, 409);
       throw error;
     }
     const token = await startSession(ctx.db, id);

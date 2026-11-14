@@ -229,3 +229,34 @@
   display: grid;
   gap: 0.4rem;
 }
+
+/* Adicionar amigos: busca por @usuário, solicitações e convite por link. */
+.addfriend-tabs { display: flex; flex-wrap: wrap; gap: var(--space-2); width: fit-content; max-width: 100%; padding: var(--space-1); border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
+.addfriend-tabs .filter-btn { border-color: transparent; }
+.addfriend-tabs .filter-btn[aria-selected='true'] { border-color: var(--text); }
+.addfriend-badge { margin-left: var(--space-2); }
+.addfriend-layout { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr); gap: var(--space-5); align-items: start; }
+.addfriend-main { display: grid; gap: var(--space-5); min-width: 0; }
+.addfriend-card { display: grid; gap: var(--space-4); padding: var(--space-5); min-width: 0; }
+.addfriend-card > .title { font-size: 1.25rem; }
+.addfriend-search { display: flex; gap: var(--space-3); align-items: center; }
+.addfriend-search-field { display: flex; flex: 1; align-items: center; gap: var(--space-3); min-width: 0; padding: 0 var(--space-4); border: 1px solid var(--border); border-radius: 12px; background: var(--inner); }
+.addfriend-search-field .icon { width: 1.1rem; height: 1.1rem; color: var(--text-subtle); flex: 0 0 auto; }
+.addfriend-search-field input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 0.8rem 0; font-family: var(--font-mono); outline: none; }
+.addfriend-search-field:focus-within { border-color: var(--lume); }
+.addfriend-list { display: grid; gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
+.addfriend-person { display: flex; align-items: center; gap: var(--space-4); min-width: 0; }
+.addfriend-person .social-avatar { width: 3rem; height: 3rem; }
+.addfriend-person-name { display: grid; flex: 1; min-width: 0; gap: 0.1rem; }
+.addfriend-person-name strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.addfriend-person-name small { color: var(--text-subtle); overflow: hidden; text-overflow: ellipsis; }
+.addfriend-person-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); justify-content: flex-end; align-items: center; }
+.addfriend-note { display: flex; align-items: center; gap: var(--space-3); margin: 0; color: var(--text-muted); font-size: 0.85rem; }
+.addfriend-note .icon { width: 1rem; height: 1rem; }
+.addfriend-invite .button { width: 100%; justify-content: center; }
+.addfriend-invite-icon { display: inline-grid; place-items: center; width: 2.8rem; height: 2.8rem; border: 1px solid var(--border); border-radius: 12px; background: var(--inner); color: var(--lume); }
+@media (max-width: 860px) {
+  .addfriend-layout { grid-template-columns: minmax(0, 1fr); }
+  .addfriend-person { flex-wrap: wrap; }
+  .addfriend-person-actions { width: 100%; justify-content: flex-start; }
+}
