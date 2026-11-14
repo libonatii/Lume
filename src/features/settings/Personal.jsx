@@ -26,8 +26,8 @@ export function Achievements({ state, account, xp }) {
     : legacy;
   const unlockedCount = all.filter(item => item.unlocked).length;
   return <div className="personal-root">
-    <Heading eyebrow="Marcos permanentes" title="Sua vitrine de conquistas">
-      Memórias do caminho que você percorreu.
+    <Heading eyebrow="conquistas" title="Suas conquistas">
+      O que você já concluiu, validado pelo servidor.
     </Heading>
     {state.preferences.gamification ? <>
       <section className="achievement-summary crest-card">
@@ -43,13 +43,13 @@ export function Achievements({ state, account, xp }) {
           </Ring>
         </div>
       </section>
-      {validated && !validated.length && <Empty icon="trophy" title="Sua vitrine personalizada começa na primeira conclusão.">Concluir um curso, uma leitura, uma lista de exercícios ou uma apresentação cria uma memória com o nome do material.</Empty>}
+      {validated && !validated.length && <Empty icon="trophy" title="A primeira conquista vem com a primeira conclusão.">Concluir um curso, uma leitura, uma lista de exercícios ou uma apresentação cria uma memória com o nome do material.</Empty>}
       <div className="achievement-grid">
         {all.map((item, index) => {
           const card = <article className={`achievement-card ${item.unlocked ? 'unlocked' : ''}`}>
             <div className="achievement-card-top">
               <div className="achievement-icon"><Icon name={item.icon}/></div>
-              <span className="achievement-status">{item.unlocked ? 'CONQUISTADA' : 'UMA POSSIBILIDADE'}</span>
+              <span className="achievement-status">{item.unlocked ? 'conquistada' : 'a conquistar'}</span>
             </div>
             <h2 className="title">{item.title}</h2>
             <p className="muted-text">{item.text}</p>
@@ -64,6 +64,6 @@ export function Achievements({ state, account, xp }) {
           </motion.div>;
         })}
       </div>
-    </> : <Empty icon="history" title="Um caminho sem pontuação.">Você ocultou os indicadores. Seu histórico continua guardado.</Empty>}
+    </> : <Empty icon="history" title="XP e conquistas ocultos.">Você ocultou os indicadores. Seu histórico continua guardado.</Empty>}
   </div>;
 }

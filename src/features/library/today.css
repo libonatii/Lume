@@ -635,7 +635,7 @@ a.milestone:hover {
 
 a.milestone.is-today {
   border-color: var(--border-strong);
-  background: linear-gradient(90deg, color-mix(in srgb, var(--lume-soft) 72%, var(--inner)), var(--inner));
+  background: var(--inner);
 }
 
 a.milestone.is-today::before {

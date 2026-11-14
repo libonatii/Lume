@@ -26,8 +26,8 @@ function formatBioLines(bio, fallbackRhythm) {
   if (lines.length > 0) return lines;
   return [
     `Ritmo atual: ${fallbackRhythm}`,
-    'Aprendendo passo a passo, sem pressa',
-    'Progresso guardado e retomável a qualquer momento',
+    'Uma disciplina por vez',
+    'Progresso guardado na conta',
   ];
 }
 
@@ -187,7 +187,7 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
               <Icon name={featuredBadge?.icon || 'spark'}/>
             </span>
             <div className="steam-featured-copy">
-              <strong>{featuredBadge ? featuredBadge.title : 'Caminho em construção'}</strong>
+              <strong>{featuredBadge ? featuredBadge.title : 'Primeira conquista a caminho'}</strong>
               <small>{stats.xp !== null ? `${stats.xp} XP ${stats.xpValidated ? 'confirmados pelo servidor' : 'da prévia local'}` : 'XP oculto no perfil'}</small>
             </div>
           </div>
@@ -281,14 +281,14 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
         <section className="steam-showcase" aria-labelledby="showcase-collector-title">
           <header className="steam-showcase-header">
             <h2 id="showcase-collector-title" className="steam-showcase-title">Colecionador de estudos</h2>
-            <span className="steam-showcase-sub">Estante compartilhada</span>
+            <span className="steam-showcase-sub">o que está compartilhado</span>
           </header>
 
           <div className="steam-showcase-body">
             <div className="steam-collector-stats">
               <div className="steam-stat-cell">
                 <strong><AnimatedNumber value={stats.activeCourses ?? 0}/></strong>
-                <span>Materiais na estante</span>
+                <span>Materiais na biblioteca</span>
               </div>
               {stats.doneLessons !== null && <div className="steam-stat-cell">
                 <strong><AnimatedNumber value={stats.doneLessons}/></strong>
@@ -368,9 +368,9 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
             <span className="companion-dot" aria-hidden="true"/>
             {isSelf && state.activeSession
               ? `Estudando agora · ${state.activeSession.label}`
-              : studying.length > 0 ? 'Em jornada de estudos' : 'Disponível no Lume'}
+              : studying.length > 0 ? 'Estudando' : 'Disponível no Lume'}
           </span>
-          {!isSelf && <small className="muted-text">Presença respeitosa · sem cobrança de tempo</small>}
+          {!isSelf && <small className="muted-text">Mostra só se está estudando agora, sem o tempo.</small>}
         </div>
 
         {/* Conquistas / Insígnias */}
@@ -390,7 +390,7 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
               </div>)}
             </div>
             {isSelf && <button type="button" className="text-button accent" onClick={() => go('conquistas')}>
-              Ver vitrine de conquistas<Icon name="arrow"/>
+              Ver conquistas<Icon name="arrow"/>
             </button>}
           </> : <p className="quiet-note">Conquistas e XP ocultos neste perfil.</p>}
         </section>

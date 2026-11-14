@@ -26,7 +26,8 @@
   box-shadow: var(--shadow-lg);
 }
 .achievement-summary.crest-card::before {
-  background: linear-gradient(90deg, var(--lume-2), var(--lume), var(--reward-strong));
+  display: none;
+  background: none;
 }
 .achievement-summary-copy .headline {
   margin: 0.25rem 0;
@@ -75,11 +76,11 @@
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
 }
 .achievement-card.unlocked {
-  border-color: var(--border-strong);
-  background: linear-gradient(165deg, var(--lume-soft), var(--surface) 60%);
+  border-color: color-mix(in srgb, var(--reward) 55%, var(--border));
+  background: var(--surface);
 }
 .achievement-card-top {
   display: flex;
@@ -97,17 +98,20 @@
   color: var(--text-muted);
 }
 .achievement-card.unlocked .achievement-icon {
-  background: var(--lume);
-  color: var(--lume-ink);
+  background: var(--action);
+  color: var(--action-ink);
 }
+/* Conquista é contexto gamificado: mono, e dourado quando conquistada. */
 .achievement-status {
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.09em;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 500;
+  letter-spacing: 0;
   color: var(--text-subtle);
 }
 .achievement-card.unlocked .achievement-status {
-  color: var(--lume);
+  color: var(--reward);
+  font-weight: 700;
 }
 .achievement-progress {
   margin-top: auto;
@@ -183,7 +187,7 @@
   transition: transform 0.18s ease;
 }
 .switch:checked {
-  background: var(--mint);
+  background: var(--action);
 }
 .switch:checked::after {
   transform: translateX(1.22rem);

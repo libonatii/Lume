@@ -304,11 +304,27 @@ html[data-theme='light'] .glow {
   background: var(--surface-2);
   aspect-ratio: 16 / 10;
 }
-.cover img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+/* Capa sem foto: malha de pontos e uma constelação curta (Cover em ui.jsx). */
+.cover {
+  background-image: radial-gradient(var(--grid-dot) 1px, transparent 1.4px);
+  background-size: 16px 16px;
+}
+.cover-mark {
+  position: absolute;
+  inset: 12% 10%;
+  width: 80%;
+  height: 76%;
+}
+.cover-line {
+  fill: none;
+  stroke: var(--trail);
+  stroke-width: 1.5;
+}
+.cover-dot {
+  fill: var(--trail);
+}
+.cover-star {
+  fill: var(--star);
 }
 
 /* Esqueletos de carregamento: blocos neutros no lugar do conteúdo que vai chegar. */

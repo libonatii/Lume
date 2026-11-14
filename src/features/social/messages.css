@@ -65,7 +65,7 @@
 }
 .conversation-item:hover { background: color-mix(in srgb, var(--lume) 7%, transparent); }
 .conversation-item.active {
-  background: color-mix(in srgb, var(--action) 38%, var(--surface));
+  background: var(--surface-2);
 }
 .conversation-item.active::before {
   content: '';
@@ -75,7 +75,7 @@
   bottom: 0;
   width: 4px;
   border-radius: 4px 0 0 4px;
-  background: var(--action);
+  background: var(--lume);
 }
 .conversation-avatar,
 .message-avatar {
@@ -86,7 +86,8 @@
   place-items: center;
   overflow: hidden;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--action) 55%, var(--surface));
+  background: var(--surface-2);
+  border: 1px solid var(--border);
   color: var(--text);
   font-weight: 700;
 }
@@ -120,11 +121,12 @@
   flex: 0 0 auto;
   min-width: 1.15rem;
   padding: 0.05rem 0.35rem;
-  border-radius: var(--radius-pill);
+  border-radius: 8px;
   background: var(--action);
   color: var(--action-ink);
-  font-size: 0.68rem;
-  font-weight: 750;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
   text-align: center;
 }
 
@@ -182,8 +184,8 @@
   border: 0;
 }
 .message-row.from-me .message-bubble {
-  background: color-mix(in srgb, var(--action) 72%, #07142e);
-  color: #fff;
+  background: var(--lume);
+  color: var(--lume-ink);
 }
 .message-bubble p {
   margin: 0;

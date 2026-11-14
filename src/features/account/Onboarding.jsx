@@ -17,17 +17,17 @@ const PHASES = [
 ];
 
 const DAILY_GOALS = [
-  { id: 'light', minutes: 45, icon: 'clock', title: 'Leve e Constante', label: '45 min / dia', desc: '1 a 2 blocos curtos. Excelente para retomar o hábito sem sobrecarga.', cycles: '1 a 2 blocos serenos com pausas suaves.' },
-  { id: 'ideal', minutes: 90, icon: 'spark', title: 'Ritmo Ideal', label: '1h 30m / dia', badge: 'Recomendado', desc: 'Equilíbrio saudável entre concentração e descanso ativo.', cycles: '3 ciclos de foco serenos com micro-pausas de 5 minutos.' },
-  { id: 'deep', minutes: 180, icon: 'flame', title: 'Imersão Profunda', label: '3h / dia', desc: 'Para períodos intensos de preparação ou entrega de projetos.', cycles: 'Blocos mais longos com intervalos programados.' },
-  { id: 'custom', minutes: null, icon: 'tune', title: 'Personalizado', label: 'Defina seu fluxo', desc: 'Ajuste sua meta diária em minutos conforme sua semana.', cycles: 'Meta flexível ajustada ao seu momento.' },
+  { id: 'light', minutes: 45, icon: 'clock', title: 'Constante', label: '45 min / dia', desc: '1 a 2 blocos curtos. Bom para retomar o hábito.', cycles: '1 a 2 blocos curtos com pausa entre eles.' },
+  { id: 'ideal', minutes: 90, icon: 'spark', title: 'Equilibrado', label: '1h 30m / dia', badge: 'Recomendado', desc: 'Foco e pausa em proporção para o dia a dia de aulas.', cycles: '3 ciclos de foco com pausas de 5 minutos.' },
+  { id: 'deep', minutes: 180, icon: 'flame', title: 'Intenso', label: '3h / dia', desc: 'Para semana de prova ou entrega de projeto.', cycles: 'Blocos mais longos com intervalos programados.' },
+  { id: 'custom', minutes: null, icon: 'tune', title: 'Personalizado', label: 'Você define', desc: 'Ajuste sua meta diária em minutos conforme sua semana.', cycles: 'Meta ajustada à sua semana.' },
 ];
 
 const SOUND_OPTIONS = [
-  { id: 'off', icon: 'volume-off', title: 'Silêncio Total', subtitle: 'Sem áudio', preview: 'Silêncio Total' },
-  { id: 'rain', icon: 'rain', title: 'Chuva Serena', subtitle: 'Ruído suave', preview: 'Chuva Serena de Janela' },
-  { id: 'white', icon: 'wave', title: 'Ruído Branco', subtitle: 'Foco linear', preview: 'Ruído Branco Suave' },
-  { id: 'pink', icon: 'book', title: 'Biblioteca', subtitle: 'Calor acústico', preview: 'Biblioteca Noturna' },
+  { id: 'off', icon: 'volume-off', title: 'Silêncio', subtitle: 'Sem áudio', preview: 'Silêncio' },
+  { id: 'rain', icon: 'rain', title: 'Chuva', subtitle: 'Ruído grave', preview: 'Chuva na janela' },
+  { id: 'white', icon: 'wave', title: 'Ruído branco', subtitle: 'Constante', preview: 'Ruído branco' },
+  { id: 'pink', icon: 'book', title: 'Biblioteca', subtitle: 'Ruído rosa', preview: 'Biblioteca à noite' },
 ];
 
 const QUICK_SUBJECTS = [
@@ -230,7 +230,7 @@ export default function Onboarding({ state, actions, libraryActions, go, notify,
     };
     if (!actions.finishJourney(merged, 4)) return;
     go('hoje');
-    notify('Seu santuário está pronto. Você pode ajustar tudo quando quiser.');
+    notify('Tudo pronto. Você pode ajustar seu ritmo quando quiser.');
   }
 
   async function createInvite() {
@@ -284,7 +284,7 @@ export default function Onboarding({ state, actions, libraryActions, go, notify,
       >
         {phase === 0 && <>
           <header className="step-header">
-            <span className="eyebrow">Sua jornada de descoberta</span>
+            <span className="eyebrow">como você estuda</span>
             <h1 className="headline">Como os estudos fazem parte da sua vida hoje?</h1>
             <p className="muted-text">Não existe resposta certa, nem ritmo melhor. Você pode mudar tudo depois, sem perder nada do que já estudou.</p>
           </header>
@@ -329,7 +329,7 @@ export default function Onboarding({ state, actions, libraryActions, go, notify,
         {phase === 1 && <>
           <header className="step-header">
             <span className="soft-badge tone-mint"><Icon name="spark"/>Passo 2 · Ritmo Diário</span>
-            <h1 className="headline">Defina seu ritmo sem cobranças.</h1>
+            <h1 className="headline">Quanto tempo por dia?</h1>
             <p className="muted-text">Escolha quanto tempo faz sentido por dia e qual ambiente sonoro acompanha melhor seu foco.</p>
           </header>
 
@@ -337,7 +337,7 @@ export default function Onboarding({ state, actions, libraryActions, go, notify,
             <div className="stitch-onb-rhythm-controls">
               <div className="stitch-onb-section">
                 <div className="stitch-onb-section-head">
-                  <strong>Meta Diária Sugerida</strong>
+                  <strong>Meta diária</strong>
                   <span>Você pode alterar depois</span>
                 </div>
                 <div className="stitch-goal-grid" role="radiogroup" aria-label="Meta Diária Sugerida">
@@ -379,7 +379,7 @@ export default function Onboarding({ state, actions, libraryActions, go, notify,
 
               <div className="stitch-onb-section">
                 <div className="stitch-onb-section-head">
-                  <strong>Preferência de Conforto Sonoro</strong>
+                  <strong>Som de fundo</strong>
                   <span>Som sintético gerado no navegador</span>
                 </div>
                 <div className="stitch-sound-grid" role="radiogroup" aria-label="Preferência Sonora">
@@ -402,13 +402,13 @@ export default function Onboarding({ state, actions, libraryActions, go, notify,
               </div>
             </div>
 
-            <aside className="stitch-sanctuary-preview" aria-label="Prévia do Santuário">
+            <aside className="stitch-sanctuary-preview" aria-label="Prévia do ritmo">
               <div className="stitch-preview-header">
                 <span className="stitch-preview-title">
                   <span className="soft-dot tone-mint-text" aria-hidden="true"/>
-                  Prévia do santuário
+                  prévia
                 </span>
-                <span className="soft-badge">Tempo Real</span>
+                <span className="soft-badge">ao vivo</span>
               </div>
               <div className="stitch-preview-capsule">
                 <div className="stitch-preview-sound-pill">
@@ -424,13 +424,13 @@ export default function Onboarding({ state, actions, libraryActions, go, notify,
               </div>
               <div className="stitch-preview-projection">
                 <div className="stitch-projection-row">
-                  <span>Meta Diária Projetada:</span>
+                  <span>Meta diária</span>
                   <strong className="tone-mint-text">{formatDailyDuration(dailyMinutes)}</strong>
                 </div>
                 <p className="quiet-note">{activeGoal.cycles}</p>
                 <div className="stitch-weekly-bar-wrap">
                   <div className="stitch-weekly-bar-head">
-                    <span>Expectativa Semanal</span>
+                    <span>Por semana</span>
                     <strong>{weeklyHours} total</strong>
                   </div>
                   <div className="stitch-weekly-bar" aria-hidden="true">
@@ -440,7 +440,7 @@ export default function Onboarding({ state, actions, libraryActions, go, notify,
               </div>
               <p className="stitch-calm-pledge">
                 <Icon name="pause"/>
-                <span>Se você não estudar em algum dia, o Lume recalcula seu progresso sem alarmes vermelhos ou quebra punitiva de sequências.</span>
+                <span>Dia sem estudo não tira XP nem nível. O plano recalcula a partir do que você concluiu.</span>
               </p>
             </aside>
           </div>
@@ -623,7 +623,7 @@ export default function Onboarding({ state, actions, libraryActions, go, notify,
 
     <footer className="stitch-entry-footer">
       <div className="stitch-entry-footer-inner">
-        <span>Lume · Seu ritmo, sua jornada.</span>
+        <span>Lume · provas, trabalhos e entregas em dia.</span>
         <span>Suas configurações ficam salvas e podem ser alteradas depois.</span>
       </div>
     </footer>
