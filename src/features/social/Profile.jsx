@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import Icon from '../../ui/Icon.jsx';
 import { AnimatedNumber, Button, Cover, Heading, Progress, Skeleton, stagger } from '../../ui/ui.jsx';
-import { api, apiError } from '../../lib/api.js';
 import { useResource } from '../../lib/resources.js';
+import { profilePath } from './prefetch.js';
 import SectionTabs from '../../app/SectionTabs.jsx';
 import { buildProfile } from '../../../public/profile-domain.js';
 import { MAX_PROFILE_BIO_LENGTH, studyRhythm } from '../../../public/domain.js';
@@ -34,8 +34,6 @@ function formatBioLines(bio, fallbackRhythm) {
 }
 
 export default function Profile({ id, handle = '', state, actions, account, notify, go, xp }) {
-  const [profile, setProfile] = useState(null);
-  const [error, setError] = useState('');
   const [editing, setEditing] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [bioDraft, setBioDraft] = useState(() => state.profile?.bio || '');
@@ -57,22 +55,18 @@ export default function Profile({ id, handle = '', state, actions, account, noti
     setBioDraft(state.profile?.bio || '');
   }, [state.profile?.bio]);
 
-  useEffect(() => {
-    setError('');
-    setProfile(null);
-    setEditing(false);
-    if (isSelf || (!id && !handle)) return undefined;
-    let alive = true;
-    (async () => {
-      const result = await api(`/api/profile/${byHandle ? `@${encodeURIComponent(handle)}` : encodeURIComponent(id)}`);
-      if (!alive) return;
-      if (!result.ok) { setError(apiError(result)); return; }
-      if (result.data.self) { setSelfByServer(true); return; }
-      if (!result.data.profile) { setError('Não foi possível abrir este perfil agora.'); return; }
-      setProfile(result.data.profile);
-    })().catch(() => { if (alive) setError('Não foi possível abrir este perfil agora.'); });
-    return () => { alive = false; };
-  }, [id, handle, byHandle, isSelf]);
+  useEffect(() => { setEditing(false); }, [id, handle]);
+
+  // Dados do perfil de outra pessoa: recurso em cache. Quem já foi aberto (ou buscado ao
+  // passar o mouse) aparece na hora e é atualizado em segundo plano.
+  const path = !isSelf && (id || handle) ? profilePath({ id, handle: byHandle ? handle : '' }) : '';
+  const remote = useResource(path, { enabled: Boolean(path) });
+  useEffect(() => { if (remote.data?.self) setSelfByServer(true); }, [remote.data]);
+  const profile = remote.data?.profile || null;
+  // Perfil que deixou de ser acessível (fechado, removido) não fica no ar só por estar em cache.
+  const error = remote.error && (!remote.data || remote.status === 403 || remote.status === 404)
+    ? remote.error
+    : (remote.data && !remote.data.self && !remote.data.profile ? 'Não foi possível abrir este perfil agora.' : '');
 
   // Endereço limpo do perfil: lumeacademy.site/@usuario.
   const addressHandle = isSelf ? ownHandle : profile?.user?.handle;

@@ -17,6 +17,7 @@ import { overdueMessage } from '../plan/Tasks.jsx';
 import { useResource } from '../../lib/resources.js';
 import Icon from '../../ui/Icon.jsx';
 import { Button, Progress, Skeleton, STAR_PATH, Star } from '../../ui/ui.jsx';
+import { warmProfileProps } from '../social/prefetch.js';
 
 function plural(count, one, many) {
   return `${count} ${count === 1 ? one : many}`;
@@ -349,7 +350,7 @@ function FriendsCard({ account, go }) {
             ? <ul className="today-friend-list">{activeFriends.slice(0, 5).map((friend) => {
               const activity = friend.activity || { label: 'Online', topic: '' };
               return <li key={friend.id} className="today-friend-item">
-                <a className="today-friend-link" href={`#perfil?id=${encodeURIComponent(friend.id)}`} onClick={friend.handle ? (event) => { event.preventDefault(); go(`perfil?u=${friend.handle}`); } : undefined}>
+                <a className="today-friend-link" {...warmProfileProps(friend)} href={`#perfil?id=${encodeURIComponent(friend.id)}`} onClick={friend.handle ? (event) => { event.preventDefault(); go(`perfil?u=${friend.handle}`); } : undefined}>
                   <span className="avatar today-friend-avatar" aria-hidden="true">{String(friend.name || '?').slice(0, 1).toUpperCase()}</span>
                   <span className="friend-copy">
                     <strong>{friend.name}</strong>

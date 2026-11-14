@@ -52,6 +52,15 @@ export function mutateResource(key, updater) {
   publish(entry, { data: typeof updater === 'function' ? updater(entry.snapshot.data) : updater });
 }
 
+// Busca antecipada (ex.: ao passar o mouse): não repete se já há uma busca em curso ou um
+// valor recente em cache.
+export function prefetchResource(key, maxAge = 30000) {
+  const entry = entryFor(key);
+  if (entry.inflight) return entry.inflight;
+  if (entry.snapshot.updatedAt && Date.now() - entry.snapshot.updatedAt < maxAge) return Promise.resolve(null);
+  return refreshResource(key);
+}
+
 // Marca como desatualizados todos os recursos cujo endereço começa com `prefix`.
 export function invalidateResources(prefix) {
   for (const [key, entry] of entries) {

@@ -5,6 +5,7 @@ import { api, apiError } from '../../lib/api.js';
 import { invalidateResources, useResource } from '../../lib/resources.js';
 import { SOCIAL_POST_LIMIT, SOCIAL_COMMENT_LIMIT, SOCIAL_IMAGE_BYTES, SOCIAL_PDF_BYTES, socialText } from '../../../public/social-domain.js';
 import { formatBytes } from '../../../public/pdf-domain.js';
+import { warmProfileProps } from './prefetch.js';
 
 const LABELS = { post: ['message', 'Entre amigos'], question: ['help', 'Dúvida rápida'], material: ['file', 'Material compartilhado'], image: ['image', 'Foto / Print'], achievement: ['trophy', 'Conquista'] };
 
@@ -185,7 +186,7 @@ function PostCard({ post, refresh, go }) {
 
   return <article className={`card-surface social-post is-${post.kind}`} aria-label={`Publicação de ${post.author.name}`}>
     <header className="social-post-heading">
-      <button type="button" className="social-author" onClick={() => go(post.author.handle ? `perfil?u=${post.author.handle}` : post.canDelete ? 'perfil' : `perfil?id=${encodeURIComponent(post.author.id)}`)} aria-label={`Ver perfil de ${post.author.name}`}>
+      <button type="button" className="social-author" {...warmProfileProps(post.author)} onClick={() => go(post.author.handle ? `perfil?u=${post.author.handle}` : post.canDelete ? 'perfil' : `perfil?id=${encodeURIComponent(post.author.id)}`)} aria-label={`Ver perfil de ${post.author.name}`}>
         <SocialAvatar person={post.author}/><span><strong>{post.author.name}</strong><PostTime at={post.at}/></span>
       </button>
       <span className={`social-post-kind ${post.kind === 'achievement' ? 'is-reward' : ''}`}><Icon name={icon}/>{label}</span>
