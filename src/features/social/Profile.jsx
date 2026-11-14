@@ -386,6 +386,7 @@ export default function Profile({ id, handle = '', state, actions, account, noti
       </div>
 
       {/* Coluna lateral direita estilo Steam */}
+      <div className="steam-side-column">
       <aside className="steam-sidebar" aria-label="Resumo e insígnias do perfil">
         <div className="steam-status-box">
           <span className="steam-online-label">
@@ -438,8 +439,9 @@ export default function Profile({ id, handle = '', state, actions, account, noti
             <strong>{queue.length}</strong>
           </div>
         </nav>
-        {friendsPath && <ProfileFriends path={friendsPath} isSelf={isSelf} name={user.name} go={go}/>}
       </aside>
+        {friendsPath && <ProfileFriends path={friendsPath} isSelf={isSelf} name={user.name} go={go}/>}
+      </div>
     </div>
   </div>;
 }
@@ -479,7 +481,7 @@ function AddFriendButton({ person, notify, onChanged }) {
 function ProfileFriends({ path, isSelf, name, go }) {
   const resource = useResource(path);
   const friends = resource.data?.friends;
-  return <section className="steam-side-section profile-friends" aria-labelledby="profile-friends-title">
+  return <section className="card-surface profile-friends-card" aria-labelledby="profile-friends-title">
     <div className="steam-side-head">
       <h2 id="profile-friends-title" className="steam-side-title">Amigos</h2>
       {friends && <span className="steam-side-count">{friends.length}</span>}

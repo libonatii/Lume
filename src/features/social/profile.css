@@ -802,3 +802,7 @@ html[data-theme='light'] .steam-bio-form {
 .profile-friend-list .social-friend-profile .social-avatar { width: 2.1rem; height: 2.1rem; font-size: 0.7rem; }
 .profile-friend-list .social-friend-profile strong { font-size: 0.78rem; overflow-wrap: anywhere; }
 .profile-friend-list .social-friend-profile small { color: var(--text-subtle); font-size: 0.6rem; }
+
+/* Amigos: card próprio, separado do card de resumo da lateral. */
+.steam-side-column { display: grid; gap: var(--space-4); align-content: start; min-width: 0; }
+.profile-friends-card { display: grid; gap: var(--space-3); padding: 1.25rem; border-radius: var(--radius-xl); }
