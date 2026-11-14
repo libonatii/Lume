@@ -5,7 +5,6 @@ import { completionKindForCourse, stepEventKey } from '../../../public/xp-policy
 import { isCompleted } from '../../../public/progress-domain.js';
 import BackupPanel from './BackupPanel.jsx';
 import CreatorQuotaPanel from './CreatorQuotaPanel.jsx';
-import StoragePanel from './StoragePanel.jsx';
 import { api, apiError } from '../../lib/api.js';
 import Icon from '../../ui/Icon.jsx';
 import { Heading } from '../../ui/ui.jsx';
@@ -15,7 +14,6 @@ const SECTIONS = [
   { id: 'ritmo', label: 'Ritmo de estudo', icon: 'calendar', info: 'Seu momento e o plano semanal sugerem passos, sem obrigação.' },
   { id: 'social', label: 'Social e privacidade', icon: 'users' },
   { id: 'notificacoes', label: 'Notificações', icon: 'bell', info: 'Os lembretes de compromissos ficam na Agenda. Lembretes de pausa e por e-mail ainda não existem, então não há controle que finja um envio. Quando existirem, serão opcionais e não concederão XP.' },
-  { id: 'armazenamento', label: 'Armazenamento', icon: 'layers', info: 'Acompanhe o espaço ocupado pelos seus PDFs da Biblioteca e anexos do Social e libere espaço quando precisar.' },
   { id: 'dados', label: 'Meus dados', icon: 'layers', info: 'Baixe uma cópia dos seus dados de estudo ou restaure uma cópia do Lume.' },
   { id: 'cotas', label: 'Controle de cotas', icon: 'settings', creatorOnly: true, info: 'Defina os limites de armazenamento das contas sem precisar de IDs. Visível apenas para a criadora.' },
 ];
@@ -232,8 +230,6 @@ export function Preferences({ state, actions, libraryActions, confirmSave, notif
             </div>
           </div>
         </div>}
-
-        {current.id === 'armazenamento' && <StoragePanel state={state} account={account} libraryActions={libraryActions} confirmSave={confirmSave} notify={notify} open={open} go={go}/>}
 
         {current.id === 'cotas' && account?.isCreator && <CreatorQuotaPanel account={account} notify={notify}/>}
 

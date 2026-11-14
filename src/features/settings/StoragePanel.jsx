@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { formatBytes } from '../../../public/pdf-domain.js';
 import { api, apiError } from '../../lib/api.js';
 import Icon from '../../ui/Icon.jsx';
-import { Button } from '../../ui/ui.jsx';
+import { Button, Heading } from '../../ui/ui.jsx';
 
 function formatDate(iso) {
   if (!iso) return '';
@@ -189,5 +189,15 @@ export default function StoragePanel({ state, account, libraryActions, confirmSa
         <p className="quiet-note">Excluir um PDF por aqui remove também o material correspondente da sua Biblioteca e libera espaço imediatamente.</p>
       </div>
     </>}
+  </div>;
+}
+
+
+export function StoragePage(props) {
+  return <div className="personal-root">
+    <Heading title="Armazenamento">Espaço ocupado pelos seus PDFs da Biblioteca e anexos do Social.</Heading>
+    <section className="card-surface cfg-panel" aria-label="Gerenciamento de armazenamento">
+      <StoragePanel {...props}/>
+    </section>
   </div>;
 }
