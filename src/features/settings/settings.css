@@ -281,3 +281,169 @@
 
 .cfg-panel .switch:checked { background: var(--action); }
 .cfg-panel .switch:checked::after { background: var(--action-ink, #fff); }
+
+
+/* Armazenamento e Controle de cotas (Identidade Norte). */
+.cfg-nav-item.is-creator-nav {
+  margin-top: var(--space-2);
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-3);
+}
+.cfg-nav-item .soft-badge { margin-left: auto; }
+
+.cfg-storage-summary {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--inner);
+}
+.cfg-storage-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.cfg-storage-headline { margin: 0; font-size: 1.05rem; color: var(--text); }
+.cfg-storage-pct { color: var(--text-subtle); font-size: 0.9rem; }
+.cfg-storage-alert { margin: var(--space-1) 0 0; font-size: 0.85rem; color: var(--warning); }
+
+.cfg-storage-bar {
+  display: flex;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--track);
+  overflow: hidden;
+}
+.cfg-storage-bar.is-warning { outline: 1px solid color-mix(in srgb, var(--warning) 45%, transparent); }
+.cfg-storage-seg { height: 100%; transition: width var(--dur-base) var(--ease-out); }
+.cfg-storage-seg.is-library { background: var(--lume); }
+.cfg-storage-seg.is-social { background: var(--subject-mint); }
+
+.cfg-storage-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+.cfg-storage-legend span { display: inline-flex; align-items: center; gap: 0.45rem; }
+.cfg-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.cfg-dot.is-library { background: var(--lume); }
+.cfg-dot.is-social { background: var(--subject-mint); }
+
+.cfg-storage-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.cfg-filter-row { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.cfg-storage-search { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.cfg-storage-controls input[type="search"] {
+  min-width: 12rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--inner);
+  color: var(--text);
+}
+
+.cfg-storage-list,
+.cfg-quota-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+.cfg-storage-item,
+.cfg-quota-row {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--inner);
+}
+.cfg-storage-item-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-3);
+}
+.cfg-storage-item-info { display: grid; gap: 0.15rem; min-width: 0; }
+.cfg-storage-item-info strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+.cfg-storage-item-info span { font-size: 0.82rem; color: var(--text-subtle); }
+.cfg-storage-size { font-size: 0.9rem; color: var(--text-muted); white-space: nowrap; }
+.cfg-storage-actions { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.cfg-storage-confirm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+.cfg-storage-confirm p { margin: 0; }
+
+.button.is-danger-outline {
+  border-color: color-mix(in srgb, var(--warning) 45%, transparent);
+  color: var(--warning);
+}
+.button.is-danger-fill {
+  background: var(--warning);
+  color: var(--warning-ink);
+  border-color: transparent;
+}
+
+.cfg-quota-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.cfg-quota-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+.cfg-quota-user { display: grid; gap: 0.35rem; min-width: 0; }
+.cfg-quota-identity { display: flex; align-items: baseline; gap: var(--space-2); flex-wrap: wrap; }
+.cfg-quota-identity span { font-size: 0.82rem; color: var(--text-subtle); }
+.cfg-quota-usage { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; font-size: 0.82rem; color: var(--text-muted); }
+.cfg-quota-flag {
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-size: 0.75rem;
+}
+.cfg-quota-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--track);
+  overflow: hidden;
+  max-width: 18rem;
+}
+.cfg-quota-bar span { display: block; height: 100%; background: var(--lume); }
+.cfg-quota-bar span.is-warning { background: var(--warning); }
+.cfg-quota-bar span.is-creator { background: var(--reward); }
+.cfg-quota-tiers { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.filter-btn.is-active-tier {
+  background: var(--action);
+  color: var(--action-ink);
+  border-color: var(--action);
+  font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  .cfg-storage-item-main,
+  .cfg-quota-row { grid-template-columns: minmax(0, 1fr); }
+}

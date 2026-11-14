@@ -112,9 +112,11 @@ export default function AttachPdf({ state, actions, close, notify, open, go, acc
       </label>}
       {suggestion && subjectId === suggestion.subject.id && !chosen && <p className="quiet-note">Disciplina sugerida pelo texto do PDF ({suggestion.hits.slice(0, 3).join(', ')}). Troque se não for essa.</p>}
       <p className="quiet-note">Anexar não concede XP. Concluir a leitura do PDF inteiro vale como leitura concluída, uma vez.
-        {storage ? ` Uso da conta: ${formatBytes(storage.used)} de ${formatBytes(storage.accountBytes)}; até ${formatBytes(storage.fileBytes)} por arquivo.` : ''}
-        {storage?.plan === 'free' ? ` Ampliar para ${formatBytes(PDF_PLANS.plus.fileBytes)} por arquivo e ${formatBytes(PDF_PLANS.plus.accountBytes)} exigirá assinatura, ainda não disponível.` : ''}</p>
-      {error && <p className="form-error" role="alert">{error}</p>}
+        {storage ? ` Uso da conta: ${formatBytes(storage.used)} de ${formatBytes(storage.accountBytes)} (faixa ${storage.label}); até ${formatBytes(storage.fileBytes)} por arquivo.` : ''}</p>
+      {error && <div className="form-error-block" role="alert">
+        <p className="form-error">{error}</p>
+        {error.includes('armazenamento') && <Button ghost type="button" onClick={() => { close(); go('configuracoes?secao=armazenamento'); }}>Gerenciar armazenamento<Icon name="arrow"/></Button>}
+      </div>}
       <div className="dialog-actions">
         <Button type="submit" disabled={busy || !info}><Icon name="plus"/>{status === 'uploading' ? 'Enviando…' : 'Anexar PDF'}</Button>
         <Button ghost onClick={close} disabled={status === 'uploading'}>Cancelar</Button>

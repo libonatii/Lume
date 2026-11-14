@@ -20,7 +20,7 @@ export function socialFeedRoutes(router) {
       const upload = form.get('attachment');
       if (upload && typeof upload.arrayBuffer === 'function') file = { name: upload.name, bytes: new Uint8Array(await upload.arrayBuffer()) };
     } else input = await ctx.json(16384);
-    return json(await createSocialPost(ctx.db, ctx.media, ctx.user.id, input, file), 201);
+    return json(await createSocialPost(ctx.db, ctx.media, ctx.user.id, input, file, Date.now(), ctx.config), 201);
   });
   router.add('DELETE', '/api/social/posts/:postId', FEED, async ctx => json(await deleteSocialPost(ctx.db, ctx.media, ctx.user.id, ctx.params.postId)));
   // Navegação, download e <img> enviam cookie; o acesso continua privado, sem cache público.

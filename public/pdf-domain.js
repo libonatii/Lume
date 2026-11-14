@@ -12,11 +12,20 @@
 import { stepUnits } from './material-model.js';
 
 const MB = 1024 * 1024;
-// Plano gratuito: 50 MB por arquivo e 1 GB por conta. Ampliar para 100 MB e
-// 2 GB exige assinatura, ainda não disponível (decisão de 10/11/2026).
+// Escalas de armazenamento sem monetização: 10 MB padrão, até 1 GB (exclusivo da criadora).
+export const STORAGE_TIERS = Object.freeze([
+  Object.freeze({ id: 'starter', label: '10 MB', fileBytes: 10 * MB, accountBytes: 10 * MB }),
+  Object.freeze({ id: 'basic', label: '50 MB', fileBytes: 25 * MB, accountBytes: 50 * MB }),
+  Object.freeze({ id: 'standard', label: '100 MB', fileBytes: 50 * MB, accountBytes: 100 * MB }),
+  Object.freeze({ id: 'extended', label: '500 MB', fileBytes: 50 * MB, accountBytes: 500 * MB }),
+  Object.freeze({ id: 'creator', label: '1 GB', fileBytes: 100 * MB, accountBytes: 1024 * MB }),
+]);
+export const STORAGE_TIER_MAP = Object.freeze(Object.fromEntries(STORAGE_TIERS.map((tier) => [tier.id, tier])));
+// Compatibilidade com identificadores antigos; sem faixa explícita, vale 10 MB.
 export const PDF_PLANS = Object.freeze({
-  free: Object.freeze({ id: 'free', label: 'Gratuito', fileBytes: 50 * MB, accountBytes: 1024 * MB }),
-  plus: Object.freeze({ id: 'plus', label: 'Assinatura', fileBytes: 100 * MB, accountBytes: 2048 * MB }),
+  ...STORAGE_TIER_MAP,
+  free: STORAGE_TIER_MAP.starter,
+  plus: STORAGE_TIER_MAP.creator,
 });
 export const MAX_OUTLINE = 300;
 export const MAX_PAGES = 20000;
@@ -24,7 +33,26 @@ export const PDF_STEP_TITLE = 'Ler o PDF até o fim';
 export const FILE_ID = /^[A-Za-z0-9_-]{8,80}$/;
 
 export function pdfPlan(id) {
-  return PDF_PLANS[id] || PDF_PLANS.free;
+  return PDF_PLANS[id] || STORAGE_TIER_MAP.starter;
+}
+
+export function isValidStorageTier(id) {
+  return Boolean(STORAGE_TIER_MAP[id]);
+}
+
+export function storageStatus(usedBytes, accountBytes) {
+  const used = Math.max(0, Number(usedBytes) || 0);
+  const limit = Math.max(0, Number(accountBytes) || 0);
+  const percent = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 100;
+  return {
+    used,
+    limit,
+    percent,
+    remainingBytes: Math.max(0, limit - used),
+    overLimit: used > limit,
+    full: used >= limit,
+    nearLimit: limit > 0 && used / limit >= 0.85,
+  };
 }
 
 export function formatBytes(value) {

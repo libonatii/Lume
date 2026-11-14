@@ -49,7 +49,7 @@ export function libraryRoutes(router) {
   router.add('POST', '/api/library/actions', account, async (ctx) => json(await applyLibraryActions(ctx.db, ctx.user.id, await ctx.json(3 * 1024 * 1024), { media: ctx.media })));
 
   // PDFs da biblioteca: privados da conta, sem cópia local nem leitura pública.
-  router.add('GET', '/api/library/files', account, async (ctx) => json({ ...await storageUsage(ctx.db, ctx.user.id), ai: aiAvailable(ctx.env), storage: Boolean(ctx.media) }));
+  router.add('GET', '/api/library/files', account, async (ctx) => json({ ...await storageUsage(ctx.db, ctx.user.id, ctx.config), ai: aiAvailable(ctx.env), storage: Boolean(ctx.media) }));
   router.add('POST', '/api/library/files/:fileId/upload-url', { ...account, rateLimit: FILE_ATTEMPTS }, async (ctx) => {
     const fileId = validateFileId(ctx.params.fileId);
     const body = await ctx.json(LIMITS.small);
@@ -59,6 +59,7 @@ export function libraryRoutes(router) {
       size: body.size,
       contentType: body.contentType,
       env: ctx.env,
+      config: ctx.config,
     }));
   });
   router.add('POST', '/api/library/files/:fileId/confirm', account, async (ctx) => {
@@ -104,14 +105,14 @@ export function libraryRoutes(router) {
   });
   router.add('PUT', '/api/library/files/:fileId', { ...account, rateLimit: FILE_ATTEMPTS }, async (ctx) => {
     const fileId = validateFileId(ctx.params.fileId);
-    const plan = await storagePlan(ctx.db, ctx.user.id);
+    const plan = await storagePlan(ctx.db, ctx.user.id, ctx.config);
     const tooLarge = () => new FileError(`O PDF ultrapassa o limite de ${formatBytes(plan.fileBytes)} por arquivo.`, 'file_too_large', 413);
     const declared = Number(ctx.request.headers.get('content-length'));
     if (Number.isFinite(declared) && declared > plan.fileBytes) throw tooLarge();
     const bytes = await ctx.bytes(plan.fileBytes, tooLarge);
     let name = '';
     try { name = decodeURIComponent(ctx.request.headers.get('x-file-name') || ''); } catch { name = ''; }
-    const file = await uploadPdf(ctx.db, ctx.media, ctx.user.id, { fileId, name, bytes });
+    const file = await uploadPdf(ctx.db, ctx.media, ctx.user.id, { fileId, name, bytes, config: ctx.config });
     ctx.log('pdf_uploaded', { userId: ctx.user.id, bytes: file.size });
     return json(file, 201);
   });

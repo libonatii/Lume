@@ -41,15 +41,33 @@ export function isPdf(bytes) {
   return view.byteLength >= 64 && head.includes('%PDF-');
 }
 
-export async function storagePlan(db, userId) {
+export async function storagePlan(db, userId, config = null) {
+  if (config?.creatorEmails?.length) {
+    const userRow = await db.first('SELECT email FROM users WHERE id=?', [userId]);
+    const email = typeof userRow?.email === 'string' ? userRow.email.trim().toLowerCase() : '';
+    if (email && config.creatorEmails.includes(email)) return pdfPlan('creator');
+  }
   const row = await db.first('SELECT plan FROM storage_plans WHERE user_id=?', [userId]);
   return pdfPlan(row?.plan);
 }
 
-export async function storageUsage(db, userId) {
-  const plan = await storagePlan(db, userId);
-  const row = await db.first('SELECT COALESCE(SUM(size),0) AS used, COUNT(*) AS files FROM library_files WHERE user_id=?', [userId]);
-  return { plan: plan.id, label: plan.label, fileBytes: plan.fileBytes, accountBytes: plan.accountBytes, used: Number(row?.used || 0), files: Number(row?.files || 0) };
+export async function storageUsage(db, userId, config = null) {
+  const plan = await storagePlan(db, userId, config);
+  const lib = await db.first('SELECT COALESCE(SUM(size),0) AS used, COUNT(*) AS files FROM library_files WHERE user_id=?', [userId]);
+  const soc = await db.first('SELECT COALESCE(SUM(attachment_size),0) AS used, COUNT(*) AS files FROM social_posts WHERE user_id=? AND attachment_key IS NOT NULL AND attachment_size > 0', [userId]);
+  const libraryBytes = Number(lib?.used || 0);
+  const libraryFiles = Number(lib?.files || 0);
+  const socialBytes = Number(soc?.used || 0);
+  const socialFiles = Number(soc?.files || 0);
+  return {
+    plan: plan.id,
+    label: plan.label,
+    fileBytes: plan.fileBytes,
+    accountBytes: plan.accountBytes,
+    used: libraryBytes + socialBytes,
+    files: libraryFiles + socialFiles,
+    breakdown: { libraryBytes, libraryFiles, socialBytes, socialFiles },
+  };
 }
 
 function cleanName(value) {
@@ -139,7 +157,7 @@ function r2PresignConfig(env = {}) {
   return { accountId, accessKeyId, secretAccessKey, bucketName };
 }
 
-export async function createPdfUploadUrl(db, bucket, userId, { fileId, name, size, contentType = 'application/pdf', now = Date.now(), env = {} }) {
+export async function createPdfUploadUrl(db, bucket, userId, { fileId, name, size, contentType = 'application/pdf', now = Date.now(), env = {}, config = null }) {
   requireBucket(bucket);
   const key = pdfKey(userId, fileId);
   if (contentType && contentType !== 'application/pdf') {
@@ -149,21 +167,24 @@ export async function createPdfUploadUrl(db, bucket, userId, { fileId, name, siz
   if (!Number.isFinite(declaredSize) || declaredSize < 64) {
     throw new FileError('Tamanho do PDF inválido.', 'invalid_file', 400);
   }
-  const plan = await storagePlan(db, userId);
+  const plan = await storagePlan(db, userId, config);
   if (declaredSize > plan.fileBytes) {
     throw new FileError(`O PDF ultrapassa o limite de ${formatBytes(plan.fileBytes)} por arquivo.`, 'file_too_large', 413);
   }
   await removeOrphans(db, bucket, userId, { now });
   const cleanedName = cleanName(name);
   const reserved = await db.run(`INSERT INTO library_files (user_id,id,size,name,created_at,status)
-    SELECT ?,?,?,?,?,'pending' WHERE (SELECT COALESCE(SUM(size),0) FROM library_files WHERE user_id=?) + ? <= ?
+    SELECT ?,?,?,?,?,'pending' WHERE
+      (SELECT COALESCE(SUM(size),0) FROM library_files WHERE user_id=?)
+      + (SELECT COALESCE(SUM(attachment_size),0) FROM social_posts WHERE user_id=? AND attachment_key IS NOT NULL AND attachment_size > 0)
+      + ? <= ?
     ON CONFLICT(user_id,id) DO NOTHING`,
-  [userId, fileId, declaredSize, cleanedName, new Date(now).toISOString(), userId, declaredSize, plan.accountBytes]);
+  [userId, fileId, declaredSize, cleanedName, new Date(now).toISOString(), userId, userId, declaredSize, plan.accountBytes]);
   if (!reserved) {
     if (await db.first('SELECT id FROM library_files WHERE user_id=? AND id=?', [userId, fileId])) {
       throw new FileError('Este arquivo já foi enviado.', 'file_exists', 409);
     }
-    throw new FileError(`O armazenamento da conta (${formatBytes(plan.accountBytes)}) não comporta este PDF. Exclua PDFs que não usa mais.`, 'storage_full', 413);
+    throw new FileError(`O armazenamento da conta (${formatBytes(plan.accountBytes)}) não comporta este PDF. Exclua anexos que não usa mais.`, 'storage_full', 413);
   }
   const r2 = r2PresignConfig(env);
   if (r2) {
@@ -209,10 +230,10 @@ export async function confirmPdfUpload(db, bucket, userId, fileId) {
 // A cota é reservada no banco antes de gravar o objeto: a inserção só acontece
 // se a soma, com o arquivo novo, couber no plano. Duas cargas simultâneas não
 // ultrapassam o limite.
-export async function uploadPdf(db, bucket, userId, { fileId, name, bytes, now = Date.now() }) {
+export async function uploadPdf(db, bucket, userId, { fileId, name, bytes, now = Date.now(), config = null }) {
   requireBucket(bucket);
   const key = pdfKey(userId, fileId);
-  const plan = await storagePlan(db, userId);
+  const plan = await storagePlan(db, userId, config);
   const view = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
   if (view.byteLength > plan.fileBytes) throw new FileError(`O PDF ultrapassa o limite de ${formatBytes(plan.fileBytes)} por arquivo.`, 'file_too_large', 413);
   if (!isPdf(view)) throw new FileError('O arquivo enviado não é um PDF.', 'not_pdf', 415);
@@ -222,19 +243,24 @@ export async function uploadPdf(db, bucket, userId, { fileId, name, bytes, now =
   if (existing?.status === 'pending') {
     const updated = await db.run(`UPDATE library_files SET size=?, name=?, status='ready'
       WHERE user_id=? AND id=? AND status='pending'
-      AND (SELECT COALESCE(SUM(size),0) FROM library_files WHERE user_id=? AND id!=?) + ? <= ?`,
-    [view.byteLength, cleanedName, userId, fileId, userId, fileId, view.byteLength, plan.accountBytes]);
+      AND (SELECT COALESCE(SUM(size),0) FROM library_files WHERE user_id=? AND id!=?)
+        + (SELECT COALESCE(SUM(attachment_size),0) FROM social_posts WHERE user_id=? AND attachment_key IS NOT NULL AND attachment_size > 0)
+        + ? <= ?`,
+    [view.byteLength, cleanedName, userId, fileId, userId, fileId, userId, view.byteLength, plan.accountBytes]);
     if (!updated) {
-      throw new FileError(`O armazenamento da conta (${formatBytes(plan.accountBytes)}) não comporta este PDF. Exclua PDFs que não usa mais.`, 'storage_full', 413);
+      throw new FileError(`O armazenamento da conta (${formatBytes(plan.accountBytes)}) não comporta este PDF. Exclua anexos que não usa mais.`, 'storage_full', 413);
     }
   } else {
     const reserved = await db.run(`INSERT INTO library_files (user_id,id,size,name,created_at,status)
-      SELECT ?,?,?,?,?,'ready' WHERE (SELECT COALESCE(SUM(size),0) FROM library_files WHERE user_id=?) + ? <= ?
+      SELECT ?,?,?,?,?,'ready' WHERE
+        (SELECT COALESCE(SUM(size),0) FROM library_files WHERE user_id=?)
+        + (SELECT COALESCE(SUM(attachment_size),0) FROM social_posts WHERE user_id=? AND attachment_key IS NOT NULL AND attachment_size > 0)
+        + ? <= ?
       ON CONFLICT(user_id,id) DO NOTHING`,
-    [userId, fileId, view.byteLength, cleanedName, new Date(now).toISOString(), userId, view.byteLength, plan.accountBytes]);
+    [userId, fileId, view.byteLength, cleanedName, new Date(now).toISOString(), userId, userId, view.byteLength, plan.accountBytes]);
     if (!reserved) {
       if (await db.first('SELECT id FROM library_files WHERE user_id=? AND id=?', [userId, fileId])) throw new FileError('Este arquivo já foi enviado.', 'file_exists', 409);
-      throw new FileError(`O armazenamento da conta (${formatBytes(plan.accountBytes)}) não comporta este PDF. Exclua PDFs que não usa mais.`, 'storage_full', 413);
+      throw new FileError(`O armazenamento da conta (${formatBytes(plan.accountBytes)}) não comporta este PDF. Exclua anexos que não usa mais.`, 'storage_full', 413);
     }
   }
   try {

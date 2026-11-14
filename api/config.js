@@ -25,11 +25,19 @@ function pick(env, ...names) {
 
 export function readConfig(env = {}) {
   const attempts = Number(pick(env, 'ATTEMPT_LIMIT', 'LUME_ATTEMPT_LIMIT'));
+  const rawCreators = String(pick(env, 'LUME_CREATOR_EMAIL', 'CREATOR_EMAIL') || '');
+  const creatorEmails = rawCreators.split(',').map((item) => item.trim().toLowerCase()).filter(Boolean);
   return {
     attemptLimit: Number.isFinite(attempts) && attempts > 0 ? Math.min(Math.floor(attempts), 1000) : 10,
     bcryptRounds: bcryptRounds(pick(env, 'BCRYPT_ROUNDS')),
+    creatorEmails,
     // Sem e-mail configurado, o link de redefinição volta na resposta, salvo
     // quando SHOW_RESET_LINK=false (produção).
     showResetLink: pick(env, 'SHOW_RESET_LINK', 'LUME_SHOW_RESET_LINK') !== 'false',
   };
+}
+
+export function isCreator(user, config) {
+  const email = typeof user?.email === 'string' ? user.email.trim().toLowerCase() : '';
+  return Boolean(email && Array.isArray(config?.creatorEmails) && config.creatorEmails.includes(email));
 }
