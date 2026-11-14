@@ -20,7 +20,7 @@
   border: 1px solid var(--border);
 }
 .search-field:focus-within {
-  border-color: color-mix(in srgb, var(--mint) 60%, transparent);
+  border-color: var(--border-strong);
   box-shadow: 0 0 0 3px var(--lume-soft);
 }
 .search-field input {
@@ -31,17 +31,18 @@
 }
 
 .shelf-count {
-  font-family: var(--font-sans);
-  font-size: 0.82rem;
-  font-weight: 600;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 500;
   padding: 0.2rem 0.6rem;
-  border-radius: var(--radius-pill);
+  border-radius: 8px;
   background: var(--surface-2);
   color: var(--text-muted);
   margin-left: 0.4rem;
 }
 .search-result-count {
-  font-size: 0.84rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
   color: var(--text-subtle);
 }
 
@@ -60,7 +61,7 @@
   display: flex;
   flex-direction: column;
   cursor: pointer;
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .course-card-wrap {
@@ -82,15 +83,16 @@
   place-items: center;
   width: 2.2rem;
   height: 2.2rem;
-  border-radius: var(--radius-pill);
-  background: var(--surface-glass);
-  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
   color: var(--text);
   cursor: pointer;
 }
 .course-menu-button:hover,
 .course-menu-button[aria-expanded="true"] {
-  background: color-mix(in srgb, var(--lume) 22%, var(--surface));
+  background: var(--surface-2);
+  border-color: var(--border-strong);
 }
 .course-menu-list {
   position: absolute;
@@ -141,7 +143,7 @@
 }
 .course-card.selected-course {
   border-color: var(--lume);
-  box-shadow: 0 0 0 1px var(--lume), var(--shadow-sm);
+  box-shadow: 0 0 0 1px var(--lume);
 }
 .course-image {
   position: relative;
@@ -153,10 +155,11 @@
   position: absolute;
   top: 0.75rem;
   left: 0.75rem;
-  padding: 0.25rem 0.65rem;
-  border-radius: var(--radius-pill);
+  padding: 0.25rem 0.6rem;
+  border-radius: 8px;
+  font-family: var(--font-mono);
   font-size: 0.74rem;
-  font-weight: 700;
+  font-weight: 500;
   background: color-mix(in srgb, var(--media-scrim) 78%, transparent);
   color: var(--media-ink);
   backdrop-filter: blur(8px);
@@ -236,8 +239,9 @@
   place-items: center;
   background: var(--surface-3);
   color: var(--text-muted);
+  font-family: var(--font-mono);
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 500;
   flex-shrink: 0;
 }
 .step-copy {

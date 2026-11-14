@@ -120,5 +120,5 @@ test('próximos marcos mostram compromissos da Agenda de qualquer tipo', async (
   const milestones = page.getByRole('region', { name: 'Próximos Marcos' });
   await expect(milestones).toContainText('Simulado de Falência');
   await expect(milestones).toContainText('Consulta médica');
-  await expect(milestones).toContainText('Faltam 3 dias');
+  await expect(milestones).toContainText('faltam 3 dias');
 });

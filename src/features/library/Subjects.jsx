@@ -129,7 +129,7 @@ export default function Subjects({ state, actions, open, go, notify, id = '' }) 
   const overviews = subjectsOverview(state);
   const unlinked = state.courses.filter((course) => !course.subjectId).length;
   return <div className="subjects-root">
-    <Heading eyebrow="Matérias & retomada" title="Disciplinas" actions={<Button onClick={() => open({ type: 'pdf-attach' })}><Icon name="plus"/>Anexar PDF</Button>}>
+    <Heading eyebrow="disciplinas" title="Disciplinas" actions={<Button onClick={() => open({ type: 'pdf-attach' })}><Icon name="plus"/>Anexar PDF</Button>}>
       Agrupe PDFs e outros materiais por matéria, veja o que já percorreu e continue de onde parou.
     </Heading>
     <div className="subjects-grid">

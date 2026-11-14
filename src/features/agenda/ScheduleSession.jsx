@@ -12,7 +12,7 @@ import { browserZone, minutesOf, timeOf } from './calendar-model.js';
 // Estilos de sessão: só compõem o título sugerido. A Agenda guarda o
 // compromisso como Estudo; nada aqui gera XP.
 const STYLES = [
-  { id: 'reading', title: 'Leitura e teoria', text: 'Foco calmo, assimilação e reflexão.', icon: 'book' },
+  { id: 'reading', title: 'Leitura e teoria', text: 'Ler, entender e anotar.', icon: 'book' },
   { id: 'practice', title: 'Prática e questões', text: 'Exercícios, casos e fixação ativa.', icon: 'quiz' },
   { id: 'review', title: 'Revisão', text: 'Resumos, flashcards e retomada.', icon: 'restart' },
   { id: 'writing', title: 'Produção e escrita', text: 'Sínteses, redações, peças ou código.', icon: 'pen' },
@@ -90,11 +90,10 @@ export default function ScheduleSession({ state, actions, confirmSave, notify, g
   return <form className="schedule-root" onSubmit={confirm}>
     <div className="schedule-top">
       <a className="back-link" href="#agenda"><Icon name="back"/>Voltar para a Agenda</a>
-      <span className="soft-badge tone-mint"><span className="soft-dot" aria-hidden="true"/>Ritmo constante · foco sem sobrecarga</span>
     </div>
     <header className="schedule-heading">
       <h1 className="display">Agendar sessão de estudo</h1>
-      <p className="lead">Defina o foco, vincule um material da Biblioteca e escolha o momento. A sessão entra na sua Agenda sem cobranças.</p>
+      <p className="lead">Defina o foco, vincule um material da Biblioteca e escolha o momento. A sessão entra na sua Agenda.</p>
     </header>
 
     <div className="schedule-grid">
@@ -161,7 +160,7 @@ export default function ScheduleSession({ state, actions, confirmSave, notify, g
           <h2 id="schedule-comfort-title" className="title"><span className="card-icon tone-mint"><Icon name="bell"/></span>Conforto &amp; Foco</h2>
 
           <label className="toggle-row">
-            <span><strong>Lembrete suave antes</strong><small>Avisa com o Lume aberto no navegador ou app.</small></span>
+            <span><strong>Lembrete antes</strong><small>Avisa com o Lume aberto no navegador ou app.</small></span>
             <input type="checkbox" role="switch" switch="" checked={reminderEnabled} onChange={(event) => setReminderEnabled(event.target.checked)}/>
           </label>
 
@@ -172,7 +171,7 @@ export default function ScheduleSession({ state, actions, confirmSave, notify, g
           </label>}
 
           <label className="toggle-row">
-            <span><strong>Tom tranquilo na preparação</strong><small>Mantém avisos discretos durante a sessão.</small></span>
+            <span><strong>Avisos discretos</strong><small>Sem sons nem destaques durante a sessão.</small></span>
             <input type="checkbox" role="switch" switch="" checked={silenceNotice} onChange={(event) => setSilenceNotice(event.target.checked)}/>
           </label>
 
@@ -183,7 +182,7 @@ export default function ScheduleSession({ state, actions, confirmSave, notify, g
         </section>
 
         <section className="card-surface schedule-summary" aria-labelledby="schedule-summary-title">
-          <div className="schedule-summary-head"><h2 id="schedule-summary-title" className="metric-label">Resumo do Santuário</h2><span className="soft-badge tone-mint"><span className="soft-dot" aria-hidden="true"/>Pronto para confirmar</span></div>
+          <div className="schedule-summary-head"><h2 id="schedule-summary-title" className="metric-label">resumo</h2><span className="soft-badge tone-mint"><span className="soft-dot" aria-hidden="true"/>Pronto para confirmar</span></div>
           <dl className="summary-list">
             <div><dt><Icon name="calendar"/>Quando</dt><dd>{dayLabel(date)} · {start} às {end} ({formatMinutes(minutes)})</dd></div>
             <div><dt><Icon name="book"/>O quê</dt><dd>{title}</dd></div>

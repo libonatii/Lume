@@ -132,6 +132,12 @@
   --trail-future: #50638a;
   --trail-hollow: #6b80aa;
   --dot-off: #26324d;
+  /* Cores que a pessoa escolhe para cada disciplina: só identificam, não têm função. */
+  --subject-lume: #9ec5ff;
+  --subject-mint: #7fd6c2;
+  --subject-violet: #c3b3ff;
+  --subject-amber: #f6c165;
+  --subject-coral: #f2a0b8;
   /* Malha discreta de pontos no fundo da página. */
   --grid-dot: #26324d;
   --glow-a: transparent;
@@ -207,6 +213,11 @@ html[data-theme='light'] {
   --trail-future: #9aa7ba;
   --trail-hollow: #7d8aa0;
   --dot-off: #d3dae6;
+  --subject-lume: #1f5fbf;
+  --subject-mint: #12806b;
+  --subject-violet: #6b4fc4;
+  --subject-amber: #a86f00;
+  --subject-coral: #b8406a;
   --grid-dot: #dde3ed;
   --glow-a: transparent;
   --glow-b: transparent;

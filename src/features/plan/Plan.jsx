@@ -10,6 +10,7 @@ import { activeCompletions } from '../../../public/progress-domain.js';
 import { localDay, minutesByDay } from '../../../public/session-domain.js';
 import { CATEGORIES } from '../../../public/agenda-domain.js';
 import { minutesOf } from '../agenda/calendar-model.js';
+import { shortDate as monoDate } from '../../../public/home-domain.js';
 
 export function formatMinutes(total) {
   const value = Math.max(0, Math.round(total));
@@ -104,11 +105,11 @@ export function Schedule({ state, actions, open, go, notify }) {
         <p className="lead">{!schedule.courses.length
           ? 'Adicione um curso à biblioteca para montar sua rota de estudos.'
           : hasAvailability
-            ? <>Sua rota de aprendizado no seu ritmo: <strong>{formatMinutes(schedule.weeklyMinutes)} por semana</strong>{lastFinish && !schedule.unscheduled ? <>, conclusão prevista em <strong>{shortDate(lastFinish)}</strong></> : ''}.</>
-            : 'Sua rota de aprendizado com equilíbrio e continuidade.'}</p>
+            ? <>Seu plano: <strong>{formatMinutes(schedule.weeklyMinutes)} por semana</strong>{lastFinish && !schedule.unscheduled ? <>, conclusão prevista em <strong>{shortDate(lastFinish)}</strong></> : ''}.</>
+            : 'Aulas distribuídas pelo tempo que você tem em cada dia.'}</p>
       </div>
       <div className="page-heading-actions">
-        <a className="button primary" href="#agendar"><Icon name="calendar-plus"/>Agendar Sessão</a>
+        <a className="button primary" href="#agendar"><Icon name="calendar-plus"/>Agendar sessão</a>
       </div>
     </header>
     <SectionTabs route="plano"/>
@@ -176,7 +177,7 @@ export function Schedule({ state, actions, open, go, notify }) {
                     const subjects = [...new Set(info.pending.map((block) => block.kind === 'lesson' ? block.item.courseTitle : block.entry.title))];
                     return <button key={date} type="button" className={`plan-mini-day${info.rest ? ' is-rest' : ''}`} onClick={() => choose(date)}>
                       <span className="plan-mini-head"><strong>{weekdayLong(date)} • {Number(date.slice(8))}</strong><small>{info.rest ? 'Descanso' : `${info.pending.length} ${info.pending.length === 1 ? 'bloco' : 'blocos'}`}</small></span>
-                      <span className="plan-mini-copy">{info.rest ? 'Pausa sem cobrança' : subjects.length ? subjects.slice(0, 2).join(' & ') : 'Tempo livre'}</span>
+                      <span className="plan-mini-copy">{info.rest ? 'Dia livre' : subjects.length ? subjects.slice(0, 2).join(' & ') : 'Tempo livre'}</span>
                     </button>;
                   })}
                 </div>}
@@ -217,7 +218,7 @@ function DayDetail({ date, today, info, firstItem, open, go, postpone }) {
             <span className={`plan-block-icon ${entry.done ? 'tone-mint' : ''}`}><Icon name={entry.done ? 'check' : entry.category === 'exam' ? 'flag' : 'calendar'}/></span>
             <span className="plan-item-copy"><strong>{entry.title}</strong><small className="todo-meta">{entry.start ? `${entry.start} – ${entry.end}` : 'Sem horário'} • {CATEGORIES[entry.category]}</small></span>
             {entry.done ? <span className="soft-badge tone-mint">Concluído</span> : active && date === today && entry.category === 'study'
-              ? <Button onClick={() => go('foco')}><Icon name="play"/>Iniciar Foco</Button>
+              ? <Button onClick={() => go('foco')}><Icon name="play"/>Iniciar foco</Button>
               : <span className="muted-text">{entry.start && entry.end ? formatMinutes(minutesOf(entry.end) - minutesOf(entry.start)) : ''}</span>}
           </li>;
         }
@@ -253,7 +254,7 @@ function MonthGrid({ anchor, today, selected, summaryOf, onChoose }) {
 }
 
 // Ritmo da semana exibida: horas declaradas até hoje e, nos dias seguintes, o
-// tempo planejado. A meta é a disponibilidade do Plano, sem cobrança.
+// tempo planejado. A meta é a disponibilidade do Plano, não uma obrigação.
 function WeekRhythm({ week, today, studied, dayMap, plan }) {
   const goal = week.reduce((sum, date) => sum + (plan.availability[new Date(`${date}T12:00:00`).getDay()] || 0), 0);
   const done = week.reduce((sum, date) => sum + (date <= today ? studied.get(date) || 0 : 0), 0);
@@ -263,14 +264,14 @@ function WeekRhythm({ week, today, studied, dayMap, plan }) {
   const activeDays = values.filter((value) => value.date <= today && value.minutes > 0).length;
   const dailyGoal = goal ? Math.round(goal / Math.max(1, values.filter((value) => !value.rest).length)) : 0;
   return <section className="card-surface plan-rhythm" aria-labelledby="plan-rhythm-title">
-    <div className="plan-card-head"><h2 id="plan-rhythm-title" className="title"><Icon name="heart"/>Ritmo da Semana</h2><span className="soft-badge tone-mint">Equilibrado</span></div>
+    <div className="plan-card-head"><h2 id="plan-rhythm-title" className="title">Sua semana</h2>{goal > 0 && <span className="plan-card-meta">{percent}%</span>}</div>
     <div className="plan-meter">
-      <div className="plan-meter-head"><strong>{formatHours(done)}<span> / {goal ? `${formatHours(goal)} meta flexível` : 'sem meta definida'}</span></strong>{goal > 0 && <span className="tone-mint-text">{percent}%</span>}</div>
+      <div className="plan-meter-head"><strong>{formatHours(done)}<span> / {goal ? `${formatHours(goal)} disponíveis` : 'sem meta definida'}</span></strong></div>
       <Progress value={percent} max={100} tone="mint" label="Tempo estudado na semana"/>
-      <p className="muted-text">{activeDays ? `${activeDays} ${activeDays === 1 ? 'dia' : 'dias'} com estudo nesta semana, sem picos de sobrecarga.` : 'Nenhuma sessão registrada nesta semana ainda. Tudo bem.'}</p>
+      <p className="muted-text">{activeDays ? `${activeDays} ${activeDays === 1 ? 'dia' : 'dias'} com estudo nesta semana.` : 'Nenhuma sessão registrada nesta semana ainda.'}</p>
     </div>
     <div className="plan-load">
-      <div className="plan-load-head"><span>Carga diária (horas)</span>{dailyGoal > 0 && <span>Meta ideal: {formatHours(dailyGoal)}</span>}</div>
+      <div className="plan-load-head"><span>horas por dia</span>{dailyGoal > 0 && <span>disponível: {formatHours(dailyGoal)}</span>}</div>
       <div className="plan-load-bars" role="img" aria-label={`Carga diária: ${values.map((value) => `${weekdayShort(value.date)} ${value.minutes} minutos${value.date > today ? ' planejados' : ''}`).join(', ')}`}>
         {values.map((value) => <span key={value.date} className={`plan-load-bar${value.date === today ? ' is-today' : value.date > today ? ' is-planned' : ''}${value.rest ? ' is-rest' : ''}`}>
           <i style={{ height: `${Math.max(value.minutes ? 8 : 3, Math.round((value.minutes / max) * 100))}%` }}/>
@@ -282,7 +283,8 @@ function WeekRhythm({ week, today, studied, dayMap, plan }) {
 }
 
 // Próximos marcos: compromissos da Agenda de qualquer tipo e prazos de curso do Plano.
-const MILESTONE_TONES = { exam: 'warning', delivery: 'lume', study: 'mint', personal: 'lume' };
+// Coral fica só para atraso: um compromisso no prazo usa o tom normal.
+const MILESTONE_TONES = { exam: 'lume', delivery: 'lume', study: 'mint', personal: 'lume' };
 function PlanMilestones({ state, schedule, today }) {
   const fromAgenda = (state.agenda || [])
     .filter((entry) => !entry.cancelled && !entry.done && entry.date >= today)
@@ -296,22 +298,21 @@ function PlanMilestones({ state, schedule, today }) {
     });
   const items = [...fromAgenda, ...fromGoals].sort((a, b) => a.date.localeCompare(b.date)).slice(0, 3);
   return <section className="card-surface plan-milestones" aria-labelledby="plan-milestones-title">
-    <div className="plan-card-head"><h2 id="plan-milestones-title" className="title"><Icon name="bell"/>Próximos Marcos</h2><span className="muted-text">{capitalize(new Date(`${today}T12:00:00`).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }))}</span></div>
+    <div className="plan-card-head"><h2 id="plan-milestones-title" className="title">Próximos marcos</h2></div>
     {items.length
-      ? <ul className="plan-milestone-list">{items.map((item) => {
+      ? <ul className="plan-milestone-list">{items.map((item, index) => {
         const days = Math.round((Date.parse(`${item.date}T12:00:00`) - Date.parse(`${today}T12:00:00`)) / 86400000);
-        const date = new Date(`${item.date}T12:00:00`);
-        return <li key={item.id} className={`plan-milestone tone-${item.tone}`}>
-          <span className="plan-milestone-date"><strong>{String(date.getDate()).padStart(2, '0')}</strong><small>{date.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}</small></span>
+        return <li key={item.id} className={`plan-milestone tone-${item.tone}${index === 0 ? ' is-next' : ''}`}>
+          <span className="plan-milestone-days" aria-hidden="true">{days}</span>
           <span className="plan-milestone-copy">
-            <span className="plan-milestone-top"><strong>{item.title}</strong><small>{days === 0 ? 'Hoje' : days === 1 ? 'Amanhã' : `Faltam ${days} dias`}</small></span>
-            <small className="muted-text">{item.detail}</small>
-            <span className="plan-milestone-note"><i aria-hidden="true"/>{item.note}</span>
+            <span className="plan-milestone-when">{days === 0 ? 'é hoje' : days === 1 ? 'dia' : 'dias'} · {monoDate(item.date)} · {item.note.toLowerCase()}</span>
+            <strong>{item.title}</strong>
+            <small className="plan-milestone-detail">{item.detail}<span className="sr-only">, {days === 0 ? 'hoje' : days === 1 ? 'amanhã' : `faltam ${days} dias`}</span></small>
           </span>
         </li>;
       })}</ul>
       : <p className="muted-text">Nenhum compromisso ou prazo pela frente. Marque seus compromissos na Agenda.</p>}
-    <a className="text-link plan-milestones-link" href="#agenda">Ver todos os prazos no calendário completo<Icon name="arrow"/></a>
+    <a className="text-link plan-milestones-link" href="#agenda">Abrir calendário<Icon name="arrow"/></a>
   </section>;
 }
 

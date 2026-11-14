@@ -1,4 +1,5 @@
-/* Biblioteca (Redesign Sereno): busca, filtros por tipo, retomada e seções. */
+/* Biblioteca (identidade Norte): busca, filtros por tipo, retomada e seções.
+   Cartões planos com borda; números, contagens e porcentagens em mono. */
 
 .library-root {
   display: grid;
@@ -47,7 +48,7 @@
 .kind-tab .icon {
   width: 1rem;
   height: 1rem;
-  color: var(--mint);
+  color: var(--text-subtle);
 }
 .kind-tab:hover {
   color: var(--text);
@@ -55,16 +56,20 @@
   border-color: var(--border);
 }
 .kind-tab[aria-pressed='true'] {
-  background: var(--surface-4, var(--surface-3));
-  border-color: var(--border);
+  background: var(--surface-2);
+  border-color: var(--border-strong);
   color: var(--text);
 }
+.kind-tab[aria-pressed='true'] .icon {
+  color: var(--lume);
+}
 .kind-count {
-  padding: 0 0.4rem;
-  border-radius: var(--radius-pill);
+  padding: 0 0.35rem;
+  border-radius: 6px;
   background: var(--inner);
-  color: var(--mint);
-  font-size: 0.68rem;
+  color: var(--text-subtle);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
 }
 
 .library-section-label {
@@ -78,11 +83,12 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  color: var(--text-subtle);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  color: var(--lume);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: lowercase;
 }
 .library-section-label .icon {
   width: 1rem;
@@ -103,15 +109,8 @@
   justify-content: space-between;
   gap: 1.25rem;
   flex-wrap: wrap;
-  padding: 1.1rem 1.35rem;
-  background: var(--surface-2);
-}
-.resume-card::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  height: 2px;
-  background: var(--crest);
+  padding: 1.25rem 1.5rem;
+  background: var(--surface);
 }
 .resume-copy {
   display: grid;
@@ -121,6 +120,8 @@
 }
 .resume-copy .title {
   margin: 0;
+  font-size: clamp(1.25rem, 2.4vw, 1.6rem);
+  letter-spacing: -0.02em;
 }
 .resume-copy .muted-text {
   margin: 0;
@@ -141,8 +142,10 @@
   max-width: 22rem;
 }
 .resume-progress strong {
-  color: var(--mint);
+  color: var(--text-subtle);
+  font-family: var(--font-mono);
   font-size: 0.8rem;
+  font-weight: 500;
 }
 .resume-actions {
   display: flex;
@@ -176,12 +179,12 @@
   display: grid;
   gap: 0.55rem;
   padding: 1.1rem 1.2rem;
-  background: var(--surface-2);
+  background: var(--surface);
   text-decoration: none;
   color: inherit;
 }
-.subject-tile:hover .subject-tile-title {
-  color: var(--mint);
+.subject-tile:hover {
+  border-color: var(--border-strong);
 }
 .subject-tile-meta {
   display: flex;
@@ -191,8 +194,10 @@
 }
 .subject-tile-percent {
   margin-left: auto;
-  color: var(--mint);
+  color: var(--text-subtle);
+  font-family: var(--font-mono);
   font-size: 0.8rem;
+  font-weight: 500;
 }
 .subject-tile-title {
   font-size: 0.98rem;
@@ -221,7 +226,7 @@
 .reading-list {
   display: grid;
   border-radius: var(--radius-lg);
-  background: var(--surface-2);
+  background: var(--surface);
   border: 1px solid var(--border);
 }
 .reading-list > .course-card-wrap + .course-card-wrap {
@@ -256,7 +261,7 @@
   cursor: pointer;
 }
 .reading-row:hover {
-  background: var(--surface-3);
+  background: var(--surface-2);
 }
 .reading-row.selected-course {
   box-shadow: inset 3px 0 0 var(--mint);
@@ -267,8 +272,8 @@
   width: 2.25rem;
   height: 2.25rem;
   border-radius: var(--radius-md);
-  background: var(--lume-soft);
-  color: var(--lilac);
+  background: var(--surface-2);
+  color: var(--lume);
 }
 .reading-copy {
   display: grid;
@@ -282,7 +287,8 @@
 }
 .reading-copy small {
   color: var(--text-subtle);
-  font-size: 0.76rem;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
 }
 .reading-progress {
   display: flex;
@@ -296,9 +302,10 @@
 .reading-progress strong {
   min-width: 2.4rem;
   text-align: right;
-  font-variant-numeric: tabular-nums;
-  color: var(--mint);
+  font-family: var(--font-mono);
+  color: var(--text-subtle);
   font-size: 0.75rem;
+  font-weight: 500;
 }
 .reading-row .course-status {
   position: static;
@@ -328,7 +335,7 @@
   }
 }
 
-/* Stitch Biblioteca Serena — Bento compacto sem capas pesadas */
+/* Grade compacta de cursos, sem capas */
 .library-quick-right {
   display: inline-flex;
   align-items: center;
@@ -336,17 +343,17 @@
   flex-wrap: wrap;
 }
 .kind-tab.is-open {
-  background: var(--surface-3);
+  background: var(--surface-2);
   border-color: var(--border);
   color: var(--text);
 }
 .subject-tile.card-surface {
-  border-left: 3px solid var(--lume);
+  border-left: 3px solid var(--subject-lume);
 }
-.subject-tile.color-mint { border-left-color: var(--mint); }
-.subject-tile.color-violet { border-left-color: var(--lilac); }
-.subject-tile.color-amber { border-left-color: var(--reward); }
-.subject-tile.color-coral { border-left-color: var(--danger); }
+.subject-tile.color-mint { border-left-color: var(--subject-mint); }
+.subject-tile.color-violet { border-left-color: var(--subject-violet); }
+.subject-tile.color-amber { border-left-color: var(--subject-amber); }
+.subject-tile.color-coral { border-left-color: var(--subject-coral); }
 
 .subject-tile-open {
   display: flex;
@@ -375,14 +382,14 @@
   align-content: space-between;
   padding: 1.1rem 2.75rem 1.05rem 1.2rem;
   border-radius: var(--radius-lg);
-  background: var(--surface-2);
+  background: var(--surface);
   border: 1px solid var(--border);
   text-align: left;
   width: 100%;
   min-height: 0;
 }
 .stitch-course-card:hover {
-  background: var(--surface-3);
+  background: var(--surface);
   border-color: var(--border-strong);
 }
 .stitch-course-top {
@@ -398,16 +405,22 @@
   gap: 0.4rem;
 }
 .stitch-course-scope {
+  font-family: var(--font-mono);
   font-size: 0.74rem;
   color: var(--text-subtle);
 }
 .stitch-course-percent {
+  font-family: var(--font-mono);
   font-size: 0.82rem;
-  color: var(--mint);
+  font-weight: 500;
+  color: var(--text-subtle);
+}
+.stitch-course-percent.status-completed {
+  color: var(--lume);
 }
 .stitch-course-card .title {
   margin: 0;
-  font-size: 0.98rem;
+  font-size: 1.1rem;
 }
 .stitch-course-card .course-description {
   margin: 0;
@@ -436,13 +449,14 @@
   border: 0;
   backdrop-filter: none;
   color: var(--text-subtle);
+  font-family: var(--font-mono);
 }
 .stitch-course-open {
   display: inline-flex;
   align-items: center;
   gap: 0.15rem;
   font-weight: 600;
-  color: var(--text);
+  color: var(--lume);
 }
 .stitch-course-open .icon {
   width: 0.9rem;
@@ -452,11 +466,11 @@
   justify-self: stretch;
   text-align: center;
   padding: 0.35rem 0.75rem;
-  border-radius: var(--radius-md);
-  background: var(--inner);
-  border: 1px solid var(--border);
-  font-size: 0.76rem;
-  font-weight: 600;
+  border-radius: 10px;
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  font-size: 0.8rem;
+  font-weight: 500;
   color: var(--text);
 }
 

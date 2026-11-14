@@ -34,7 +34,7 @@ test('sessão declarada persiste ao recarregar, pausa, retoma e encerra sem conc
   await page.getByRole('button', { name: 'Retomar' }).click();
   await expect(page.getByRole('button', { name: 'Pausar' })).toBeVisible();
 
-  // Anotações rápidas no modo Zen e Escudo de foco absoluto persistem nas preferências.
+  // Anotações rápidas e Escudo de foco absoluto persistem nas preferências.
   await page.getByLabel('Anotações rápidas da sessão').fill('Revisar heurísticas de usabilidade');
   await page.getByRole('button', { name: 'Salvar nota' }).click();
   await page.getByRole('switch', { name: /Escudo de foco absoluto/ }).click();

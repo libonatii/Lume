@@ -13,7 +13,7 @@ export const MAX_SUBJECTS = 60;
 export const MAX_SUBJECT_TITLE = 80;
 export const MAX_KEYWORDS = 20;
 export const SUBJECT_COLORS = ['lume', 'mint', 'violet', 'amber', 'coral'];
-export const SUBJECT_COLOR_LABELS = { lume: 'Azul Safira', mint: 'Menta Serena', violet: 'Lavanda Suave', amber: 'Âmbar Quente', coral: 'Rosa Ardósia' };
+export const SUBJECT_COLOR_LABELS = { lume: 'Azul', mint: 'Verde-água', violet: 'Violeta', amber: 'Dourado', coral: 'Rosa' };
 
 const cleanColor = (value) => SUBJECT_COLORS.includes(value) ? value : 'lume';
 const clean = (value, max) => String(value ?? '').replace(/\s+/g, ' ').trim().slice(0, max);

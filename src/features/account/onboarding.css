@@ -151,27 +151,33 @@
   flex-wrap: wrap;
   gap: 0.5rem;
 }
+/* Filtros: abas de 10px; a ativa fica em papel, como a navegação. */
 .filter-btn {
   position: relative;
-  padding: 0.52rem 0.95rem;
-  border-radius: var(--radius-pill);
-  background: var(--surface-2);
+  padding: 0.5rem 0.9rem;
+  border-radius: 10px;
+  background: transparent;
   border: 1px solid var(--border);
   color: var(--text-muted);
-  font-size: 0.86rem;
-  font-weight: 600;
+  font-size: 0.88rem;
+  font-weight: 500;
   cursor: pointer;
 }
+.filter-btn:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
 .filter-btn[aria-pressed='true'], .filter-btn[aria-selected='true'], .filter-btn.selected {
-  color: var(--action-ink);
-  border-color: var(--action);
-  background: var(--action);
+  color: var(--bg);
+  border-color: var(--text);
+  background: var(--text);
+  font-weight: 700;
 }
 .selection-highlight {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: var(--action);
+  background: var(--text);
   z-index: 0;
 }
 .filter-btn > span:last-child {
@@ -614,11 +620,11 @@ html[data-theme='light'] .plan-material-highlight {
   color: var(--lume-ink);
   transition: transform 0.15s ease, opacity 0.15s ease;
 }
-.stitch-color-dot.color-lume { background: var(--lume); }
-.stitch-color-dot.color-mint { background: var(--mint); }
-.stitch-color-dot.color-violet { background: var(--lilac); }
-.stitch-color-dot.color-amber { background: var(--reward); }
-.stitch-color-dot.color-coral { background: var(--danger); }
+.stitch-color-dot.color-lume { background: var(--subject-lume); }
+.stitch-color-dot.color-mint { background: var(--subject-mint); }
+.stitch-color-dot.color-violet { background: var(--subject-violet); }
+.stitch-color-dot.color-amber { background: var(--subject-amber); }
+.stitch-color-dot.color-coral { background: var(--subject-coral); }
 .stitch-color-dot.is-selected {
   opacity: 1;
   transform: scale(1.1);
