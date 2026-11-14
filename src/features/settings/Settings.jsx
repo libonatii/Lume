@@ -185,12 +185,18 @@ export function Preferences({ state, actions, libraryActions, notify, onPersonal
         </div>}
 
         {section === 'social' && <div className="cfg-stack">
-          <p className="cfg-sub">Seu perfil é visível apenas para amigos.</p>
+          <p className="cfg-sub">Seu perfil é visível apenas para amigos, a menos que você ligue o perfil público.</p>
           {!account && <p className="inline-note"><Icon name="info"/><span>Na prévia não existe lista de amigos: o perfil fica só neste navegador.</span></p>}
           {account && <HandleSetting notify={notify}/>}
           <div className="cfg-block">
             <h3>O que amigos veem</h3>
             {SHARING.map(([key, label, hint]) => <Toggle key={key} title={label} hint={hint} checked={sharing[key] !== false} onChange={(value) => sharingPreference(key, value)}/>)}
+          </div>
+          <div className="cfg-block">
+            <h3>Busca por @usuário</h3>
+            {account
+              ? <Toggle title="Perfil público: ser encontrado pelo @usuário" hint="Ligado, qualquer pessoa com conta acha você pelo @usuário e abre seu perfil, só com o que você compartilha acima. Desligado, você não aparece em buscas por @usuário e só amigos abrem seu perfil." checked={sharing.public !== false} onChange={(value) => sharingPreference('public', value)} label="Perfil público"/>
+              : <p className="inline-note"><Icon name="lock"/><span>Perfil público exige conta.</span></p>}
           </div>
           <div className="cfg-block">
             <h3>Ranking de amigos</h3>

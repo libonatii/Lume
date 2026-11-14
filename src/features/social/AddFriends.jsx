@@ -138,6 +138,7 @@ export default function AddFriends({ account, notify, go }) {
         {found.status === 'friends' && <Button secondary onClick={() => go(`perfil?id=${encodeURIComponent(found.user.id)}`)}>Já são amigos</Button>}
         {found.status === 'received' && <Button onClick={() => respond({ id: found.requestId, user: found.user }, 'accept')} disabled={busy}>Aceitar</Button>}
         {found.status === 'self' && <span className="quiet-note">Esse é você.</span>}
+        {found.publicProfile && found.status !== 'friends' && found.status !== 'self' && <Button secondary onClick={() => go(`perfil?id=${encodeURIComponent(found.user.id)}`)}>Ver perfil</Button>}
       </PersonRow>
     </ul>}
     {found?.status === 'none' && <p className="addfriend-note"><Icon name="lock"/>A amizade começa quando a outra pessoa aceita.</p>}

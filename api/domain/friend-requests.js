@@ -9,6 +9,7 @@
 
 import { AppError } from '../errors.js';
 import { sanitizeProfileImage } from '../../public/domain.js';
+import { normalizeSharing } from '../../public/profile-domain.js';
 import { MAX_FRIENDS } from './friends.js';
 
 export const HANDLE_PATTERN = /^[a-z0-9][a-z0-9._]{2,23}$/;
@@ -117,6 +118,14 @@ async function relation(db, userId, otherId) {
   return { status: 'none' };
 }
 
+// Perfil público vem ligado (preferences.sharing.public); desligado, a pessoa não
+// aparece na busca por @usuário e só amigos abrem o perfil.
+async function isPublicProfile(db, userId) {
+  const { readStoredLibrary } = await import('./library-store.js');
+  const row = await readStoredLibrary(db, userId);
+  return normalizeSharing(row?.state?.preferences?.sharing).public;
+}
+
 export async function searchByHandle(db, userId, raw) {
   const handle = normalizeHandle(raw);
   if (!HANDLE_PATTERN.test(handle)) throw new AppError('Digite o @usuário completo, com pelo menos 3 caracteres.', 'invalid_handle', 400);
@@ -124,7 +133,13 @@ export async function searchByHandle(db, userId, raw) {
   if (!found || await blockedBetween(db, userId, found.user_id)) {
     throw new AppError('Nenhuma pessoa com esse @usuário. Confira como ele está escrito.', 'not_found', 404);
   }
-  return { user: await person(db, found.user_id), ...(await relation(db, userId, found.user_id)) };
+  const publicProfile = await isPublicProfile(db, found.user_id);
+  const link = await relation(db, userId, found.user_id);
+  // Quem fechou o perfil não é achada pelo @usuário por quem não tem nenhum vínculo com ela.
+  if (!publicProfile && link.status === 'none') {
+    throw new AppError('Nenhuma pessoa com esse @usuário. Confira como ele está escrito.', 'not_found', 404);
+  }
+  return { user: await person(db, found.user_id), publicProfile, ...link };
 }
 
 async function becomeFriends(db, a, b, now) {

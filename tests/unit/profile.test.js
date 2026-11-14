@@ -30,7 +30,7 @@ function withSharing(sharing) {
 
 test('perfil padrão compartilha biblioteca, fila, progresso e XP', () => {
   const profile = buildProfile(restoreState(fixture()));
-  assert.deepEqual(profile.sharing, { library: true, queue: true, progress: true, xp: true });
+  assert.deepEqual(profile.sharing, { library: true, queue: true, progress: true, xp: true, public: true });
   assert.ok(profile.studying.length > 0);
   assert.ok(profile.queue.length > 0);
   assert.equal(profile.stats.level, 1);
@@ -152,17 +152,17 @@ test('perfil não carrega e-mail, links nem senha', () => {
 });
 
 test('escolhas ausentes voltam ao padrão compartilhado', () => {
-  assert.deepEqual(normalizeSharing(undefined), { library: true, queue: true, progress: true, xp: true });
-  assert.deepEqual(normalizeSharing({ xp: false }), { library: true, queue: true, progress: true, xp: false });
+  assert.deepEqual(normalizeSharing(undefined), { library: true, queue: true, progress: true, xp: true, public: true });
+  assert.deepEqual(normalizeSharing({ xp: false }), { library: true, queue: true, progress: true, xp: false, public: true });
 });
 
 test('restauração preserva as escolhas e cobre estados antigos', () => {
-  const state = withSharing({ library: false, queue: true, progress: false, xp: true });
+  const state = withSharing({ library: false, queue: true, progress: false, xp: true, public: true });
   const restored = restoreState(JSON.stringify(state));
-  assert.deepEqual(restored.preferences.sharing, { library: false, queue: true, progress: false, xp: true });
+  assert.deepEqual(restored.preferences.sharing, { library: false, queue: true, progress: false, xp: true, public: true });
 
   const legacy = { ...state, preferences: { ...state.preferences } };
   delete legacy.preferences.sharing;
   const migrated = restoreState(JSON.stringify(legacy));
-  assert.deepEqual(migrated.preferences.sharing, { library: true, queue: true, progress: true, xp: true });
+  assert.deepEqual(migrated.preferences.sharing, { library: true, queue: true, progress: true, xp: true, public: true });
 });

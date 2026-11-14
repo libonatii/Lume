@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import Icon from '../../ui/Icon.jsx';
 import { AnimatedNumber, Button, Cover, Heading, Progress, Skeleton, stagger } from '../../ui/ui.jsx';
 import { api, apiError } from '../../lib/api.js';
+import { useResource } from '../../lib/resources.js';
 import { buildProfile } from '../../../public/profile-domain.js';
 import { MAX_PROFILE_BIO_LENGTH, studyRhythm } from '../../../public/domain.js';
 import { prepareProfileImageBlob, uploadProfileBlob } from './profile-media.js';
@@ -41,6 +42,7 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
   const headerInputRef = useRef(null);
 
   const isSelf = !id || Boolean(account && id === account.id);
+  const ownHandle = useResource('/api/friends/handle', { enabled: Boolean(account && isSelf) }).data?.handle || '';
 
   useEffect(() => {
     setBioDraft(state.profile?.bio || '');
@@ -100,7 +102,7 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
   }
 
   if (error) return <div className="personal-root">
-    <Heading eyebrow="Perfis ficam entre amigos" title="Não foi possível abrir"/>
+    <Heading eyebrow="Perfis ficam entre amigos e perfis públicos" title="Não foi possível abrir"/>
     <section className="card-surface settings-panel">
       <p className="muted-text">{error}</p>
       <Button secondary onClick={() => go('amigos')}>Voltar aos amigos<Icon name="arrow"/></Button>
@@ -159,12 +161,13 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
 
         {/* Identidade + Bio em tópicos estilo Steam */}
         <div className="steam-identity">
-          {!isSelf && <span className="soft-badge tone-mint"><span className="soft-dot" aria-hidden="true"/>Perfil de amigo</span>}
+          {!isSelf && <span className="soft-badge tone-mint"><span className="soft-dot" aria-hidden="true"/>{view.viewer === 'public' ? 'Perfil público' : 'Perfil de amigo'}</span>}
           <h1 id="profile-user-title" className="display steam-persona-name">{user.name}</h1>
+          {(isSelf ? ownHandle : user.handle) && <p className="steam-handle mono">@{isSelf ? ownHandle : user.handle}</p>}
           {view.titles?.length > 0 && <section className="profile-titles" aria-label="Cargos de estudo">
             <ul className="soft-badges">{view.titles.map((item) => <li key={item.id} className="soft-badge tone-reward" title={item.criterion}><Icon name="trophy"/><strong>{item.title}</strong><span className="profile-title-criterion">· {item.criterion}</span></li>)}</ul>
           </section>}
-          {!isSelf && <p className="steam-subname">O que esta pessoa escolheu compartilhar com amigos.</p>}
+          {!isSelf && <p className="steam-subname">{view.viewer === 'public' ? 'O que esta pessoa escolheu tornar público.' : 'O que esta pessoa escolheu compartilhar com amigos.'}</p>}
           <ul className="steam-bio-list" aria-label="Destaques do estudante">
             {bioLines.map((line, index) => <li key={`${index}-${line}`}>
               <span className="steam-diamond" aria-hidden="true">♦</span>

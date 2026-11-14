@@ -258,12 +258,12 @@ export function friendshipPolicy() {
   };
 }
 
-// Perfil visto por uma amizade: só existe entre amigos, nunca expõe o e-mail
+// Perfil visto por uma amizade (ou por qualquer pessoa com conta, se o perfil é
+// público e opt-in): nunca expõe o e-mail
 // e passa pelas escolhas de compartilhamento de quem é visto (buildProfile).
 export async function readFriendProfile(db, viewerId, friendId) {
   if (!friendId) throw new FriendsError('Perfil não encontrado.', 'not_found', 404);
   const linked = await db.first('SELECT 1 AS linked FROM friendships WHERE user_id = ? AND friend_id = ?', [viewerId, friendId]);
-  if (!linked) throw new FriendsError('Você só vê o perfil de quem está na sua lista de amigos.', 'not_friends', 403);
   const target = await db.first('SELECT id, name FROM users WHERE id = ?', [friendId]);
   if (!target) throw new FriendsError('Perfil não encontrado.', 'not_found', 404);
   const { readStoredLibrary } = await import('./library-store.js');
@@ -272,8 +272,18 @@ export async function readFriendProfile(db, viewerId, friendId) {
   if (row?.state) {
     state = row.state;
   }
+  // Quem não é amigo só abre o perfil se a pessoa ligou "Perfil público" (opt-in);
+  // as escolhas de compartilhamento continuam valendo nos dois casos.
+  const isPublic = normalizeSharing(state.preferences?.sharing).public;
+  const blocked = !linked && await db.first(
+    'SELECT 1 AS ok FROM contact_blocks WHERE (user_id = ? AND blocked_id = ?) OR (user_id = ? AND blocked_id = ?)',
+    [viewerId, friendId, friendId, viewerId],
+  );
+  if (!linked && (!isPublic || blocked)) throw new FriendsError('Este perfil é privado. Só amigos podem abri-lo.', 'not_friends', 403);
+  const handle = await db.first('SELECT handle FROM user_handles WHERE user_id = ?', [friendId]);
   return {
-    user: { id: target.id, name: target.name },
+    user: { id: target.id, name: target.name, handle: handle?.handle || null },
+    viewer: linked ? 'friend' : 'public',
     updatedAt: row?.updatedAt ?? null,
     ...buildProfile(state, { validated: await validatedProfile(db, friendId) }),
   };

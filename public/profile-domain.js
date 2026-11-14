@@ -21,6 +21,8 @@ export function normalizeSharing(value) {
     queue: source.queue !== false,
     progress: source.progress !== false,
     xp: source.xp !== false,
+    // Padrão ligado: a pessoa é achada pelo @usuário e o perfil abre a quem não é amigo; desligar fecha os dois.
+    public: source.public !== false,
   };
 }
 

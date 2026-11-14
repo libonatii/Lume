@@ -319,7 +319,7 @@ export function createInitialState() {
       focusShield: false,
       focusNotes: '',
       studyGoal: '',
-      sharing: { library: true, queue: true, progress: true, xp: true },
+      sharing: { library: true, queue: true, progress: true, xp: true, public: true },
     },
     onboarding: emptyOnboarding(),
     courses: [],
@@ -704,6 +704,8 @@ export function restoreState(raw) {
           queue: preferences.sharing?.queue !== false,
           progress: preferences.sharing?.progress !== false,
           xp: preferences.sharing?.xp !== false,
+          // Perfil público por padrão: só some da busca e dos perfis abertos a quem desliga.
+          public: preferences.sharing?.public !== false,
         },
       },
       onboarding: normalizeOnboarding(value.onboarding),

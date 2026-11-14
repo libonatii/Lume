@@ -56,6 +56,28 @@ export async function runContract(target, t) {
     assert.equal((await guest.request('GET', `/api/handle/check?handle=${handle}`)).data.available, true, 'o antigo fica livre');
   });
 
+  await t.test('perfil público por padrão: achado pelo @usuário até a pessoa fechar', async () => {
+    const { browser: owner, user: ownerUser } = await register(origin, 'Publica');
+    const { browser: viewer } = await register(origin, 'Visitante');
+    const handle = ('p' + Math.random().toString(36).slice(2, 12)).toLowerCase();
+    assert.equal((await owner.request('PUT', '/api/friends/handle', { body: { handle } })).status, 200);
+    const found = await viewer.request('GET', `/api/friends/search?handle=${handle}`);
+    assert.equal(found.data.publicProfile, true);
+    const opened = await viewer.request('GET', `/api/profile/${ownerUser.id}`);
+    assert.equal(opened.status, 200, JSON.stringify(opened.data));
+    assert.equal(opened.data.profile.viewer, 'public');
+    assert.equal(opened.data.profile.user.handle, handle);
+    assert.equal(opened.data.profile.user.email, undefined);
+    assert.equal((await client(origin).request('GET', `/api/profile/${ownerUser.id}`)).status, 401);
+
+    const current = (await owner.request('GET', '/api/library')).data;
+    const next = { ...current.state, preferences: { ...current.state.preferences, sharing: { ...current.state.preferences.sharing, public: false } } };
+    const saved = await owner.request('POST', '/api/library/actions', { body: { id: 'perfil-fechado', revision: current.revision, actions: libraryActions(current.state, next) } });
+    assert.equal(saved.status, 200, JSON.stringify(saved.data));
+    assert.equal((await viewer.request('GET', `/api/friends/search?handle=${handle}`)).status, 404, 'fechado não aparece na busca');
+    assert.equal((await viewer.request('GET', `/api/profile/${ownerUser.id}`)).status, 403);
+  });
+
   await t.test('Agenda e lembretes autenticados: persistência, isolamento e deduplicação', async () => {
     const { browser } = await register(origin, 'Agenda');
     const current = (await browser.request('GET', '/api/library')).data;
@@ -312,8 +334,10 @@ export async function runContract(target, t) {
     assert.equal(profile.data.profile.user.id, ana.user.id);
     assert.equal(profile.data.profile.user.email, undefined);
     const stranger = await register(origin, 'Fabi');
-    const forbidden = await stranger.browser.request('GET', `/api/profile/${encodeURIComponent(ana.user.id)}`);
-    assert.equal(forbidden.status, 403);
+    // Perfil público é o padrão: quem não é amigo abre o perfil como visitante (o 403 de perfil fechado fica no teste do @usuário).
+    const visitor = await stranger.browser.request('GET', `/api/profile/${encodeURIComponent(ana.user.id)}`);
+    assert.equal(visitor.status, 200);
+    assert.equal(visitor.data.profile.viewer, 'public');
     assert.equal((await bia.browser.request('POST', `/api/profile/${encodeURIComponent(ana.user.id)}`)).status, 405);
 
     // Canal de tempo real: sem sessão não abre; com sessão, a mensagem de Bia avisa Ana.

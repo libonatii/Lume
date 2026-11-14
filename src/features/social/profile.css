@@ -787,3 +787,10 @@ html[data-theme='light'] .steam-bio-form {
   border-color: color-mix(in srgb, var(--danger) 30%, transparent);
   color: var(--danger);
 }
+
+/* @usuário logo abaixo do nome. */
+.steam-handle {
+  margin: -0.2rem 0 0.1rem;
+  color: var(--text-subtle);
+  font-size: 0.95rem;
+}
