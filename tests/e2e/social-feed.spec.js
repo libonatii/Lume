@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
-import { seedAccount } from './library-helpers.js';
+import { seedAccount, E2E_ORIGIN } from './library-helpers.js';
 import { penalPdf } from '../fixtures/sample-pdf.js';
 
-const origin = `http://127.0.0.1:${process.env.LUME_E2E_PORT || '4187'}`;
+const origin = E2E_ORIGIN;
 
 test('Social publica, comenta, reage e persiste; desfazer amizade revoga o feed', async ({ page, browser }, testInfo) => {
   await seedAccount(page);

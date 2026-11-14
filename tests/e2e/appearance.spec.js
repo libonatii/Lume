@@ -71,21 +71,20 @@ test('identidade única: paleta antiga salva não muda as cores e a escolha de p
   expect(tokens).toEqual({ action: '#f6c165', bg: '#0c111b', trail: '#9ec5ff' });
   await expect(page.locator('.app-header .logo-mark path')).toHaveAttribute('d', /^M12 0 L14\.3 9\.7/);
 
-  await page.getByRole('button', { name: 'Conforto visual' }).click();
-  await expect(page.locator('#comfort-popover').getByText('Paleta de cores')).toHaveCount(0);
-  await page.locator('#comfort-popover').getByRole('button', { name: 'Claro', exact: true }).click();
+  // O atalho "Conforto visual" saiu do cabeçalho: tema e texto ficam em Configurações.
+  await expect(page.getByRole('button', { name: 'Conforto visual' })).toHaveCount(0);
+
+  await page.goto('/#configuracoes');
+  await expect(page.getByRole('heading', { name: 'Configurações', exact: true })).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Paleta de cores' })).toHaveCount(0);
+  await page.getByRole('radio', { name: 'Claro' }).check();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await expect(page.getByRole('radio', { name: 'Claro' })).toBeChecked();
 
   const saved = await readAccount(page);
   // O campo continua aceito nos dados só por compatibilidade.
   expect(saved.preferences.palette).toBe('variante2');
   expect(saved.preferences.theme).toBe('light');
-
-  await page.goto('/#configuracoes');
-  await expect(page.getByRole('heading', { name: 'Configurações', exact: true })).toBeVisible();
-  await expect(page.getByRole('group', { name: 'Paleta de cores' })).toHaveCount(0);
-  await expect(page.getByRole('radio', { name: 'Escuro' })).not.toBeChecked();
-  await expect(page.getByRole('radio', { name: 'Claro' })).toBeChecked();
 });
