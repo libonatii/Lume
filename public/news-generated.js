@@ -1,6 +1,18 @@
 // GERADO por scripts/build-news.mjs a partir de commits com "Novidade:". Não edite.
 export const GENERATED_NEWS = [
   {
+    "id": "news-3999898c",
+    "at": "2026-11-14T18:52:34.000Z",
+    "title": "Amigos no perfil",
+    "body": "Veja quem são os amigos de uma pessoa na nova aba Amigos do perfil. Só aparecem amigos com perfil público.",
+    "href": "#perfil",
+    "area": "site",
+    "details": [
+      "Nova aba Amigos ao lado de Perfil, no seu perfil e no de outras pessoas",
+      "Amigos com perfil fechado não aparecem na lista"
+    ]
+  },
+  {
     "id": "news-83a4f123",
     "at": "2026-11-14T17:33:07.000Z",
     "title": "Adicione amigos pelo @usuário",
