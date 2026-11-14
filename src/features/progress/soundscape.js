@@ -98,3 +98,29 @@ export function createSoundscape() {
     },
   };
 }
+
+// Aviso sonoro de mensagem nova: dois tons curtos e baixos. Usa um contexto próprio,
+// criado no primeiro uso; o navegador pode mantê-lo suspenso até a pessoa interagir
+// com a página, e nesse caso o aviso visual continua valendo.
+let pingContext = null;
+export function playMessagePing() {
+  const Context = window.AudioContext || window.webkitAudioContext;
+  if (!Context) return;
+  try {
+    pingContext ||= new Context();
+    if (pingContext.state === 'suspended') pingContext.resume().catch(() => {});
+    const start = pingContext.currentTime;
+    [[880, 0], [1175, 0.14]].forEach(([frequency, delay]) => {
+      const tone = pingContext.createOscillator();
+      const envelope = pingContext.createGain();
+      tone.type = 'sine';
+      tone.frequency.value = frequency;
+      envelope.gain.setValueAtTime(0.0001, start + delay);
+      envelope.gain.exponentialRampToValueAtTime(0.14, start + delay + 0.02);
+      envelope.gain.exponentialRampToValueAtTime(0.0001, start + delay + 0.45);
+      tone.connect(envelope).connect(pingContext.destination);
+      tone.start(start + delay);
+      tone.stop(start + delay + 0.5);
+    });
+  } catch { /* Sem áudio disponível: fica só o aviso visual. */ }
+}

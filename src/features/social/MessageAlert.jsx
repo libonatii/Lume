@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { refreshResource, useResource } from '../../lib/resources.js';
 import { messageAlert } from '../../../public/social-domain.js';
 import { parseHash } from '../../app/routes.jsx';
+import { playMessagePing } from '../progress/soundscape.js';
 import Icon from '../../ui/Icon.jsx';
 import { PersonAvatar, ease } from '../../ui/ui.jsx';
 
@@ -53,7 +54,7 @@ export default function MessageAlert({ account, quiet = false }) {
       const next = messageAlert(conversations, { seen: seen.current, openContactId: openContactId(), notifications: notifications && !quietRef.current });
       // Tudo o que já está não lido conta como visto: um aviso por chegada, nunca repetido.
       for (const item of conversations) if (item.unread > 0 && item.lastMessage) seen.current.add(item.lastMessage.id);
-      if (next) setAlert(next);
+      if (next) { setAlert(next); playMessagePing(); }
     });
     return () => { alive = false; };
   }, [count, notifications]);
