@@ -78,7 +78,15 @@ function reschedule(entry) {
   entry.timer = null;
   const values = [...entry.intervals.values()].filter((value) => value > 0);
   if (!values.length) return;
-  entry.timer = setInterval(() => refreshResource(entry.path), Math.min(...values));
+  // Aba oculta não consulta o servidor; ao voltar, o ouvinte abaixo atualiza na hora.
+  entry.timer = setInterval(() => { if (document.visibilityState !== 'hidden') refreshResource(entry.path); }, Math.min(...values));
+}
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') return;
+    for (const entry of entries.values()) if (entry.timer) refreshResource(entry.path);
+  });
 }
 
 export function useResource(key, { interval = 0, enabled = true } = {}) {

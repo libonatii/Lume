@@ -91,48 +91,47 @@ function assertCanMessage(blocks) {
   if (blocks.blockedMe) throw new MessagesError('Esta pessoa não está aceitando mensagens suas agora.', 'blocked_by_them', 403);
 }
 
+// Uma consulta só para a lista inteira: no D1 cada consulta é uma ida à rede, e a
+// versão anterior fazia quatro por amizade, em sequência.
 export async function listConversations(db, userId, now = Date.now()) {
   if (!userId) throw new MessagesError('Entre na sua conta para ver suas mensagens.', 'unauthenticated', 401);
   const friends = await db.all(
-    `SELECT u.id, u.name, f.created_at AS since, json_extract(d.data, '$.profile.avatar') AS avatar
+    `SELECT u.id, u.name, f.created_at AS since, json_extract(d.data, '$.profile.avatar') AS avatar,
+            (SELECT json_object('id', m.id, 'sender', m.sender_id, 'body', m.body, 'at', m.created_at)
+               FROM direct_messages m
+              WHERE (m.sender_id = f.user_id AND m.recipient_id = f.friend_id) OR (m.sender_id = f.friend_id AND m.recipient_id = f.user_id)
+              ORDER BY m.created_at DESC, m.id DESC LIMIT 1) AS last,
+            (SELECT COUNT(*) FROM direct_messages m
+              WHERE m.sender_id = f.friend_id AND m.recipient_id = f.user_id AND m.read_at IS NULL) AS unread,
+            EXISTS (SELECT 1 FROM contact_blocks b WHERE b.user_id = f.user_id AND b.blocked_id = f.friend_id) AS blocked_by_me,
+            EXISTS (SELECT 1 FROM contact_blocks b WHERE b.user_id = f.friend_id AND b.blocked_id = f.user_id) AS blocked_me
        FROM friendships f JOIN users u ON u.id = f.friend_id
        LEFT JOIN account_documents d ON d.user_id = u.id
       WHERE f.user_id = ?
       ORDER BY u.name COLLATE NOCASE`,
     [userId],
   );
-  const rows = [];
-  for (const friend of friends) {
-    const last = await db.first(
-      `SELECT id, sender_id, recipient_id, body, created_at
-         FROM direct_messages
-        WHERE (sender_id = ? AND recipient_id = ?) OR (sender_id = ? AND recipient_id = ?)
-        ORDER BY created_at DESC, id DESC LIMIT 1`,
-      [userId, friend.id, friend.id, userId],
-    );
-    const unread = await db.first(
-      `SELECT COUNT(*) AS total FROM direct_messages
-        WHERE sender_id = ? AND recipient_id = ? AND read_at IS NULL`,
-      [friend.id, userId],
-    );
-    const blocks = await blockState(db, userId, friend.id);
-    rows.push({
+  const rows = friends.map((friend) => {
+    const last = friend.last ? JSON.parse(friend.last) : null;
+    const blockedByMe = Boolean(friend.blocked_by_me);
+    const blockedMe = Boolean(friend.blocked_me);
+    return {
       id: friend.id,
       name: friend.name,
       avatar: sanitizeProfileImage(friend.avatar),
       since: friend.since,
       lastMessage: last ? {
         id: last.id,
-        fromMe: last.sender_id === userId,
+        fromMe: last.sender === userId,
         preview: last.body.length > 120 ? `${last.body.slice(0, 120)}…` : last.body,
-        at: last.created_at,
+        at: last.at,
       } : null,
-      unread: Number(unread?.total || 0),
-      blockedByMe: blocks.blockedByMe,
-      blockedMe: blocks.blockedMe,
-      canMessage: !blocks.blockedByMe && !blocks.blockedMe,
-    });
-  }
+      unread: Number(friend.unread || 0),
+      blockedByMe,
+      blockedMe,
+      canMessage: !blockedByMe && !blockedMe,
+    };
+  });
   rows.sort((left, right) => {
     const a = left.lastMessage?.at || '';
     const b = right.lastMessage?.at || '';
@@ -142,9 +141,23 @@ export async function listConversations(db, userId, now = Date.now()) {
   return { conversations: rows, count: rows.length };
 }
 
+// Amizade, dados da pessoa e bloqueios numa consulta, e as mensagens em outra.
 export async function getThread(db, userId, friendId) {
-  await assertFriendship(db, userId, friendId);
-  const blocks = await blockState(db, userId, friendId);
+  if (!userId || !friendId || userId === friendId) {
+    throw new MessagesError('Escolha uma amizade para conversar.', 'invalid_contact', 400);
+  }
+  const friend = await db.first(
+    `SELECT u.id, u.name, json_extract(d.data, '$.profile.avatar') AS avatar,
+            EXISTS (SELECT 1 FROM contact_blocks b WHERE b.user_id = f.user_id AND b.blocked_id = f.friend_id) AS blocked_by_me,
+            EXISTS (SELECT 1 FROM contact_blocks b WHERE b.user_id = f.friend_id AND b.blocked_id = f.user_id) AS blocked_me
+       FROM friendships f JOIN users u ON u.id = f.friend_id
+       LEFT JOIN account_documents d ON d.user_id = u.id
+      WHERE f.user_id = ? AND f.friend_id = ?`,
+    [userId, friendId],
+  );
+  if (!friend) {
+    throw new MessagesError('Mensagens diretas existem apenas entre amizades aceitas.', 'not_friends', 403);
+  }
   const rows = await db.all(
     `SELECT id, sender_id, recipient_id, body, reference, created_at, read_at
        FROM direct_messages
@@ -152,17 +165,14 @@ export async function getThread(db, userId, friendId) {
       ORDER BY created_at DESC, id DESC LIMIT ?`,
     [userId, friendId, friendId, userId, MAX_MESSAGES_PER_THREAD],
   );
-  const friend = await db.first(
-    `SELECT u.id, u.name, json_extract(d.data, '$.profile.avatar') AS avatar
-       FROM users u LEFT JOIN account_documents d ON d.user_id = u.id WHERE u.id = ?`,
-    [friendId],
-  );
+  const blockedByMe = Boolean(friend.blocked_by_me);
+  const blockedMe = Boolean(friend.blocked_me);
   return {
-    friend: friend ? { id: friend.id, name: friend.name, avatar: sanitizeProfileImage(friend.avatar) } : { id: friendId, name: 'Pessoa do Lume' },
+    friend: { id: friend.id, name: friend.name, avatar: sanitizeProfileImage(friend.avatar) },
     messages: rows.reverse().map((row) => serializeMessage(row, userId)),
-    blockedByMe: blocks.blockedByMe,
-    blockedMe: blocks.blockedMe,
-    canMessage: !blocks.blockedByMe && !blocks.blockedMe,
+    blockedByMe,
+    blockedMe,
+    canMessage: !blockedByMe && !blockedMe,
   };
 }
 

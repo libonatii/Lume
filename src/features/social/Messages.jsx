@@ -42,10 +42,10 @@ export default function Messages({ account, state, notify, go, contactId = '' })
   const threadEnd = useRef(null);
 
   // Lista, conversa aberta e preferências vêm do cache compartilhado; a lista e
-  // a conversa se atualizam a cada 45 s enquanto a tela está aberta.
-  const conversationsResource = useResource('/api/messages', { interval: 45000, enabled: Boolean(account) });
+  // a conversa se atualizam a cada 10 s e 5 s enquanto a tela está aberta.
+  const conversationsResource = useResource('/api/messages', { interval: 10000, enabled: Boolean(account) });
   const threadPath = selected ? `/api/messages/${encodeURIComponent(selected)}` : '';
-  const threadResource = useResource(threadPath, { interval: 45000, enabled: Boolean(account && selected) });
+  const threadResource = useResource(threadPath, { interval: 5000, enabled: Boolean(account && selected) });
   const settingsResource = useResource('/api/messages/settings', { enabled: Boolean(account) });
   const conversations = conversationsResource.data?.conversations || [];
   const thread = selected && threadResource.data ? threadResource.data : null;

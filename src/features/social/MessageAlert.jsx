@@ -20,7 +20,7 @@ function openContactId() {
 // menu; quando ele sobe, relê as conversas (mesmo cache da tela de Mensagens)
 // para saber quem escreveu. Mensagens já não lidas ao abrir o Lume não avisam.
 export default function MessageAlert({ account, quiet = false }) {
-  const unread = useResource('/api/messages/unread', { interval: 20000, enabled: Boolean(account) });
+  const unread = useResource('/api/messages/unread', { interval: 10000, enabled: Boolean(account) });
   const [alert, setAlert] = useState(null);
   const seen = useRef(new Set());
   const previous = useRef(null);

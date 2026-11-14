@@ -189,3 +189,24 @@ test('fotos de perfil na área Social e aviso flutuante de mensagem nova', async
 
   await guestContext.close();
 });
+
+test('mensagem enviada chega à conversa aberta da outra pessoa sem recarregar', async ({ page, browser }, testInfo) => {
+  const baseURL = testInfo.project.use.baseURL;
+  const code = await makeFriends(page, page.request, baseURL, 'Ana Tempo', 'msg-t-a');
+  const guestContext = await browser.newContext({ baseURL });
+  const guestPage = await guestContext.newPage();
+  await register(guestPage.request, baseURL, 'Bia Tempo', 'msg-t-b');
+  await markOnboarded(guestPage.request, baseURL);
+  const accepted = await guestPage.request.post('/api/friends/accept', { data: { code }, headers: { origin: baseURL } });
+  expect(accepted.status()).toBe(200);
+
+  await guestPage.goto('/#mensagens');
+  await guestPage.getByRole('button', { name: /Ana Tempo/ }).first().click();
+  await expect(guestPage.getByLabel('Mensagem', { exact: true })).toBeVisible();
+
+  const sent = await page.request.get('/api/friends', { headers: { origin: baseURL } });
+  const friendId = (await sent.json()).friends.find((item) => item.name === 'Bia Tempo').id;
+  const posted = await page.request.post(`/api/messages/${friendId}`, { data: { body: 'Chegou sem recarregar?' }, headers: { origin: baseURL } });
+  expect(posted.status()).toBe(201);
+  await expect(guestPage.getByRole('region', { name: 'Conversa selecionada' }).getByText('Chegou sem recarregar?')).toBeVisible({ timeout: 9000 });
+});
