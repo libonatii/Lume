@@ -1,6 +1,18 @@
 // GERADO por scripts/build-news.mjs a partir de commits com "Novidade:". Não edite.
 export const GENERATED_NEWS = [
   {
+    "id": "news-9594ebf2",
+    "at": "2026-11-14T18:57:10.000Z",
+    "title": "Adicionar amigo pelo perfil",
+    "body": "Agora dá para enviar um pedido de amizade direto do perfil de quem ainda não é seu amigo.",
+    "href": "#amigos",
+    "area": "site",
+    "details": [
+      "Botão Adicionar amigo no perfil público de outras pessoas",
+      "Se a pessoa já te enviou um pedido, o botão aceita a amizade"
+    ]
+  },
+  {
     "id": "news-3999898c",
     "at": "2026-11-14T18:52:34.000Z",
     "title": "Amigos no perfil",
