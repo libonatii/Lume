@@ -139,10 +139,6 @@ export function Login({ model, mode, setMode, go, notify }) {
                 </button>
               ))}
             </div>
-            <span className={`session-state state-${model.accountStatus}`}>
-              <span className="dot"/>
-              {model.accountStatus === 'checking' ? 'Verificando sessão…' : model.accountStatus === 'offline' ? 'Servidor indisponível' : 'Sessão protegida'}
-            </span>
           </div>
 
           <motion.div key={mode} {...enter}>
@@ -199,9 +195,7 @@ export function Login({ model, mode, setMode, go, notify }) {
               <div className="field">
                 <span className="field-row">
                   <label htmlFor="auth-password">Senha</label>
-                  {registering
-                    ? <span className="strength-inline-label" aria-live="polite">{strength.label}</span>
-                    : <a className="text-link" href="#recuperar">Esqueci minha senha</a>}
+                  {registering && <span className="strength-inline-label" aria-live="polite">{strength.label}</span>}
                 </span>
                 <span className="password-field input-icon">
                   <Icon name="lock"/>
@@ -228,6 +222,7 @@ export function Login({ model, mode, setMode, go, notify }) {
                     <Icon name={visible ? 'eye-off' : 'eye'}/>
                   </button>
                 </span>
+                {!registering && <a className="text-link auth-forgot" href="#recuperar">Esqueci minha senha</a>}
                 {registering && <span className="strength" aria-live="polite">
                   <span className="strength-bars" aria-hidden="true">
                     {[1, 2, 3, 4].map(step => <span key={step} className={strength.score >= step ? 'is-on' : ''}/>)}
@@ -284,6 +279,11 @@ export function Login({ model, mode, setMode, go, notify }) {
                 {busy ? 'Um instante…' : registering ? 'Criar minha conta' : 'Entrar e ir além'}
                 <Icon name="arrow"/>
               </Button>
+
+              <span className={`session-state auth-session state-${model.accountStatus}`}>
+                <span className="dot"/>
+                {model.accountStatus === 'checking' ? 'Verificando sessão…' : model.accountStatus === 'offline' ? 'Servidor indisponível' : 'Sessão protegida'}
+              </span>
             </form>
           </motion.div>
 

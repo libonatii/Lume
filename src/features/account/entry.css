@@ -97,6 +97,15 @@
   font-size: 0.78rem;
   color: var(--text-subtle);
 }
+.auth-session {
+  justify-content: center;
+}
+.auth-forgot {
+  align-self: flex-end;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 650;
+}
 .session-state .dot {
   width: 0.48rem;
   height: 0.48rem;
