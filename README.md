@@ -37,7 +37,7 @@ Fora da pasta do projeto, use o iniciador (funciona de qualquer lugar) ou dê do
 - **Motion** anima seleção de ritmo, destaque do menu e dos filtros, reorganização dos cartões, contadores com mola (`AnimatedNumber`), progresso, diálogos, avisos e respostas dos botões.
 - **Paper Shaders (`@paper-design/shaders-react`)**, listada na [FGLibs](https://fglibs.com/), projeta campos de luz ambiente em WebGL2 (`MeshGradient`) no painel de entrada, na ação focal do estudo, no resumo do plano e nas celebrações, com fallback estático em CSS.
 - **Atropos (`atropos`)**, listada na [FGLibs](https://fglibs.com/), adiciona inclinação tátil suave aos selos conquistados na vitrine.
-- O sistema visual (`src/styles/`) segue o **Redesign Sereno**, a partir das telas do Stitch "Lume Academy Design System": cabeçalho em vidro com navegação em pílula, cartões com filete luminoso no topo, selos suaves e tokens por paleta e tema em `00-tokens.css`.
+- O sistema visual (`src/styles/`) segue a **identidade Norte**: estrela dourada como marca, tema escuro com malha de pontos, cartões planos com borda, Bricolage Grotesque nos títulos, Atkinson Hyperlegible Next no texto e JetBrains Mono em números e no contexto gamificado. Tokens por tema em `00-tokens.css`; regras em [Regras de Negócio §1](docs/REGRAS_DE_NEGOCIO.md#1-diretrizes-gerais-e-identidade-do-produto).
 - Por decisão explícita da responsável, **não há modo essencial nem tratamento de movimento reduzido**. Preferências antigas permanecem nos dados apenas para compatibilidade.
 - A API existente continua no **Cloudflare Worker com D1**, ou no servidor Node local. O frontend não exige renderização no servidor.
 

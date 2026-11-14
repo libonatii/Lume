@@ -5,11 +5,8 @@ import StudyDialog from '../features/progress/StudyDialog.jsx';
 import Icon from '../ui/Icon.jsx';
 import { Button } from '../ui/ui.jsx';
 
-import { PALETTES } from '../../public/domain.js';
-
 function ComfortDialog({ state, settingsActions, close }) {
   const setTheme = (theme) => settingsActions.setPreference('theme', theme);
-  const setPalette = (palette) => settingsActions.setPreference('palette', palette);
   const setTextSize = (size) => settingsActions.setPreference('textSize', size);
   return <div className="dialog-content">
     <span className="dialog-emblem tone-mint"><Icon name="tune"/></span>
@@ -21,17 +18,6 @@ function ComfortDialog({ state, settingsActions, close }) {
         <option value="light">Claro</option>
       </select>
     </label>
-    <fieldset className="comfort-fieldset">
-      <legend>Paleta de cores</legend>
-      <div className="comfort-pills">
-        {PALETTES.map((palette) => (
-          <label key={palette.id} className={`comfort-pill ${state.preferences.palette === palette.id ? 'active' : ''}`}>
-            <input type="radio" name="dialog-palette" value={palette.id} checked={state.preferences.palette === palette.id} onChange={() => setPalette(palette.id)}/>
-            <span>{palette.title}</span>
-          </label>
-        ))}
-      </div>
-    </fieldset>
     <label className="setting-row">
       <span><strong>Tamanho do texto</strong><span>Ajuste a leitura em toda a interface.</span></span>
       <select value={state.preferences.textSize} onChange={(event) => setTextSize(event.target.value)}>

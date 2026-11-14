@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from 'react';
-import { PALETTES, STUDY_TYPES, studyRhythm } from '../../../public/domain.js';
+import { STUDY_TYPES, studyRhythm } from '../../../public/domain.js';
 import { materialSteps } from '../../../public/material-model.js';
 import { completionKindForCourse, stepEventKey } from '../../../public/xp-policy.js';
 import { isCompleted } from '../../../public/progress-domain.js';
@@ -9,7 +9,7 @@ import Icon from '../../ui/Icon.jsx';
 import { Heading } from '../../ui/ui.jsx';
 
 const SECTIONS = [
-  { id: 'aparencia', label: 'Aparência', icon: 'sun', info: 'Paleta de cores, tema e tamanho do texto. A escolha fica salva na sua conta.' },
+  { id: 'aparencia', label: 'Aparência', icon: 'sun', info: 'Tema e tamanho do texto. A escolha fica salva na sua conta.' },
   { id: 'ritmo', label: 'Ritmo de estudo', icon: 'calendar', info: 'Seu momento e o plano semanal sugerem passos, sem obrigação.' },
   { id: 'social', label: 'Social e privacidade', icon: 'users' },
   { id: 'notificacoes', label: 'Notificações', icon: 'bell', info: 'Os lembretes de compromissos ficam na Agenda. Lembretes de pausa e por e-mail ainda não existem, então não há controle que finja um envio. Quando existirem, serão opcionais e não concederão XP.' },
@@ -142,14 +142,6 @@ export function Preferences({ state, actions, libraryActions, notify, onPersonal
 
         {section === 'aparencia' && <div className="cfg-appearance">
           <div className="cfg-appearance-main">
-            <fieldset className="cfg-group palette-options" aria-label="Paleta de cores">
-              <legend>Paleta</legend>
-              {PALETTES.map((palette) => <label key={palette.id} className={`palette-option ${state.preferences.palette === palette.id ? 'is-selected' : ''}`}>
-                <input type="radio" name="palette" value={palette.id} checked={state.preferences.palette === palette.id} onChange={() => preference('palette', palette.id)}/>
-                <span className="palette-copy"><strong>{palette.title}</strong></span>
-                <span className="palette-swatches" aria-hidden="true">{palette.swatches.map((color) => <span key={color} style={{ background: color }}/>)}</span>
-              </label>)}
-            </fieldset>
             <fieldset className="cfg-group cfg-themes">
               <legend>Tema</legend>
               <ThemeCard id="dark" title="Escuro" checked={state.preferences.theme !== 'light'} onChange={() => preference('theme', 'dark')}/>

@@ -3,6 +3,7 @@ import { seedAccount, readAccount } from './library-helpers.js';
 import { addCourse, completeMission, createInitialState } from '../../public/domain.js';
 import { addSubject, linkMaterialSubject } from '../../public/subject-domain.js';
 import { addTask } from '../../public/tasks-domain.js';
+import { unitsFromStructure } from '../../public/material-model.js';
 
 // Etapa 2 (registrar a aula e seguir em um passo; conclusão em lote) e
 // etapa 3 (esqueleto enquanto a biblioteca da conta carrega).
@@ -112,7 +113,7 @@ test('focar uma tarefa a coloca no cartão principal da Hoje, sobrevive ao recar
   await expect(page.getByRole('button', { name: 'Tirar A2 – Falência do foco' })).toHaveAttribute('aria-pressed', 'true');
 
   // A sessão de foco leva o nome do foco.
-  await page.locator('section.next-action').getByRole('button', { name: 'Iniciar Estudo' }).click();
+  await page.locator('section.next-action').getByRole('button', { name: 'Sessão de foco' }).click();
   await expect(page.getByRole('heading', { name: 'Sessão de foco', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Iniciar foco' }).click();
   await expect(page.getByText('Sessão em andamento: A2 – Falência')).toBeVisible();
@@ -143,4 +144,41 @@ test('Continuar agora segue para o próximo material da mesma disciplina, com um
   await expect(resume.getByRole('heading', { name: 'Falência aula8' })).toBeVisible();
   await expect(resume.getByRole('button', { name: /detalhes/i })).toHaveCount(1);
   await expect(resume.getByRole('button', { name: 'Continuar meu próximo passo' })).toBeVisible();
+});
+
+test('Início mostra o módulo como constelação, as entregas em contagem regressiva e a semana em pontos', { tag: '@celular' }, async ({ page }) => {
+  const day = (offset) => {
+    const date = new Date();
+    date.setDate(date.getDate() + offset);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  };
+  const structure = [{ id: 'd1', title: 'Cálculo II', modules: [{ id: 'm1', title: 'Módulo 3', lessons: ['Partes', 'Frações', 'Impróprias', 'Revisão'].map((title, index) => ({ id: `l${index}`, title })) }] }];
+  let state = { ...createInitialState(), onboarded: true };
+  state.courses = [{ id: 'calc', title: 'Cálculo II', type: 'course', planning: false, example: false, paused: false, art: 'design', url: '', units: unitsFromStructure(structure, ['l0', 'l1', 'l2', 'l3']) }];
+  state.selectedCourseId = 'calc';
+  state = completeMission(state, 'calc', 'l0', { now: new Date(Date.now() - 3600e3).toISOString() }).state;
+  state = addTask(state, { title: 'Lista de exercícios', dueDate: day(5) }, new Date().toISOString());
+  state.agenda = [{ id: 'rel', title: 'Relatório de Física', category: 'delivery', date: day(2), start: '', end: '', endDate: day(2), timeZone: 'America/Sao_Paulo', taskIds: [], reminder: -1, seriesId: '', recurrence: 'none', originalDate: day(2), done: false, cancelled: false }];
+  await seedAccount(page, state);
+  await page.goto('/#hoje');
+
+  await expect(page.getByText('Faltam 3 etapas pra fechar o módulo.')).toBeVisible();
+  const card = page.locator('section.next-action');
+  await expect(card.getByText('você parou aqui')).toBeVisible();
+  await expect(card.getByRole('heading', { name: 'Frações' })).toBeVisible();
+  await expect(card.getByRole('img', { name: /Módulo 3: 1 etapa concluída de 4; a atual é Frações\./ })).toBeVisible();
+  await expect(card.locator('.constellation-star')).toHaveCount(1);
+  await expect(card.locator('.constellation-done')).toHaveCount(1);
+  await expect(card.locator('.constellation-todo')).toHaveCount(2);
+
+  const countdown = page.locator('.countdown');
+  await expect(countdown).toHaveCount(2);
+  await expect(countdown.first()).toHaveClass(/is-next/);
+  await expect(countdown.first()).toContainText('Relatório de Física');
+  await expect(countdown.first().locator('.countdown-number')).toHaveText('2');
+  await expect(countdown.nth(1)).toContainText('Lista de exercícios');
+
+  await expect(page.locator('.week-day')).toHaveCount(7);
+  await expect(page.locator('.week-day.is-today')).toHaveCount(1);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });

@@ -4,7 +4,8 @@
 
 import { lazy } from 'react';
 import { Login, Recovery } from '../features/account/Auth.jsx';
-import { Home, Library } from '../features/library/Study.jsx';
+import { Library } from '../features/library/Study.jsx';
+import { Home } from '../features/library/Today.jsx';
 import Onboarding from '../features/account/Onboarding.jsx';
 import Tasks from '../features/plan/Tasks.jsx';
 

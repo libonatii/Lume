@@ -135,8 +135,8 @@ export function positionLabel(type, position) {
   return value.next;
 }
 
-// Paletas da Aparência. Os ids são internos (moderno = tela "Redesign Moderno" do Stitch,
-// variante2 = "Variante 2"); para quem usa, os nomes são só Azul e Roxo. O logo não muda.
+// Paletas antigas da Aparência (Azul e Roxo). A identidade Norte tem uma só paleta e a
+// interface não oferece mais a escolha; os ids continuam aceitos nos dados só por compatibilidade.
 export const PALETTES = [
   { id: 'moderno', title: 'Azul', detail: 'Azul com destaques em âmbar · padrão', swatches: ['#090d1f', '#0f172a', '#2563eb', '#f59e0b'] },
   { id: 'variante2', title: 'Roxo', detail: 'Roxo com lavanda e destaques em âmbar', swatches: ['#0b0b18', '#13132b', '#7c3aed', '#f59e0b'] },

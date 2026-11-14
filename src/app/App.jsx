@@ -79,19 +79,20 @@ export default function App() {
   }, [model.account, requested, state.onboarded]);
   useLayoutEffect(() => {
     document.documentElement.dataset.theme = state.preferences.theme;
-    document.documentElement.dataset.palette = state.preferences.palette || 'moderno';
+    // Identidade única: o campo `palette` dos dados antigos não muda mais as cores.
+    document.documentElement.removeAttribute('data-palette');
     syncTitleBar(state.preferences.theme);
     document.documentElement.dataset.text = state.preferences.textSize;
     document.documentElement.dataset.page = route;
     document.documentElement.removeAttribute('data-essential');
-    document.querySelector('meta[name="theme-color"]').content = state.preferences.theme === 'light' ? '#f4f6fb' : (state.preferences.palette === 'variante2' ? '#0b0b18' : '#090d1f');
+    document.querySelector('meta[name="theme-color"]').content = state.preferences.theme === 'light' ? '#f4f6fa' : '#0c111b';
     document.title = `${ROUTE_BY_ID.get(route).title} · Lume`;
     if (previousRoute.current && previousRoute.current !== route) {
       document.querySelector('#main')?.focus({ preventScroll: true });
       window.scrollTo({ top: 0, behavior: 'instant' });
     }
     previousRoute.current = route;
-  }, [route, state.preferences.theme, state.preferences.palette, state.preferences.textSize]);
+  }, [route, state.preferences.theme, state.preferences.textSize]);
   const open = useCallback(value => setModal(value), []);
   const close = useCallback(() => setModal(null), []);
   async function exit() {

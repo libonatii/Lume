@@ -1,164 +1,428 @@
+/* Início (#hoje) na identidade Norte. Saudação em Bricolage com a linha de
+   avanço em dourado; "você parou aqui" com a constelação do módulo; o que vem
+   aí em contagem regressiva (a mais próxima em cartão dourado cheio); semana
+   em pontos de luz. Números, datas e XP em mono. */
+
 .today-root {
   display: grid;
-  grid-template-columns: minmax(0, 8fr) minmax(0, 4fr);
-  gap: 1.5rem;
-  align-items: start;
+  gap: 1.25rem;
 }
 
-.today-main,
-.today-side {
-  display: grid;
-  gap: 1.5rem;
-  min-width: 0;
-}
-
-/* Hero realinhado */
-.today-welcome {
-  grid-column: 1 / -1;
-  position: relative;
-  display: grid;
-  gap: 1.1rem;
-  padding: clamp(1.35rem, 2.5vw, 2rem);
-  border-color: var(--border-accent);
-  background:
-    radial-gradient(circle at 92% 14%, color-mix(in srgb, var(--lume-soft) 90%, transparent), transparent 44%),
-    linear-gradient(155deg, color-mix(in srgb, var(--surface-2) 90%, var(--surface)), var(--surface));
-  box-shadow: var(--shadow-lg), 0 0 28px color-mix(in srgb, var(--lume) 9%, transparent);
-}
-
-.today-welcome::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  height: 2px;
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  background: var(--crest);
-  pointer-events: none;
-}
-
-.today-welcome.next-action.is-focus {
-  border-color: var(--border-strong);
-  box-shadow: var(--shadow-lg), 0 0 30px color-mix(in srgb, var(--reward) 10%, transparent);
-}
-
-.today-welcome-main {
+.today-layout {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1.5rem;
   flex-wrap: wrap;
+  gap: 1.25rem;
+  align-items: flex-start;
 }
 
-.today-welcome-copy {
-  flex: 1 1 24rem;
+.today-main {
+  flex: 999 1 34rem;
   min-width: 0;
   display: grid;
-  gap: 0.65rem;
+  gap: 1.25rem;
 }
 
-.today-welcome .lead {
-  margin: 0;
-  color: var(--text-muted);
+.today-side {
+  flex: 1 1 18rem;
+  min-width: 0;
+  display: grid;
+  gap: 1.25rem;
+}
+
+/* Saudação */
+.today-welcome {
+  display: grid;
+  gap: 0.6rem;
+  padding: clamp(0.25rem, 2vw, 1.25rem) 0 clamp(0.5rem, 2vw, 1rem);
+}
+
+.today-date {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.9rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text-subtle);
+}
+
+.today-rhythm {
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-subtle);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.today-rhythm:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
 }
 
 .today-greeting {
   margin: 0;
-  max-width: 34ch;
-  font-size: clamp(1.45rem, 2.6vw, 2.05rem);
+  max-width: 30ch;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4.6vw, 3.4rem);
   font-weight: 700;
-  letter-spacing: -0.025em;
-  line-height: 1.18;
+  letter-spacing: -0.03em;
+  line-height: 1.04;
   color: var(--text);
 }
 
 .today-greeting span {
-  display: inline;
-  color: var(--lume-2);
+  display: block;
+  color: var(--reward);
 }
 
-html[data-theme='light'] .today-greeting span {
+/* Você parou aqui */
+.today-resume.card-surface {
+  display: grid;
+  gap: 1rem;
+  padding: clamp(1.1rem, 2.6vw, 1.75rem);
+}
+
+.today-resume.is-focus {
+  border-color: color-mix(in srgb, var(--reward) 45%, var(--border));
+}
+
+.today-resume-top {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+
+.today-resume-label {
   color: var(--lume);
 }
 
-.today-welcome-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--actions-gap);
-  flex: 0 0 auto;
+.today-resume.is-focus .today-resume-label {
+  color: var(--reward);
 }
 
-.today-welcome-actions .button.primary {
+.today-resume-meta {
+  color: var(--text-subtle);
+}
+
+.today-resume-title {
+  margin: 0;
+  font-family: var(--font-display);
   font-weight: 700;
+  font-size: clamp(1.45rem, 3vw, 2rem);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
 }
 
-/* Segundo card abaixo: Trilha ativa / de onde parou */
-.today-hero-block.card-surface {
-  grid-column: 1 / -1;
-  display: grid;
-  gap: 1.15rem;
-  padding: clamp(1.35rem, 2.5vw, 1.85rem);
-  position: relative;
+.today-resume-sub {
+  margin: -0.6rem 0 0;
+  color: var(--text-muted);
 }
 
-.today-hero-block::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  height: 2px;
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  background: var(--crest);
-  pointer-events: none;
+.today-reason {
+  margin: 0;
+  color: var(--text-subtle);
+  font-size: 0.92rem;
 }
 
-.today-hero-block.is-focus {
-  border-color: var(--border-strong);
-  box-shadow: var(--shadow-lg), 0 0 30px color-mix(in srgb, var(--reward) 10%, transparent);
+.today-reason strong {
+  color: var(--text-muted);
 }
 
-.next-hero-top {
+.today-reading {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 0.75rem;
-  flex-wrap: wrap;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text-subtle);
 }
 
-.next-hero-meta {
+.today-resume .action-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  padding-top: 0;
+  margin-top: 0;
+  border-top: 0;
+}
+
+.today-reward {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text-subtle);
+}
+
+/* Constelação: concluídas acesas e ligadas, atual em estrela, futuras vazadas e tracejadas. */
+.constellation {
+  width: 100%;
+  min-width: 0;
+}
+
+.constellation svg {
+  display: block;
+  overflow: visible;
+}
+
+.constellation-walked,
+.constellation-ahead {
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.constellation-walked {
+  stroke: var(--trail);
+}
+
+.constellation-ahead {
+  stroke: var(--trail-future);
+  stroke-dasharray: 4 7;
+}
+
+.constellation-done {
+  fill: var(--trail);
+}
+
+.constellation-todo {
+  fill: var(--surface);
+  stroke: var(--trail-hollow);
+  stroke-width: 2;
+}
+
+.constellation-star {
+  fill: var(--star);
+}
+
+/* Cabeçalho comum dos blocos do Início */
+.today-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.today-card-head .title {
   display: inline-flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 1.3rem;
+}
+
+.today-count {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-subtle);
+}
+
+/* O que vem aí */
+.today-upcoming {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.countdown-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  gap: 0.75rem;
+}
+
+.countdown {
+  height: 100%;
+  display: flex;
   align-items: center;
   gap: 0.9rem;
-  flex-wrap: wrap;
+  padding: 1rem 1.1rem;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  transition: border-color var(--dur-fast) ease;
+}
+
+.countdown:hover {
+  border-color: var(--border-strong);
+}
+
+.countdown-number {
+  flex: none;
+  min-width: 2.2ch;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 2.75rem;
+  line-height: 1;
+  color: var(--text-subtle);
+}
+
+.countdown-list li:nth-child(2) .countdown-number {
+  color: var(--text);
+}
+
+.countdown-copy {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.countdown-when {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-subtle);
+}
+
+.countdown-copy strong {
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+/* A mais próxima em cartão dourado cheio. */
+.countdown.is-next {
+  background: var(--action);
+  border-color: var(--action);
+  color: var(--action-ink);
+}
+
+.countdown.is-next .countdown-number,
+.countdown.is-next .countdown-when {
+  color: var(--action-ink);
+}
+
+.countdown.is-next:hover {
+  border-color: var(--text);
+}
+
+.today-upcoming-empty,
+.today-upcoming-foot {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.today-upcoming-foot {
+  font-family: var(--font-mono);
   font-size: 0.8rem;
   color: var(--text-subtle);
 }
 
-.next-hero-meta > span {
+.today-upcoming-foot .text-link {
+  display: inline;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+/* Plano do dia */
+.today-tasks.card-surface {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.today-foot-link {
+  justify-self: start;
+}
+
+.today-foot-link .icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Sua semana: pontos de luz. Dia sem estudo fica apagado, sem marca de falta. */
+.week-lights.card-surface {
+  display: grid;
+  gap: 1rem;
+  padding: 1.35rem;
+}
+
+.week-total {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text-subtle);
+}
+
+.week-dots {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-subtle);
+}
+
+.week-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.week-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--dot-off);
+}
+
+.week-day.is-lit .week-dot {
+  background: var(--trail);
+}
+
+.week-day.is-future .week-dot {
+  background: transparent;
+  border: 2px solid var(--trail-future);
+}
+
+.week-day.is-today {
+  gap: 0.3rem;
+  color: var(--reward);
+  font-weight: 700;
+}
+
+.week-note {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+}
+
+/* Amigos */
+.today-friends.card-surface {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1.35rem;
+}
+
+.today-friends-tools {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
 }
 
-.next-hero-meta .icon {
+.today-friends-count {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
   color: var(--lume);
-  width: 1rem;
-  height: 1rem;
 }
 
-.next-hero-body {
-  display: grid;
-  gap: 0.35rem;
+.today-side-links {
+  display: flex;
+  gap: 1.25rem;
+  padding-top: 0.25rem;
 }
 
-.next-hero-body .headline {
-  margin: 0;
-}
-
-.next-hero-body .muted-text {
-  margin: 0;
-  max-width: 68ch;
-}
-
+/* Material vinculado ao foco */
 .next-linked-material {
   display: flex;
   align-items: center;
@@ -199,87 +463,6 @@ html[data-theme='light'] .today-greeting span {
   color: var(--text-subtle);
 }
 
-.soft-dot.is-pulse {
-  animation: today-pulse 2.2s ease-in-out infinite;
-}
-
-@keyframes today-pulse {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.55;
-    transform: scale(0.84);
-  }
-}
-
-/* Bento grid: Plano do dia + Próximos marcos */
-.today-cards-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1.5rem;
-  align-items: stretch;
-}
-
-.today-bento-card {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 1rem;
-  min-width: 0;
-  padding: clamp(1.15rem, 2vw, 1.5rem);
-}
-
-.today-bento-body {
-  display: grid;
-  gap: 1rem;
-  align-content: start;
-}
-
-.today-count-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.55rem;
-  padding: 0.14rem 0.52rem;
-  border-radius: 999px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  color: var(--text-subtle);
-  font-size: 0.75rem;
-  font-weight: 700;
-  line-height: 1.3;
-  font-variant-numeric: tabular-nums;
-}
-
-.today-card-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.today-card-foot.has-divider {
-  padding-top: 0.9rem;
-  border-top: 1px solid var(--border);
-}
-
-.today-card-foot .text-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.85rem;
-}
-
-.today-card-foot .icon {
-  width: 0.9rem;
-  height: 0.9rem;
-}
-
-/* Plano do dia */
 .today-task-list {
   list-style: none;
   margin: 0;
@@ -593,116 +776,6 @@ a.milestone:hover .milestone-arrow {
   color: var(--text-subtle);
 }
 
-/* Ritmo da semana horizontal */
-.weekly-rhythm {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1.25rem;
-  flex-wrap: wrap;
-  padding: 1.1rem clamp(1.15rem, 2vw, 1.5rem);
-}
-
-.weekly-rhythm-head {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-  min-width: 0;
-}
-
-.weekly-rhythm-head h2 {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.weekly-rhythm-head p {
-  margin: 0.2rem 0 0;
-  font-size: 0.82rem;
-  color: var(--text-subtle);
-}
-
-.rhythm-pills {
-  display: flex;
-  align-items: flex-end;
-  gap: 0.72rem;
-  flex-wrap: wrap;
-}
-
-.rhythm-pill-item {
-  display: grid;
-  justify-items: center;
-  gap: 0.35rem;
-}
-
-.rhythm-pill-bar {
-  width: 1.65rem;
-  height: 0.42rem;
-  border-radius: 999px;
-  background: var(--surface-3);
-  border: 1px solid var(--border);
-  transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
-}
-
-.rhythm-pill-item.is-active .rhythm-pill-bar {
-  background: var(--mint);
-  border-color: color-mix(in srgb, var(--mint) 60%, transparent);
-}
-
-.rhythm-pill-item.is-today .rhythm-pill-bar {
-  width: 1.9rem;
-  height: 0.48rem;
-  border-color: color-mix(in srgb, var(--lume) 55%, transparent);
-  background: var(--lume-soft);
-}
-
-.rhythm-pill-item.is-today.is-active .rhythm-pill-bar {
-  background: var(--lume);
-  border-color: var(--lume-2);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--lume) 55%, transparent);
-}
-
-.rhythm-pill-item span {
-  font-size: 0.68rem;
-  font-weight: 600;
-  color: var(--text-subtle);
-}
-
-.rhythm-pill-item.is-today span {
-  color: var(--lume-2);
-  font-weight: 700;
-}
-
-html[data-theme='light'] .rhythm-pill-item.is-today span {
-  color: var(--lume);
-}
-
-/* Barra lateral de amigos (Ativos agora) */
-.today-friends {
-  display: grid;
-  gap: 0.9rem;
-  padding: clamp(1.15rem, 2vw, 1.4rem);
-}
-
-.today-friends-head {
-  align-items: center;
-}
-
-.today-friends-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.65rem;
-  min-width: 0;
-}
-
-.today-friends-icon {
-  width: 1.15rem;
-  height: 1.15rem;
-  color: var(--text-subtle);
-  flex: none;
-}
-
 .today-collapse-btn {
   width: 1.9rem;
   height: 1.9rem;
@@ -815,44 +888,6 @@ html[data-theme='light'] .rhythm-pill-item.is-today span {
   color: var(--text-muted);
 }
 
-.friend-status-dot {
-  width: 0.52rem;
-  height: 0.52rem;
-  border-radius: 999px;
-  flex: none;
-  background: var(--success);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--success) 45%, transparent);
-}
-
-.friend-topic-chip {
-  margin-top: 0.26rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  width: fit-content;
-  max-width: 100%;
-  padding: 0.34rem 0.68rem;
-  border-radius: 8px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  font-size: 0.78rem;
-  font-weight: 500;
-}
-
-.friend-topic-chip .icon {
-  width: 0.86rem;
-  height: 0.86rem;
-  color: var(--text-subtle);
-  flex: none;
-}
-
-.friend-topic-chip span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .today-friend-msg {
   width: 2rem;
   height: 2rem;
@@ -875,95 +910,24 @@ html[data-theme='light'] .rhythm-pill-item.is-today span {
   height: 1rem;
 }
 
-.today-side-links {
-  display: grid;
-  gap: 0.2rem;
-  padding-top: 0.8rem;
-  border-top: 1px solid var(--border);
-}
-
-.today-side-link {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.55rem 0.45rem;
-  border-radius: 8px;
-  text-decoration: none;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text);
-  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
-}
-
-.today-side-link:hover {
-  background: var(--inner);
-}
-
-.today-side-link-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.65rem;
-}
-
-.today-side-link-label .icon {
-  width: 1.05rem;
-  height: 1.05rem;
-  color: var(--text-subtle);
-}
-
-.today-side-arrow {
-  width: 0.95rem;
-  height: 0.95rem;
-  color: var(--lume);
-  flex: none;
-  transition: transform var(--dur-fast) var(--ease-out);
-}
-
-.today-side-link:hover .today-side-arrow {
-  transform: translateX(2px);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .soft-dot.is-pulse {
-    animation: none;
-  }
-}
-
-@media (max-width: 1080px) {
-  .today-root {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 780px) {
-  .today-cards-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
 @media (max-width: 560px) {
-  .today-welcome-main {
-    align-items: stretch;
+  .today-resume .action-row .button {
+    flex: 1 1 auto;
   }
 
-  .today-welcome-actions {
-    width: 100%;
+  .today-resume .action-row .button.primary {
+    flex: 1 1 100%;
   }
 
-  .today-welcome-actions .button {
-    width: 100%;
+  .today-reward {
+    margin-left: 0;
   }
 
-  .rhythm-pills {
-    gap: 0.5rem;
+  .countdown-number {
+    font-size: 2.1rem;
   }
 
-  .rhythm-pill-bar {
-    width: 1.4rem;
-  }
-
-  .rhythm-pill-item.is-today .rhythm-pill-bar {
-    width: 1.65rem;
+  .week-lights.card-surface {
+    padding: 1rem 1.1rem;
   }
 }
