@@ -1007,14 +1007,14 @@ dialog#dialog:has(.pdf-reader) > div {
   }
 }
 
-/* Disciplinas no Redesign Sereno: filete na cor escolhida e campos na largura do cartão. */
+/* Disciplinas: filete na cor escolhida e campos na largura do cartão. */
 .subject-card.card-surface {
-  border-left: 3px solid var(--lume);
+  border-left: 3px solid var(--subject-lume);
 }
-.subject-card.color-mint { border-left-color: var(--mint); }
-.subject-card.color-violet { border-left-color: var(--lilac); }
-.subject-card.color-amber { border-left-color: var(--reward); }
-.subject-card.color-coral { border-left-color: var(--danger); }
+.subject-card.color-mint { border-left-color: var(--subject-mint); }
+.subject-card.color-violet { border-left-color: var(--subject-violet); }
+.subject-card.color-amber { border-left-color: var(--subject-amber); }
+.subject-card.color-coral { border-left-color: var(--subject-coral); }
 .subject-card.subject-new {
   border-left-color: color-mix(in srgb, var(--surface-3) 55%, transparent);
 }

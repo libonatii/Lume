@@ -5,9 +5,9 @@
   min-width: 0;
   /* Cores por tipo: sempre acompanhadas de ícone e rótulo. */
   --cat-study: var(--lume);
-  --cat-exam: var(--danger);
+  --cat-exam: var(--subject-violet);
   --cat-delivery: var(--reward);
-  --cat-personal: var(--success);
+  --cat-personal: var(--subject-mint);
   --cat-cancelled: var(--text-subtle);
   --fc-classic-button: var(--surface-2);
   --fc-classic-button-border: var(--border);
@@ -23,7 +23,7 @@
   --fc-classic-background-event-opacity: 15%;
   --fc-classic-background-event-foreground-opacity: 50%;
   --fc-classic-highlight: color-mix(in srgb, var(--lume) 26%, transparent);
-  --fc-classic-today: color-mix(in srgb, var(--lume) 7%, transparent);
+  --fc-classic-today: color-mix(in srgb, var(--reward) 8%, transparent);
   --fc-classic-now: var(--danger);
   --fc-classic-small-dot-width: 6px;
   --fc-classic-large-dot-width: 8px;
@@ -64,7 +64,7 @@
 
 /* Filtros por tipo, que também servem de legenda. */
 .agenda-filters { display: flex; flex-wrap: wrap; gap: .5rem; }
-.agenda-chip { display: inline-flex; align-items: center; gap: .45rem; padding: .35rem .75rem; border-radius: var(--radius-pill); border: 1px solid var(--border); background: transparent; color: var(--text-subtle); font: inherit; font-size: .82rem; cursor: pointer; transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out); }
+.agenda-chip { display: inline-flex; align-items: center; gap: .45rem; padding: .35rem .75rem; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--text-subtle); font: inherit; font-size: .82rem; cursor: pointer; transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out); }
 .agenda-chip[aria-pressed=true] { color: var(--text); border-color: color-mix(in srgb, var(--cat) 45%, var(--border)); background: color-mix(in srgb, var(--cat) 12%, transparent); }
 .agenda-category-dot { width: .6rem; height: .6rem; border-radius: 50%; background: var(--cat); flex-shrink: 0; display: inline-block; }
 .agenda-chip[aria-pressed=false] .agenda-category-dot { background: transparent; box-shadow: inset 0 0 0 1.5px var(--cat); }
@@ -149,12 +149,12 @@
 .agenda-type-option:has(input:checked) .agenda-category-dot { background: var(--cat); box-shadow: none; }
 .agenda-type-option:has(input:focus-visible) { outline: 2px solid var(--lume); outline-offset: 2px; }
 .agenda-editor-group { display: grid; gap: .75rem; padding-top: 1rem; border-top: 1px solid var(--border); }
-.agenda-group-title { margin: 0; padding: 0; font-size: .78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+.agenda-group-title { margin: 0; padding: 0; font-family: var(--font-mono); font-size: .8rem; font-weight: 500; text-transform: lowercase; color: var(--text-subtle); }
 fieldset.agenda-editor-group > legend { float: left; width: 100%; margin-bottom: .75rem; }
 @media (max-width: 420px) { .agenda-type-options { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .agenda-weekdays { border: 0; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .4rem; }
 .agenda-weekdays legend { font-size: .9rem; margin-bottom: .5rem; padding: 0; }
-.agenda-weekdays button { min-width: 2.75rem; padding: .45rem .5rem; border-radius: var(--radius-pill); border: 1px solid var(--border); background: transparent; color: var(--text-muted); font: inherit; font-size: .82rem; cursor: pointer; transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out); }
+.agenda-weekdays button { min-width: 2.75rem; padding: .45rem .5rem; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); font: inherit; font-size: .82rem; cursor: pointer; transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out); }
 .agenda-weekdays button[aria-pressed=true] { background: var(--lume-soft); border-color: var(--lume); color: var(--text); }
 .agenda-checklist-editor { display: grid; gap: .75rem; }
 .agenda-checklist-editor .title { font-size: .95rem; }
@@ -227,9 +227,10 @@ fieldset.agenda-editor-group > legend { float: left; width: 100%; margin-bottom:
   .agenda-event-content.in-month strong svg { display: none; }
 }
 
-/* Redesign Sereno: título com sobrancelha e calendário dentro de um cartão. */
+/* Título com sobrancelha e calendário dentro de um cartão. */
 .agenda-title { display: grid; gap: .25rem; }
-.agenda-title .eyebrow { color: var(--mint); text-transform: uppercase; }
+.agenda-title .eyebrow { color: var(--text-subtle); text-transform: lowercase; }
 .agenda-heading .page-heading-actions { flex-wrap: wrap; }
-.agenda-toolbar { padding: .75rem 1rem; border-radius: var(--radius-lg); background: color-mix(in srgb, var(--surface) 90%, transparent); box-shadow: var(--shadow-lg); }
+.agenda-toolbar { padding: .75rem 1rem; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--border); box-shadow: none; }
 .agenda-nav-group { background: var(--inner); border-color: transparent; }
+

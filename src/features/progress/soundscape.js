@@ -3,7 +3,7 @@
 // sonoro opcional, sem promessa de efeito sobre atenção ou saúde.
 
 export const SOUNDSCAPES = [
-  { id: 'rain', title: 'Chuva suave', hint: 'Ruído grave e abafado', icon: 'rain' },
+  { id: 'rain', title: 'Chuva', hint: 'Ruído grave e abafado', icon: 'rain' },
   { id: 'pink', title: 'Biblioteca', hint: 'Murmúrio constante', icon: 'book' },
   { id: 'white', title: 'Ruído branco', hint: 'Cobre sons do ambiente', icon: 'wave' },
   { id: 'off', title: 'Silêncio', hint: 'Sem áudio', icon: 'mute' },

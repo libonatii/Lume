@@ -121,7 +121,7 @@ export function Library({ state, open, actions }) {
 
   return <div className="library-root">
     <Heading
-      eyebrow="Estante viva & continuidade"
+      eyebrow="materiais e disciplinas"
       title="Biblioteca"
       actions={<>
         <Button secondary onClick={() => open({ type: 'manual' })}><Icon name="edit"/>Criar manualmente</Button>
@@ -244,7 +244,7 @@ export function Library({ state, open, actions }) {
 
       {trails.length > 0 && <section className="library-section" aria-labelledby="library-courses-title">
         <div className="library-section-head">
-          <span className="card-icon tone-reward"><Icon name="layers"/></span>
+          <span className="card-icon"><Icon name="layers"/></span>
           <div><h2 id="library-courses-title" className="title">Cursos e trilhas</h2><p className="card-subtitle">Aulas, etapas e projetos com o ponto de retomada.</p></div>
           <span className="metric-label">{trails.length} {trails.length === 1 ? 'item' : 'itens'}</span>
         </div>
@@ -270,7 +270,6 @@ export function Library({ state, open, actions }) {
       </section>}
 
       {!courses.length && <Empty title="Nenhum material neste filtro." onAdd={() => open({ type: 'new' })}>Troque o filtro ou importe um curso por link.</Empty>}
-      <p className="today-quote"><Icon name="compass"/><span>Feito com cuidado para quem aprende no próprio compasso.</span></p>
     </>}
   </div>;
 }
