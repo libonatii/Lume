@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import Icon from '../../ui/Icon.jsx';
 import { AnimatedNumber, Button, Cover, Heading, Progress, Skeleton, stagger } from '../../ui/ui.jsx';
-import { useResource } from '../../lib/resources.js';
+import { invalidateResources, useResource } from '../../lib/resources.js';
+import { api, apiError } from '../../lib/api.js';
 import { profilePath, warmProfileProps } from './prefetch.js';
 import { SocialAvatar } from './SocialFeed.jsx';
 import SectionTabs from '../../app/SectionTabs.jsx';
@@ -219,7 +220,8 @@ export default function Profile({ id, handle = '', state, actions, account, noti
             {isSelf && <Button secondary onClick={() => setEditing((prev) => !prev)} aria-expanded={editing}>
               <Icon name="edit"/>{editing ? 'Fechar edição' : 'Editar perfil'}
             </Button>}
-            {!isSelf && <Button secondary onClick={() => go('amigos')}>
+            {!isSelf && view.viewer === 'public' && account && <AddFriendButton person={user} notify={notify} onChanged={remote.refresh}/>}
+            {!isSelf && view.viewer !== 'public' && <Button secondary onClick={() => go('amigos')}>
               <Icon name="users"/>Amigos
             </Button>}
             {isSelf && <Button ghost onClick={() => go('configuracoes')}>
@@ -447,6 +449,37 @@ export default function Profile({ id, handle = '', state, actions, account, noti
       </aside>
     </div>}
   </div>;
+}
+
+// Pedido de amizade a partir do perfil de quem ainda não é amigo. Se a pessoa já enviou
+// um pedido a você, enviar o seu aceita a amizade (regra do servidor, sendRequest).
+function AddFriendButton({ person, notify, onChanged }) {
+  const requests = useResource('/api/friends/requests');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  if (!person?.handle) return null;
+  const sent = requests.data?.sent?.some((item) => item.user.id === person.id);
+  const received = requests.data?.received?.some((item) => item.user.id === person.id);
+
+  async function add() {
+    setBusy(true); setError('');
+    try {
+      const result = await api('/api/friends/requests', { method: 'POST', body: { handle: person.handle } });
+      if (!result.ok) throw new Error(apiError(result));
+      notify(result.data.status === 'friends' ? `Você e ${person.name} agora são amigos.` : `Solicitação enviada para ${person.name}.`);
+      invalidateResources('/api/friends');
+      invalidateResources('/api/social/');
+      await Promise.all([requests.refresh(), onChanged?.()]);
+    } catch (exception) { setError(exception.message); }
+    finally { setBusy(false); }
+  }
+
+  return <>
+    {sent
+      ? <Button secondary disabled><Icon name="check"/>Solicitação enviada</Button>
+      : <Button onClick={add} disabled={busy}><Icon name="plus"/>{received ? 'Aceitar amizade' : 'Adicionar amigo'}</Button>}
+    {error && <p className="form-error" role="alert">{error}</p>}
+  </>;
 }
 
 // Aba Amigos: só aparecem amigos que têm perfil público (a regra é do servidor).
