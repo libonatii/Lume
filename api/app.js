@@ -11,6 +11,7 @@ import { accountRoutes } from './routes/account.js';
 import { libraryRoutes } from './routes/library.js';
 import { mediaRoutes } from './routes/media.js';
 import { progressRoutes } from './routes/progress.js';
+import { realtimeRoutes } from './routes/realtime.js';
 import { socialRoutes } from './routes/social.js';
 import { socialFeedRoutes } from './routes/social-feed.js';
 
@@ -22,6 +23,7 @@ export function buildRouter() {
   socialFeedRoutes(router);
   progressRoutes(router);
   mediaRoutes(router);
+  realtimeRoutes(router);
   return router;
 }
 
@@ -29,8 +31,8 @@ function defaultLog(event, details = {}) {
   console.log(JSON.stringify({ event, ...details }));
 }
 
-// ports: { db, media, env, log, lookup }
-export function createApp({ db, media = null, env = {}, log = defaultLog, lookup = null }) {
+// ports: { db, media, env, log, lookup, realtime }
+export function createApp({ db, media = null, env = {}, log = defaultLog, lookup = null, realtime = null }) {
   const config = readConfig(env);
   const router = buildRouter();
 
@@ -43,7 +45,7 @@ export function createApp({ db, media = null, env = {}, log = defaultLog, lookup
     const { route, params } = found;
     const options = route.options;
     const ctx = {
-      request, url, params, db, media, env, config, log, lookup, clientIp, user: null,
+      request, url, params, db, media, env, config, log, lookup, realtime, clientIp, user: null,
       json: (limit, errors) => readJson(request, limit, errors),
       text: (limit, tooLarge) => readText(request, limit, tooLarge),
       bytes: (limit, tooLarge) => readBytes(request, limit, tooLarge),

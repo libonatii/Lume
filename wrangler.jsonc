@@ -37,6 +37,15 @@
     }
   ],
 
+  // Canal de tempo real (WebSocket): um Durable Object por pessoa, com SQLite
+  // (o único tipo disponível no plano gratuito). A classe é exportada em worker.js.
+  "durable_objects": {
+    "bindings": [{ "name": "CHANNEL", "class_name": "UserChannel" }]
+  },
+  "migrations": [
+    { "tag": "v1-user-channel", "new_sqlite_classes": ["UserChannel"] }
+  ],
+
   "vars": {
     // Em produção o link de recuperação não volta na resposta da API: ele vai
     // para o log estruturado, acessível apenas ao dono da conta. Trocar por

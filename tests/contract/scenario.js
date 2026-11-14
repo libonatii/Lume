@@ -3,6 +3,7 @@
 // qualquer alvo de harness.js. Mudança intencional de contrato muda este arquivo.
 
 import assert from 'node:assert/strict';
+import { WebSocket } from 'ws';
 import { materialSteps } from '../../public/material-model.js';
 import { addCourse, completeMission, createInitialState } from '../../public/domain.js';
 import { client } from './harness.js';
@@ -293,8 +294,22 @@ export async function runContract(target, t) {
     assert.equal(forbidden.status, 403);
     assert.equal((await bia.browser.request('POST', `/api/profile/${encodeURIComponent(ana.user.id)}`)).status, 405);
 
+    // Canal de tempo real: sem sessão não abre; com sessão, a mensagem de Bia avisa Ana.
+    const wsUrl = `${origin.replace(/^http/, 'ws')}/api/realtime`;
+    await assert.rejects(new Promise((resolve, reject) => {
+      const anonymous = new WebSocket(wsUrl, { headers: { Origin: origin } });
+      anonymous.once('open', resolve);
+      anonymous.once('unexpected-response', (_request, response) => reject(new Error(String(response.statusCode))));
+      anonymous.once('error', reject);
+    }), /401/);
+    const channel = new WebSocket(wsUrl, { headers: { Origin: origin, Cookie: ana.browser.cookie } });
+    await new Promise((resolve, reject) => { channel.once('open', resolve); channel.once('error', reject); });
+    const heard = new Promise((resolve) => channel.once('message', (data) => resolve(String(data))));
+
     const sent = await bia.browser.request('POST', `/api/messages/${encodeURIComponent(ana.user.id)}`, { body: { body: 'Oi!' } });
     assert.equal(sent.status, 201, JSON.stringify(sent.data));
+    assert.deepEqual(JSON.parse(await Promise.race([heard, new Promise((_, reject) => setTimeout(() => reject(new Error('aviso não chegou')), 5000))])), { type: 'message', from: bia.user.id });
+    channel.close();
     const empty = await bia.browser.request('POST', `/api/messages/${encodeURIComponent(ana.user.id)}`, { body: {} });
     assert.equal(empty.status, 400);
     assert.equal(empty.data.code, 'empty_message');

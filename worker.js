@@ -6,12 +6,15 @@
 import { createApp } from './api/app.js';
 import { d1Adapter } from './api/adapters/d1.js';
 import { r2BucketAdapter } from './api/domain/media.js';
+import { durableRealtime } from './api/adapters/realtime-do.js';
+
+export { UserChannel } from './api/adapters/realtime-do.js';
 
 let cached = null;
 
 function appFor(env) {
   if (cached?.env !== env) {
-    cached = { env, app: createApp({ db: d1Adapter(env.DB), media: r2BucketAdapter(env.MEDIA), env }) };
+    cached = { env, app: createApp({ db: d1Adapter(env.DB), media: r2BucketAdapter(env.MEDIA), env, realtime: env.CHANNEL ? durableRealtime(env.CHANNEL) : null }) };
   }
   return cached.app;
 }

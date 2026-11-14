@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { api, apiError } from '../../lib/api.js';
 import { invalidateResources, mutateResource, useResource } from '../../lib/resources.js';
+import { useRealtimeStatus } from '../../lib/realtime.js';
 import { materialType } from '../../../public/domain.js';
 import Icon from '../../ui/Icon.jsx';
 import { Button, Empty, Heading, PersonAvatar, Skeleton } from '../../ui/ui.jsx';
@@ -42,10 +43,11 @@ export default function Messages({ account, state, notify, go, contactId = '' })
   const threadEnd = useRef(null);
 
   // Lista, conversa aberta e preferências vêm do cache compartilhado; a lista e
-  // a conversa se atualizam a cada 10 s e 5 s enquanto a tela está aberta.
-  const conversationsResource = useResource('/api/messages', { interval: 10000, enabled: Boolean(account) });
+  // a conversa se atualizam a cada 10 s e 5 s (60 s com o canal em tempo real aberto, só como reserva).
+  const live = useRealtimeStatus();
+  const conversationsResource = useResource('/api/messages', { interval: live ? 60000 : 10000, enabled: Boolean(account) });
   const threadPath = selected ? `/api/messages/${encodeURIComponent(selected)}` : '';
-  const threadResource = useResource(threadPath, { interval: 5000, enabled: Boolean(account && selected) });
+  const threadResource = useResource(threadPath, { interval: live ? 60000 : 5000, enabled: Boolean(account && selected) });
   const settingsResource = useResource('/api/messages/settings', { enabled: Boolean(account) });
   const conversations = conversationsResource.data?.conversations || [];
   const thread = selected && threadResource.data ? threadResource.data : null;

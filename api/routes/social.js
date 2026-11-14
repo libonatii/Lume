@@ -10,6 +10,7 @@ import {
 } from '../domain/collaboration.js';
 import { listNotifications, markNotificationsSeen } from '../domain/notifications.js';
 import { LIMITS } from '../config.js';
+import { announce } from '../realtime.js';
 import { json } from '../http.js';
 
 const FRIENDS = { auth: 'Entre na sua conta para convidar amigos.', origin: true };
@@ -56,7 +57,11 @@ export function socialRoutes(router) {
     .add('POST', '/api/messages/:friendId', {
       ...MESSAGES,
       rateLimit: { key: (ctx) => `messages|${ctx.user.id}`, limit: MESSAGE_WINDOW_LIMIT, message: 'Muitas mensagens em pouco tempo. Aguarde um instante.', code: 'rate_limited' },
-    }, async (ctx) => json(await sendMessage(ctx.db, ctx.user.id, ctx.params.friendId, await ctx.json(LIMITS.small)), 201))
+    }, async (ctx) => {
+      const sent = await sendMessage(ctx.db, ctx.user.id, ctx.params.friendId, await ctx.json(LIMITS.small));
+      await announce(ctx.realtime, ctx.params.friendId, { type: 'message', from: ctx.user.id }, ctx.log);
+      return json(sent, 201);
+    })
     .add('GET', '/api/blocks', MESSAGES, async ({ db, user }) => json(await listBlocks(db, user.id)))
     .add('POST', '/api/blocks/:targetId', MESSAGES, async ({ db, user, params }) => json(await blockContact(db, user.id, params.targetId)))
     .add('DELETE', '/api/blocks/:targetId', MESSAGES, async ({ db, user, params }) => json(await unblockContact(db, user.id, params.targetId)));

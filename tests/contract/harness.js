@@ -123,6 +123,8 @@ export async function startWorkerTarget() {
     compatibility_date: '2026-10-30',
     assets: { directory: assets, binding: 'ASSETS', not_found_handling: 'none' },
     d1_databases: [{ binding: 'DB', database_name: 'lume', database_id: 'local-contract', migrations_dir: 'migrations' }],
+    durable_objects: { bindings: [{ name: 'CHANNEL', class_name: 'UserChannel' }] },
+    migrations: [{ tag: 'v1-user-channel', new_sqlite_classes: ['UserChannel'] }],
     vars: { SHOW_RESET_LINK: 'true', BCRYPT_ROUNDS: '4', ATTEMPT_LIMIT: '200' },
   }));
   const run = (args) => new Promise((resolve, reject) => {

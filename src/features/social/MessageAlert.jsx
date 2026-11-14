@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { refreshResource, useResource } from '../../lib/resources.js';
 import { messageAlert } from '../../../public/social-domain.js';
+import { useRealtime, useRealtimeStatus } from '../../lib/realtime.js';
 import { parseHash } from '../../app/routes.jsx';
 import { playMessagePing } from '../progress/soundscape.js';
 import Icon from '../../ui/Icon.jsx';
@@ -20,7 +21,9 @@ function openContactId() {
 // menu; quando ele sobe, relê as conversas (mesmo cache da tela de Mensagens)
 // para saber quem escreveu. Mensagens já não lidas ao abrir o Lume não avisam.
 export default function MessageAlert({ account, quiet = false }) {
-  const unread = useResource('/api/messages/unread', { interval: 10000, enabled: Boolean(account) });
+  useRealtime(account);
+  const live = useRealtimeStatus();
+  const unread = useResource('/api/messages/unread', { interval: live ? 60000 : 10000, enabled: Boolean(account) });
   const [alert, setAlert] = useState(null);
   const seen = useRef(new Set());
   const previous = useRef(null);

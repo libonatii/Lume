@@ -208,5 +208,5 @@ test('mensagem enviada chega à conversa aberta da outra pessoa sem recarregar',
   const friendId = (await sent.json()).friends.find((item) => item.name === 'Bia Tempo').id;
   const posted = await page.request.post(`/api/messages/${friendId}`, { data: { body: 'Chegou sem recarregar?' }, headers: { origin: baseURL } });
   expect(posted.status()).toBe(201);
-  await expect(guestPage.getByRole('region', { name: 'Conversa selecionada' }).getByText('Chegou sem recarregar?')).toBeVisible({ timeout: 9000 });
+  await expect(guestPage.getByRole('region', { name: 'Conversa selecionada' }).getByText('Chegou sem recarregar?')).toBeVisible({ timeout: 3000 });
 });

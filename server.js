@@ -9,6 +9,8 @@ import { createApp } from './api/app.js';
 import { applyMigrations, sqliteAdapter } from './api/adapters/sqlite.js';
 import { fsMediaBucket } from './api/adapters/fs-media.js';
 import { sendResponse, toRequest } from './api/adapters/node-http.js';
+import { createNodeRealtime } from './api/adapters/node-realtime.js';
+import { currentUser } from './api/session.js';
 import { BASE_HEADERS } from './api/http.js';
 
 // Servidor local (Node): serve o build estático do Astro e entrega /api/* ao
@@ -48,8 +50,12 @@ async function lookupPublicHost(hostname) {
   return records.map((record) => record.address);
 }
 
+const db = sqliteAdapter(database);
+const realtime = createNodeRealtime({ authenticate: (request) => currentUser(db, request) });
+
 const app = createApp({
-  db: sqliteAdapter(database),
+  db,
+  realtime,
   media: fsMediaBucket(join(dataDirectory, 'media')),
   env: process.env,
   lookup: lookupPublicHost,
@@ -92,6 +98,9 @@ const server = http.createServer(async (request, response) => {
     } else response.end();
   }
 });
+
+// Canal de tempo real: só /api/realtime aceita upgrade; o resto é recusado.
+server.on('upgrade', (request, socket, head) => realtime.handleUpgrade(request, socket, head));
 
 server.keepAliveTimeout = 60000;
 server.headersTimeout = 65000;
