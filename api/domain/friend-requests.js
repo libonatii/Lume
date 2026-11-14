@@ -74,9 +74,19 @@ export async function ensureHandle(db, userId, now = Date.now()) {
     const taken = await db.first('SELECT 1 AS ok FROM user_handles WHERE handle = ?', [handle]);
     if (taken) continue;
     await db.run('INSERT OR IGNORE INTO user_handles (user_id, handle, created_at) VALUES (?, ?, ?)', [userId, handle, iso(now)]);
-    return (await getHandle(db, userId)) || handle;
+    const mine = await getHandle(db, userId);
+    if (mine) return mine;
   }
   throw new AppError('Não foi possível criar seu @usuário agora. Escolha um manualmente.', 'handle_unavailable', 409);
+}
+
+// Contas antigas ainda não têm @usuário: quem aparece em listas ganha um, para o perfil
+// abrir direto em /@usuario sem passar pelo id. Em sequência, para não disputar o mesmo nome.
+export async function fillMissingHandles(db, rows, idKey = 'id', handleKey = 'handle') {
+  for (const row of rows) {
+    if (!row[handleKey]) row[handleKey] = await ensureHandle(db, row[idKey]);
+  }
+  return rows;
 }
 
 // Disponibilidade para o cadastro e para a troca em Configurações. O @usuário que

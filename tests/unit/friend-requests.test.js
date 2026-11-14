@@ -4,7 +4,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { fileURLToPath } from 'node:url';
 import { applyMigrations, sqliteAdapter } from '../../api/adapters/sqlite.js';
 import {
-  cancelRequest, checkHandle, ensureHandle, listRequests, normalizeHandle, respondRequest,
+  cancelRequest, checkHandle, ensureHandle, fillMissingHandles, getHandle, listRequests, normalizeHandle, respondRequest,
   searchByHandle, sendRequest, setHandle, slugifyHandle,
 } from '../../api/domain/friend-requests.js';
 
@@ -88,4 +88,13 @@ test('disponibilidade do @usuário no cadastro e na troca', async () => {
   assert.equal((await checkHandle(db, 'marina.lima', 'u2')).available, true, 'o próprio @usuário conta como livre');
   assert.equal((await checkHandle(db, 'ab')).reason, 'invalid');
   assert.equal((await checkHandle(db, 'novo.usuario')).available, true);
+});
+
+test('contas antigas sem @usuário ganham um, distinto, ao aparecer em listas', async () => {
+  const { db } = makeDb();
+  const rows = [{ id: 'u2', handle: null }, { id: 'u3', handle: null }, { id: 'u1', handle: 'ana.fixa' }];
+  await fillMissingHandles(db, rows);
+  assert.equal(rows[2].handle, 'ana.fixa');
+  assert.ok(rows[0].handle && rows[1].handle && rows[0].handle !== rows[1].handle);
+  assert.equal(await getHandle(db, 'u2'), rows[0].handle);
 });

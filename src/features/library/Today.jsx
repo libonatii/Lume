@@ -256,7 +256,7 @@ export function Home({ state, open, go, planActions, notify, account }) {
 
       <aside className="today-side" aria-label="Semana e amigos">
         <WeekLights state={state} today={today}/>
-        <FriendsCard account={account}/>
+        <FriendsCard account={account} go={go}/>
       </aside>
     </div>
   </div>;
@@ -314,7 +314,7 @@ function WeekLights({ state }) {
 }
 
 // Amigos ativos agora (sessão de foco aberta, Companion ou presença recente), com atalhos para chat, amigos e ranking.
-function FriendsCard({ account }) {
+function FriendsCard({ account, go }) {
   const resource = useResource('/api/friends', { interval: 45000, enabled: Boolean(account) });
   const friends = resource.data?.friends || [];
   const activeFriends = friends
@@ -349,7 +349,7 @@ function FriendsCard({ account }) {
             ? <ul className="today-friend-list">{activeFriends.slice(0, 5).map((friend) => {
               const activity = friend.activity || { label: 'Online', topic: '' };
               return <li key={friend.id} className="today-friend-item">
-                <a className="today-friend-link" href={`#perfil?id=${encodeURIComponent(friend.id)}`}>
+                <a className="today-friend-link" href={`#perfil?id=${encodeURIComponent(friend.id)}`} onClick={friend.handle ? (event) => { event.preventDefault(); go(`perfil?u=${friend.handle}`); } : undefined}>
                   <span className="avatar today-friend-avatar" aria-hidden="true">{String(friend.name || '?').slice(0, 1).toUpperCase()}</span>
                   <span className="friend-copy">
                     <strong>{friend.name}</strong>

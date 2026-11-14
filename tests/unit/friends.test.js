@@ -136,14 +136,14 @@ test('listFriends projeta presença real: Online, Estudando com disciplina e pri
   const now = Date.parse('2026-11-13T00:00:00Z');
   const rows = [
     {
-      id: 'f_online',
+      id: 'f_online', handle: 'h_f_online',
       name: 'Gabriel',
       since: '2026-11-01T10:00:00Z',
       last_seen_at: new Date(now - 60_000).toISOString(),
       account_doc: null,
     },
     {
-      id: 'f_studying',
+      id: 'f_studying', handle: 'h_f_studying',
       name: 'José Lucas da Silva',
       since: '2026-11-02T10:00:00Z',
       last_seen_at: new Date(now - 30_000).toISOString(),
@@ -159,7 +159,7 @@ test('listFriends projeta presença real: Online, Estudando com disciplina e pri
       }),
     },
     {
-      id: 'f_private',
+      id: 'f_private', handle: 'h_f_private',
       name: 'Mariana',
       since: '2026-11-03T10:00:00Z',
       last_seen_at: new Date(now - 20_000).toISOString(),
@@ -175,7 +175,7 @@ test('listFriends projeta presença real: Online, Estudando com disciplina e pri
       }),
     },
     {
-      id: 'f_offline',
+      id: 'f_offline', handle: 'h_f_offline',
       name: 'Rafael',
       since: '2026-11-04T10:00:00Z',
       last_seen_at: new Date(now - 10 * 60_000).toISOString(),

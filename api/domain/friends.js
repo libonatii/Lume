@@ -197,6 +197,8 @@ export async function listFriends(db, userId, now = Date.now()) {
       ORDER BY u.name COLLATE NOCASE`,
     [userId],
   );
+  const { fillMissingHandles } = await import('./friend-requests.js');
+  await fillMissingHandles(db, friends);
   const friendIds = friends.map((row) => row.id);
   const companions = new Map();
   if (friendIds.length) {

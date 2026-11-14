@@ -47,7 +47,7 @@ async function visiblePost(db, userId, postId) {
 }
 
 function author(row) {
-  return { id: row.user_id, name: row.name, avatar: sanitizeProfileImage(row.avatar) };
+  return { id: row.user_id, name: row.name, handle: row.handle || null, avatar: sanitizeProfileImage(row.avatar) };
 }
 
 function commentView(row, userId, ownerId) {
@@ -56,6 +56,7 @@ function commentView(row, userId, ownerId) {
 
 const AUTHOR_JOIN = `JOIN users u ON u.id = p.user_id LEFT JOIN account_documents d ON d.user_id = p.user_id`;
 const POST_SELECT = `p.*, u.name, json_extract(d.data, '$.profile.avatar') AS avatar,
+  (SELECT h.handle FROM user_handles h WHERE h.user_id = p.user_id) AS handle,
   (SELECT COUNT(*) FROM social_reactions r WHERE r.post_id = p.id) AS reactions,
   (SELECT COUNT(*) FROM social_comments c WHERE c.post_id = p.id) AS comments,
   a.material_title AS achievement_title, a.criterion AS achievement_criterion`;
@@ -79,6 +80,10 @@ export async function listSocialPosts(db, userId, { cursor = '' } = {}) {
     ORDER BY p.created_at DESC, p.id DESC LIMIT ?`,
   [...access.params, ...(after ? [after.at, after.at, after.id] : []), SOCIAL_PAGE_SIZE + 1]);
   const selected = rows.slice(0, SOCIAL_PAGE_SIZE);
+  const { fillMissingHandles } = await import('./friend-requests.js');
+  const missing = [...new Map(selected.filter((row) => !row.handle).map((row) => [row.user_id, row])).values()];
+  await fillMissingHandles(db, missing, 'user_id');
+  for (const row of selected) row.handle ||= missing.find((item) => item.user_id === row.user_id)?.handle;
   const posts = [];
   for (const row of selected) posts.push(await postView(db, row, userId));
   const last = selected.at(-1);
