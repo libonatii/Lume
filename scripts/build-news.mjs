@@ -17,7 +17,9 @@ try {
 const items = [];
 for (const record of raw.split('\x1e')) {
   const [hash, at, body] = record.trim().split('\x1f');
-  const line = body?.split('\n').find((l) => /^Novidade:/i.test(l.trim()));
+  const lines = body?.split('\n').map((l) => l.trim()) || [];
+  const line = lines.find((l) => /^Novidade:/i.test(l));
+  const details = lines.filter((l) => /^Detalhe:/i.test(l)).map((l) => l.replace(/^Detalhe:\s*/i, '')).filter(Boolean);
   if (!hash || !line) continue;
   const [title, text = '', href = '#hoje', area = 'site'] = line.replace(/^\s*Novidade:/i, '').split('|').map((s) => s.trim());
   if (!title) continue;
