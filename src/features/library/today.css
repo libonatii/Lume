@@ -847,10 +847,12 @@ a.milestone:hover .milestone-arrow {
   display: grid;
   place-items: center;
   flex: none;
-  background: var(--lume);
-  color: var(--lume-ink);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-mono);
   font-size: 0.92rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .friend-copy {
@@ -878,8 +880,52 @@ a.milestone:hover .milestone-arrow {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  font-size: 0.8rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
   color: var(--text-muted);
+}
+
+.friend-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--success);
+  flex: none;
+}
+
+.friend-topic {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: 100%;
+  justify-self: start;
+  margin-top: 0.15rem;
+  padding: 0.2rem 0.6rem;
+  background: var(--inner);
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+.friend-topic .icon {
+  flex: none;
+}
+
+.friend-topic span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.today-friends-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.today-friends-title .icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--lume);
 }
 
 .today-friend-msg {

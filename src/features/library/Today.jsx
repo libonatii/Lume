@@ -321,14 +321,12 @@ function FriendsCard({ account, go }) {
   const activeFriends = friends
     .filter((friend) => friend.activity?.active)
     .sort((a, b) => Number(b.activity?.status === 'studying') - Number(a.activity?.status === 'studying') || a.name.localeCompare(b.name, 'pt-BR'));
-  const studying = activeFriends.filter((friend) => friend.activity?.status === 'studying').length;
   const [openList, setOpenList] = useState(true);
 
   return <section className={`card-surface today-friends ${openList ? '' : 'is-collapsed'}`} aria-labelledby="today-friends-title">
     <div className="today-card-head">
-      <h2 id="today-friends-title" className="title">Amigos</h2>
+      <h2 id="today-friends-title" className="title today-friends-title"><Icon name="users"/>Ativos agora</h2>
       <span className="today-friends-tools">
-        {studying > 0 && <span className="today-friends-count">{studying} estudando agora</span>}
         <button
           type="button"
           className="today-collapse-btn"
@@ -347,14 +345,15 @@ function FriendsCard({ account, go }) {
         : !resource.data
           ? <Skeleton label="Carregando amigos…" rows={2}/>
           : activeFriends.length
-            ? <ul className="today-friend-list">{activeFriends.slice(0, 5).map((friend) => {
+            ? <ul className="today-friend-list">{activeFriends.slice(0, 8).map((friend) => {
               const activity = friend.activity || { label: 'Online', topic: '' };
               return <li key={friend.id} className="today-friend-item">
                 <a className="today-friend-link" {...warmProfileProps(friend)} href={`#perfil?id=${encodeURIComponent(friend.id)}`} onClick={friend.handle ? (event) => { event.preventDefault(); go(`perfil?u=${friend.handle}`); } : undefined}>
                   <span className="avatar today-friend-avatar" aria-hidden="true">{String(friend.name || '?').slice(0, 1).toUpperCase()}</span>
                   <span className="friend-copy">
                     <strong>{friend.name}</strong>
-                    <span className="friend-status">{activity.label}{activity.topic ? ` · ${activity.topic}` : ''}</span>
+                    <span className={`friend-status is-${activity.status || 'online'}`}><span className="friend-dot" aria-hidden="true"/>{activity.label}</span>
+                    {activity.topic && <span className="soft-badge friend-topic"><Icon name="book"/><span>{activity.topic}</span></span>}
                   </span>
                 </a>
                 <a className="today-friend-msg" href={`#mensagens?com=${encodeURIComponent(friend.id)}`} aria-label={`Mensagem para ${friend.name}`} title={`Mensagem para ${friend.name}`}>
@@ -366,11 +365,6 @@ function FriendsCard({ account, go }) {
               ? <p className="muted-text today-friends-empty">Nenhum amigo ativo agora.</p>
               : <p className="muted-text today-friends-empty">Estudar junto é opcional. Um convite começa a lista.</p>
     )}
-
-    <div className="today-side-links">
-      <a className="text-link" href="#amigos">Ver amigos</a>
-      <a className="text-link" href="#ranking">Ranking</a>
-    </div>
   </section>;
 }
 
