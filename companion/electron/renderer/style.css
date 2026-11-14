@@ -1,17 +1,17 @@
-/* Janela do Lume Companion. Mesma paleta do Lume, tamanho de app de bandeja. */
+/* Janela do Lume Companion. Mesmas cores da identidade Norte do Lume, tamanho de app de bandeja. */
 
 :root {
-  --bg: #080d17;
-  --surface: #111c30;
-  --surface-2: #16243d;
-  --border: rgba(216, 232, 255, 0.12);
-  --text: #edf3ff;
-  --muted: #9eb3d4;
-  --subtle: #6e84a8;
-  --lume: #5ea8ff;
-  --mint: #4de0b8;
-  --amber: #f6b94a;
-  --danger: #ff7a8a;
+  --bg: #0c111b;
+  --surface: #141b2a;
+  --surface-2: #1c2537;
+  --border: #2a3550;
+  --text: #eef2f7;
+  --muted: #c3ccda;
+  --subtle: #9aa7ba;
+  --lume: #9ec5ff;
+  --mint: #9ec5ff;
+  --amber: #f6c165;
+  --danger: #ff8a8a;
   color-scheme: dark;
 }
 
@@ -26,7 +26,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  background: radial-gradient(120% 80% at 20% 0%, #101c31 0%, var(--bg) 55%);
+  background: var(--bg);
   color: var(--text);
   font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
   font-size: 14px;
@@ -56,9 +56,9 @@ body {
 .mark {
   width: 26px;
   height: 26px;
-  border-radius: 9px;
-  background: linear-gradient(140deg, var(--mint), #2fae86 60%, #1f6d55);
-  box-shadow: 0 0 0 4px rgba(77, 224, 184, 0.12);
+  /* A estrela de quatro pontas do Lume. */
+  background: var(--amber);
+  clip-path: polygon(50% 0, 59.6% 40.4%, 100% 50%, 59.6% 59.6%, 50% 100%, 40.4% 59.6%, 0 50%, 40.4% 40.4%);
 }
 .pill {
   padding: 3px 9px;
@@ -71,8 +71,8 @@ body {
   letter-spacing: 0.08em;
   white-space: nowrap;
 }
-.pill.on { color: var(--mint); border-color: rgba(77, 224, 184, 0.4); }
-.pill.paused { color: var(--amber); border-color: rgba(246, 185, 74, 0.4); }
+.pill.on { color: var(--mint); border-color: rgba(158, 197, 255, 0.4); }
+.pill.paused { color: var(--amber); border-color: rgba(246, 193, 101, 0.4); }
 .pill.off { color: var(--subtle); }
 
 main {
@@ -146,8 +146,8 @@ button {
   font: inherit;
   font-weight: 600;
   cursor: pointer;
-  background: var(--lume);
-  color: #041022;
+  background: var(--amber);
+  color: #1f1503;
   transition: filter 0.15s ease, transform 0.1s ease;
 }
 button:hover { filter: brightness(1.06); }
@@ -180,8 +180,8 @@ button:disabled { opacity: 0.55; cursor: default; }
   background: var(--subtle);
   flex-shrink: 0;
 }
-.dot.on { background: var(--mint); box-shadow: 0 0 0 5px rgba(77, 224, 184, 0.14); }
-.dot.paused { background: var(--amber); box-shadow: 0 0 0 5px rgba(246, 185, 74, 0.14); }
+.dot.on { background: var(--mint); box-shadow: 0 0 0 5px rgba(158, 197, 255, 0.14); }
+.dot.paused { background: var(--amber); box-shadow: 0 0 0 5px rgba(246, 193, 101, 0.14); }
 .presence-copy { display: grid; gap: 2px; margin-right: auto; min-width: 0; }
 .presence-copy strong { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .presence-copy small { color: var(--subtle); font-size: 11px; }

@@ -153,8 +153,8 @@ test('jornada 3 configura ritmo e primeira matéria sem gerar XP', async ({ page
   await page.getByRole('heading', { name: 'Estudo com frequência', exact: true }).click();
 
   // Etapa 2: ritmo diário e conforto sonoro
-  await expect(page.getByRole('heading', { name: 'Defina seu ritmo sem cobranças.' })).toBeVisible();
-  await page.getByRole('radio', { name: /Chuva Serena/ }).click();
+  await expect(page.getByRole('heading', { name: 'Quanto tempo por dia?' })).toBeVisible();
+  await page.getByRole('radio', { name: /^Chuva/ }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
 
   // Etapa 3: primeira matéria (Caderno em Branco)
@@ -195,11 +195,11 @@ test('jornada 3 configura ritmo e primeira matéria sem gerar XP', async ({ page
   // Conquistas abre pelo menu da conta, na aba ao lado de Meu perfil.
   await page.getByRole('button', { name: /^Menu da conta/ }).click();
   await page.getByLabel('Opções do usuário').getByRole('link', { name: 'Conquistas', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Sua vitrine de conquistas', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Suas conquistas', exact: true })).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Seções de Perfil' }).getByRole('link', { name: 'Meu caminho' })).toHaveCount(0);
   // Endereços antigos: Missões e Roteiro abrem o Plano; Meu caminho abre Conquistas.
   await page.goto('/#missoes');
   await expect(page.getByRole('heading', { name: 'Plano de Estudos', exact: true })).toBeVisible();
   await page.goto('/#historico');
-  await expect(page.getByRole('heading', { name: 'Sua vitrine de conquistas', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Suas conquistas', exact: true })).toBeVisible();
 });

@@ -40,8 +40,8 @@
   border-color: var(--border-strong);
 }
 .pace-card.selected {
-  border-color: var(--lume);
-  background: linear-gradient(180deg, var(--lume-soft), var(--surface) 65%);
+  border-color: var(--text);
+  background: var(--surface-2);
 }
 .pace-card.compact {
   padding: 1.05rem;
@@ -484,10 +484,9 @@ html[data-theme='light'] .plan-material-highlight {
   padding: 0.75rem;
   display: flex;
   align-items: flex-end;
-  background:
-    radial-gradient(circle at 22% 20%, color-mix(in srgb, var(--lume) 26%, transparent), transparent 60%),
-    radial-gradient(circle at 78% 75%, color-mix(in srgb, var(--mint) 20%, transparent), transparent 55%),
-    var(--bg-elevated);
+  background-color: var(--bg-elevated);
+  background-image: radial-gradient(var(--grid-dot) 1px, transparent 1.4px);
+  background-size: 18px 18px;
   border: 1px solid var(--border);
 }
 .stitch-preview-sound-pill {
@@ -562,7 +561,7 @@ html[data-theme='light'] .plan-material-highlight {
   display: block;
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--mint), var(--lume));
+  background: var(--trail);
 }
 .stitch-calm-pledge {
   margin: 0;

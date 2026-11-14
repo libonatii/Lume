@@ -82,8 +82,8 @@ export default function Friends({ account, state, xp, inviteCode = '', notify, g
   }
 
   return <div className="social-root">
-    <Heading eyebrow="Sua rede de estudos" title="Social" actions={<span className="social-friend-count"><Icon name="users"/>{data ? `${data.friends.length} ${data.friends.length === 1 ? 'amizade' : 'amizades'}` : account ? 'Carregando amigos…' : 'Entre amigos'}</span>}>
-      Troque ideias, compartilhe suas vitórias e materiais com seus amigos.
+    <Heading eyebrow="amigos, mensagens e ranking" title="Social" actions={<span className="social-friend-count"><Icon name="users"/>{data ? `${data.friends.length} ${data.friends.length === 1 ? 'amizade' : 'amizades'}` : account ? 'Carregando amigos…' : 'Entre amigos'}</span>}>
+      Tire dúvidas, compartilhe resumos e veja quem está estudando agora.
     </Heading>
     <SectionTabs route="amigos"/>
     {!account
@@ -130,7 +130,7 @@ export default function Friends({ account, state, xp, inviteCode = '', notify, g
           </section>
 
           <section className="card-surface social-panel social-ranking-link">
-            <span className="social-ranking-icon"><Icon name="podium"/></span><h2 className="title">Seu ritmo, entre amigos.</h2>
+            <span className="social-ranking-icon"><Icon name="podium"/></span><h2 className="title">Ranking entre amigos</h2>
             <p>Veja as classificações por nível, cursos concluídos e empenho.</p>
             <Button secondary onClick={() => go('ranking')}>Ver ranking<Icon name="arrow"/></Button>
           </section>

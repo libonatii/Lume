@@ -17,8 +17,8 @@
   gap: 0.8rem;
 }
 .ranking-optin.is-in {
-  border-color: var(--mint);
-  box-shadow: 0 0 0 1px var(--mint-soft) inset;
+  border-color: var(--border-strong);
+  box-shadow: none;
 }
 .ranking-toolbar {
   display: flex;
@@ -48,8 +48,12 @@
   background: var(--surface);
 }
 .ranking-row.is-self {
-  border-color: var(--border-strong);
-  background: linear-gradient(90deg, var(--lume-soft), transparent 70%), var(--surface);
+  border-color: color-mix(in srgb, var(--reward) 55%, var(--border));
+  background: var(--surface-2);
+}
+.ranking-row.is-self .ranking-avatar {
+  background: var(--action);
+  color: var(--action-ink);
 }
 .ranking-position {
   min-width: 2.4rem;

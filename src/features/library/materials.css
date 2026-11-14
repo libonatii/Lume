@@ -177,10 +177,8 @@
   padding: 2rem 1.6rem;
   border-radius: var(--radius-xl);
   border: 1px solid var(--border-strong);
-  background:
-    radial-gradient(circle at 85% 15%, var(--lume-soft), transparent 55%),
-    var(--surface);
-  box-shadow: var(--shadow-sm);
+  background: var(--surface);
+  box-shadow: none;
 }
 .slide-counter {
   position: absolute;

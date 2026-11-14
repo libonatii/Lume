@@ -199,11 +199,12 @@
   position: relative;
 }
 .cfg-segment label.is-selected {
-  background: color-mix(in srgb, var(--action) 55%, var(--surface));
-  color: var(--text);
+  background: var(--text);
+  color: var(--bg);
+  font-weight: 700;
 }
 .cfg-segment input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
-.cfg-segment label:focus-within { outline: 2px solid var(--action); outline-offset: -2px; }
+.cfg-segment label:focus-within { outline: 2px solid var(--lume); outline-offset: -2px; }
 
 .cfg-preview {
   display: grid;

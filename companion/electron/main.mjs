@@ -300,12 +300,12 @@ function createMainWindow() {
     show: false,
     title: 'Lume',
     icon: appIcon(),
-    backgroundColor: '#080d17',
+    backgroundColor: '#0c111b',
     autoHideMenuBar: true,
     // Barra de título própria: os botões nativos ficam sobre o topo do site,
     // com as cores do tema, como em editores e apps de desktop modernos.
     titleBarStyle: 'hidden',
-    titleBarOverlay: { color: '#080d17', symbolColor: '#e8eefb', height: TITLEBAR_HEIGHT },
+    titleBarOverlay: { color: '#0c111b', symbolColor: '#eef2f7', height: TITLEBAR_HEIGHT },
     webPreferences: {
       preload: join(here, 'main-preload.cjs'),
       contextIsolation: true,
@@ -348,7 +348,7 @@ function createPanelWindow() {
     show: false,
     title: 'Lume — presença',
     icon: appIcon(),
-    backgroundColor: '#080d17',
+    backgroundColor: '#0c111b',
     autoHideMenuBar: true,
     webPreferences: {
       preload: join(here, 'preload.cjs'),
@@ -411,8 +411,8 @@ ipcMain.on('lume:theme', (_event, theme) => {
   const dark = theme !== 'light';
   try {
     mainWindow.setTitleBarOverlay({
-      color: dark ? '#080d17' : '#f1f6fd',
-      symbolColor: dark ? '#e8eefb' : '#0c1322',
+      color: dark ? '#0c111b' : '#f4f6fa',
+      symbolColor: dark ? '#eef2f7' : '#0c111b',
       height: TITLEBAR_HEIGHT,
     });
   } catch { /* plataformas sem overlay seguem com a barra padrão. */ }

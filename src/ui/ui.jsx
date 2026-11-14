@@ -78,9 +78,26 @@ export function Logo({ size = 24 }) {
   return <Star size={size} className="logo-mark"/>;
 }
 
+// Capa de material sem foto: uma pequena constelação sobre a malha de pontos.
+// Cada tema (`art`) tem a sua forma, para cartões vizinhos não parecerem iguais.
+const COVER_SHAPES = {
+  design: [[18, 70], [52, 40], [88, 58], [124, 30]],
+  code: [[16, 40], [50, 66], [86, 36], [124, 62]],
+  language: [[18, 60], [54, 32], [90, 64], [126, 40]],
+  nature: [[16, 52], [52, 70], [88, 34], [126, 56]],
+};
 export function Cover({ art = 'nature', className = '', children }) {
-  const safe = ['design', 'code', 'language', 'nature'].includes(art) ? art : 'nature';
-  return <div className={`cover art-${safe} ${className}`}><img src={`/assets/stitch/${safe}.png`} alt="" loading="lazy"/>{children}</div>;
+  const safe = Object.hasOwn(COVER_SHAPES, art) ? art : 'nature';
+  const points = COVER_SHAPES[safe];
+  const [x, y] = points[points.length - 1];
+  return <div className={`cover art-${safe} ${className}`}>
+    <svg className="cover-mark" viewBox="0 0 144 90" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">
+      <polyline points={points.map((point) => point.join(',')).join(' ')} className="cover-line"/>
+      {points.slice(0, -1).map(([cx, cy]) => <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="3.5" className="cover-dot"/>)}
+      <path d={STAR_PATH} className="cover-star" transform={`translate(${x - 9} ${y - 9}) scale(0.75)`}/>
+    </svg>
+    {children}
+  </div>;
 }
 
 // Foto de perfil com as iniciais como reserva (sem foto ou se a imagem falhar).
