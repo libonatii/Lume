@@ -4,7 +4,7 @@ import {
   blockContact, getThread, listBlocks, listConversations, markThreadRead, messagePreferences,
   sendMessage, unblockContact, unreadSummary, updateMessagePreferences, MESSAGE_WINDOW_LIMIT,
 } from '../domain/messages.js';
-import { acceptInvite, createInvite, listFriends, readFriendProfile, removeFriend, touchUserPresence } from '../domain/friends.js';
+import { acceptInvite, createInvite, listFriends, listProfileFriends, readFriendProfile, removeFriend, touchUserPresence } from '../domain/friends.js';
 import { cancelRequest, getHandle, listRequests, userIdByHandle, respondRequest, searchByHandle, sendRequest, setHandle } from '../domain/friend-requests.js';
 import {
   cancelCollaborationInvite, createCollaborationInvite, listCollaborationInvites, respondCollaborationInvite,
@@ -59,6 +59,20 @@ export function socialRoutes(router) {
       json(await cancelRequest(db, user.id, params.requestId)))
     .add('DELETE', '/api/friends/:friendId', FRIENDS, async ({ db, user, params }) =>
       json(await removeFriend(db, user.id, params.friendId)));
+
+  router.add('GET', '/api/profile/:friendId/friends', { auth: 'Entre na sua conta para ver perfis.', origin: true }, async ({ db, user, params }) => {
+    let targetId = params.friendId;
+    if (targetId.startsWith('@')) {
+      targetId = await userIdByHandle(db, targetId);
+      if (!targetId) throw new AppError('Nenhuma pessoa com esse @usuário.', 'not_found', 404);
+    }
+    try {
+      return json(await listProfileFriends(db, user.id, targetId));
+    } catch (error) {
+      if (error?.code === 'not_friends' && params.friendId.startsWith('@')) throw new AppError('Nenhuma pessoa com esse @usuário.', 'not_found', 404);
+      throw error;
+    }
+  });
 
   router.add('GET', '/api/profile/:friendId', { auth: 'Entre na sua conta para ver perfis.', origin: true }, async ({ db, user, params }) => {
     // /@usuario: o perfil é pedido pelo @usuário. Perfil que o visitante não pode abrir

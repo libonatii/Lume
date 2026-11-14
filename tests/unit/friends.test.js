@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   FriendsError, acceptInvite, createInvite, formatInviteCode, generateInviteCode,
-  friendshipPolicy, listFriends, normalizeInviteCode, removeFriend,
+  friendshipPolicy, listFriends, listProfileFriends, normalizeInviteCode, removeFriend,
 } from '../../api/domain/friends.js';
 import { hashSessionToken } from '../../api/domain/auth.js';
 
@@ -207,4 +207,40 @@ test('listFriends projeta presença real: Online, Estudando com disciplina e pri
   assert.equal(byId.f_studying.avatar, '/api/media/profiles/f_studying/avatar-1.webp');
   assert.equal(byId.f_private.avatar, '', 'endereço fora da mídia do Lume é descartado');
   assert.equal(byId.f_online.avatar, '');
+});
+
+function profileFriendsDb({ linked = false, targetPublic = true, blocked = false, friends = [] } = {}) {
+  const doc = (isPublic) => JSON.stringify({ preferences: { sharing: { public: isPublic } } });
+  return {
+    async run() { return 1; },
+    async first(sql) {
+      if (sql.includes('FROM users')) return { id: 'alvo' };
+      if (sql.includes('FROM account_documents')) return { data: doc(targetPublic) };
+      if (sql.includes('FROM friendships')) return linked ? { ok: 1 } : null;
+      if (sql.includes('FROM contact_blocks')) return blocked ? { ok: 1 } : null;
+      return null;
+    },
+    async all() {
+      return friends.map((item) => ({ id: item.id, name: item.name, handle: item.id, account_doc: doc(item.public) }));
+    },
+  };
+}
+
+test('aba Amigos do perfil lista só amigos com perfil público', async () => {
+  const db = profileFriendsDb({ friends: [
+    { id: 'ana', name: 'Ana', public: true },
+    { id: 'beto', name: 'Beto', public: false },
+  ] });
+  const result = await listProfileFriends(db, 'visitante', 'alvo');
+  assert.deepEqual(result.friends.map((item) => item.id), ['ana']);
+});
+
+test('aba Amigos respeita perfil fechado, bloqueio e a própria conta', async () => {
+  const friends = [{ id: 'ana', name: 'Ana', public: true }];
+  await assert.rejects(listProfileFriends(profileFriendsDb({ targetPublic: false, friends }), 'visitante', 'alvo'), { code: 'not_friends' });
+  await assert.rejects(listProfileFriends(profileFriendsDb({ blocked: true, friends }), 'visitante', 'alvo'), { code: 'not_friends' });
+  const asFriend = await listProfileFriends(profileFriendsDb({ targetPublic: false, linked: true, friends }), 'visitante', 'alvo');
+  assert.equal(asFriend.friends.length, 1);
+  const own = await listProfileFriends(profileFriendsDb({ targetPublic: false, friends }), 'alvo', 'alvo');
+  assert.equal(own.friends.length, 1);
 });

@@ -298,6 +298,50 @@ export async function readFriendProfile(db, viewerId, friendId) {
   };
 }
 
+// Amigos de uma pessoa, vistos na aba "Amigos" do perfil. Só abre quem pode abrir o
+// perfil (a própria pessoa, amigos ou, se o perfil é público, qualquer conta) e só
+// aparecem amigos que também têm perfil público: quem fechou o perfil não é exposto.
+export async function listProfileFriends(db, viewerId, targetId) {
+  if (!targetId) throw new FriendsError('Perfil não encontrado.', 'not_found', 404);
+  const [target, targetDoc] = await Promise.all([
+    db.first('SELECT id FROM users WHERE id = ?', [targetId]),
+    db.first('SELECT data FROM account_documents WHERE user_id = ?', [targetId]),
+  ]);
+  if (!target) throw new FriendsError('Perfil não encontrado.', 'not_found', 404);
+  if (targetId !== viewerId) {
+    const [linked, blocked] = await Promise.all([
+      db.first('SELECT 1 AS ok FROM friendships WHERE user_id = ? AND friend_id = ?', [viewerId, targetId]),
+      db.first(
+        'SELECT 1 AS ok FROM contact_blocks WHERE (user_id = ? AND blocked_id = ?) OR (user_id = ? AND blocked_id = ?)',
+        [viewerId, targetId, targetId, viewerId],
+      ),
+    ]);
+    const isPublic = normalizeSharing(parseJson(targetDoc?.data)?.preferences?.sharing).public;
+    if (!linked && (!isPublic || blocked)) throw new FriendsError('Este perfil é privado. Só amigos podem abri-lo.', 'not_friends', 403);
+  }
+  const rows = await db.all(
+    `SELECT u.id, u.name, uh.handle AS handle, ad.data AS account_doc
+       FROM friendships f
+       JOIN users u ON u.id = f.friend_id
+       LEFT JOIN user_handles uh ON uh.user_id = u.id
+       LEFT JOIN account_documents ad ON ad.user_id = u.id
+      WHERE f.user_id = ?
+      ORDER BY u.name COLLATE NOCASE`,
+    [targetId],
+  );
+  const visible = rows.filter((row) => normalizeSharing(parseJson(row.account_doc)?.preferences?.sharing).public);
+  const { fillMissingHandles } = await import('./friend-requests.js');
+  await fillMissingHandles(db, visible);
+  return {
+    friends: visible.map((row) => ({
+      id: row.id,
+      name: row.name,
+      handle: row.handle || null,
+      avatar: sanitizeProfileImage(parseJson(row.account_doc)?.profile?.avatar),
+    })),
+  };
+}
+
 // Resumo validado no servidor (nível e conquistas); ausente se a pessoa não tem XP.
 async function validatedProfile(db, userId) {
   try {
