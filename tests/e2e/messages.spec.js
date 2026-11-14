@@ -27,8 +27,10 @@ async function makeFriends(page, requestContext, baseURL, name, prefix) {
   await register(requestContext, baseURL, name, prefix);
   await markOnboarded(requestContext, baseURL);
   await page.goto('/#amigos');
-  await page.getByRole('button', { name: 'Criar convite' }).click();
-  const code = (await page.locator('.companion-code > code').first().textContent())?.trim() || '';
+  // O convite é criado em Adicionar amigos (#adicionar); aqui basta a rota.
+  const invite = await page.request.post('/api/friends/invite', { data: {}, headers: { origin: baseURL } });
+  expect(invite.status()).toBe(201);
+  const code = (await invite.json()).code;
   expect(code).toMatch(/^[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}$/);
   return code;
 }

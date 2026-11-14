@@ -82,14 +82,19 @@ export default function AddFriends({ account, notify, go }) {
     });
   }
 
-  async function inviteLink() {
-    if (invite) return `${location.origin}/#amigos?convite=${invite.code}`;
+  const inviteUrl = (code) => `${location.origin}/#amigos?convite=${code}`;
+
+  async function createInvite() {
     return run(async () => {
       const result = await api('/api/friends/invite', { method: 'POST', body: {} });
       if (!result.ok) throw new Error(apiError(result));
       setInvite(result.data);
-      return `${location.origin}/#amigos?convite=${result.data.code}`;
+      return inviteUrl(result.data.code);
     });
+  }
+
+  async function inviteLink() {
+    return invite ? inviteUrl(invite.code) : createInvite();
   }
 
   async function copyInvite() {
@@ -180,9 +185,14 @@ export default function AddFriends({ account, notify, go }) {
       <aside className="card-surface addfriend-card addfriend-invite" aria-labelledby="addfriend-invite-title">
         <span className="addfriend-invite-icon" aria-hidden="true"><Icon name="external"/></span>
         <h2 id="addfriend-invite-title" className="title">Convide alguém para o Lume</h2>
-        <p className="quiet-note">Envie um link para quem ainda não tem conta.</p>
-        <Button onClick={shareInvite} disabled={busy}><Icon name="upload"/>Compartilhar link</Button>
-        <Button secondary onClick={copyInvite} disabled={busy}>Copiar link</Button>
+        <p className="quiet-note">Crie um convite e envie o link para quem ainda não tem conta. Ele vale por 7 dias.</p>
+        {!invite && <Button onClick={createInvite} disabled={busy}><Icon name="plus"/>Criar convite</Button>}
+        {invite && <div className="companion-code social-invite-code" aria-live="polite">
+          <span className="metric-label">Seu código de convite</span><code>{invite.code}</code>
+          <Button onClick={shareInvite} disabled={busy}><Icon name="upload"/>Compartilhar link</Button>
+          <Button secondary onClick={copyInvite} disabled={busy}>Copiar link</Button>
+          <button type="button" className="text-button" onClick={createInvite} disabled={busy}>Gerar novo convite</button>
+        </div>}
         <p className="quiet-note">O convite continua com a pessoa durante o cadastro.</p>
       </aside>
     </div>

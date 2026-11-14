@@ -25,8 +25,10 @@ test('convite cria amizade entre duas contas sem compartilhar progresso', async 
   await expect(page.getByRole('heading', { name: 'Social', exact: true })).toBeVisible();
   await expect(page.getByText('Ninguém por aqui ainda. Um convite já começa a lista.')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Criar convite' }).click();
-  const code = (await page.locator('.companion-code > code').first().textContent())?.trim() || '';
+  // O convite é criado em Adicionar amigos (#adicionar); aqui basta a rota.
+  const invite = await page.request.post('/api/friends/invite', { data: {}, headers: { origin: baseURL } });
+  expect(invite.status()).toBe(201);
+  const code = (await invite.json()).code;
   expect(code).toMatch(/^[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}$/);
 
   // Aceitar o próprio convite é bloqueado.
