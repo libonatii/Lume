@@ -61,8 +61,9 @@ test('convite cria amizade entre duas contas sem compartilhar progresso', async 
   await page.reload();
   await expect(page.locator('#main').getByText('Bia do teste', { exact: true })).toBeVisible();
 
-  // Convite mostra quantas pessoas entraram.
-  await expect(page.getByText('1 pessoa entrou', { exact: true })).toBeVisible();
+  // O convite conta quantas pessoas entraram (a tela não lista mais o histórico de convites).
+  const own = await (await page.request.get('/api/friends', { headers: { origin: baseURL } })).json();
+  expect(own.invites.map((item) => item.uses)).toEqual([1]);
 
   // Remover encerra nos dois lados.
   await page.getByRole('button', { name: 'Remover Bia do teste da lista' }).click();

@@ -27,7 +27,11 @@ export default function MessageAlert({ account, quiet = false }) {
   const unread = useResource('/api/messages/unread', { interval: live ? 60000 : 10000, enabled: Boolean(account) });
   const [alert, setAlert] = useState(null);
   const seen = useRef(new Set());
-  const previous = useRef(null);
+  // Fica verdadeiro depois da primeira leitura das conversas desta conta: até lá,
+  // as não lidas já existentes só entram em `seen`, sem aviso.
+  const primed = useRef(false);
+  const accountId = useRef(account?.id);
+  accountId.current = account?.id;
   const quietRef = useRef(quiet);
   quietRef.current = quiet;
   const timer = useRef(null);
@@ -36,7 +40,7 @@ export default function MessageAlert({ account, quiet = false }) {
 
   useEffect(() => {
     seen.current = new Set();
-    previous.current = null;
+    primed.current = false;
     setAlert(null);
     if (!account) return undefined;
     // Voltar à janela confere na hora, sem esperar o próximo intervalo.
@@ -50,21 +54,27 @@ export default function MessageAlert({ account, quiet = false }) {
   // quando o número sobe perdia avisos: se a leitura de uma conversa e a chegada da
   // próxima se cruzavam, o contador ficava em 1 e a mensagem nova passava sem aviso.
   // O conjunto `seen` garante um aviso por mensagem. As que já estavam não lidas ao
-  // abrir o Lume entram em `seen` sem avisar.
+  // abrir o Lume entram em `seen` sem avisar, mesmo que o contador seja relido
+  // (ao montar e ao conectar o tempo real) antes de essa primeira leitura voltar.
   useEffect(() => {
     if (count === null) return;
-    const first = previous.current === null;
-    previous.current = count;
-    if (count === 0) return;
+    if (count === 0) { primed.current = true; return; }
     let alive = true;
+    const owner = accountId.current;
     // Leitura própria: uma consulta já em andamento no cache pode ter começado antes da
     // mensagem chegar e devolver a lista sem ela.
     api('/api/messages').then((result) => {
-      if (!alive || !result?.ok) return;
-      mutateResource('/api/messages', result.data);
+      if (!result?.ok || accountId.current !== owner) return;
       const conversations = result.data?.conversations || [];
+      const first = !primed.current;
+      // Leitura substituída por outra mais nova: só serve para semear as já existentes;
+      // a mais nova decide o aviso.
+      if (!alive && !first) return;
+      primed.current = true;
       const next = first ? null : messageAlert(conversations, { seen: seen.current, openContactId: openContactId(), notifications: notifications && !quietRef.current });
       for (const item of conversations) if (item.unread > 0 && item.lastMessage) seen.current.add(item.lastMessage.id);
+      if (!alive) return;
+      mutateResource('/api/messages', result.data);
       if (next) { setAlert(next); playMessagePing(); }
     });
     return () => { alive = false; };

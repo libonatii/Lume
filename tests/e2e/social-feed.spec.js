@@ -104,9 +104,11 @@ test('compartilhar conquista validada não duplica a recompensa de estudo', asyn
   const dialog = page.getByRole('dialog');
   await dialog.locator('input[type=file]').setInputFiles({ name: 'apostila.pdf', mimeType: 'application/pdf', buffer: penalPdf() });
   await dialog.getByRole('button', { name: 'Anexar PDF', exact: true }).click();
-  await dialog.getByRole('button', { name: 'Concluí a leitura do PDF' }).click();
-  await expect(dialog.getByText('Leitura concluída.')).toBeVisible();
-  await page.getByRole('button', { name: 'Fechar janela' }).click();
+  await dialog.getByRole('button', { name: 'Concluir leitura' }).click();
+  await expect(dialog.getByText('Concluída', { exact: true })).toBeVisible();
+  // A conquista só existe depois que o servidor confirma a conclusão.
+  await expect.poll(async () => (await (await page.request.get('/api/xp', { headers: { origin } })).json()).summary.totalXP, { timeout: 15000 }).toBe(100);
+  await dialog.getByRole('button', { name: 'Voltar para a biblioteca' }).click();
   await page.goto('/#amigos');
   await page.reload();
   await page.getByRole('button', { name: 'Conquista', exact: true }).click();

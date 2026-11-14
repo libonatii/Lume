@@ -41,6 +41,10 @@ const csp = builtCsp || "default-src 'self'; object-src 'none'; base-uri 'none';
 const dataDirectory = process.env.LUME_DATA_DIR || fileURLToPath(new URL('./data/', import.meta.url));
 mkdirSync(dataDirectory, { recursive: true });
 const database = new DatabaseSync(join(dataDirectory, 'lume.db'));
+// WAL com sincronização NORMAL: cada gravação deixa de esperar várias descargas no
+// disco (em disco lento, ~200 ms por requisição). O banco continua íntegro numa queda;
+// no máximo as últimas transações antes de uma falta de energia se perdem.
+database.exec('PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;');
 applyMigrations(database, fileURLToPath(new URL('./migrations/', import.meta.url)));
 database.prepare('DELETE FROM sessions WHERE expires_at < ?').run(new Date().toISOString());
 
