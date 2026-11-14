@@ -129,7 +129,7 @@ export function Preferences({ state, actions, libraryActions, notify, onPersonal
     <Heading title="Configurações">Seu Lume, do seu jeito.</Heading>
     <div className="cfg-layout">
       <nav className="cfg-nav" aria-label="Seções de configurações">
-        {SECTIONS.map((item) => <button key={item.id} type="button" className={`cfg-nav-item ${item.id === section ? 'is-active' : ''}`} aria-current={item.id === section ? 'page' : undefined} onClick={() => setSection(item.id)}>
+        {SECTIONS.map((item) => <button key={item.id} type="button" className={`button secondary cfg-nav-item ${item.id === section ? 'is-active' : ''}`} aria-current={item.id === section ? 'page' : undefined} onClick={() => setSection(item.id)}>
           <Icon name={item.icon}/>{item.label}
         </button>)}
       </nav>
@@ -206,13 +206,11 @@ export function Preferences({ state, actions, libraryActions, notify, onPersonal
               </Toggle>
               : <p className="inline-note"><Icon name="lock"/><span>O ranking exige conta e amizades. Na prévia, ele não é calculado.</span></p>}
           </div>
-          <div className="cfg-block">
+          {projects.length > 0 && <div className="cfg-block">
             <h3>Projetos no perfil</h3>
             <p className="cfg-sub">Você escolhe quais projetos compartilhar.</p>
-            {projects.length === 0
-              ? <p className="cfg-empty">Nenhum projeto na biblioteca.</p>
-              : projects.map((course) => <Toggle key={course.id} title={course.title} hint={course.shared === true ? 'Aparece no seu perfil' : 'Privado'} checked={course.shared === true} onChange={() => toggleProject(course)}/>)}
-          </div>
+            {projects.map((course) => <Toggle key={course.id} title={course.title} hint={course.shared === true ? 'Aparece no seu perfil' : 'Privado'} checked={course.shared === true} onChange={() => toggleProject(course)}/>)}
+          </div>}
         </div>}
 
         {section === 'notificacoes' && <div className="cfg-stack">
@@ -253,9 +251,6 @@ export function Preferences({ state, actions, libraryActions, notify, onPersonal
           </div>}
         </div>}
 
-        {section === 'aparencia' && <footer className="cfg-foot">
-          <Icon name="info"/><span>{account ? 'As preferências ficam salvas na sua conta.' : 'Na prévia, as preferências valem só enquanto esta página está aberta.'}</span>
-        </footer>}
       </section>
     </div>
   </div>;
