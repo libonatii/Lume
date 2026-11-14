@@ -5,7 +5,7 @@ import {
   sendMessage, unblockContact, unreadSummary, updateMessagePreferences, MESSAGE_WINDOW_LIMIT,
 } from '../domain/messages.js';
 import { acceptInvite, createInvite, listFriends, readFriendProfile, removeFriend, touchUserPresence } from '../domain/friends.js';
-import { cancelRequest, getHandle, listRequests, respondRequest, searchByHandle, sendRequest, setHandle } from '../domain/friend-requests.js';
+import { cancelRequest, getHandle, listRequests, userIdByHandle, respondRequest, searchByHandle, sendRequest, setHandle } from '../domain/friend-requests.js';
 import {
   cancelCollaborationInvite, createCollaborationInvite, listCollaborationInvites, respondCollaborationInvite,
 } from '../domain/collaboration.js';
@@ -13,6 +13,7 @@ import { listNotifications, markNotificationsSeen } from '../domain/notification
 import { LIMITS } from '../config.js';
 import { announce } from '../realtime.js';
 import { json } from '../http.js';
+import { AppError } from '../errors.js';
 
 const FRIENDS = { auth: 'Entre na sua conta para convidar amigos.', origin: true };
 const MESSAGES = { auth: 'Entre na sua conta para conversar com amigos.', origin: true };
@@ -59,8 +60,22 @@ export function socialRoutes(router) {
     .add('DELETE', '/api/friends/:friendId', FRIENDS, async ({ db, user, params }) =>
       json(await removeFriend(db, user.id, params.friendId)));
 
-  router.add('GET', '/api/profile/:friendId', { auth: 'Entre na sua conta para ver perfis.', origin: true }, async ({ db, user, params }) =>
-    json({ profile: await readFriendProfile(db, user.id, params.friendId) }));
+  router.add('GET', '/api/profile/:friendId', { auth: 'Entre na sua conta para ver perfis.', origin: true }, async ({ db, user, params }) => {
+    // /@usuario: o perfil é pedido pelo @usuário. Perfil que o visitante não pode abrir
+    // responde como inexistente, igual à busca, sem confirmar que o @usuário existe.
+    if (params.friendId.startsWith('@')) {
+      const targetId = await userIdByHandle(db, params.friendId);
+      if (!targetId) throw new AppError('Nenhuma pessoa com esse @usuário.', 'not_found', 404);
+      if (targetId === user.id) return json({ self: true, id: user.id });
+      try {
+        return json({ profile: await readFriendProfile(db, user.id, targetId) });
+      } catch (error) {
+        if (error?.code === 'not_friends') throw new AppError('Nenhuma pessoa com esse @usuário.', 'not_found', 404);
+        throw error;
+      }
+    }
+    return json({ profile: await readFriendProfile(db, user.id, params.friendId) });
+  });
 
   router
     .add('GET', '/api/messages', MESSAGES, async ({ db, user }) => json(await listConversations(db, user.id)))

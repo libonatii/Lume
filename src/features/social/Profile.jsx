@@ -4,6 +4,7 @@ import Icon from '../../ui/Icon.jsx';
 import { AnimatedNumber, Button, Cover, Heading, Progress, Skeleton, stagger } from '../../ui/ui.jsx';
 import { api, apiError } from '../../lib/api.js';
 import { useResource } from '../../lib/resources.js';
+import SectionTabs from '../../app/SectionTabs.jsx';
 import { buildProfile } from '../../../public/profile-domain.js';
 import { MAX_PROFILE_BIO_LENGTH, studyRhythm } from '../../../public/domain.js';
 import { prepareProfileImageBlob, uploadProfileBlob } from './profile-media.js';
@@ -32,7 +33,7 @@ function formatBioLines(bio, fallbackRhythm) {
   ];
 }
 
-export default function Profile({ id, state, actions, account, notify, go, xp }) {
+export default function Profile({ id, handle = '', state, actions, account, notify, go, xp }) {
   const [profile, setProfile] = useState(null);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(false);
@@ -41,8 +42,13 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
   const avatarInputRef = useRef(null);
   const headerInputRef = useRef(null);
 
-  const isSelf = !id || Boolean(account && id === account.id);
-  const ownHandle = useResource('/api/friends/handle', { enabled: Boolean(account && isSelf) }).data?.handle || '';
+  // O perfil abre por id (#perfil?id=) ou por @usuário (/@usuario). Pelo @usuário só se
+  // sabe se é o da própria conta depois de ler o @usuário dela.
+  const own = useResource('/api/friends/handle', { enabled: Boolean(account) });
+  const ownHandle = own.data?.handle || '';
+  const ownReady = !account || own.data !== undefined || Boolean(own.error);
+  const byHandle = Boolean(handle) && !id;
+  const isSelf = byHandle ? Boolean(account && ownReady && handle === ownHandle) : (!id || Boolean(account && id === account.id));
 
   useEffect(() => {
     setBioDraft(state.profile?.bio || '');
@@ -52,16 +58,26 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
     setError('');
     setProfile(null);
     setEditing(false);
-    if (isSelf || !id) return undefined;
+    if (isSelf || (!id && !handle)) return undefined;
+    if (byHandle && !ownReady) return undefined;
     let alive = true;
     (async () => {
-      const result = await api(`/api/profile/${encodeURIComponent(id)}`);
+      const result = await api(`/api/profile/${byHandle ? `@${encodeURIComponent(handle)}` : encodeURIComponent(id)}`);
       if (!alive) return;
       if (!result.ok) { setError(apiError(result)); return; }
+      if (!result.data.profile) { setError('Não foi possível abrir este perfil agora.'); return; }
       setProfile(result.data.profile);
     })().catch(() => { if (alive) setError('Não foi possível abrir este perfil agora.'); });
     return () => { alive = false; };
-  }, [id, isSelf]);
+  }, [id, handle, byHandle, isSelf, ownReady]);
+
+  // Endereço limpo do perfil: lumeacademy.site/@usuario.
+  const addressHandle = isSelf ? ownHandle : profile?.user?.handle;
+  useEffect(() => {
+    if (!addressHandle) return;
+    const clean = `/@${addressHandle}`;
+    if (location.pathname !== clean) history.replaceState(null, '', clean);
+  }, [addressHandle]);
 
   const selfName = account?.name || 'Estudante na Prévia';
   const validated = xp?.summary ? { ...xp.summary, achievements: xp.achievements, titles: xp.titles } : null;
@@ -132,6 +148,7 @@ export default function Profile({ id, state, actions, account, notify, go, xp })
   const bioLines = formatBioLines(customization.bio, rhythmLabel);
 
   return <div className="personal-root steam-profile-root">
+    {byHandle && isSelf && <SectionTabs route="perfil"/>}
     {/* Cabeçalho / vitrine superior estilo Steam */}
     <section
       className={`steam-hero crest-card ${customization.header ? 'has-custom-header' : ''}`}

@@ -50,6 +50,12 @@ async function person(db, userId) {
   };
 }
 
+export async function userIdByHandle(db, raw) {
+  const handle = normalizeHandle(raw);
+  if (!HANDLE_PATTERN.test(handle)) return null;
+  return (await db.first('SELECT user_id FROM user_handles WHERE handle = ?', [handle]))?.user_id || null;
+}
+
 export async function getHandle(db, userId) {
   const row = await db.first('SELECT handle FROM user_handles WHERE user_id = ?', [userId]);
   return row?.handle || null;

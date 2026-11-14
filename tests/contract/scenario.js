@@ -69,6 +69,15 @@ export async function runContract(target, t) {
     assert.equal(opened.data.profile.user.handle, handle);
     assert.equal(opened.data.profile.user.email, undefined);
     assert.equal((await client(origin).request('GET', `/api/profile/${ownerUser.id}`)).status, 401);
+    // Endereço limpo /@usuario: a API resolve o perfil pelo @usuário e o servidor entrega o app.
+    const byHandle = await viewer.request('GET', `/api/profile/@${handle}`);
+    assert.equal(byHandle.status, 200, JSON.stringify(byHandle.data));
+    assert.equal(byHandle.data.profile.user.id, ownerUser.id);
+    assert.equal((await owner.request('GET', `/api/profile/@${handle}`)).data.self, true);
+    assert.equal((await viewer.request('GET', '/api/profile/@nao.existe.mesmo')).status, 404);
+    const page = await fetch(`${origin}/@${handle}`);
+    assert.equal(page.status, 200);
+    assert.match(await page.text(), /<!doctype html/i);
 
     const current = (await owner.request('GET', '/api/library')).data;
     const next = { ...current.state, preferences: { ...current.state.preferences, sharing: { ...current.state.preferences.sharing, public: false } } };
@@ -76,6 +85,7 @@ export async function runContract(target, t) {
     assert.equal(saved.status, 200, JSON.stringify(saved.data));
     assert.equal((await viewer.request('GET', `/api/friends/search?handle=${handle}`)).status, 404, 'fechado não aparece na busca');
     assert.equal((await viewer.request('GET', `/api/profile/${ownerUser.id}`)).status, 403);
+    assert.equal((await viewer.request('GET', `/api/profile/@${handle}`)).status, 404, 'fechado responde como inexistente pelo @usuário');
   });
 
   await t.test('Agenda e lembretes autenticados: persistência, isolamento e deduplicação', async () => {

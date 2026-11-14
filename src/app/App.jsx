@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useLume } from './useLume.js';
 import Shell from './Shell.jsx';
 import { Dialog, PageSkeleton, enter, ease } from '../ui/ui.jsx';
-import { ENTRY_ROUTES, PUBLIC_ROUTES, ROUTE_BY_ID, SessionCheck, parseHash } from './routes.jsx';
+import { ENTRY_ROUTES, PUBLIC_ROUTES, ROUTE_BY_ID, SessionCheck, parseHash, routeHash } from './routes.jsx';
 import { ModalContent } from './modals.jsx';
 import Icon from '../ui/Icon.jsx';
 import { markDesktop, syncTitleBar } from '../lib/desktop.js';
@@ -17,7 +17,7 @@ import MessageAlert from '../features/social/MessageAlert.jsx';
 markDesktop();
 
 export default function App() {
-  const [hash, setHash] = useState(() => location.hash);
+  const [hash, setHash] = useState(() => routeHash());
   const [toast, setToast] = useState(null);
   const [modal, setModal] = useState(null);
   const [authMode, setAuthMode] = useState('login');
@@ -66,9 +66,15 @@ export default function App() {
     },
   }), [notify]);
   useEffect(() => {
-    const change = () => { setHash(location.hash); setModal(null); };
+    const change = () => {
+      // Saindo de /@usuario por um link de hash: o caminho volta para a raiz do app.
+      if (location.hash && location.pathname !== '/') history.replaceState(null, '', `/${location.hash}`);
+      setHash(routeHash());
+      setModal(null);
+    };
     window.addEventListener('hashchange', change);
-    return () => { window.removeEventListener('hashchange', change); clearTimeout(toastTimer.current); };
+    window.addEventListener('popstate', change);
+    return () => { window.removeEventListener('hashchange', change); window.removeEventListener('popstate', change); clearTimeout(toastTimer.current); };
   }, []);
   // #login preso na URL não deve sobreviver a uma sessão válida.
   useLayoutEffect(() => {

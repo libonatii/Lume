@@ -87,7 +87,7 @@ const ROUTES = [
 
 
   // Perfil de uma amizade (#perfil?id=) não mostra as abas da própria conta.
-  { id: 'perfil', title: 'Perfil', loading: 'panel', section: 'perfil', tab: 'Meu perfil', hideTabs: (ctx) => Boolean(ctx.params.get('id')), render: (ctx) => <Profile id={ctx.params.get('id') || ''} state={ctx.state} actions={ctx.model.settingsActions} account={ctx.model.account} notify={ctx.notify} go={ctx.go} xp={ctx.model.xp}/> },
+  { id: 'perfil', title: 'Perfil', loading: 'panel', section: 'perfil', tab: 'Meu perfil', hideTabs: (ctx) => Boolean(ctx.params.get('id') || ctx.params.get('u')), render: (ctx) => <Profile id={ctx.params.get('id') || ''} handle={ctx.params.get('u') || ''} state={ctx.state} actions={ctx.model.settingsActions} account={ctx.model.account} notify={ctx.notify} go={ctx.go} xp={ctx.model.xp}/> },
   { id: 'conquistas', title: 'Conquistas', loading: 'cards', section: 'perfil', tab: 'Conquistas', render: (ctx) => <Achievements state={ctx.state} account={ctx.model.account} xp={ctx.model.xp}/> },
   { id: 'armazenamento', title: 'Armazenamento', loading: 'panel', section: 'perfil', tab: 'Armazenamento', render: (ctx) => <StoragePage state={ctx.state} account={ctx.model.account} libraryActions={ctx.model.libraryActions} confirmSave={ctx.model.confirmSave} notify={ctx.notify} open={ctx.open} go={ctx.go}/> },
   { id: 'configuracoes', title: 'Configurações', loading: 'panel', section: 'perfil', tab: 'Configurações', render: (ctx) => <Preferences state={ctx.state} actions={ctx.model.settingsActions} libraryActions={ctx.model.libraryActions} confirmSave={ctx.model.confirmSave} account={ctx.model.account} notify={ctx.notify} go={ctx.go} open={ctx.open} xp={ctx.model.xp} refreshXP={ctx.model.refreshXP} initialSection={ctx.params.get('secao') || ''} onPersonalize={() => ctx.go('inicio')}/> },
@@ -104,6 +104,15 @@ export function tabsOf(sectionKey) {
 
 export function sectionOf(routeId) {
   return ROUTE_BY_ID.get(routeId)?.section || null;
+}
+
+// Endereço atual como `#rota?param=valor`. O perfil de uma pessoa tem endereço limpo,
+// `/@usuario`, que vale como `#perfil?u=usuario`; um hash explícito sempre vence.
+const PROFILE_PATH = /^\/@([A-Za-z0-9._]{3,24})\/?$/;
+export function routeHash() {
+  if (location.hash) return location.hash;
+  const match = PROFILE_PATH.exec(location.pathname);
+  return match ? `#perfil?u=${match[1].toLowerCase()}` : '';
 }
 
 // Lê `#rota?param=valor`, aplicando os apelidos de endereços antigos.

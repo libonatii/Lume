@@ -22,6 +22,10 @@ function appFor(env) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    // /@usuario é uma rota do app (perfil): entrega o mesmo index.html.
+    if (/^\/@[A-Za-z0-9._]{3,24}\/?$/.test(url.pathname) && ['GET', 'HEAD'].includes(request.method)) {
+      return env.ASSETS.fetch(new Request(new URL('/', url), { method: request.method, headers: request.headers }));
+    }
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
     return appFor(env).fetch(request, { clientIp: request.headers.get('CF-Connecting-IP') ?? 'desconhecido' });
   },

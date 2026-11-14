@@ -69,6 +69,8 @@ const app = createApp({
   },
 });
 
+const PROFILE_PATH = /^\/@[A-Za-z0-9._]{3,24}\/?$/;
+
 async function serveStatic(request, response, pathname) {
   const headers = { ...BASE_HEADERS, 'Content-Security-Policy': csp };
   if (!['GET', 'HEAD'].includes(request.method)) {
@@ -76,7 +78,8 @@ async function serveStatic(request, response, pathname) {
     response.end();
     return;
   }
-  const entry = staticFiles.get(pathname);
+  // /@usuario é uma rota do app (perfil): serve o mesmo index.html.
+  const entry = staticFiles.get(PROFILE_PATH.test(pathname) ? '/' : pathname);
   if (!entry) {
     response.writeHead(404, { ...headers, 'Content-Type': 'text/plain; charset=utf-8' });
     response.end('Página não encontrada.');
