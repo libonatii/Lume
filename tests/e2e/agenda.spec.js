@@ -2,10 +2,10 @@ import { test, expect } from '@playwright/test';
 import { createInitialState, addCourse } from '../../public/domain.js';
 import { createAppointment, shiftDate } from '../../public/agenda-domain.js';
 import { addTask, localDate } from '../../public/tasks-domain.js';
-import { seedAccount, readAccount } from './library-helpers.js';
+import { seedAccount, readAccount, E2E_ORIGIN } from './library-helpers.js';
 
 const initial = () => ({ ...createInitialState(), onboarded: true });
-const headers = { origin: 'http://127.0.0.1:4187' };
+const headers = { origin: E2E_ORIGIN };
 const dialog = (page) => page.getByRole('dialog');
 async function saveForm(page) {
   await dialog(page).getByRole('button', { name: 'Salvar compromisso' }).click();

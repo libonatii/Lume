@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { materialSteps } from '../../public/material-model.js';
-import { seedAccount, readAccount } from './library-helpers.js';
+import { seedAccount, readAccount, E2E_ORIGIN } from './library-helpers.js';
 import { createInitialState } from '../../public/domain.js';
 import { applyCourseImport, normalizePayload } from '../../public/import-domain.js';
 import { createAppointment, shiftDate } from '../../public/agenda-domain.js';
@@ -98,7 +98,7 @@ test('tarefa vinculada conclui a aula uma vez; subtarefa vale 10 XP uma vez e re
   await expect(page.getByRole('checkbox', { name: 'Reabrir tarefa Revisar Aula 1 com questões' })).toBeChecked();
   const completed = await readAccount(page);
   expect(completed.progress.filter((event) => !event.revertedAt)).toHaveLength(1);
-  const xp = async () => (await (await page.request.get('/api/xp', { headers: { origin: 'http://127.0.0.1:4187' } })).json()).summary.totalXP;
+  const xp = async () => (await (await page.request.get('/api/xp', { headers: { origin: E2E_ORIGIN } })).json()).summary.totalXP;
   expect(await xp()).toBe(110);
   await page.getByRole('checkbox', { name: 'Reabrir tarefa Revisar Aula 1 com questões' }).click();
   await expect(page.getByRole('checkbox', { name: 'Concluir tarefa Revisar Aula 1 com questões' })).not.toBeChecked();

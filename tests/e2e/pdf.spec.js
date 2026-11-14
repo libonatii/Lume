@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { createInitialState } from '../../public/domain.js';
 import { addSubject } from '../../public/subject-domain.js';
 import { penalPdf } from '../fixtures/sample-pdf.js';
-import { seedAccount, readAccount } from './library-helpers.js';
+import { seedAccount, readAccount, E2E_ORIGIN } from './library-helpers.js';
 
 function seeded() {
   return addSubject({ ...createInitialState(), onboarded: true }, { title: 'Processo Penal', keywords: ['inquerito', 'prisao preventiva'] }, 'penal');
@@ -68,17 +68,17 @@ test('concluir o PDF registra a leitura uma vez e excluir libera o arquivo', asy
   await expect(page.getByRole('status').getByText(/Leitura concluída: Apostila de Processo Penal/)).toBeVisible();
 
   await expect.poll(async () => {
-    const response = await page.request.get('/api/xp', { headers: { origin: 'http://127.0.0.1:4187' } });
+    const response = await page.request.get('/api/xp', { headers: { origin: E2E_ORIGIN } });
     return (await response.json()).summary.totalXP;
   }, { timeout: 15000 }).toBe(100);
 
-  const before = await (await page.request.get('/api/library/files', { headers: { origin: 'http://127.0.0.1:4187' } })).json();
+  const before = await (await page.request.get('/api/library/files', { headers: { origin: E2E_ORIGIN } })).json();
   expect(before.files).toBe(1);
   await dialog.getByRole('complementary', { name: 'Painel do documento' }).getByRole('tab', { name: 'Detalhes' }).click();
   await dialog.getByRole('button', { name: 'Excluir PDF' }).click();
   await dialog.getByRole('button', { name: 'Sim, excluir PDF' }).click();
   await expect.poll(async () => (await readAccount(page)).courses.length, { timeout: 15000 }).toBe(0);
-  const after = await (await page.request.get('/api/library/files', { headers: { origin: 'http://127.0.0.1:4187' } })).json();
+  const after = await (await page.request.get('/api/library/files', { headers: { origin: E2E_ORIGIN } })).json();
   expect(after).toMatchObject({ files: 0, used: 0 });
 });
 
