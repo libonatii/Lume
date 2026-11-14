@@ -49,7 +49,7 @@ O workflow:
 1. Confere se a tag bate com `companion/package.json` (falha cedo se não bater).
 2. Roda `npm ci` em `companion/` no Windows e no Linux (`ubuntu-latest`).
 3. Gera o instalador NSIS (`Lume-setup.exe`) e os pacotes Linux (`Lume.AppImage` e `Lume.deb`).
-4. Cria a release com notas automáticas e envia `.exe`, `.blockmap`, `latest.yml`, `.AppImage`, `.deb` e `latest-linux.yml`.
+4. Cria a release com notas automáticas e envia `.exe`, `.blockmap`, `.AppImage` e `.deb`.
 
 Também é possível disparar manualmente em *Actions → Companion release → Run
 workflow*, informando uma tag já existente.
@@ -87,6 +87,6 @@ Localmente, sem `PLAYWRIGHT_CHANNEL`, os testes usam o Chrome instalado.
 ## 6. Limites atuais
 
 - Windows x64 e Linux x64 (sem macOS).
-- Sem auto-update: cada versão é um instalador/pacote novo. Os arquivos `latest.yml` e `latest-linux.yml` já são gerados, então `electron-updater` pode ser adicionado depois.
+- Sem auto-update: cada versão é um instalador/pacote novo, e o app só avisa que há versão nova pela API de releases do GitHub (`companion/update.mjs`). Os arquivos `latest.yml` e `latest-linux.yml` **não** são gerados, porque o `electron-builder.yml` não tem bloco `publish`; para usar `electron-updater` depois, acrescente `publish: { provider: github }` e rode o build com `--publish never`.
 - `npm audit` acusa vulnerabilidades moderadas em dependências transitivas do
   `electron-builder`; nenhuma delas entra no app empacotado (são ferramentas de build).
