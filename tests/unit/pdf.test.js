@@ -242,15 +242,15 @@ test('envio de PDF: cabeçalho, limite por arquivo, cota reservada e órfãos', 
   await assert.rejects(readPdf(db, bucket, 'u1', 'arquivo-9999'), { code: 'file_not_found' });
 
   let usage = await storageUsage(db, 'u1');
-  assert.equal(usage.plan, 'free');
+  assert.equal(usage.plan, 'starter');
   assert.equal(usage.fileBytes, PDF_PLANS.free.fileBytes);
   assert.equal(usage.accountBytes, PDF_PLANS.free.accountBytes);
   assert.equal(usage.used, PDF_BYTES.byteLength);
 
-  // Cota cheia: simula o restante do gigabyte ocupado por outro arquivo.
+  // Cota cheia: simula o restante da faixa ocupado por outro arquivo.
   sqlite.prepare('INSERT INTO library_files (user_id,id,size,name,created_at) VALUES (?,?,?,?,?)').run('u1', 'ocupado-1234', PDF_PLANS.free.accountBytes - PDF_BYTES.byteLength, 'grande.pdf', new Date().toISOString());
   await assert.rejects(uploadPdf(db, bucket, 'u1', { fileId: 'arquivo-5678', bytes: PDF_BYTES }), { code: 'storage_full' });
-  sqlite.prepare("INSERT INTO storage_plans (user_id,plan,updated_at) VALUES ('u1','plus',?)").run(new Date().toISOString());
+  sqlite.prepare("INSERT INTO storage_plans (user_id,plan,updated_at) VALUES ('u1','creator',?)").run(new Date().toISOString());
   usage = await storageUsage(db, 'u1');
   assert.equal(usage.accountBytes, PDF_PLANS.plus.accountBytes);
   await uploadPdf(db, bucket, 'u1', { fileId: 'arquivo-5678', bytes: PDF_BYTES });

@@ -154,7 +154,7 @@ export default function Onboarding({ state, actions, libraryActions, go, notify,
       return;
     }
     if (picked.size > PDF_PLANS.free.fileBytes) {
-      setError(`O PDF tem ${formatBytes(picked.size)}; o limite inicial é ${formatBytes(PDF_PLANS.free.fileBytes)}.`);
+      setError(`O PDF tem ${formatBytes(picked.size)}; o limite por arquivo na faixa inicial é ${formatBytes(PDF_PLANS.free.fileBytes)}.`);
       return;
     }
     setPdfBusy(true);

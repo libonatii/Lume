@@ -3,6 +3,7 @@
 // título da janela derivam desta tabela.
 
 import { lazy } from 'react';
+import { LoadingScreen } from '../ui/ui.jsx';
 import { Login, Recovery } from '../features/account/Auth.jsx';
 import { Library } from '../features/library/Study.jsx';
 import { Home } from '../features/library/Today.jsx';
@@ -17,6 +18,7 @@ const personal = () => import('../features/settings/Personal.jsx');
 const plan = () => import('../features/plan/Plan.jsx');
 const Achievements = named(personal, 'Achievements');
 const Preferences = named(() => import('../features/settings/Settings.jsx'), 'Preferences');
+const StoragePage = named(() => import('../features/settings/StoragePanel.jsx'), 'StoragePage');
 const Schedule = named(plan, 'Schedule');
 const Friends = lazy(() => import('../features/social/Friends.jsx'));
 const Profile = lazy(() => import('../features/social/Profile.jsx'));
@@ -53,14 +55,7 @@ const ALIASES = { missoes: 'plano', roteiro: 'plano', historico: 'conquistas' };
 
 // Enquanto a sessão é verificada, o formulário não aparece: evita a impressão de estar deslogada.
 export function SessionCheck() {
-  return <div className="boot-stage">
-    <span className="boot-brand" aria-hidden="true">Lume</span>
-    <section className="boot-card" role="status" aria-busy="true">
-      <span className="boot-dots" aria-hidden="true"><i/><i/><i/></span>
-      <h1 className="headline">Verificando sua sessão</h1>
-      <p className="muted-text">Só um instante. Estamos conferindo seu acesso.</p>
-    </section>
-  </div>;
+  return <LoadingScreen/>;
 }
 
 // ctx: { model, state, open, go, notify, params, hash, authMode, setAuthMode, checkingSession }
@@ -94,7 +89,8 @@ const ROUTES = [
   // Perfil de uma amizade (#perfil?id=) não mostra as abas da própria conta.
   { id: 'perfil', title: 'Perfil', loading: 'panel', section: 'perfil', tab: 'Meu perfil', hideTabs: (ctx) => Boolean(ctx.params.get('id')), render: (ctx) => <Profile id={ctx.params.get('id') || ''} state={ctx.state} actions={ctx.model.settingsActions} account={ctx.model.account} notify={ctx.notify} go={ctx.go} xp={ctx.model.xp}/> },
   { id: 'conquistas', title: 'Conquistas', loading: 'cards', section: 'perfil', tab: 'Conquistas', render: (ctx) => <Achievements state={ctx.state} account={ctx.model.account} xp={ctx.model.xp}/> },
-  { id: 'configuracoes', title: 'Configurações', loading: 'panel', section: 'perfil', tab: 'Configurações', render: (ctx) => <Preferences state={ctx.state} actions={ctx.model.settingsActions} libraryActions={ctx.model.libraryActions} account={ctx.model.account} notify={ctx.notify} go={ctx.go} xp={ctx.model.xp} refreshXP={ctx.model.refreshXP} onPersonalize={() => ctx.go('inicio')}/> },
+  { id: 'armazenamento', title: 'Armazenamento', loading: 'panel', section: 'perfil', tab: 'Armazenamento', render: (ctx) => <StoragePage state={ctx.state} account={ctx.model.account} libraryActions={ctx.model.libraryActions} confirmSave={ctx.model.confirmSave} notify={ctx.notify} open={ctx.open} go={ctx.go}/> },
+  { id: 'configuracoes', title: 'Configurações', loading: 'panel', section: 'perfil', tab: 'Configurações', render: (ctx) => <Preferences state={ctx.state} actions={ctx.model.settingsActions} libraryActions={ctx.model.libraryActions} confirmSave={ctx.model.confirmSave} account={ctx.model.account} notify={ctx.notify} go={ctx.go} open={ctx.open} xp={ctx.model.xp} refreshXP={ctx.model.refreshXP} initialSection={ctx.params.get('secao') || ''} onPersonalize={() => ctx.go('inicio')}/> },
 
   { id: 'novidades', title: 'Novidades', render: (ctx) => <News go={ctx.go} focusId={ctx.params.get('id') || ''}/> },
   { id: 'aplicativo', title: 'Instalar aplicativo', render: (ctx) => <Companion account={ctx.model.account} notify={ctx.notify} go={ctx.go}/> },

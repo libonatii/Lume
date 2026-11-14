@@ -4,7 +4,8 @@ import { AppError } from '../errors.js';
 import { sanitizeProfileImage } from '../../public/domain.js';
 import { socialText, socialFileName, SOCIAL_POST_LIMIT, SOCIAL_COMMENT_LIMIT, SOCIAL_PDF_BYTES, SOCIAL_STORAGE_BYTES, SOCIAL_PAGE_SIZE } from '../../public/social-domain.js';
 import { detectImageType } from './media.js';
-import { isPdf } from './library-files.js';
+import { isPdf, storagePlan } from './library-files.js';
+import { formatBytes } from '../../public/pdf-domain.js';
 
 export class SocialError extends AppError {
   constructor(message, code = 'social_error', status = 400) { super(message, code, status); }
@@ -84,7 +85,7 @@ export async function listSocialPosts(db, userId, { cursor = '' } = {}) {
   return { posts, nextCursor: rows.length > SOCIAL_PAGE_SIZE ? `${last.created_at}|${last.id}` : null };
 }
 
-export async function createSocialPost(db, bucket, userId, input = {}, file = null, now = Date.now()) {
+export async function createSocialPost(db, bucket, userId, input = {}, file = null, now = Date.now(), config = null) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new SocialError('Publicação inválida.', 'invalid_post');
   const id = idOf(input.id);
   const previous = await db.first('SELECT user_id, ready FROM social_posts WHERE id=?', [id]);
@@ -114,13 +115,27 @@ export async function createSocialPost(db, bucket, userId, input = {}, file = nu
     attachment.key = `social/${idOf(userId)}/${id}.${attachment.ext}`;
   }
   if (!body && !attachment && !achievementId) throw new SocialError('Escreva algo ou escolha um anexo.', 'empty_post');
-  // Reserva atômica de cota; o post só entra no feed depois que o objeto existe.
-  const reserved = await db.run(`INSERT INTO social_posts
-    (id,user_id,body,kind,achievement_id,attachment_key,attachment_name,attachment_type,attachment_size,ready,created_at)
-    SELECT ?,?,?,?,?,?,?,?,?,0,? WHERE (SELECT COALESCE(SUM(attachment_size),0) FROM social_posts WHERE user_id=?) + ? <= ?
-    ON CONFLICT(id) DO NOTHING`,
-  [id, userId, body, kind, achievementId, attachment?.key || null, attachment?.name || null, attachment?.type || null, attachment?.size || 0, new Date(now).toISOString(), userId, attachment?.size || 0, SOCIAL_STORAGE_BYTES]);
-  if (!reserved) throw new SocialError('A publicação já está em envio ou os anexos atingiram 100 MB. Exclua publicações antigas com arquivos para liberar espaço.', 'post_not_reserved', 409);
+  // Reserva atômica de cota unificada (Biblioteca + Social); o post só entra no feed depois que o objeto existe.
+  let reserved;
+  if (attachment) {
+    const plan = await storagePlan(db, userId, config);
+    reserved = await db.run(`INSERT INTO social_posts
+      (id,user_id,body,kind,achievement_id,attachment_key,attachment_name,attachment_type,attachment_size,ready,created_at)
+      SELECT ?,?,?,?,?,?,?,?,?,0,? WHERE
+        (SELECT COALESCE(SUM(attachment_size),0) FROM social_posts WHERE user_id=?)
+        + (SELECT COALESCE(SUM(size),0) FROM library_files WHERE user_id=?)
+        + ? <= ?
+      ON CONFLICT(id) DO NOTHING`,
+    [id, userId, body, kind, achievementId, attachment.key, attachment.name, attachment.type, attachment.size, new Date(now).toISOString(), userId, userId, attachment.size, plan.accountBytes]);
+    if (!reserved) throw new SocialError(`O armazenamento da conta (${formatBytes(plan.accountBytes)}) não comporta este anexo. Exclua arquivos antigos para liberar espaço.`, 'post_not_reserved', 409);
+  } else {
+    reserved = await db.run(`INSERT INTO social_posts
+      (id,user_id,body,kind,achievement_id,attachment_key,attachment_name,attachment_type,attachment_size,ready,created_at)
+      VALUES (?,?,?,?,?,?,?,?,?,0,?)
+      ON CONFLICT(id) DO NOTHING`,
+    [id, userId, body, kind, achievementId, null, null, null, 0, new Date(now).toISOString()]);
+    if (!reserved) throw new SocialError('A publicação já está em envio. Aguarde um instante.', 'post_not_reserved', 409);
+  }
   try {
     if (attachment) await bucket.put(attachment.key, file.bytes, attachment.type);
     await db.run('UPDATE social_posts SET ready=1 WHERE id=? AND user_id=?', [id, userId]);

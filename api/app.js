@@ -14,11 +14,13 @@ import { progressRoutes } from './routes/progress.js';
 import { realtimeRoutes } from './routes/realtime.js';
 import { socialRoutes } from './routes/social.js';
 import { socialFeedRoutes } from './routes/social-feed.js';
+import { storageRoutes } from './routes/storage.js';
 
 export function buildRouter() {
   const router = createRouter();
   accountRoutes(router);
   libraryRoutes(router);
+  storageRoutes(router);
   socialRoutes(router);
   socialFeedRoutes(router);
   progressRoutes(router);

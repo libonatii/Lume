@@ -5,7 +5,7 @@ import {
   normalizeEmail, sessionCookie, validateEmail, validateName, validatePassword, verifyPassword,
 } from '../domain/auth.js';
 import { sendPasswordResetEmail } from '../domain/email.js';
-import { LIMITS } from '../config.js';
+import { LIMITS, isCreator } from '../config.js';
 import { empty, json } from '../http.js';
 import { publicUser, sessionTokenFrom, startSession } from '../session.js';
 import { checkHandle, ensureHandle, normalizeHandle } from '../domain/friend-requests.js';
@@ -18,11 +18,17 @@ function cookieOptions(url) {
   return { secure: url.protocol === 'https:' };
 }
 
+function sessionUser(user, config) {
+  if (!user) return null;
+  const base = publicUser(user);
+  return isCreator(user, config) ? { ...base, isCreator: true } : base;
+}
+
 export function accountRoutes(router) {
-  router.add('GET', '/api/me', { auth: 'optional' }, async ({ db, user }) => {
+  router.add('GET', '/api/me', { auth: 'optional' }, async ({ db, user, config }) => {
     if (user) await touchUserPresence(db, user.id);
     // 200 com user nulo evita ruído de erro no console de quem não está logado.
-    return json({ authenticated: Boolean(user), user: user ? publicUser(user) : null });
+    return json({ authenticated: Boolean(user), user: sessionUser(user, config) });
   });
 
   router.add('GET', '/api/handle/check', { auth: 'optional', rateLimit: { key: (ctx) => `handle-check|${ctx.clientIp}`, limit: 120, message: 'Muitas consultas. Aguarde um instante.', code: 'rate_limited' } },
@@ -65,7 +71,7 @@ export function accountRoutes(router) {
     const token = await startSession(ctx.db, id);
     await touchUserPresence(ctx.db, id);
     ctx.log('account_registered', { userId: id });
-    return json({ user: { id, name, email, createdAt } }, 201, { 'Set-Cookie': sessionCookie(token, cookieOptions(ctx.url)) });
+    return json({ user: sessionUser({ id, name, email, created_at: createdAt }, ctx.config) }, 201, { 'Set-Cookie': sessionCookie(token, cookieOptions(ctx.url)) });
   });
 
   router.add('POST', '/api/login', { origin: true, rateLimit: ATTEMPTS }, async (ctx) => {
@@ -81,7 +87,7 @@ export function accountRoutes(router) {
     const token = await startSession(ctx.db, row.id);
     await touchUserPresence(ctx.db, row.id);
     ctx.log('login_succeeded', { userId: row.id });
-    return json({ user: publicUser(row) }, 200, { 'Set-Cookie': sessionCookie(token, cookieOptions(ctx.url)) });
+    return json({ user: sessionUser(row, ctx.config) }, 200, { 'Set-Cookie': sessionCookie(token, cookieOptions(ctx.url)) });
   });
 
   router.add('POST', '/api/logout', { origin: true }, async (ctx) => {
