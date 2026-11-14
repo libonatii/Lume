@@ -5,6 +5,7 @@ import {
   sendMessage, unblockContact, unreadSummary, updateMessagePreferences, MESSAGE_WINDOW_LIMIT,
 } from '../domain/messages.js';
 import { acceptInvite, createInvite, listFriends, readFriendProfile, removeFriend, touchUserPresence } from '../domain/friends.js';
+import { cancelRequest, listRequests, respondRequest, searchByHandle, sendRequest, setHandle } from '../domain/friend-requests.js';
 import {
   cancelCollaborationInvite, createCollaborationInvite, listCollaborationInvites, respondCollaborationInvite,
 } from '../domain/collaboration.js';
@@ -35,6 +36,25 @@ export function socialRoutes(router) {
       const body = await ctx.json(LIMITS.tiny);
       return json(await acceptInvite(ctx.db, ctx.user.id, body.code));
     })
+    .add('GET', '/api/friends/requests', FRIENDS, async ({ db, user }) => json(await listRequests(db, user.id)))
+    .add('GET', '/api/friends/search', {
+      ...FRIENDS,
+      rateLimit: { key: (ctx) => `friends-search|${ctx.user.id}`, limit: 30, message: 'Muitas buscas em pouco tempo. Aguarde um instante.', code: 'rate_limited' },
+    }, async (ctx) => json(await searchByHandle(ctx.db, ctx.user.id, ctx.url.searchParams.get('handle'))))
+    .add('PUT', '/api/friends/handle', FRIENDS, async (ctx) =>
+      json(await setHandle(ctx.db, ctx.user.id, (await ctx.json(LIMITS.tiny)).handle)))
+    .add('POST', '/api/friends/requests', {
+      ...FRIENDS,
+      rateLimit: { key: (ctx) => `friends-request|${ctx.user.id}`, limit: 30, message: 'Muitas solicitações em pouco tempo. Aguarde um instante.', code: 'rate_limited' },
+    }, async (ctx) => {
+      const sent = await sendRequest(ctx.db, ctx.user.id, await ctx.json(LIMITS.tiny));
+      if (sent.toId) await announce(ctx.realtime, sent.toId, { type: 'friend_request', from: ctx.user.id }, ctx.log);
+      return json(sent, sent.status === 'sent' ? 201 : 200);
+    })
+    .add('POST', '/api/friends/requests/:requestId/respond', FRIENDS, async (ctx) =>
+      json(await respondRequest(ctx.db, ctx.user.id, ctx.params.requestId, await ctx.json(LIMITS.tiny))))
+    .add('DELETE', '/api/friends/requests/:requestId', FRIENDS, async ({ db, user, params }) =>
+      json(await cancelRequest(db, user.id, params.requestId)))
     .add('DELETE', '/api/friends/:friendId', FRIENDS, async ({ db, user, params }) =>
       json(await removeFriend(db, user.id, params.friendId)));
 
