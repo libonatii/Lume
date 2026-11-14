@@ -210,3 +210,30 @@ test('mensagem enviada chega à conversa aberta da outra pessoa sem recarregar',
   expect(posted.status()).toBe(201);
   await expect(guestPage.getByRole('region', { name: 'Conversa selecionada' }).getByText('Chegou sem recarregar?')).toBeVisible({ timeout: 3000 });
 });
+
+test('conversa longa mantém a altura da tela e rola por dentro até a última mensagem', { tag: '@celular' }, async ({ page, browser }, testInfo) => {
+  const baseURL = testInfo.project.use.baseURL;
+  const code = await makeFriends(page, page.request, baseURL, 'Ana Rolagem', 'msg-r-a');
+  const guestContext = await browser.newContext({ baseURL });
+  const guestPage = await guestContext.newPage();
+  await register(guestPage.request, baseURL, 'Bia Rolagem', 'msg-r-b');
+  await markOnboarded(guestPage.request, baseURL);
+  expect((await guestPage.request.post('/api/friends/accept', { data: { code }, headers: { origin: baseURL } })).status()).toBe(200);
+  const anaId = (await (await guestPage.request.get('/api/friends', { headers: { origin: baseURL } })).json()).friends.find((item) => item.name === 'Ana Rolagem').id;
+  for (let index = 1; index <= 40; index += 1) {
+    const posted = await guestPage.request.post(`/api/messages/${anaId}`, { data: { body: `Mensagem número ${index} para encher a conversa e forçar a rolagem.` }, headers: { origin: baseURL } });
+    expect(posted.status()).toBe(201);
+  }
+
+  await page.goto('/#mensagens');
+  await page.getByRole('button', { name: /Bia Rolagem/ }).first().click();
+  const list = page.getByRole('log');
+  await expect(list.getByText('Mensagem número 40')).toBeVisible();
+  const metrics = await page.evaluate(() => {
+    const node = document.querySelector('.message-list');
+    return { overflow: node.scrollHeight > node.clientHeight + 40, atEnd: node.scrollHeight - node.scrollTop - node.clientHeight < 4, layout: document.querySelector('.messages-layout').getBoundingClientRect().height, viewport: innerHeight };
+  });
+  expect(metrics.overflow).toBe(true);
+  expect(metrics.atEnd).toBe(true);
+  expect(metrics.layout).toBeLessThanOrEqual(Math.max(740, metrics.viewport));
+});

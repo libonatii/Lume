@@ -40,7 +40,9 @@ export default function Messages({ account, state, notify, go, contactId = '' })
   const [busy, setBusy] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [notificationsOverride, setNotificationsOverride] = useState(null);
-  const threadEnd = useRef(null);
+  const listRef = useRef(null);
+  const stuck = useRef(true);
+  const shownFor = useRef('');
 
   // Lista, conversa aberta e preferências vêm do cache compartilhado; a lista e
   // a conversa se atualizam a cada 10 s e 5 s (60 s com o canal em tempo real aberto, só como reserva).
@@ -71,9 +73,18 @@ export default function Messages({ account, state, notify, go, contactId = '' })
     });
     return () => { alive = false; };
   }, [account, selected, lastMessageId, Boolean(threadResource.data)]);
+  // A lista rola por dentro, com altura fixa. Desce até a última mensagem ao abrir a
+  // conversa, ao enviar ou quando a pessoa já estava no fim; quem está lendo o
+  // histórico não é puxado para baixo por uma mensagem que chega.
+  const messageCount = thread?.messages?.length || 0;
+  const lastFromMe = Boolean(thread?.messages?.at(-1)?.fromMe);
   useEffect(() => {
-    threadEnd.current?.scrollIntoView({ block: 'nearest' });
-  }, [thread?.messages?.length, selected]);
+    const node = listRef.current;
+    if (!node) return;
+    const opening = shownFor.current !== selected;
+    shownFor.current = selected;
+    if (opening || lastFromMe || stuck.current) node.scrollTop = node.scrollHeight;
+  }, [messageCount, lastFromMe, selected, Boolean(thread)]);
 
   async function send(event) {
     event.preventDefault();
@@ -191,7 +202,7 @@ export default function Messages({ account, state, notify, go, contactId = '' })
             </div>
             <Button secondary onClick={toggleBlock} disabled={busy}>{thread.blockedByMe ? 'Desbloquear' : 'Bloquear'}</Button>
           </header>
-          <div className="message-list" role="log" aria-live="polite" aria-label={`Mensagens com ${thread.friend.name}`}>
+          <div className="message-list" ref={listRef} onScroll={(event) => { const node = event.currentTarget; stuck.current = node.scrollHeight - node.scrollTop - node.clientHeight < 80; }} tabIndex={0} role="log" aria-live="polite" aria-label={`Mensagens com ${thread.friend.name}`}>
             {thread.messages.length === 0 && <p className="messages-placeholder-copy">Nenhuma mensagem ainda. Diga olá ou compartilhe um material.</p>}
             {thread.messages.map((message) => {
               const day = new Date(message.at).toDateString();
@@ -212,7 +223,6 @@ export default function Messages({ account, state, notify, go, contactId = '' })
                 </motion.div>
               </div>;
             })}
-            <div ref={threadEnd}/>
           </div>
           {!thread.canMessage
             ? <p className="inline-note"><Icon name="lock"/><span>{thread.blockedByMe ? 'Desbloqueie para voltar a enviar mensagens.' : 'A outra pessoa precisa desbloquear para a conversa continuar.'}</span></p>

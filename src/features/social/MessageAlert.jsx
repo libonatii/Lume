@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { refreshResource, useResource } from '../../lib/resources.js';
+import { api } from '../../lib/api.js';
+import { mutateResource, refreshResource, useResource } from '../../lib/resources.js';
 import { messageAlert } from '../../../public/social-domain.js';
 import { useRealtime, useRealtimeStatus } from '../../lib/realtime.js';
 import { parseHash } from '../../app/routes.jsx';
@@ -45,22 +46,29 @@ export default function MessageAlert({ account, quiet = false }) {
     return () => { window.removeEventListener('focus', check); document.removeEventListener('visibilitychange', check); };
   }, [account?.id]);
 
+  // Cada leitura do contador com mensagens não lidas confere quem escreveu. Olhar só
+  // quando o número sobe perdia avisos: se a leitura de uma conversa e a chegada da
+  // próxima se cruzavam, o contador ficava em 1 e a mensagem nova passava sem aviso.
+  // O conjunto `seen` garante um aviso por mensagem. As que já estavam não lidas ao
+  // abrir o Lume entram em `seen` sem avisar.
   useEffect(() => {
     if (count === null) return;
-    const before = previous.current;
+    const first = previous.current === null;
     previous.current = count;
-    if (before === null || count <= before) return;
+    if (count === 0) return;
     let alive = true;
-    refreshResource('/api/messages').then((result) => {
+    // Leitura própria: uma consulta já em andamento no cache pode ter começado antes da
+    // mensagem chegar e devolver a lista sem ela.
+    api('/api/messages').then((result) => {
       if (!alive || !result?.ok) return;
+      mutateResource('/api/messages', result.data);
       const conversations = result.data?.conversations || [];
-      const next = messageAlert(conversations, { seen: seen.current, openContactId: openContactId(), notifications: notifications && !quietRef.current });
-      // Tudo o que já está não lido conta como visto: um aviso por chegada, nunca repetido.
+      const next = first ? null : messageAlert(conversations, { seen: seen.current, openContactId: openContactId(), notifications: notifications && !quietRef.current });
       for (const item of conversations) if (item.unread > 0 && item.lastMessage) seen.current.add(item.lastMessage.id);
       if (next) { setAlert(next); playMessagePing(); }
     });
     return () => { alive = false; };
-  }, [count, notifications]);
+  }, [unread.updatedAt, notifications]);
 
   // Desligar as notificações ou abrir a conversa recolhe o aviso.
   useEffect(() => { if (!notifications) setAlert(null); }, [notifications]);
