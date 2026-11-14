@@ -37,7 +37,6 @@ function formatBioLines(bio, fallbackRhythm) {
 
 export default function Profile({ id, handle = '', state, actions, account, notify, go, xp }) {
   const [editing, setEditing] = useState(false);
-  const [tab, setTab] = useState('perfil');
   const [uploadError, setUploadError] = useState('');
   const [bioDraft, setBioDraft] = useState(() => state.profile?.bio || '');
   const avatarInputRef = useRef(null);
@@ -58,7 +57,7 @@ export default function Profile({ id, handle = '', state, actions, account, noti
     setBioDraft(state.profile?.bio || '');
   }, [state.profile?.bio]);
 
-  useEffect(() => { setEditing(false); setTab('perfil'); }, [id, handle]);
+  useEffect(() => { setEditing(false); }, [id, handle]);
 
   // Aba Amigos: a lista do próprio perfil usa o id da conta; a de outra pessoa, o id ou o @usuário.
   const friendsTarget = isSelf ? account?.id : (id || (handle ? `@${handle}` : ''));
@@ -295,19 +294,12 @@ export default function Profile({ id, handle = '', state, actions, account, noti
       </motion.div>}
     </section>
 
-    {friendsPath && <div className="profile-tabs" role="tablist" aria-label="Seções do perfil">
-      <button type="button" role="tab" aria-selected={tab === 'perfil'} className={`filter-btn ${tab === 'perfil' ? 'is-active' : ''}`} onClick={() => setTab('perfil')}>Perfil</button>
-      <button type="button" role="tab" aria-selected={tab === 'amigos'} className={`filter-btn ${tab === 'amigos' ? 'is-active' : ''}`} onClick={() => setTab('amigos')}><Icon name="users"/>Amigos</button>
-    </div>}
-
-    {tab === 'amigos' && friendsPath && <ProfileFriends path={friendsPath} isSelf={isSelf} name={user.name} go={go}/>}
-
-    {tab === 'perfil' && nothingShared && <section className="card-surface settings-panel">
+    {nothingShared && <section className="card-surface settings-panel">
       <p className="muted-text">Esta pessoa ainda não compartilhou nada do estudo com amigos.</p>
     </section>}
 
     {/* Corpo em 2 colunas estilo Steam: Esquerda (Vitrines + Atividade Recente), Direita (Status + Conquistas + Links) */}
-    {tab === 'perfil' && <div className="steam-body-grid">
+    <div className="steam-body-grid">
       <div className="steam-main-column">
         {/* Vitrine 1: Colecionador de Estudos */}
         <section className="steam-showcase" aria-labelledby="showcase-collector-title">
@@ -446,8 +438,9 @@ export default function Profile({ id, handle = '', state, actions, account, noti
             <strong>{queue.length}</strong>
           </div>
         </nav>
+        {friendsPath && <ProfileFriends path={friendsPath} isSelf={isSelf} name={user.name} go={go}/>}
       </aside>
-    </div>}
+    </div>
   </div>;
 }
 
@@ -482,20 +475,19 @@ function AddFriendButton({ person, notify, onChanged }) {
   </>;
 }
 
-// Aba Amigos: só aparecem amigos que têm perfil público (a regra é do servidor).
+// Amigos na coluna lateral do perfil: só aparecem amigos que têm perfil público (regra do servidor).
 function ProfileFriends({ path, isSelf, name, go }) {
   const resource = useResource(path);
   const friends = resource.data?.friends;
-  return <section className="card-surface profile-friends" aria-labelledby="profile-friends-title">
-    <div className="social-panel-heading">
-      <h2 id="profile-friends-title" className="title"><Icon name="users"/>Amigos</h2>
-      {friends && <span className="social-count">{friends.length}</span>}
+  return <section className="steam-side-section profile-friends" aria-labelledby="profile-friends-title">
+    <div className="steam-side-head">
+      <h2 id="profile-friends-title" className="steam-side-title">Amigos</h2>
+      {friends && <span className="steam-side-count">{friends.length}</span>}
     </div>
-    <p className="quiet-note">{isSelf ? 'Quem vê o seu perfil enxerga só os amigos que também têm perfil público.' : `Amigos de ${name} que têm perfil público.`}</p>
-    {!resource.data && !resource.error && <Skeleton label="Carregando amigos…" rows={3}/>}
+    {!resource.data && !resource.error && <Skeleton label="Carregando amigos…" rows={2}/>}
     {resource.error && !resource.data && <p className="form-error" role="alert">{resource.error}</p>}
-    {friends?.length === 0 && <p className="muted-text">Nenhum amigo com perfil público para mostrar.</p>}
-    {friends?.length > 0 && <ul className="profile-friend-grid">
+    {friends?.length === 0 && <p className="quiet-note">{isSelf ? 'Nenhum amigo com perfil público para mostrar.' : `${name} não tem amigos com perfil público para mostrar.`}</p>}
+    {friends?.length > 0 && <ul className="profile-friend-list">
       {friends.map((friend) => <li key={friend.id}>
         <button type="button" className="social-friend-profile" {...warmProfileProps(friend)} onClick={() => go(friend.handle ? `perfil?u=${friend.handle}` : `perfil?id=${encodeURIComponent(friend.id)}`)} aria-label={`Ver perfil de ${friend.name}`}>
           <SocialAvatar person={friend}/>
@@ -503,5 +495,6 @@ function ProfileFriends({ path, isSelf, name, go }) {
         </button>
       </li>)}
     </ul>}
+    {isSelf && <p className="quiet-note">Só aparecem amigos com perfil público.</p>}
   </section>;
 }
