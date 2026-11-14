@@ -48,7 +48,10 @@ export default function Profile({ id, handle = '', state, actions, account, noti
   const ownHandle = own.data?.handle || '';
   const ownReady = !account || own.data !== undefined || Boolean(own.error);
   const byHandle = Boolean(handle) && !id;
-  const isSelf = byHandle ? Boolean(account && ownReady && handle === ownHandle) : (!id || Boolean(account && id === account.id));
+  // Pelo @usuário, o servidor também avisa se é a própria conta (resposta `self`).
+  const [selfByServer, setSelfByServer] = useState(false);
+  useEffect(() => { setSelfByServer(false); }, [handle]);
+  const isSelf = byHandle ? Boolean(account && ((ownReady && handle === ownHandle) || selfByServer)) : (!id || Boolean(account && id === account.id));
 
   useEffect(() => {
     setBioDraft(state.profile?.bio || '');
@@ -59,17 +62,17 @@ export default function Profile({ id, handle = '', state, actions, account, noti
     setProfile(null);
     setEditing(false);
     if (isSelf || (!id && !handle)) return undefined;
-    if (byHandle && !ownReady) return undefined;
     let alive = true;
     (async () => {
       const result = await api(`/api/profile/${byHandle ? `@${encodeURIComponent(handle)}` : encodeURIComponent(id)}`);
       if (!alive) return;
       if (!result.ok) { setError(apiError(result)); return; }
+      if (result.data.self) { setSelfByServer(true); return; }
       if (!result.data.profile) { setError('Não foi possível abrir este perfil agora.'); return; }
       setProfile(result.data.profile);
     })().catch(() => { if (alive) setError('Não foi possível abrir este perfil agora.'); });
     return () => { alive = false; };
-  }, [id, handle, byHandle, isSelf, ownReady]);
+  }, [id, handle, byHandle, isSelf]);
 
   // Endereço limpo do perfil: lumeacademy.site/@usuario.
   const addressHandle = isSelf ? ownHandle : profile?.user?.handle;

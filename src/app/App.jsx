@@ -45,7 +45,17 @@ export default function App() {
     : requested && requested !== 'login' && ROUTE_BY_ID.has(requested) ? requested : 'hoje';
   const checkingSession = model.accountStatus === 'checking' && !signedIn && !model.preview;
   const previousRoute = useRef(null);
-  const go = useCallback(destination => { location.hash = destination; }, []);
+  const go = useCallback(destination => {
+    // Perfil pelo @usuário: o endereço vira /@usuario no clique, sem esperar os dados.
+    const profile = /^perfil\?u=([A-Za-z0-9._]{3,24})$/.exec(destination);
+    if (profile) {
+      history.pushState(null, '', `/@${profile[1].toLowerCase()}`);
+      setHash(routeHash());
+      setModal(null);
+      return;
+    }
+    location.hash = destination;
+  }, []);
   // Leitura de curso enviada pela extensão: abre a revisão da importação.
   const captureReady = useRef(false);
   captureReady.current = signedIn || Boolean(model.preview);

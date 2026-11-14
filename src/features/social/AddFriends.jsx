@@ -135,10 +135,10 @@ export default function AddFriends({ account, notify, go }) {
       <PersonRow person={found.user}>
         {found.status === 'none' && <Button onClick={sendRequest} disabled={busy}>Enviar solicitação</Button>}
         {found.status === 'sent' && <Button secondary disabled>Solicitação enviada</Button>}
-        {found.status === 'friends' && <Button secondary onClick={() => go(`perfil?id=${encodeURIComponent(found.user.id)}`)}>Já são amigos</Button>}
+        {found.status === 'friends' && <Button secondary onClick={() => go(found.user.handle ? `perfil?u=${found.user.handle}` : `perfil?id=${encodeURIComponent(found.user.id)}`)}>Já são amigos</Button>}
         {found.status === 'received' && <Button onClick={() => respond({ id: found.requestId, user: found.user }, 'accept')} disabled={busy}>Aceitar</Button>}
         {found.status === 'self' && <span className="quiet-note">Esse é você.</span>}
-        {found.publicProfile && found.status !== 'friends' && found.status !== 'self' && <Button secondary onClick={() => go(`perfil?id=${encodeURIComponent(found.user.id)}`)}>Ver perfil</Button>}
+        {found.publicProfile && found.status !== 'friends' && found.status !== 'self' && <Button secondary onClick={() => go(found.user.handle ? `perfil?u=${found.user.handle}` : `perfil?id=${encodeURIComponent(found.user.id)}`)}>Ver perfil</Button>}
       </PersonRow>
     </ul>}
     {found?.status === 'none' && <p className="addfriend-note"><Icon name="lock"/>A amizade começa quando a outra pessoa aceita.</p>}

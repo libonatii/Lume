@@ -185,12 +185,13 @@ async function buildFriendActivity(db, row, companion, now) {
 export async function listFriends(db, userId, now = Date.now()) {
   if (!userId) throw new FriendsError('Entre na sua conta para ver seus amigos.', 'unauthenticated', 401);
   const friends = await db.all(
-    `SELECT u.id, u.name, f.created_at AS since,
+    `SELECT u.id, u.name, f.created_at AS since, uh.handle AS handle,
             up.last_seen_at AS last_seen_at,
             ad.data AS account_doc
        FROM friendships f
        JOIN users u ON u.id = f.friend_id
        LEFT JOIN user_presence up ON up.user_id = u.id
+       LEFT JOIN user_handles uh ON uh.user_id = u.id
        LEFT JOIN account_documents ad ON ad.user_id = u.id
       WHERE f.user_id = ?
       ORDER BY u.name COLLATE NOCASE`,
@@ -214,6 +215,7 @@ export async function listFriends(db, userId, now = Date.now()) {
   const friendItems = await Promise.all(friends.map(async (row) => ({
     id: row.id,
     name: row.name,
+    handle: row.handle || null,
     avatar: sanitizeProfileImage(parseJson(row.account_doc)?.profile?.avatar),
     since: row.since,
     activity: await buildFriendActivity(db, row, companions.get(row.id) || null, now),
@@ -263,11 +265,20 @@ export function friendshipPolicy() {
 // e passa pelas escolhas de compartilhamento de quem é visto (buildProfile).
 export async function readFriendProfile(db, viewerId, friendId) {
   if (!friendId) throw new FriendsError('Perfil não encontrado.', 'not_found', 404);
-  const linked = await db.first('SELECT 1 AS linked FROM friendships WHERE user_id = ? AND friend_id = ?', [viewerId, friendId]);
-  const target = await db.first('SELECT id, name FROM users WHERE id = ?', [friendId]);
-  if (!target) throw new FriendsError('Perfil não encontrado.', 'not_found', 404);
   const { readStoredLibrary } = await import('./library-store.js');
-  const row = await readStoredLibrary(db, friendId);
+  // Cada consulta ao D1 é uma ida e volta à rede: as independentes rodam juntas.
+  const [linked, target, row, handle, validated, blockedRow] = await Promise.all([
+    db.first('SELECT 1 AS linked FROM friendships WHERE user_id = ? AND friend_id = ?', [viewerId, friendId]),
+    db.first('SELECT id, name FROM users WHERE id = ?', [friendId]),
+    readStoredLibrary(db, friendId),
+    db.first('SELECT handle FROM user_handles WHERE user_id = ?', [friendId]),
+    validatedProfile(db, friendId),
+    db.first(
+      'SELECT 1 AS ok FROM contact_blocks WHERE (user_id = ? AND blocked_id = ?) OR (user_id = ? AND blocked_id = ?)',
+      [viewerId, friendId, friendId, viewerId],
+    ),
+  ]);
+  if (!target) throw new FriendsError('Perfil não encontrado.', 'not_found', 404);
   let state = createInitialState();
   if (row?.state) {
     state = row.state;
@@ -275,17 +286,13 @@ export async function readFriendProfile(db, viewerId, friendId) {
   // Quem não é amigo só abre o perfil se a pessoa ligou "Perfil público" (opt-in);
   // as escolhas de compartilhamento continuam valendo nos dois casos.
   const isPublic = normalizeSharing(state.preferences?.sharing).public;
-  const blocked = !linked && await db.first(
-    'SELECT 1 AS ok FROM contact_blocks WHERE (user_id = ? AND blocked_id = ?) OR (user_id = ? AND blocked_id = ?)',
-    [viewerId, friendId, friendId, viewerId],
-  );
+  const blocked = !linked && blockedRow;
   if (!linked && (!isPublic || blocked)) throw new FriendsError('Este perfil é privado. Só amigos podem abri-lo.', 'not_friends', 403);
-  const handle = await db.first('SELECT handle FROM user_handles WHERE user_id = ?', [friendId]);
   return {
     user: { id: target.id, name: target.name, handle: handle?.handle || null },
     viewer: linked ? 'friend' : 'public',
     updatedAt: row?.updatedAt ?? null,
-    ...buildProfile(state, { validated: await validatedProfile(db, friendId) }),
+    ...buildProfile(state, { validated }),
   };
 }
 

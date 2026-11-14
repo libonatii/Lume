@@ -127,9 +127,9 @@ async function relation(db, userId, otherId) {
 // Perfil público vem ligado (preferences.sharing.public); desligado, a pessoa não
 // aparece na busca por @usuário e só amigos abrem o perfil.
 async function isPublicProfile(db, userId) {
-  const { readStoredLibrary } = await import('./library-store.js');
-  const row = await readStoredLibrary(db, userId);
-  return normalizeSharing(row?.state?.preferences?.sharing).public;
+  // Só a preferência: não precisa montar a biblioteca inteira para isso.
+  const row = await db.first('SELECT data FROM account_documents WHERE user_id = ?', [userId]);
+  return normalizeSharing(parseJson(row?.data)?.preferences?.sharing).public;
 }
 
 export async function searchByHandle(db, userId, raw) {

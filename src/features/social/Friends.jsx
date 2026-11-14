@@ -101,7 +101,7 @@ export default function Friends({ account, state, xp, inviteCode = '', notify, g
             {data?.friends.length === 0 && <p className="social-sidebar-empty">Ninguém por aqui ainda. Um convite já começa a lista.</p>}
             {data?.friends.length > 0 && <ul className="social-friend-list">
               {data.friends.map(friend => <li key={friend.id}>
-                <button type="button" className="social-friend-profile" onClick={() => go(`perfil?id=${encodeURIComponent(friend.id)}`)} aria-label={`Ver perfil de ${friend.name}`}>
+                <button type="button" className="social-friend-profile" onClick={() => go(friend.handle ? `perfil?u=${friend.handle}` : `perfil?id=${encodeURIComponent(friend.id)}`)} aria-label={`Ver perfil de ${friend.name}`}>
                   <SocialAvatar person={friend}/><span><strong>{friend.name}</strong><small>Amigos desde {new Date(friend.since).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</small></span>
                 </button>
                 <button type="button" className="icon-button" onClick={() => go(`mensagens?com=${encodeURIComponent(friend.id)}`)} aria-label={`Conversar com ${friend.name}`} title="Enviar mensagem"><Icon name="message"/></button>
