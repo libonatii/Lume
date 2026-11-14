@@ -27,7 +27,24 @@ import App from '../app/App.jsx';
   </head>
   <body>
     <a class="skip-link" href="#main">Pular para o conteúdo</a>
-    <div id="app"><App client:only="react"><p slot="fallback" class="loading-screen">Preparando seu espaço…</p></App></div>
+    <div id="app">
+      <App client:only="react">
+        <div slot="fallback" class="loading-screen" role="status" aria-busy="true" aria-label="Carregando">
+          <div class="loading-stage" aria-hidden="true">
+            <svg class="loading-constellation" viewBox="0 0 160 88" focusable="false">
+              <polyline points="20,64 54,40 86,58 128,28" pathLength="1" class="loading-trail-base"></polyline>
+              <polyline points="20,64 54,40 86,58 128,28" pathLength="1" class="loading-trail-glow"></polyline>
+              <circle cx="20" cy="64" r="2.6" class="loading-node loading-node-1"></circle>
+              <circle cx="54" cy="40" r="2.6" class="loading-node loading-node-2"></circle>
+              <circle cx="86" cy="58" r="2.6" class="loading-node loading-node-3"></circle>
+              <circle cx="128" cy="28" r="20" class="loading-star-halo"></circle>
+              <path d="M12 0 L14.3 9.7 L24 12 L14.3 14.3 L12 24 L9.7 14.3 L0 12 L9.7 9.7 Z" class="loading-star" transform="translate(113 13) scale(1.25)"></path>
+            </svg>
+            <div class="loading-progress"><span class="loading-progress-bar"></span></div>
+          </div>
+        </div>
+      </App>
+    </div>
     <noscript>Ative JavaScript para acessar sua biblioteca e guardar seu progresso.</noscript>
   </body>
 </html>

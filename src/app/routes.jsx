@@ -3,6 +3,7 @@
 // título da janela derivam desta tabela.
 
 import { lazy } from 'react';
+import { LoadingScreen } from '../ui/ui.jsx';
 import { Login, Recovery } from '../features/account/Auth.jsx';
 import { Library } from '../features/library/Study.jsx';
 import { Home } from '../features/library/Today.jsx';
@@ -52,14 +53,7 @@ const ALIASES = { missoes: 'plano', roteiro: 'plano', historico: 'conquistas' };
 
 // Enquanto a sessão é verificada, o formulário não aparece: evita a impressão de estar deslogada.
 export function SessionCheck() {
-  return <div className="boot-stage">
-    <span className="boot-brand" aria-hidden="true">Lume</span>
-    <section className="boot-card" role="status" aria-busy="true">
-      <span className="boot-dots" aria-hidden="true"><i/><i/><i/></span>
-      <h1 className="headline">Verificando sua sessão</h1>
-      <p className="muted-text">Só um instante. Estamos conferindo seu acesso.</p>
-    </section>
-  </div>;
+  return <LoadingScreen/>;
 }
 
 // ctx: { model, state, open, go, notify, params, hash, authMode, setAuthMode, checkingSession }

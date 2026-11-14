@@ -213,66 +213,6 @@ body {
 }
 
 
-/* Tela de carregamento: cartão com duas camadas atrás e três pontos. */
-.boot-stage {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  display: grid;
-  place-items: center;
-  padding: var(--space-4, 1rem);
-  background: var(--bg);
-}
-.boot-brand {
-  position: absolute;
-  top: clamp(1rem, 3vw, 2rem);
-  left: clamp(1.2rem, 4vw, 3rem);
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 1.6rem;
-  letter-spacing: -0.02em;
-  color: var(--text);
-}
-.boot-card {
-  --boot-ring: var(--lume);
-  position: relative;
-  width: min(30rem, 100%);
-  display: grid;
-  justify-items: center;
-  gap: 0.9rem;
-  padding: clamp(2rem, 5vw, 3rem) clamp(1.4rem, 4vw, 2.4rem);
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--border);
-  background: var(--surface);
-  text-align: center;
-  isolation: isolate;
-}
-.boot-card .headline { margin: 0; }
-.boot-card .muted-text { margin: 0; }
-.boot-card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  border: 1px solid color-mix(in srgb, var(--boot-ring) 22%, transparent);
-  transform: translate(-1.1rem, -0.9rem);
-  box-shadow: -1.1rem -0.9rem 0 -1px color-mix(in srgb, var(--boot-ring) 8%, transparent);
-}
-.boot-dots { display: inline-flex; gap: 0.5rem; }
-.boot-dots i {
-  width: 0.6rem;
-  height: 0.6rem;
-  border-radius: 50%;
-  background: var(--boot-ring);
-  animation: boot-dot 1.2s ease-in-out infinite;
-}
-.boot-dots i:nth-child(2) { animation-delay: 0.15s; }
-.boot-dots i:nth-child(3) { animation-delay: 0.3s; }
-@keyframes boot-dot {
-  0%, 60%, 100% { opacity: 0.35; transform: translateY(0); }
-  30% { opacity: 1; transform: translateY(-4px); }
-}
 .text-link,
 .text-button.accent {
   color: var(--lume);

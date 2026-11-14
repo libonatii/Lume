@@ -78,6 +78,28 @@ export function Logo({ size = 24 }) {
   return <Star size={size} className="logo-mark"/>;
 }
 
+const LOADING_POINTS = [[20, 64], [54, 40], [86, 58], [128, 28]];
+
+// Tela de carregamento: constelação com a estrela da marca e barra de progresso, sem texto visível.
+export function LoadingScreen() {
+  const polyline = LOADING_POINTS.map((point) => point.join(',')).join(' ');
+  const [sx, sy] = LOADING_POINTS[LOADING_POINTS.length - 1];
+  return <div className="loading-screen" role="status" aria-busy="true" aria-label="Carregando">
+    <div className="loading-stage" aria-hidden="true">
+      <svg className="loading-constellation" viewBox="0 0 160 88" focusable="false">
+        <polyline points={polyline} pathLength="1" className="loading-trail-base"/>
+        <polyline points={polyline} pathLength="1" className="loading-trail-glow"/>
+        {LOADING_POINTS.slice(0, -1).map(([cx, cy], index) => (
+          <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="2.6" className={`loading-node loading-node-${index + 1}`}/>
+        ))}
+        <circle cx={sx} cy={sy} r="20" className="loading-star-halo"/>
+        <path d={STAR_PATH} className="loading-star" transform={`translate(${sx - 15} ${sy - 15}) scale(1.25)`}/>
+      </svg>
+      <div className="loading-progress"><span className="loading-progress-bar"/></div>
+    </div>
+  </div>;
+}
+
 // Capa de material sem foto: uma pequena constelação sobre a malha de pontos.
 // Cada tema (`art`) tem a sua forma, para cartões vizinhos não parecerem iguais.
 const COVER_SHAPES = {
