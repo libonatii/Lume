@@ -308,6 +308,6 @@ test('arrastar no mês move o dia e remove o horário', async ({ page, isMobile 
   await page.mouse.down();
   await page.mouse.move(target.x + 40, target.y + 40, { steps: 12 });
   await page.mouse.up();
-  const saved = await readAccount(page);
-  expect(saved.agenda[0]).toEqual(expect.objectContaining({ date: '2026-11-18', endDate: '2026-11-18', start: '', end: '' }));
+  await expect.poll(async () => (await readAccount(page)).agenda[0], { timeout: 15000 })
+    .toEqual(expect.objectContaining({ date: '2026-11-18', endDate: '2026-11-18', start: '', end: '' }));
 });

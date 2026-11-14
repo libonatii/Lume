@@ -92,8 +92,9 @@ test('subtarefas são renomeadas e reordenadas pelo teclado e arrastando, sem XP
   await page.mouse.up();
   await expect(page.locator('.subtask-list li').last()).toContainText('Ler aula 6');
 
+  await expect.poll(async () => (await readAccount(page)).tasks[0].subtasks.map((item) => item.title), { timeout: 15000 })
+    .toEqual(['Ler aula 8', 'Ler aula 7 e fazer resumo', 'Ler aula 6']);
   const saved = await readAccount(page);
-  expect(saved.tasks[0].subtasks.map((item) => item.title)).toEqual(['Ler aula 8', 'Ler aula 7 e fazer resumo', 'Ler aula 6']);
   expect(saved.progress).toEqual([]);
   await page.reload();
   await expect(page.locator('.subtask-list li').first()).toContainText('Ler aula 8');
